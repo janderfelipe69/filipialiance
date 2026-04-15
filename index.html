@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poké Alliance • Filipi • Server Moon</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060d1a;
+    --bg2: #0b1728;
+    --card: #0e1e35;
+    --border: #1a3155;
+    --gold: #c9a227;
+    --gold2: #e8c547;
+    --red: #e03535;
+    --yellow: #f0c040;
+    --green: #25d366;
+    --blue: #4a90d9;
+    --text: #d4e4f7;
+    --muted: #6b8cad;
+    --white: #ffffff;
+
+    --bug: #92bc2c;
+    --dark: #595761;
+    --dragon: #0c69c8;
+    --electric: #f2d94e;
+    --fairy: #ee90e6;
+    --fighting: #d3425f;
+    --fire: #fba54c;
+    --flying: #89aae3;
+    --ghost: #5f6dbc;
+    --grass: #5fbd58;
+    --ground: #da7c4d;
+    --ice: #75d0c1;
+    --normal: #a0a29f;
+    --poison: #b763cf;
+    --psychic: #fa8581;
+    --rock: #c9bb8a;
+    --steel: #5695a3;
+    --water: #539ddf;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* STARS */
+  .stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle var(--d, 3s) infinite ease-in-out;
+    opacity: 0;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.8); }
+    50% { opacity: var(--o, 0.6); transform: scale(1.2); }
+  }
+
+  /* FLOATING BUTTONS */
+  .float-bar {
+    position: fixed;
+    right: 18px;
+    bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 999;
+  }
+  .float-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    position: relative;
+  }
+  .float-btn:hover { transform: scale(1.13); box-shadow: 0 6px 28px rgba(0,0,0,0.7); }
+  .float-btn.whats { background: #25d366; }
+  .float-btn.top { background: var(--card); border: 1px solid var(--border); color: var(--gold); font-size: 20px; }
+  .float-btn .tooltip {
+    position: absolute;
+    right: 68px;
+    background: rgba(10,20,40,0.95);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .float-btn:hover .tooltip { opacity: 1; }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 60px 20px 30px;
+  }
+  .logo-hex {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 18px;
+    position: relative;
+  }
+  .logo-hex svg { width: 100%; height: 100%; filter: drop-shadow(0 0 16px rgba(201,162,39,0.5)); }
+  .brand-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, var(--gold), var(--gold2), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+    animation: glow-text 3s ease-in-out infinite;
+  }
+  @keyframes glow-text {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(201,162,39,0.4)); }
+    50% { filter: drop-shadow(0 0 18px rgba(232,197,71,0.7)); }
+  }
+  .brand-sub {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(10px, 2.5vw, 14px);
+    letter-spacing: 0.4em;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .header-divider {
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 18px;
+  }
+  .filipi-tag {
+    display: inline-block;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    padding: 6px 22px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: rgba(201,162,39,0.08);
+  }
+  .server-tag {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+  }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 16px 120px;
+  }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-align: center;
+    margin: 40px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .section-title::before, .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border));
+  }
+  .section-title::after { background: linear-gradient(90deg, var(--border), transparent); }
+
+  /* SERVICE CARDS HP/SPEED */
+  .hpspeed-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .service-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .service-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 12px;
+  }
+  .service-card.hp::before { background: radial-gradient(circle at 20% 50%, rgba(224,53,53,0.12), transparent 60%); }
+  .service-card.speed::before { background: radial-gradient(circle at 20% 50%, rgba(240,192,64,0.12), transparent 60%); }
+  .service-card:hover::before, .service-card.selected::before { opacity: 1; }
+  .service-card.hp { border-color: rgba(224,53,53,0.4); }
+  .service-card.speed { border-color: rgba(240,192,64,0.4); }
+  .service-card.hp:hover, .service-card.hp.selected { border-color: var(--red); box-shadow: 0 0 20px rgba(224,53,53,0.3); transform: translateY(-2px); }
+  .service-card.speed:hover, .service-card.speed.selected { border-color: var(--yellow); box-shadow: 0 0 20px rgba(240,192,64,0.3); transform: translateY(-2px); }
+  .card-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+    background: transparent;
+  }
+  .service-card.hp.selected .card-check { background: var(--red); border-color: var(--red); }
+  .service-card.speed.selected .card-check { background: var(--yellow); border-color: var(--yellow); }
+  .service-card.selected .card-check::after { content: '✓'; color: white; font-weight: bold; }
+  .card-icon { font-size: 28px; margin-bottom: 8px; }
+  .card-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--white);
+  }
+  .card-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .card-price {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .service-card.hp .card-price { color: var(--red); }
+  .service-card.speed .card-price { color: var(--yellow); }
+
+  /* COMBO BANNER */
+  .combo-banner {
+    background: linear-gradient(135deg, rgba(37,211,102,0.08), rgba(37,211,102,0.03));
+    border: 1px solid rgba(37,211,102,0.3);
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--green);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .combo-banner strong {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+  }
+
+  /* ELEMENTALS GRID */
+  .elementals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 560px) {
+    .elementals-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (min-width: 720px) {
+    .elementals-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+
+  .elemental-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    user-select: none;
+    position: relative;
+  }
+  .elemental-card:hover { transform: translateY(-2px); }
+  .elemental-card.selected { transform: translateY(-3px); }
+  .elemental-card .el-check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .elemental-card.selected .el-check { color: white; font-weight: bold; }
+  .elemental-card.selected .el-check::after { content: '✓'; }
+  .el-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    margin: 0 auto 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .el-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+  .el-price {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Type colors */
+  .type-bug .el-dot { background: rgba(146,188,44,0.2); }
+  .type-bug.selected { border-color: var(--bug); box-shadow: 0 0 14px rgba(146,188,44,0.35); }
+  .type-bug .el-check { background: var(--bug); border-color: var(--bug); }
+
+  .type-dark .el-dot { background: rgba(89,87,97,0.3); }
+  .type-dark.selected { border-color: var(--dark); box-shadow: 0 0 14px rgba(89,87,97,0.5); }
+  .type-dark .el-check { background: var(--dark); border-color: var(--dark); }
+
+  .type-dragon .el-dot { background: rgba(12,105,200,0.2); }
+  .type-dragon.selected { border-color: var(--dragon); box-shadow: 0 0 14px rgba(12,105,200,0.4); }
+  .type-dragon .el-check { background: var(--dragon); border-color: var(--dragon); }
+
+  .type-electric .el-dot { background: rgba(242,217,78,0.2); }
+  .type-electric.selected { border-color: var(--electric); box-shadow: 0 0 14px rgba(242,217,78,0.4); }
+  .type-electric .el-check { background: var(--electric); border-color: var(--electric); }
+
+  .type-fairy .el-dot { background: rgba(238,144,230,0.2); }
+  .type-fairy.selected { border-color: var(--fairy); box-shadow: 0 0 14px rgba(238,144,230,0.4); }
+  .type-fairy .el-check { background: var(--fairy); border-color: var(--fairy); }
+
+  .type-fighting .el-dot { background: rgba(211,66,95,0.2); }
+  .type-fighting.selected { border-color: var(--fighting); box-shadow: 0 0 14px rgba(211,66,95,0.4); }
+  .type-fighting .el-check { background: var(--fighting); border-color: var(--fighting); }
+
+  .type-fire .el-dot { background: rgba(251,165,76,0.2); }
+  .type-fire.selected { border-color: var(--fire); box-shadow: 0 0 14px rgba(251,165,76,0.4); }
+  .type-fire .el-check { background: var(--fire); border-color: var(--fire); }
+
+  .type-flying .el-dot { background: rgba(137,170,227,0.2); }
+  .type-flying.selected { border-color: var(--flying); box-shadow: 0 0 14px rgba(137,170,227,0.4); }
+  .type-flying .el-check { background: var(--flying); border-color: var(--flying); }
+
+  .type-ghost .el-dot { background: rgba(95,109,188,0.2); }
+  .type-ghost.selected { border-color: var(--ghost); box-shadow: 0 0 14px rgba(95,109,188,0.4); }
+  .type-ghost .el-check { background: var(--ghost); border-color: var(--ghost); }
+
+  .type-grass .el-dot { background: rgba(95,189,88,0.2); }
+  .type-grass.selected { border-color: var(--grass); box-shadow: 0 0 14px rgba(95,189,88,0.4); }
+  .type-grass .el-check { background: var(--grass); border-color: var(--grass); }
+
+  .type-ground .el-dot { background: rgba(218,124,77,0.2); }
+  .type-ground.selected { border-color: var(--ground); box-shadow: 0 0 14px rgba(218,124,77,0.4); }
+  .type-ground .el-check { background: var(--ground); border-color: var(--ground); }
+
+  .type-ice .el-dot { background: rgba(117,208,193,0.2); }
+  .type-ice.selected { border-color: var(--ice); box-shadow: 0 0 14px rgba(117,208,193,0.4); }
+  .type-ice .el-check { background: var(--ice); border-color: var(--ice); }
+
+  .type-normal .el-dot { background: rgba(160,162,159,0.2); }
+  .type-normal.selected { border-color: var(--normal); box-shadow: 0 0 14px rgba(160,162,159,0.4); }
+  .type-normal .el-check { background: var(--normal); border-color: var(--normal); }
+
+  .type-poison .el-dot { background: rgba(183,99,207,0.2); }
+  .type-poison.selected { border-color: var(--poison); box-shadow: 0 0 14px rgba(183,99,207,0.4); }
+  .type-poison .el-check { background: var(--poison); border-color: var(--poison); }
+
+  .type-psychic .el-dot { background: rgba(250,133,129,0.2); }
+  .type-psychic.selected { border-color: var(--psychic); box-shadow: 0 0 14px rgba(250,133,129,0.4); }
+  .type-psychic .el-check { background: var(--psychic); border-color: var(--psychic); }
+
+  .type-rock .el-dot { background: rgba(201,187,138,0.2); }
+  .type-rock.selected { border-color: var(--rock); box-shadow: 0 0 14px rgba(201,187,138,0.4); }
+  .type-rock .el-check { background: var(--rock); border-color: var(--rock); }
+
+  .type-steel .el-dot { background: rgba(86,149,163,0.2); }
+  .type-steel.selected { border-color: var(--steel); box-shadow: 0 0 14px rgba(86,149,163,0.4); }
+  .type-steel .el-check { background: var(--steel); border-color: var(--steel); }
+
+  .type-water .el-dot { background: rgba(83,157,223,0.2); }
+  .type-water.selected { border-color: var(--water); box-shadow: 0 0 14px rgba(83,157,223,0.4); }
+  .type-water .el-check { background: var(--water); border-color: var(--water); }
+
+  /* DISCOUNT BAR */
+  .discount-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-top: 20px;
+  }
+  .discount-bar-title {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .discount-steps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .discount-step {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 11px;
+    transition: all 0.3s;
+  }
+  .discount-step .ds-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 2px;
+    transition: color 0.3s;
+  }
+  .discount-step .ds-label { color: var(--muted); font-size: 10px; }
+  .discount-step.active { border-color: var(--gold); background: rgba(201,162,39,0.1); }
+  .discount-step.active .ds-val { color: var(--gold); }
+  .discount-step.active .ds-label { color: var(--gold2); }
+
+  /* TOTAL PANEL */
+  .total-panel {
+    background: linear-gradient(135deg, var(--card), rgba(10,25,55,0.8));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 24px;
+    margin-top: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .total-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 15px;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .total-row:last-of-type { border-bottom: none; }
+  .total-row .label { font-size: 14px; }
+  .total-row .value { font-family: 'Orbitron', sans-serif; font-size: 15px; color: var(--text); }
+  .total-row.discount .value { color: var(--green); }
+  .total-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .total-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+  }
+  .total-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--gold);
+    animation: pulse-gold 2s ease-in-out infinite;
+  }
+  @keyframes pulse-gold {
+    0%, 100% { text-shadow: 0 0 8px rgba(201,162,39,0.4); }
+    50% { text-shadow: 0 0 20px rgba(232,197,71,0.7); }
+  }
+
+  /* CTA BUTTON */
+  .cta-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #128c7e, #25d366);
+    border: none;
+    border-radius: 14px;
+    padding: 18px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: white;
+    cursor: pointer;
+    margin-top: 18px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 4px 24px rgba(37,211,102,0.25);
+  }
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(37,211,102,0.4);
+  }
+  .cta-btn:active { transform: scale(0.98); }
+  .cta-btn svg { width: 24px; height: 24px; fill: white; }
+
+  /* FEATURES */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 30px;
+  }
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .feature-icon { font-size: 22px; margin-bottom: 8px; }
+  .feature-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .feature-desc { font-size: 12px; color: var(--muted); }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    font-family: 'Orbitron', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<!-- STARS -->
+<div class="stars" id="stars"></div>
+
+<!-- FLOATING BUTTONS -->
+<div class="float-bar">
+  <a class="float-btn whats" href="https://wa.me/5565999911832" target="_blank" title="WhatsApp">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+    <span class="tooltip">WhatsApp</span>
+  </a>
+  <button class="float-btn top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    ↑
+    <span class="tooltip">Voltar ao topo</span>
+  </button>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-hex">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" fill="none" stroke="#c9a227" stroke-width="3"/>
+      <polygon points="50,14 85,32 85,68 50,86 15,68 15,32" fill="#0e1e35" stroke="#1a3155" stroke-width="1.5"/>
+      <circle cx="50" cy="50" r="16" fill="none" stroke="#c9a227" stroke-width="2"/>
+      <circle cx="50" cy="50" r="6" fill="#c9a227"/>
+      <line x1="32" y1="50" x2="26" y2="50" stroke="#c9a227" stroke-width="2" stroke-linecap="round"/>
+      <line x1="68" y1="50" x2="74" y2="50" stroke="#c9a227" stroke-width="2" stroke-linecap="round"/>
+      <line x1="50" y1="32" x2="50" y2="26" stroke="#c9a227" stroke-width="2" stroke-linecap="round"/>
+      <line x1="50" y1="68" x2="50" y2="74" stroke="#c9a227" stroke-width="2" stroke-linecap="round"/>
+      <polygon points="50,20 53,29 62,29 55,34 58,43 50,38 42,43 45,34 38,29 47,29" fill="#c9a227" opacity="0.8"/>
+    </svg>
+  </div>
+  <div class="brand-title">POKÉ ALLIANCE</div>
+  <div class="brand-sub">SERVICO DE TALENTOS</div>
+  <div class="header-divider"></div>
+  <div class="filipi-tag">F I L I P I</div><br>
+  <div class="server-tag">servidor MOON</div>
+</header>
+
+<main>
+
+  <!-- HP & SPEED -->
+  <div class="section-title">SERVIÇOS DE STATUS</div>
+
+  <div class="hpspeed-grid">
+    <div class="service-card hp" id="card-hp" onclick="toggleHP()">
+      <div class="card-check" id="check-hp"></div>
+      <div class="card-icon">❤️</div>
+      <div class="card-name">HP</div>
+      <div class="card-desc">Serviço de itens<br>de pontos de vida</div>
+      <div class="card-price">R$ 25,00</div>
+    </div>
+    <div class="service-card speed" id="card-speed" onclick="toggleSpeed()">
+      <div class="card-check" id="check-speed"></div>
+      <div class="card-icon">⚡</div>
+      <div class="card-name">SPEED</div>
+      <div class="card-desc">Serviço de itens<br>de velocidade</div>
+      <div class="card-price">R$ 25,00</div>
+    </div>
+  </div>
+
+  <div class="combo-banner">
+    COMBO ESPECIAL &nbsp;•&nbsp;
+    <strong>HP + SPEED = R$ 45,00</strong>
+    &nbsp;|&nbsp; TALENTO COMPLETO = R$ 60,00
+  </div>
+
+  <!-- ELEMENTAIS -->
+  <div class="section-title">TALENTOS ELEMENTAIS</div>
+
+  <div class="elementals-grid" id="elementals-grid"></div>
+
+  <!-- DISCOUNT BAR -->
+  <div class="discount-bar">
+    <div class="discount-bar-title">ESCALA DE DESCONTO — TALENTOS</div>
+    <div class="discount-steps">
+      <div class="discount-step" id="ds-2">
+        <div class="ds-val">5%</div>
+        <div class="ds-label">2 tipos</div>
+      </div>
+      <div class="discount-step" id="ds-4">
+        <div class="ds-val">10%</div>
+        <div class="ds-label">4 tipos</div>
+      </div>
+      <div class="discount-step" id="ds-6">
+        <div class="ds-val">15%</div>
+        <div class="ds-label">6 tipos</div>
+      </div>
+      <div class="discount-step" id="ds-8">
+        <div class="ds-val">20%</div>
+        <div class="ds-label">8 tipos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOTAL -->
+  <div class="total-panel">
+    <div class="total-row" id="row-hp" style="display:none">
+      <span class="label">❤️ HP</span>
+      <span class="value" id="val-hp">R$ 25,00</span>
+    </div>
+    <div class="total-row" id="row-speed" style="display:none">
+      <span class="label">⚡ Speed</span>
+      <span class="value" id="val-speed">R$ 25,00</span>
+    </div>
+    <div class="total-row" id="row-talentos" style="display:none">
+      <span class="label" id="lbl-talentos">Talentos (0×)</span>
+      <span class="value" id="val-talentos">R$ 0,00</span>
+    </div>
+    <div class="total-row discount" id="row-desconto" style="display:none">
+      <span class="label" id="lbl-desconto">Desconto (0%)</span>
+      <span class="value" id="val-desconto">-R$ 0,00</span>
+    </div>
+    <div class="total-main">
+      <span class="total-label">TOTAL</span>
+      <span class="total-value">R$ <span id="total">0,00</span></span>
+    </div>
+  </div>
+
+  <button class="cta-btn" onclick="enviarWhats()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+    FINALIZAR NO WHATSAPP
+  </button>
+
+  <!-- FEATURES -->
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🚀</div>
+      <div class="feature-name">ENTREGA RÁPIDA</div>
+      <div class="feature-desc">Serviço garantido</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🌙</div>
+      <div class="feature-name">SERVER MOON</div>
+      <div class="feature-desc">Jogador experiente</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔮</div>
+      <div class="feature-name">ORBS INCLUSAS</div>
+      <div class="feature-desc">Simple • Arcane • Mythic</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>POKÉ ALLIANCE • F I L I P I • SERVER MOON</footer>
+
+<script>
+// ---- STARS ----
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%;
+    top:${Math.random()*100}%;
+    --d:${(Math.random()*4+2).toFixed(1)}s;
+    --o:${(Math.random()*0.5+0.2).toFixed(2)};
+    animation-delay:${(Math.random()*6).toFixed(1)}s;
+  `;
+  starsEl.appendChild(s);
+}
+
+// ---- ELEMENTALS ----
+const tipos = [
+  { name:'Bug',      icon:'🐛', cls:'type-bug' },
+  { name:'Dark',     icon:'🌑', cls:'type-dark' },
+  { name:'Dragon',   icon:'🐉', cls:'type-dragon' },
+  { name:'Electric', icon:'⚡', cls:'type-electric' },
+  { name:'Fairy',    icon:'🌸', cls:'type-fairy' },
+  { name:'Fighting', icon:'👊', cls:'type-fighting' },
+  { name:'Fire',     icon:'🔥', cls:'type-fire' },
+  { name:'Flying',   icon:'🦅', cls:'type-flying' },
+  { name:'Ghost',    icon:'👻', cls:'type-ghost' },
+  { name:'Grass',    icon:'🌿', cls:'type-grass' },
+  { name:'Ground',   icon:'🌋', cls:'type-ground' },
+  { name:'Ice',      icon:'❄️', cls:'type-ice' },
+  { name:'Normal',   icon:'⭕', cls:'type-normal' },
+  { name:'Poison',   icon:'☠️', cls:'type-poison' },
+  { name:'Psychic',  icon:'🔮', cls:'type-psychic' },
+  { name:'Rock',     icon:'🪨', cls:'type-rock' },
+  { name:'Steel',    icon:'⚙️', cls:'type-steel' },
+  { name:'Water',    icon:'💧', cls:'type-water' },
+];
+
+const grid = document.getElementById('elementals-grid');
+tipos.forEach(t => {
+  const d = document.createElement('div');
+  d.className = `elemental-card ${t.cls}`;
+  d.dataset.name = t.name;
+  d.innerHTML = `
+    <div class="el-check"></div>
+    <div class="el-dot">${t.icon}</div>
+    <div class="el-name">${t.name}</div>
+    <div class="el-price">R$ 60</div>
+  `;
+  d.onclick = () => toggleElemental(d);
+  grid.appendChild(d);
+});
+
+// ---- STATE ----
+let hpSel = false, speedSel = false;
+const PRECO_TALENTO = 60;
+
+function toggleHP() {
+  hpSel = !hpSel;
+  document.getElementById('card-hp').classList.toggle('selected', hpSel);
+  atualizar();
+}
+function toggleSpeed() {
+  speedSel = !speedSel;
+  document.getElementById('card-speed').classList.toggle('selected', speedSel);
+  atualizar();
+}
+function toggleElemental(el) {
+  el.classList.toggle('selected');
+  atualizar();
+}
+
+function atualizar() {
+  let total = 0;
+
+  // HP + Speed
+  let hpVal = 0, speedVal = 0;
+  if (hpSel && speedSel) { hpVal = 22.5; speedVal = 22.5; } // 45 split
+  else { if (hpSel) hpVal = 25; if (speedSel) speedVal = 25; }
+
+  const hpSpeed = hpSel && speedSel ? 45 : (hpSel ? 25 : 0) + (speedSel ? 25 : 0);
+  total += hpSpeed;
+
+  const sel = document.querySelectorAll('.elemental-card.selected').length;
+  const sub = sel * PRECO_TALENTO;
+
+  let pct = 0;
+  if (sel >= 8) pct = 0.20;
+  else if (sel >= 6) pct = 0.15;
+  else if (sel >= 4) pct = 0.10;
+  else if (sel >= 2) pct = 0.05;
+
+  const desc = sub * pct;
+  const talentoFinal = sub - desc;
+  total += talentoFinal;
+
+  // Update discount steps
+  ['ds-2','ds-4','ds-6','ds-8'].forEach((id, i) => {
+    const thresholds = [2, 4, 6, 8];
+    document.getElementById(id).classList.toggle('active', sel >= thresholds[i]);
+  });
+
+  // Update rows
+  const show = (id, v) => document.getElementById(id).style.display = v ? '' : 'none';
+  show('row-hp', hpSel);
+  show('row-speed', speedSel);
+  show('row-talentos', sel > 0);
+  show('row-desconto', desc > 0);
+
+  document.getElementById('val-hp').textContent = `R$ ${(hpSel&&speedSel?22.5:25).toFixed(2).replace('.',',')}`;
+  document.getElementById('val-speed').textContent = `R$ ${(hpSel&&speedSel?22.5:25).toFixed(2).replace('.',',')}`;
+  if (hpSel && speedSel) {
+    document.getElementById('val-hp').textContent = 'R$ 22,50';
+    document.getElementById('val-speed').textContent = 'R$ 22,50';
+  }
+  document.getElementById('lbl-talentos').textContent = `Talentos (${sel}×)`;
+  document.getElementById('val-talentos').textContent = `R$ ${sub.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
+  document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
+
+  document.getElementById('total').textContent = total.toFixed(2).replace('.',',');
+}
+
+function enviarWhats() {
+  const items = [];
+  if (hpSel) items.push('❤️ HP');
+  if (speedSel) items.push('⚡ Speed');
+  document.querySelectorAll('.elemental-card.selected').forEach(el => {
+    items.push(el.dataset.name);
+  });
+
+  if (items.length === 0) {
+    alert('Selecione ao menos um serviço!');
+    return;
+  }
+
+  const total = document.getElementById('total').textContent;
+  const sel = document.querySelectorAll('.elemental-card.selected').length;
+  let pct = 0;
+  if (sel >= 8) pct = 20;
+  else if (sel >= 6) pct = 15;
+  else if (sel >= 4) pct = 10;
+  else if (sel >= 2) pct = 5;
+
+  let msg = `Olá Filipi! Quero contratar os seguintes serviços:%0A%0A`;
+  msg += items.map(i => `• ${i}`).join('%0A');
+  if (pct > 0) msg += `%0A%0A🎉 Desconto aplicado: ${pct}%`;
+  msg += `%0A%0A💰 Total: R$ ${total}`;
+
+  window.open(`https://wa.me/5565999911832?text=${msg}`, '_blank');
+}
+</script>
+</body>
+</html>
