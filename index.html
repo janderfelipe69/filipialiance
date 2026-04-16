@@ -231,6 +231,7 @@
     opacity: 0;
     transition: opacity 0.3s;
     border-radius: 12px;
+    pointer-events: none;
   }
   .service-card.hp::before { background: radial-gradient(circle at 20% 50%, rgba(224,53,53,0.12), transparent 60%); }
   .service-card.speed::before { background: radial-gradient(circle at 20% 50%, rgba(240,192,64,0.12), transparent 60%); }
@@ -273,6 +274,82 @@
   }
   .service-card.hp .card-price { color: var(--red); }
   .service-card.speed .card-price { color: var(--yellow); }
+
+  /* COUNTER WIDGET */
+  .counter-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .counter-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .counter-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.15); }
+  .counter-btn:active { transform: scale(0.92); }
+  .service-card.hp .counter-btn { border-color: rgba(224,53,53,0.5); color: var(--red); }
+  .service-card.speed .counter-btn { border-color: rgba(240,192,64,0.5); color: var(--yellow); }
+  .counter-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    min-width: 26px;
+    text-align: center;
+    color: var(--white);
+  }
+  .service-card.hp.selected .counter-val { color: var(--red); }
+  .service-card.speed.selected .counter-val { color: var(--yellow); }
+
+  /* ELEMENTAL COUNTER */
+  .el-counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 5px;
+  }
+  .el-counter-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .el-counter-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.15); }
+  .el-counter-btn:active { transform: scale(0.9); }
+  .elemental-card.selected .el-counter-btn { color: var(--white); }
+  .el-counter-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 16px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .elemental-card.selected .el-counter-val { color: var(--white); }
 
   /* COMBO BANNER */
   .combo-banner {
@@ -528,6 +605,101 @@
     50% { text-shadow: 0 0 20px rgba(232,197,71,0.7); }
   }
 
+  /* CLEAR BUTTON */
+  .clear-btn {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid rgba(224,53,53,0.4);
+    border-radius: 14px;
+    padding: 13px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--red);
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .clear-btn:hover {
+    background: rgba(224,53,53,0.08);
+    border-color: var(--red);
+    transform: translateY(-1px);
+  }
+  .clear-btn:active { transform: scale(0.98); }
+
+  /* CONFIRM MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(6,13,26,0.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 32px 28px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    animation: modal-in 0.2s ease;
+  }
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .modal-icon { font-size: 36px; margin-bottom: 12px; }
+  .modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+  .modal-desc { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-cancel {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .modal-cancel:hover { background: rgba(255,255,255,0.06); }
+  .modal-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: var(--red);
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .modal-confirm:hover { opacity: 0.88; }
+  .modal-confirm:active { transform: scale(0.97); }
+
   /* CTA BUTTON */
   .cta-btn {
     width: 100%;
@@ -640,19 +812,29 @@
   <div class="section-title">SERVIÇOS DE STATUS</div>
 
   <div class="hpspeed-grid">
-    <div class="service-card hp" id="card-hp" onclick="toggleHP()">
+    <div class="service-card hp" id="card-hp">
       <div class="card-check" id="check-hp"></div>
       <div class="card-icon">❤️</div>
       <div class="card-name">HP</div>
       <div class="card-desc">Serviço de itens<br>de pontos de vida</div>
-      <div class="card-price">R$ 25,00</div>
+      <div class="card-price" id="price-hp">R$ 25,00</div>
+      <div class="counter-wrap">
+        <button class="counter-btn" id="btn-hp-minus">−</button>
+        <span class="counter-val" id="count-hp">0</span>
+        <button class="counter-btn" id="btn-hp-plus">+</button>
+      </div>
     </div>
-    <div class="service-card speed" id="card-speed" onclick="toggleSpeed()">
+    <div class="service-card speed" id="card-speed">
       <div class="card-check" id="check-speed"></div>
       <div class="card-icon">⚡</div>
       <div class="card-name">SPEED</div>
       <div class="card-desc">Serviço de itens<br>de velocidade</div>
-      <div class="card-price">R$ 25,00</div>
+      <div class="card-price" id="price-speed">R$ 25,00</div>
+      <div class="counter-wrap">
+        <button class="counter-btn" id="btn-speed-minus">−</button>
+        <span class="counter-val" id="count-speed">0</span>
+        <button class="counter-btn" id="btn-speed-plus">+</button>
+      </div>
     </div>
   </div>
 
@@ -714,6 +896,10 @@
     </div>
   </div>
 
+  <button class="clear-btn" onclick="abrirModalLimpar()">
+    🗑️ LIMPAR TODAS AS SELEÇÕES
+  </button>
+
   <button class="cta-btn" onclick="enviarWhats()">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -744,6 +930,19 @@
 
 <footer>POKÉ ALLIANCE • F I L I P I • SERVER MOON</footer>
 
+<!-- MODAL LIMPAR -->
+<div class="modal-overlay" id="modal-limpar">
+  <div class="modal-box">
+    <div class="modal-icon">🗑️</div>
+    <div class="modal-title">LIMPAR SELEÇÕES</div>
+    <div class="modal-desc">Deseja limpar todas as marcações?<br>Essa ação não pode ser desfeita.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="fecharModalLimpar()">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarLimpar()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---- STARS ----
 const starsEl = document.getElementById('stars');
@@ -764,24 +963,24 @@ for (let i = 0; i < 120; i++) {
 
 // ---- ELEMENTALS ----
 const tipos = [
-  { name:'Bug',      icon:'🐛', cls:'type-bug' },
-  { name:'Dark',     icon:'🌑', cls:'type-dark' },
-  { name:'Dragon',   icon:'🐉', cls:'type-dragon' },
-  { name:'Electric', icon:'⚡', cls:'type-electric' },
-  { name:'Fairy',    icon:'🌸', cls:'type-fairy' },
-  { name:'Fighting', icon:'👊', cls:'type-fighting' },
-  { name:'Fire',     icon:'🔥', cls:'type-fire' },
-  { name:'Flying',   icon:'🦅', cls:'type-flying' },
-  { name:'Ghost',    icon:'👻', cls:'type-ghost' },
-  { name:'Grass',    icon:'🌿', cls:'type-grass' },
-  { name:'Ground',   icon:'🌋', cls:'type-ground' },
-  { name:'Ice',      icon:'❄️', cls:'type-ice' },
-  { name:'Normal',   icon:'⭕', cls:'type-normal' },
-  { name:'Poison',   icon:'☠️', cls:'type-poison' },
-  { name:'Psychic',  icon:'🔮', cls:'type-psychic' },
-  { name:'Rock',     icon:'🪨', cls:'type-rock' },
-  { name:'Steel',    icon:'⚙️', cls:'type-steel' },
-  { name:'Water',    icon:'💧', cls:'type-water' },
+  { name:'Bug',      icon:'<img src=https://i.imgur.com/I3TEtIE.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-bug' },
+  { name:'Dark',     icon:'<img src=https://i.imgur.com/Ea75cVf.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dark' },
+  { name:'Dragon',   icon:'<img src=https://i.imgur.com/NaEUJov.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dragon' },
+  { name:'Electric', icon:'<img src=https://i.imgur.com/9gYIDvI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-electric' },
+  { name:'Fairy',    icon:'<img src=https://i.imgur.com/cPVKird.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fairy' },
+  { name:'Fighting', icon:'<img src=https://i.imgur.com/WvAqULu.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fighting' },
+  { name:'Fire',     icon:'<img src=https://i.imgur.com/LUSja0u.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fire' },
+  { name:'Flying',   icon:'<img src=https://i.imgur.com/ZsmO7z7.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-flying' },
+  { name:'Ghost',    icon:'<img src=https://i.imgur.com/xxpTBDI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ghost' },
+  { name:'Grass',    icon:'<img src=https://i.imgur.com/kmtM2s2.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-grass' },
+  { name:'Ground',   icon:'<img src=https://i.imgur.com/BMwn78D.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ground' },
+  { name:'Ice',      icon:'<img src=https://i.imgur.com/8yVeZEU.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ice' },
+  { name:'Normal',   icon:'<img src=https://i.imgur.com/y8UcqNW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-normal' },
+  { name:'Poison',   icon:'<img src=https://i.imgur.com/blOp418.png style="width:22px;height:22px;object-fit:contain;display:block">️', cls:'type-poison' },
+  { name:'Psychic',  icon:'<img src=https://i.imgur.com/aOgZCsq.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-psychic' },
+  { name:'Rock',     icon:'<img src=https://i.imgur.com/GRxYHJv.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-rock' },
+  { name:'Steel',    icon:'<img src=https://i.imgur.com/CBGW1PZ.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-steel' },
+  { name:'Water',    icon:'<img src=https://i.imgur.com/Lf2dISW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-water' },
 ];
 
 const grid = document.getElementById('elementals-grid');
@@ -789,79 +988,127 @@ tipos.forEach(t => {
   const d = document.createElement('div');
   d.className = `elemental-card ${t.cls}`;
   d.dataset.name = t.name;
+  d.dataset.count = '0';
   d.innerHTML = `
     <div class="el-check"></div>
     <div class="el-dot">${t.icon}</div>
     <div class="el-name">${t.name}</div>
     <div class="el-price">R$ 60</div>
+    <div class="el-counter">
+      <button class="el-counter-btn" data-delta="-1" data-type="${t.name}">−</button>
+      <span class="el-counter-val">0</span>
+      <button class="el-counter-btn" data-delta="1" data-type="${t.name}">+</button>
+    </div>
   `;
-  d.onclick = () => toggleElemental(d);
+  // Buttons handle delta; clicking card body also adds 1
+  d.querySelectorAll('.el-counter-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const delta = parseInt(btn.dataset.delta);
+      changeElementalCount(d, delta);
+    });
+  });
+  d.addEventListener('click', () => changeElementalCount(d, 1));
   grid.appendChild(d);
 });
 
 // ---- STATE ----
-let hpSel = false, speedSel = false;
+let hpCount = 0, speedCount = 0;
+const PRECO_HP = 25, PRECO_SPEED = 25, PRECO_COMBO = 45;
 const PRECO_TALENTO = 60;
 
-function toggleHP() {
-  hpSel = !hpSel;
-  document.getElementById('card-hp').classList.toggle('selected', hpSel);
+// Botões HP e Speed via addEventListener (sem onclick inline)
+document.getElementById('btn-hp-minus').addEventListener('click', () => changeCount('hp', -1));
+document.getElementById('btn-hp-plus').addEventListener('click',  () => changeCount('hp',  1));
+document.getElementById('btn-speed-minus').addEventListener('click', () => changeCount('speed', -1));
+document.getElementById('btn-speed-plus').addEventListener('click',  () => changeCount('speed',  1));
+
+function changeCount(type, delta) {
+  if (type === 'hp') {
+    hpCount = Math.max(0, hpCount + delta);
+    document.getElementById('count-hp').textContent = hpCount;
+    document.getElementById('card-hp').classList.toggle('selected', hpCount > 0);
+  } else {
+    speedCount = Math.max(0, speedCount + delta);
+    document.getElementById('count-speed').textContent = speedCount;
+    document.getElementById('card-speed').classList.toggle('selected', speedCount > 0);
+  }
   atualizar();
 }
-function toggleSpeed() {
-  speedSel = !speedSel;
-  document.getElementById('card-speed').classList.toggle('selected', speedSel);
-  atualizar();
-}
-function toggleElemental(el) {
-  el.classList.toggle('selected');
+
+function changeElementalCount(el, delta) {
+  let count = parseInt(el.dataset.count) || 0;
+  count = Math.max(0, count + delta);
+  el.dataset.count = count;
+  el.querySelector('.el-counter-val').textContent = count;
+  el.classList.toggle('selected', count > 0);
+  if (count > 0) el.querySelector('.el-check').style.cssText = 'color:white';
   atualizar();
 }
 
 function atualizar() {
   let total = 0;
 
-  // HP + Speed
-  let hpVal = 0, speedVal = 0;
-  if (hpSel && speedSel) { hpVal = 22.5; speedVal = 22.5; } // 45 split
-  else { if (hpSel) hpVal = 25; if (speedSel) speedVal = 25; }
+  // HP + Speed with combo logic per "pair"
+  // If both selected, pairs get combo price, leftover gets individual price
+  const pairs = Math.min(hpCount, speedCount);
+  const hpExtra = hpCount - pairs;
+  const speedExtra = speedCount - pairs;
+  const hpSpeedTotal = pairs * PRECO_COMBO + hpExtra * PRECO_HP + speedExtra * PRECO_SPEED;
+  total += hpSpeedTotal;
 
-  const hpSpeed = hpSel && speedSel ? 45 : (hpSel ? 25 : 0) + (speedSel ? 25 : 0);
-  total += hpSpeed;
+  // Elementals
+  let totalEls = 0, uniqueTypes = 0;
+  document.querySelectorAll('.elemental-card').forEach(el => {
+    const cnt = parseInt(el.dataset.count) || 0;
+    if (cnt > 0) { totalEls += cnt; uniqueTypes++; }
+  });
+  const sub = totalEls * PRECO_TALENTO;
 
-  const sel = document.querySelectorAll('.elemental-card.selected').length;
-  const sub = sel * PRECO_TALENTO;
-
+  // Bônus baseado na quantidade total de serviços (HP + Speed + Elementais)
+  const totalServicos = hpCount + speedCount + totalEls;
   let pct = 0;
-  if (sel >= 8) pct = 0.20;
-  else if (sel >= 6) pct = 0.15;
-  else if (sel >= 4) pct = 0.10;
-  else if (sel >= 2) pct = 0.05;
+  if (totalServicos >= 8) pct = 0.20;
+  else if (totalServicos >= 6) pct = 0.15;
+  else if (totalServicos >= 4) pct = 0.10;
+  else if (totalServicos >= 2) pct = 0.05;
 
   const desc = sub * pct;
   const talentoFinal = sub - desc;
   total += talentoFinal;
 
-  // Update discount steps
+  // Update discount steps (based on total services quantity)
   ['ds-2','ds-4','ds-6','ds-8'].forEach((id, i) => {
     const thresholds = [2, 4, 6, 8];
-    document.getElementById(id).classList.toggle('active', sel >= thresholds[i]);
+    document.getElementById(id).classList.toggle('active', totalServicos >= thresholds[i]);
   });
+
+  // Update discount bar labels to show "serviços"
+  document.querySelector('#ds-2 .ds-label').textContent = '2 serv.';
+  document.querySelector('#ds-4 .ds-label').textContent = '4 serv.';
+  document.querySelector('#ds-6 .ds-label').textContent = '6 serv.';
+  document.querySelector('#ds-8 .ds-label').textContent = '8 serv.';
 
   // Update rows
   const show = (id, v) => document.getElementById(id).style.display = v ? '' : 'none';
-  show('row-hp', hpSel);
-  show('row-speed', speedSel);
-  show('row-talentos', sel > 0);
+  show('row-hp', hpCount > 0);
+  show('row-speed', speedCount > 0);
+  show('row-talentos', totalEls > 0);
   show('row-desconto', desc > 0);
 
-  document.getElementById('val-hp').textContent = `R$ ${(hpSel&&speedSel?22.5:25).toFixed(2).replace('.',',')}`;
-  document.getElementById('val-speed').textContent = `R$ ${(hpSel&&speedSel?22.5:25).toFixed(2).replace('.',',')}`;
-  if (hpSel && speedSel) {
-    document.getElementById('val-hp').textContent = 'R$ 22,50';
-    document.getElementById('val-speed').textContent = 'R$ 22,50';
-  }
-  document.getElementById('lbl-talentos').textContent = `Talentos (${sel}×)`;
+  // HP value label — show combo savings hint
+  const hpLabel = hpCount > 0 ? `❤️ HP ×${hpCount}${pairs>0?' (combo)':''}` : '❤️ HP';
+  const speedLabel = speedCount > 0 ? `⚡ Speed ×${speedCount}${pairs>0?' (combo)':''}` : '⚡ Speed';
+  document.querySelector('#row-hp .label').textContent = hpLabel;
+  document.querySelector('#row-speed .label').textContent = speedLabel;
+
+  // Compute individual display values
+  const hpDisplay = pairs * (PRECO_COMBO / 2) + hpExtra * PRECO_HP;
+  const speedDisplay = pairs * (PRECO_COMBO / 2) + speedExtra * PRECO_SPEED;
+  document.getElementById('val-hp').textContent = `R$ ${hpDisplay.toFixed(2).replace('.',',')}`;
+  document.getElementById('val-speed').textContent = `R$ ${speedDisplay.toFixed(2).replace('.',',')}`;
+
+  document.getElementById('lbl-talentos').textContent = `Talentos (${totalEls}×)`;
   document.getElementById('val-talentos').textContent = `R$ ${sub.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
   document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
@@ -869,12 +1116,47 @@ function atualizar() {
   document.getElementById('total').textContent = total.toFixed(2).replace('.',',');
 }
 
+function abrirModalLimpar() {
+  document.getElementById('modal-limpar').classList.add('open');
+}
+
+function fecharModalLimpar() {
+  document.getElementById('modal-limpar').classList.remove('open');
+}
+
+function confirmarLimpar() {
+  // Resetar HP e Speed
+  hpCount = 0;
+  speedCount = 0;
+  document.getElementById('count-hp').textContent = '0';
+  document.getElementById('count-speed').textContent = '0';
+  document.getElementById('card-hp').classList.remove('selected');
+  document.getElementById('card-speed').classList.remove('selected');
+
+  // Resetar todos os elementais
+  document.querySelectorAll('.elemental-card').forEach(el => {
+    el.dataset.count = '0';
+    el.querySelector('.el-counter-val').textContent = '0';
+    el.classList.remove('selected');
+    el.querySelector('.el-check').style.cssText = '';
+  });
+
+  fecharModalLimpar();
+  atualizar();
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('modal-limpar').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalLimpar();
+});
+
 function enviarWhats() {
   const items = [];
-  if (hpSel) items.push('❤️ HP');
-  if (speedSel) items.push('⚡ Speed');
-  document.querySelectorAll('.elemental-card.selected').forEach(el => {
-    items.push(el.dataset.name);
+  if (hpCount > 0) items.push(`❤️ HP ×${hpCount}`);
+  if (speedCount > 0) items.push(`⚡ Speed ×${speedCount}`);
+  document.querySelectorAll('.elemental-card').forEach(el => {
+    const cnt = parseInt(el.dataset.count) || 0;
+    if (cnt > 0) items.push(`${el.dataset.name} ×${cnt}`);
   });
 
   if (items.length === 0) {
@@ -883,12 +1165,16 @@ function enviarWhats() {
   }
 
   const total = document.getElementById('total').textContent;
-  const sel = document.querySelectorAll('.elemental-card.selected').length;
+  let totalServicos = 0;
+  document.querySelectorAll('.elemental-card').forEach(el => {
+    totalServicos += (parseInt(el.dataset.count)||0);
+  });
+  totalServicos += hpCount + speedCount;
   let pct = 0;
-  if (sel >= 8) pct = 20;
-  else if (sel >= 6) pct = 15;
-  else if (sel >= 4) pct = 10;
-  else if (sel >= 2) pct = 5;
+  if (totalServicos >= 8) pct = 20;
+  else if (totalServicos >= 6) pct = 15;
+  else if (totalServicos >= 4) pct = 10;
+  else if (totalServicos >= 2) pct = 5;
 
   let msg = `Olá Filipi! Quero contratar os seguintes serviços:%0A%0A`;
   msg += items.map(i => `• ${i}`).join('%0A');
