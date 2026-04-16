@@ -119,12 +119,7 @@
     padding: 70px 20px 40px;
   }
 
-  .header-orb {
-    width: 110px; height: 110px;
-    margin: 0 auto 24px;
-    position: relative;
-  }
-  .header-orb svg { width: 100%; height: 100%; }
+  /* header-orb defined later with glow enhancement */
 
   .orb-ring {
     animation: orb-spin 20s linear infinite;
@@ -219,20 +214,7 @@
     padding: 0 16px 140px;
   }
 
-  /* ---- SECTION TITLE ---- */
-  .section-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 11px; letter-spacing: 0.35em;
-    color: var(--muted);
-    text-align: center;
-    margin: 48px 0 18px;
-    display: flex; align-items: center; gap: 16px;
-  }
-  .section-title::before, .section-title::after {
-    content: ''; flex: 1; height: 1px;
-  }
-  .section-title::before { background: linear-gradient(90deg, transparent, var(--border2)); }
-  .section-title::after  { background: linear-gradient(90deg, var(--border2), transparent); }
+  /* ---- SECTION TITLE — defined later with enhancements ---- */
 
   /* ---- HP / SPEED CARDS ---- */
   .hpspeed-grid {
@@ -897,18 +879,6 @@
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 10px; margin-top: 32px;
   }
-  .feature {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px; padding: 18px 12px; text-align: center;
-    transition: border-color 0.3s, transform 0.25s cubic-bezier(.34,1.3,.64,1), box-shadow 0.3s;
-    cursor: default;
-  }
-  .feature:hover {
-    border-color: rgba(201,162,39,0.4);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 20px rgba(201,162,39,0.1);
-  }
   .feature-icon {
     font-size: 26px; margin-bottom: 10px;
     display: block;
@@ -993,7 +963,9 @@
     transition: all 0.25s cubic-bezier(.34,1.2,.64,1);
     user-select: none;
   }
-  .boost-tab .bt-icon { font-size: 16px; display: block; margin-bottom: 3px; }
+  .boost-tab .bt-icon { font-size: 16px; display: flex; align-items: center; justify-content: center; height: 22px; margin-bottom: 3px; }
+  .boost-tab .bt-icon img { width: 20px; height: 20px; object-fit: contain; display: block; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--tc-boost, #fff) 60%, transparent)); transition: filter 0.25s; }
+  .boost-tab.active .bt-icon img { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tc-boost, #fff) 90%, transparent)); }
   .boost-tab:hover { border-color: var(--tc-boost, var(--border2)); transform: translateY(-2px); }
   .boost-tab.active {
     border-color: var(--tc-boost);
@@ -1094,18 +1066,300 @@
   }
   .boost-tier-card.selected .bt-counter-btn { border-color: color-mix(in srgb, var(--tc-bt) 60%, transparent); color: var(--tc-bt); }
 
-  /* FOOTER */
+  /* ---- SCANLINES OVERLAY ---- */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- CORNER DECORATIONS ---- */
+  .corner-deco {
+    position: fixed;
+    width: 80px; height: 80px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.12;
+  }
+  .corner-deco.tl { top: 0; left: 0; border-top: 2px solid var(--gold); border-left: 2px solid var(--gold); border-radius: 0 0 20px 0; }
+  .corner-deco.tr { top: 0; right: 0; border-top: 2px solid var(--gold); border-right: 2px solid var(--gold); border-radius: 0 0 0 20px; }
+  .corner-deco.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--gold); border-left: 2px solid var(--gold); border-radius: 0 20px 0 0; }
+  .corner-deco.br { bottom: 0; right: 0; border-bottom: 2px solid var(--gold); border-right: 2px solid var(--gold); border-radius: 20px 0 0 0; }
+
+  /* ---- POKEMON TYPE BADGE IN SECTION TITLES ---- */
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px; letter-spacing: 0.35em;
+    color: var(--muted);
+    text-align: center;
+    margin: 48px 0 18px;
+    display: flex; align-items: center; gap: 16px;
+    position: relative;
+  }
+  .section-title::before, .section-title::after {
+    content: ''; flex: 1; height: 1px;
+  }
+  .section-title::before { background: linear-gradient(90deg, transparent, var(--border2)); }
+  .section-title::after  { background: linear-gradient(90deg, var(--border2), transparent); }
+
+  /* ---- HOLOGRAPHIC CARD EFFECT ---- */
+  .elemental-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255,255,255,0.04) 50%,
+      transparent 60%
+    );
+    background-size: 200% 200%;
+    animation: holo-sweep 6s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: 14px;
+    z-index: 1;
+  }
+  @keyframes holo-sweep {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -100% 0; }
+  }
+
+  /* ---- IMPROVED EL-DOT (icon container) ---- */
+  .el-dot {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--ta);
+    border: 2px solid color-mix(in srgb, var(--tc) 40%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+  .elemental-card.selected .el-dot {
+    border-color: var(--tc);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--tc) 60%, transparent);
+    transform: scale(1.1);
+  }
+  .elemental-card:hover .el-dot {
+    border-color: var(--tc);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--tc) 50%, transparent);
+    transform: scale(1.08);
+  }
+
+  /* ---- POKEMON LOGO SHIMMER IN HEADER ---- */
+  .pokemon-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(201,162,39,0.12), rgba(240,208,96,0.06));
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 40px;
+    padding: 6px 24px 6px 16px;
+    margin-bottom: 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px; letter-spacing: 0.5em;
+    color: rgba(201,162,39,0.7);
+    position: relative; overflow: hidden;
+  }
+  .pokemon-badge::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 4s ease-in-out infinite 1s;
+  }
+  .pokemon-badge-dot {
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold);
+    margin-right: 10px;
+    box-shadow: 0 0 8px var(--gold);
+    animation: dot-pulse 2s ease-in-out infinite;
+    vertical-align: middle;
+  }
+
+  /* ---- GLOW BORDER ON SECTION CARDS ---- */
+  .accelerates-section, .reduces-section > *, .boost-section, .discount-bar {
+    position: relative;
+  }
+  .accelerates-section::before {
+    content: '';
+    position: absolute; inset: -1px;
+    border-radius: 19px;
+    background: linear-gradient(135deg, rgba(201,162,39,0.0) 0%, rgba(201,162,39,0.08) 50%, rgba(201,162,39,0.0) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- IMPROVED TOTAL PANEL ---- */
+  .total-value {
+    font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900;
+    color: var(--gold2);
+    text-shadow: 0 0 30px rgba(240,208,96,0.5), 0 0 60px rgba(240,208,96,0.2);
+    animation: total-pulse 3s ease-in-out infinite;
+    position: relative;
+  }
+  .total-value::after {
+    content: attr(data-val);
+    position: absolute; inset: 0;
+    color: transparent;
+    background: linear-gradient(135deg, var(--gold3), var(--gold2), var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    pointer-events: none;
+  }
+
+  /* ---- POKEBALL SPIN ANIMATION IMPROVEMENT ---- */
+  .pokeball-deco {
+    animation: pokeball-drift 20s ease-in-out infinite;
+  }
+  .pokeball-deco.pb2 {
+    animation-direction: reverse;
+    animation-duration: 25s;
+  }
+  @keyframes pokeball-drift {
+    0%, 100% { transform: rotate(0deg) translateY(0px); }
+    25% { transform: rotate(8deg) translateY(-10px); }
+    50% { transform: rotate(0deg) translateY(-20px); }
+    75% { transform: rotate(-8deg) translateY(-10px); }
+  }
+
+  /* ---- TIPO BADGE IN BOOST TIERS ---- */
+  .bt-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    background: var(--ta-bt);
+    color: var(--tc-bt);
+    border-radius: 8px; padding: 4px 8px;
+    min-width: 52px; text-align: center;
+    border: 1px solid color-mix(in srgb, var(--tc-bt) 40%, transparent);
+    white-space: nowrap;
+    transition: box-shadow 0.3s;
+  }
+  .boost-tier-card.selected .bt-badge {
+    box-shadow: 0 0 8px color-mix(in srgb, var(--tc-bt) 50%, transparent);
+  }
+
+  /* ---- FEATURE CARDS IMPROVED ---- */
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 12px;
+    text-align: center;
+    transition: border-color 0.3s, transform 0.25s cubic-bezier(.34,1.3,.64,1), box-shadow 0.3s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(201,162,39,0.06), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 16px;
+  }
+  .feature:hover::before { opacity: 1; }
+
+  /* ---- COMBO BANNER IMPROVED ---- */
+  .combo-banner {
+    background: linear-gradient(135deg, rgba(34,197,94,0.07), rgba(34,197,94,0.03));
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 14px;
+    padding: 14px 20px;
+    text-align: center; font-size: 14px;
+    color: var(--green); letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s, background 0.3s;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ---- SECTION LABEL ICON ---- */
+  .section-icon {
+    display: inline-block;
+    width: 28px; height: 28px;
+    background: var(--card2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    text-align: center; line-height: 28px;
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(201,162,39,0.1);
+  }
+
+  /* ---- RIPPLE EFFECT ---- */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple-anim 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 10;
+  }
+  @keyframes ripple-anim {
+    to { transform: scale(4); opacity: 0; }
+  }
+
+  /* ---- ELEMENTAL DOT IMAGE GLOW ---- */
+  .el-dot img {
+    width: 22px; height: 22px;
+    object-fit: contain; display: block;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    transition: filter 0.3s;
+  }
+  .elemental-card.selected .el-dot img,
+  .elemental-card:hover .el-dot img {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tc) 80%, transparent)) drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  }
+
+  /* ---- NEON PULSE ON SELECTED BOOST TIERS ---- */
+  .boost-tier-card.selected {
+    animation: tier-selected-pulse 2s ease-in-out infinite;
+  }
+  @keyframes tier-selected-pulse {
+    0%, 100% { box-shadow: 0 0 18px color-mix(in srgb, var(--tc-bt) 20%, transparent), 0 6px 20px rgba(0,0,0,0.35); }
+    50%       { box-shadow: 0 0 30px color-mix(in srgb, var(--tc-bt) 35%, transparent), 0 6px 20px rgba(0,0,0,0.35); }
+  }
+
+  /* ---- HEADER ORB GLOW ---- */
+  .header-orb {
+    width: 110px; height: 110px;
+    margin: 0 auto 24px;
+    position: relative;
+    filter: drop-shadow(0 0 20px rgba(201,162,39,0.3));
+  }
+  .header-orb svg { width: 100%; height: 100%; }
+
+  /* ---- IMPROVED FOOTER ---- */
   footer {
     position: relative; z-index: 1;
-    text-align: center; padding: 20px;
+    text-align: center; padding: 28px 20px;
     font-size: 10px; color: var(--muted);
     letter-spacing: 0.3em; font-family: 'Orbitron', sans-serif;
+    border-top: 1px solid rgba(201,162,39,0.08);
+    margin-top: 20px;
   }
+
 </style>
 </head>
 <body>
 
 <canvas id="bg-canvas"></canvas>
+
+<!-- Corner decorations -->
+<div class="corner-deco tl"></div>
+<div class="corner-deco tr"></div>
+<div class="corner-deco bl"></div>
+<div class="corner-deco br"></div>
 
 <!-- Pokébolas decorativas -->
 <div class="pokeball-deco pb1"></div>
@@ -1132,11 +1386,18 @@
       <!-- Anel externo girando -->
       <g class="orb-ring">
         <circle cx="55" cy="55" r="50" fill="none" stroke="#c9a227" stroke-width="1" stroke-dasharray="8 6" opacity="0.4"/>
+        <circle cx="55" cy="55" r="46" fill="none" stroke="#c9a227" stroke-width="0.5" stroke-dasharray="3 9" opacity="0.25"/>
+      </g>
+      <!-- Anel contrário -->
+      <g style="animation: orb-spin 14s linear infinite reverse; transform-origin:50% 50%;">
+        <circle cx="55" cy="55" r="52" fill="none" stroke="#f0d060" stroke-width="0.5" stroke-dasharray="4 12" opacity="0.15"/>
       </g>
       <!-- Hexágono externo -->
       <polygon points="55,6 98,29.5 98,80.5 55,104 12,80.5 12,29.5" fill="none" stroke="#c9a227" stroke-width="2" opacity="0.7"/>
       <!-- Hexágono interno -->
       <polygon points="55,16 88,34 88,76 55,94 22,76 22,34" fill="#0d1e36" stroke="#1a3155" stroke-width="1.5"/>
+      <!-- Hexágono médio sutil -->
+      <polygon points="55,22 83,37.5 83,72.5 55,88 27,72.5 27,37.5" fill="none" stroke="#c9a227" stroke-width="0.5" opacity="0.2"/>
       <!-- Pokébola central -->
       <g class="orb-pulse">
         <!-- Metade superior vermelha -->
@@ -1148,24 +1409,29 @@
         <!-- Botão central -->
         <circle cx="55" cy="55" r="6" fill="#c9a227"/>
         <circle cx="55" cy="55" r="3.5" fill="#f0d060"/>
+        <!-- Brilho do botão -->
+        <circle cx="53" cy="53" r="1.5" fill="white" opacity="0.6"/>
       </g>
       <!-- Estrelas decorativas -->
       <circle cx="22" cy="34" r="1.5" fill="#c9a227" opacity="0.6"/>
       <circle cx="88" cy="34" r="1.5" fill="#c9a227" opacity="0.6"/>
       <circle cx="88" cy="76" r="1.5" fill="#c9a227" opacity="0.6"/>
       <circle cx="22" cy="76" r="1.5" fill="#c9a227" opacity="0.6"/>
+      <circle cx="55" cy="5" r="1" fill="#f0d060" opacity="0.5"/>
+      <circle cx="55" cy="105" r="1" fill="#f0d060" opacity="0.5"/>
     </svg>
   </div>
   <div class="brand-title">POKÉ ALLIANCE</div>
   <div class="brand-sub">SERVIÇO DE TALENTOS</div>
   <div class="header-divider"></div>
+  <div class="pokemon-badge"><span class="pokemon-badge-dot"></span>SERVER MOON • TALENTOS ELEMENTAIS</div><br>
   <div class="filipi-tag">F I L I P I</div><br>
   <div class="server-tag">servidor MOON</div>
 </header>
 
 <main>
 
-  <div class="section-title">SERVIÇOS DE STATUS</div>
+  <div class="section-title"><span class="section-icon">⚔️</span> SERVIÇOS DE STATUS <span class="section-icon">🛡️</span></div>
 
   <div class="hpspeed-grid">
     <!-- HP CARD -->
@@ -1204,11 +1470,11 @@
     &nbsp;|&nbsp; TALENTO = R$ 60,00 &nbsp;•&nbsp; Steel / Fairy / Dragon = R$ 90,00
   </div>
 
-  <div class="section-title">TALENTOS ELEMENTAIS</div>
+  <div class="section-title"><span class="section-icon">✨</span> TALENTOS ELEMENTAIS <span class="section-icon">🔮</span></div>
 
   <div class="elementals-grid" id="elementals-grid"></div>
 
-  <div class="section-title">REDUCES SPEED IMPAIRMENT</div>
+  <div class="section-title"><span class="section-icon">💧</span> REDUCES SPEED IMPAIRMENT <span class="section-icon">🧊</span></div>
 
   <div class="reduces-section">
     <div class="reduces-tabs">
@@ -1231,7 +1497,7 @@
     <div class="reduces-panel" id="panel-sand" data-type="sand"></div>
   </div>
 
-  <div class="section-title">BOOST STONES — ELEMENTAIS</div>
+  <div class="section-title"><span class="section-icon">💎</span> BOOST STONES — ELEMENTAIS <span class="section-icon">⬆️</span></div>
 
   <div class="boost-section">
     <div class="boost-tabs" id="boost-tabs"></div>
@@ -1261,7 +1527,7 @@
     </div>
   </div>
 
-  <div class="section-title">ACCELERATES — GINÁSIOS</div>
+  <div class="section-title"><span class="section-icon">🏟️</span> ACCELERATES — GINÁSIOS <span class="section-icon">🏆</span></div>
 
   <div class="accelerates-section">
     <div class="accelerates-notice">
@@ -1363,7 +1629,13 @@
 
 </main>
 
-<footer>POKÉ ALLIANCE • F I L I P I • SERVER MOON</footer>
+<footer>
+  <div style="margin-bottom:8px; opacity:0.5;">
+    ✦ &nbsp; ✦ &nbsp; ✦
+  </div>
+  <div>POKÉ ALLIANCE &nbsp;•&nbsp; F I L I P I &nbsp;•&nbsp; SERVER MOON</div>
+  <div style="margin-top:6px; font-size:8px; letter-spacing:0.2em; opacity:0.4;">TALENTOS ELEMENTAIS • BOOST STONES • GINÁSIOS</div>
+</footer>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-limpar">
@@ -1401,11 +1673,11 @@ const stars = Array.from({length:180}, () => ({
 }));
 
 // Partículas Pokébola flutuantes
-const pokeParts = Array.from({length:8}, (_, i) => ({
+const pokeParts = Array.from({length:12}, (_, i) => ({
   x: Math.random() * window.innerWidth,
   y: Math.random() * window.innerHeight,
-  size: Math.random() * 60 + 30,
-  alpha: Math.random() * 0.04 + 0.01,
+  size: Math.random() * 70 + 25,
+  alpha: Math.random() * 0.05 + 0.01,
   speed: Math.random() * 0.15 + 0.05,
   angle: Math.random() * Math.PI * 2
 }));
@@ -1701,24 +1973,24 @@ function changeAccelCount(idx, delta) {
 
 // ===== BOOST STONES =====
 const boostTypes = [
-  { key: 'bug',      label: 'BUG',      icon: '🐛' },
-  { key: 'dark',     label: 'DARK',     icon: '🌑' },
-  { key: 'dragon',   label: 'DRAGON',   icon: '🐉' },
-  { key: 'electric', label: 'ELEC',     icon: '⚡' },
-  { key: 'fairy',    label: 'FAIRY',    icon: '🧚' },
-  { key: 'fighting', label: 'FIGHT',    icon: '🥊' },
-  { key: 'fire',     label: 'FIRE',     icon: '🔥' },
-  { key: 'flying',   label: 'FLYING',   icon: '🦅' },
-  { key: 'ghost',    label: 'GHOST',    icon: '👻' },
-  { key: 'grass',    label: 'GRASS',    icon: '🌿' },
-  { key: 'ground',   label: 'GROUND',   icon: '🌍' },
-  { key: 'ice',      label: 'ICE',      icon: '🧊' },
-  { key: 'normal',   label: 'NORMAL',   icon: '⭐' },
-  { key: 'poison',   label: 'POISON',   icon: '☠️' },
-  { key: 'psychic',  label: 'PSYCHIC',  icon: '🔮' },
-  { key: 'rock',     label: 'ROCK',     icon: '🪨' },
-  { key: 'steel',    label: 'STEEL',    icon: '⚙️' },
-  { key: 'water',    label: 'WATER',    icon: '💧' },
+  { key: 'bug',      label: 'BUG',      icon: '<img src="https://i.imgur.com/I3TEtIE.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'dark',     label: 'DARK',     icon: '<img src="https://i.imgur.com/Ea75cVf.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'dragon',   label: 'DRAGON',   icon: '<img src="https://i.imgur.com/NaEUJov.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'electric', label: 'ELEC',     icon: '<img src="https://i.imgur.com/9gYIDvI.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'fairy',    label: 'FAIRY',    icon: '<img src="https://i.imgur.com/cPVKird.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'fighting', label: 'FIGHT',    icon: '<img src="https://i.imgur.com/WvAqULu.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'fire',     label: 'FIRE',     icon: '<img src="https://i.imgur.com/LUSja0u.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'flying',   label: 'FLYING',   icon: '<img src="https://i.imgur.com/ZsmO7z7.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'ghost',    label: 'GHOST',    icon: '<img src="https://i.imgur.com/xxpTBDI.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'grass',    label: 'GRASS',    icon: '<img src="https://i.imgur.com/kmtM2s2.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'ground',   label: 'GROUND',   icon: '<img src="https://i.imgur.com/BMwn78D.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'ice',      label: 'ICE',      icon: '<img src="https://i.imgur.com/8yVeZEU.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'normal',   label: 'NORMAL',   icon: '<img src="https://i.imgur.com/y8UcqNW.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'poison',   label: 'POISON',   icon: '<img src="https://i.imgur.com/blOp418.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'psychic',  label: 'PSYCHIC',  icon: '<img src="https://i.imgur.com/aOgZCsq.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'rock',     label: 'ROCK',     icon: '<img src="https://i.imgur.com/GRxYHJv.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'steel',    label: 'STEEL',    icon: '<img src="https://i.imgur.com/CBGW1PZ.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
+  { key: 'water',    label: 'WATER',    icon: '<img src="https://i.imgur.com/Lf2dISW.png" style="width:20px;height:20px;object-fit:contain;display:block;margin:0 auto;">' },
 ];
 
 const boostTiers = [
@@ -1749,7 +2021,7 @@ function buildBoostUI() {
     const tab = document.createElement('div');
     tab.className = `boost-tab bt-${t.key}${t.key === activeBoostType ? ' active' : ''}`;
     tab.id = `btab-${t.key}`;
-    tab.innerHTML = `<span class="bt-icon">${t.icon}</span>${t.label}`;
+    tab.innerHTML = `<span class="bt-icon" style="display:flex;align-items:center;justify-content:center;height:20px;margin-bottom:3px;">${t.icon}</span>${t.label}`;
     tab.addEventListener('click', () => switchBoostTab(t.key));
     tabsEl.appendChild(tab);
 
@@ -1835,6 +2107,59 @@ function changeBoostCount(type, tier, delta) {
 }
 
 buildBoostUI();
+
+// ===== ELEMENTAL CARD SPARKLE EFFECT =====
+function spawnTypeSparkle(card) {
+  const style = getComputedStyle(card);
+  const color = style.getPropertyValue('--tc').trim() || '#fff';
+  for (let i = 0; i < 5; i++) {
+    const spark = document.createElement('div');
+    const size = Math.random() * 5 + 2;
+    const x = Math.random() * 100;
+    const bottom = Math.random() * 40 + 10;
+    const dur = (Math.random() * 0.8 + 0.5).toFixed(2);
+    const delay = (Math.random() * 0.3).toFixed(2);
+    spark.style.cssText = `
+      position:absolute; width:${size}px; height:${size}px;
+      border-radius:50%; left:${x}%; bottom:${bottom}%;
+      background:${color}; opacity:0.8; pointer-events:none; z-index:5;
+      animation: float-p ${dur}s ${delay}s ease-out forwards;
+    `;
+    card.appendChild(spark);
+    setTimeout(() => spark.remove(), (parseFloat(dur) + parseFloat(delay)) * 1000 + 100);
+  }
+}
+
+document.getElementById('elementals-grid').addEventListener('mouseenter', e => {
+  const card = e.target.closest('.elemental-card');
+  if (card) spawnTypeSparkle(card);
+}, true);
+
+// ===== RIPPLE EFFECT =====
+function addRipple(e, el, color) {
+  const rect = el.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 0.6;
+  const x = e.clientX - rect.left - size / 2;
+  const y = e.clientY - rect.top  - size / 2;
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple';
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;background:${color || 'rgba(255,255,255,0.15)'};`;
+  el.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+document.getElementById('elementals-grid').addEventListener('click', e => {
+  const card = e.target.closest('.elemental-card');
+  if (card) {
+    const color = getComputedStyle(card).getPropertyValue('--tc').trim();
+    addRipple(e, card, `color-mix(in srgb, ${color} 40%, transparent)`);
+  }
+});
+
+document.getElementById('boost-panels').addEventListener('click', e => {
+  const card = e.target.closest('.boost-tier-card');
+  if (card) addRipple(e, card, 'rgba(201,162,39,0.15)');
+});
 
 
 let hpCount = 0, speedCount = 0;
