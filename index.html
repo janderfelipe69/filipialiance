@@ -231,7 +231,6 @@
     opacity: 0;
     transition: opacity 0.3s;
     border-radius: 12px;
-    pointer-events: none;
   }
   .service-card.hp::before { background: radial-gradient(circle at 20% 50%, rgba(224,53,53,0.12), transparent 60%); }
   .service-card.speed::before { background: radial-gradient(circle at 20% 50%, rgba(240,192,64,0.12), transparent 60%); }
@@ -841,7 +840,7 @@
   <div class="combo-banner">
     COMBO ESPECIAL &nbsp;•&nbsp;
     <strong>HP + SPEED = R$ 45,00</strong>
-    &nbsp;|&nbsp; TALENTO COMPLETO = R$ 60,00
+    &nbsp;|&nbsp; TALENTO = R$ 60,00 &nbsp;•&nbsp; Steel / Fairy / Dragon = R$ 90,00
   </div>
 
   <!-- ELEMENTAIS -->
@@ -963,24 +962,24 @@ for (let i = 0; i < 120; i++) {
 
 // ---- ELEMENTALS ----
 const tipos = [
-  { name:'Bug',      icon:'<img src=https://i.imgur.com/I3TEtIE.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-bug' },
-  { name:'Dark',     icon:'<img src=https://i.imgur.com/Ea75cVf.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dark' },
-  { name:'Dragon',   icon:'<img src=https://i.imgur.com/NaEUJov.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dragon' },
-  { name:'Electric', icon:'<img src=https://i.imgur.com/9gYIDvI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-electric' },
-  { name:'Fairy',    icon:'<img src=https://i.imgur.com/cPVKird.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fairy' },
-  { name:'Fighting', icon:'<img src=https://i.imgur.com/WvAqULu.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fighting' },
-  { name:'Fire',     icon:'<img src=https://i.imgur.com/LUSja0u.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fire' },
-  { name:'Flying',   icon:'<img src=https://i.imgur.com/ZsmO7z7.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-flying' },
-  { name:'Ghost',    icon:'<img src=https://i.imgur.com/xxpTBDI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ghost' },
-  { name:'Grass',    icon:'<img src=https://i.imgur.com/kmtM2s2.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-grass' },
-  { name:'Ground',   icon:'<img src=https://i.imgur.com/BMwn78D.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ground' },
-  { name:'Ice',      icon:'<img src=https://i.imgur.com/8yVeZEU.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ice' },
-  { name:'Normal',   icon:'<img src=https://i.imgur.com/y8UcqNW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-normal' },
-  { name:'Poison',   icon:'<img src=https://i.imgur.com/blOp418.png style="width:22px;height:22px;object-fit:contain;display:block">️', cls:'type-poison' },
-  { name:'Psychic',  icon:'<img src=https://i.imgur.com/aOgZCsq.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-psychic' },
-  { name:'Rock',     icon:'<img src=https://i.imgur.com/GRxYHJv.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-rock' },
-  { name:'Steel',    icon:'<img src=https://i.imgur.com/CBGW1PZ.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-steel' },
-  { name:'Water',    icon:'<img src=https://i.imgur.com/Lf2dISW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-water' },
+  { name:'Bug',      icon:'<img src=https://i.imgur.com/I3TEtIE.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-bug',      preco:60 },
+  { name:'Dark',     icon:'<img src=https://i.imgur.com/Ea75cVf.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dark',     preco:60 },
+  { name:'Dragon',   icon:'<img src=https://i.imgur.com/NaEUJov.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dragon',   preco:90 },
+  { name:'Electric', icon:'<img src=https://i.imgur.com/9gYIDvI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-electric', preco:60 },
+  { name:'Fairy',    icon:'<img src=https://i.imgur.com/cPVKird.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fairy',    preco:90 },
+  { name:'Fighting', icon:'<img src=https://i.imgur.com/WvAqULu.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fighting', preco:60 },
+  { name:'Fire',     icon:'<img src=https://i.imgur.com/LUSja0u.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fire',     preco:60 },
+  { name:'Flying',   icon:'<img src=https://i.imgur.com/ZsmO7z7.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-flying',   preco:60 },
+  { name:'Ghost',    icon:'<img src=https://i.imgur.com/xxpTBDI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ghost',    preco:60 },
+  { name:'Grass',    icon:'<img src=https://i.imgur.com/kmtM2s2.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-grass',    preco:60 },
+  { name:'Ground',   icon:'<img src=https://i.imgur.com/BMwn78D.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ground',   preco:60 },
+  { name:'Ice',      icon:'<img src=https://i.imgur.com/8yVeZEU.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ice',      preco:60 },
+  { name:'Normal',   icon:'<img src=https://i.imgur.com/y8UcqNW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-normal',   preco:60 },
+  { name:'Poison',   icon:'<img src=https://i.imgur.com/blOp418.png style="width:22px;height:22px;object-fit:contain;display:block">️', cls:'type-poison',  preco:60 },
+  { name:'Psychic',  icon:'<img src=https://i.imgur.com/aOgZCsq.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-psychic',  preco:60 },
+  { name:'Rock',     icon:'<img src=https://i.imgur.com/GRxYHJv.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-rock',     preco:60 },
+  { name:'Steel',    icon:'<img src=https://i.imgur.com/CBGW1PZ.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-steel',    preco:90 },
+  { name:'Water',    icon:'<img src=https://i.imgur.com/Lf2dISW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-water',    preco:60 },
 ];
 
 const grid = document.getElementById('elementals-grid');
@@ -989,11 +988,12 @@ tipos.forEach(t => {
   d.className = `elemental-card ${t.cls}`;
   d.dataset.name = t.name;
   d.dataset.count = '0';
+  d.dataset.preco = t.preco;
   d.innerHTML = `
     <div class="el-check"></div>
     <div class="el-dot">${t.icon}</div>
     <div class="el-name">${t.name}</div>
-    <div class="el-price">R$ 60</div>
+    <div class="el-price">R$ ${t.preco}</div>
     <div class="el-counter">
       <button class="el-counter-btn" data-delta="-1" data-type="${t.name}">−</button>
       <span class="el-counter-val">0</span>
@@ -1058,12 +1058,16 @@ function atualizar() {
   total += hpSpeedTotal;
 
   // Elementals
-  let totalEls = 0, uniqueTypes = 0;
+  let totalEls = 0, uniqueTypes = 0, sub = 0;
   document.querySelectorAll('.elemental-card').forEach(el => {
     const cnt = parseInt(el.dataset.count) || 0;
-    if (cnt > 0) { totalEls += cnt; uniqueTypes++; }
+    if (cnt > 0) {
+      const preco = parseInt(el.dataset.preco) || PRECO_TALENTO;
+      totalEls += cnt;
+      uniqueTypes++;
+      sub += cnt * preco;
+    }
   });
-  const sub = totalEls * PRECO_TALENTO;
 
   // Bônus baseado na quantidade total de serviços (HP + Speed + Elementais)
   const totalServicos = hpCount + speedCount + totalEls;
