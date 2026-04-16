@@ -531,6 +531,210 @@
   .elemental-card.selected { border-color: var(--tc); box-shadow: 0 0 20px color-mix(in srgb, var(--tc) 40%, transparent), 0 8px 24px rgba(0,0,0,0.4); }
   .elemental-card .el-check { background: var(--tc); border-color: var(--tc); }
 
+  /* REDUCES SPEED SECTION */
+  .reduces-section {
+    margin-top: 4px;
+  }
+  .reduces-tabs {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .reduces-tab {
+    flex: 1; padding: 10px 6px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 0.1em;
+    cursor: pointer; text-align: center;
+    transition: all 0.25s cubic-bezier(.34,1.2,.64,1);
+    user-select: none;
+  }
+  .reduces-tab .rt-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .reduces-tab:hover { border-color: var(--tc-reduce, var(--border2)); transform: translateY(-2px); }
+  .reduces-tab.active {
+    border-color: var(--tc-reduce, var(--blue));
+    background: var(--ta-reduce, rgba(83,157,223,0.1));
+    color: var(--tc-reduce, var(--white));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--tc-reduce, var(--blue)) 30%, transparent);
+    transform: translateY(-3px);
+  }
+  .reduces-tab.water  { --tc-reduce: #539ddf; --ta-reduce: rgba(83,157,223,0.12); }
+  .reduces-tab.ice    { --tc-reduce: #75d0c1; --ta-reduce: rgba(117,208,193,0.12); }
+  .reduces-tab.sand   { --tc-reduce: #da7c4d; --ta-reduce: rgba(218,124,77,0.12); }
+
+  .reduces-panel { display: none; }
+  .reduces-panel.active { display: block; animation: panel-in 0.25s ease-out; }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reduces-levels {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .reduces-level-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    cursor: default; position: relative; overflow: hidden;
+  }
+  .reduces-level-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+    background: var(--tc-lv);
+    border-radius: 14px 0 0 14px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .reduces-level-card.selected {
+    border-color: var(--tc-lv);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--tc-lv) 25%, transparent), 0 6px 20px rgba(0,0,0,0.35);
+    transform: translateX(4px);
+  }
+  .reduces-level-card.selected::before { opacity: 1; }
+
+  .rl-left { display: flex; align-items: center; gap: 12px; }
+  .rl-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+    background: var(--ta-lv);
+    color: var(--tc-lv);
+    border-radius: 8px; padding: 4px 10px;
+    min-width: 48px; text-align: center;
+    border: 1px solid color-mix(in srgb, var(--tc-lv) 40%, transparent);
+  }
+  .rl-info {}
+  .rl-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .rl-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .rl-right { display: flex; align-items: center; gap: 10px; }
+  .rl-price {
+    font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--tc-lv); min-width: 70px; text-align: right;
+  }
+  .rl-counter {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .rl-counter-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: rgba(255,255,255,0.04);
+    color: var(--muted); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s cubic-bezier(.34,1.56,.64,1), color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .rl-counter-btn:hover {
+    background: rgba(255,255,255,0.1); transform: scale(1.2);
+    border-color: var(--tc-lv); color: var(--tc-lv);
+  }
+  .rl-counter-btn:active { transform: scale(0.9); }
+  .rl-counter-val {
+    font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+    min-width: 18px; text-align: center; color: var(--white);
+  }
+  .reduces-level-card.selected .rl-counter-btn { border-color: color-mix(in srgb, var(--tc-lv) 60%, transparent); color: var(--tc-lv); }
+
+  /* ACCELERATES SECTION */
+  .accelerates-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .accelerates-notice {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(201,162,39,0.07);
+    border-bottom: 1px solid rgba(201,162,39,0.2);
+    padding: 12px 18px;
+    font-size: 12px; color: rgba(201,162,39,0.85);
+    line-height: 1.5;
+  }
+  .accelerates-notice strong { color: var(--gold2); }
+
+  .accel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  @media (max-width: 520px) {
+    .accel-grid { grid-template-columns: 1fr; }
+  }
+
+  .accel-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    transition: background 0.2s, box-shadow 0.2s;
+    position: relative;
+    --tc-ac: #a0a29f;
+  }
+  .accel-card:nth-child(even) { border-right: none; }
+  .accel-card:nth-last-child(-n+2) { border-bottom: none; }
+  @media (max-width: 520px) {
+    .accel-card { border-right: none; }
+    .accel-card:last-child { border-bottom: none; }
+    .accel-card:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+    .accel-card:last-child { border-bottom: none; }
+  }
+  .accel-card.selected { background: rgba(255,255,255,0.03); }
+  .accel-card.selected::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--tc-ac);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .accel-left { display: flex; align-items: center; gap: 10px; }
+  .accel-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .accel-card.selected .accel-icon {
+    border-color: var(--tc-ac);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--tc-ac) 40%, transparent);
+  }
+  .accel-icon img { width: 22px; height: 22px; object-fit: contain; display: block; }
+  .accel-name {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--text); letter-spacing: 0.05em;
+  }
+  .accel-price {
+    font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--muted); margin-top: 2px;
+    transition: color 0.2s;
+  }
+  .accel-card.selected .accel-price { color: var(--tc-ac); }
+
+  .accel-right { display: flex; align-items: center; gap: 6px; }
+  .accel-counter-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: rgba(255,255,255,0.04);
+    color: var(--muted); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s cubic-bezier(.34,1.56,.64,1), color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .accel-counter-btn:hover {
+    background: rgba(255,255,255,0.1); transform: scale(1.2);
+    border-color: var(--tc-ac); color: var(--tc-ac);
+  }
+  .accel-counter-btn:active { transform: scale(0.9); }
+  .accel-counter-val {
+    font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+    min-width: 18px; text-align: center; color: var(--white);
+  }
+  .accel-card.selected .accel-counter-btn { border-color: color-mix(in srgb, var(--tc-ac) 60%, transparent); color: var(--tc-ac); }
+
   /* DISCOUNT BAR */
   .discount-bar {
     background: var(--card);
@@ -881,6 +1085,38 @@
 
   <div class="elementals-grid" id="elementals-grid"></div>
 
+  <div class="section-title">REDUCES SPEED IMPAIRMENT</div>
+
+  <div class="reduces-section">
+    <div class="reduces-tabs">
+      <div class="reduces-tab water active" onclick="switchReducesTab('water')">
+        <span class="rt-icon">💧</span>ÁGUA
+      </div>
+      <div class="reduces-tab ice" onclick="switchReducesTab('ice')">
+        <span class="rt-icon">🧊</span>GELO
+      </div>
+      <div class="reduces-tab sand" onclick="switchReducesTab('sand')">
+        <span class="rt-icon">🏜️</span>AREIA
+      </div>
+    </div>
+
+    <!-- ÁGUA -->
+    <div class="reduces-panel active" id="panel-water" data-type="water"></div>
+    <!-- GELO -->
+    <div class="reduces-panel" id="panel-ice" data-type="ice"></div>
+    <!-- AREIA -->
+    <div class="reduces-panel" id="panel-sand" data-type="sand"></div>
+  </div>
+
+  <div class="section-title">ACCELERATES — GINÁSIOS</div>
+
+  <div class="accelerates-section">
+    <div class="accelerates-notice">
+      ⚠️ <span><strong>Atenção:</strong> A parte do ginásio (batalha/conquista) é por conta do player. Eu forneço apenas os <strong>itens necessários</strong> para cada ginásio. Cada ginásio = <strong>R$ 120,00</strong>.</span>
+    </div>
+    <div class="accel-grid" id="accel-grid"></div>
+  </div>
+
   <div class="discount-bar">
     <div class="discount-bar-title">ESCALA DE DESCONTO</div>
     <div class="discount-steps">
@@ -916,6 +1152,14 @@
     <div class="total-row" id="row-talentos" style="display:none">
       <span class="label" id="lbl-talentos">Talentos (0×)</span>
       <span class="value" id="val-talentos">R$ 0,00</span>
+    </div>
+    <div class="total-row" id="row-reduces" style="display:none">
+      <span class="label" id="lbl-reduces">Reduces Speed (0×)</span>
+      <span class="value" id="val-reduces">R$ 0,00</span>
+    </div>
+    <div class="total-row" id="row-accelerates" style="display:none">
+      <span class="label" id="lbl-accelerates">Accelerates (0×)</span>
+      <span class="value" id="val-accelerates">R$ 0,00</span>
     </div>
     <div class="total-row discount" id="row-desconto" style="display:none">
       <span class="label" id="lbl-desconto">Desconto (0%)</span>
@@ -1088,6 +1332,108 @@ function setupCardParticles(containerId, color) {
 setupCardParticles('particles-hp',    '#e03535');
 setupCardParticles('particles-speed', '#f0c040');
 
+// ===== REDUCES SPEED =====
+const reducesConfig = {
+  water: {
+    label: 'Água', icon: '💧',
+    color: '#539ddf', colorA: 'rgba(83,157,223,0.15)',
+    levels: [
+      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de água em 40%', preco: 30,  itens: { 'Azurite': 3,  'Hydrocore': 1 } },
+      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de água em 50%', preco: 45,  itens: { 'Azurite': 5,  'Hydrocore': 2 } },
+      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de água em 60%', preco: 60,  itens: { 'Azurite': 8,  'Hydrocore': 3 } },
+      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de água em 70%', preco: 80,  itens: { 'Azurite': 12, 'Hydrocore': 5 } },
+      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de água em 80%', preco: 105, itens: { 'Azurite': 18, 'Hydrocore': 7 } },
+      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de água em 90%', preco: 135, itens: { 'Azurite': 25, 'Hydrocore': 10 } },
+    ]
+  },
+  ice: {
+    label: 'Gelo', icon: '🧊',
+    color: '#75d0c1', colorA: 'rgba(117,208,193,0.15)',
+    levels: [
+      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de gelo em 40%', preco: 30,  itens: { 'Frostite': 3,  'Cryocore': 1 } },
+      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de gelo em 50%', preco: 45,  itens: { 'Frostite': 5,  'Cryocore': 2 } },
+      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de gelo em 60%', preco: 60,  itens: { 'Frostite': 8,  'Cryocore': 3 } },
+      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de gelo em 70%', preco: 80,  itens: { 'Frostite': 12, 'Cryocore': 5 } },
+      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de gelo em 80%', preco: 105, itens: { 'Frostite': 18, 'Cryocore': 7 } },
+      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de gelo em 90%', preco: 135, itens: { 'Frostite': 25, 'Cryocore': 10 } },
+    ]
+  },
+  sand: {
+    label: 'Areia', icon: '🏜️',
+    color: '#da7c4d', colorA: 'rgba(218,124,77,0.15)',
+    levels: [
+      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de areia em 40%', preco: 30,  itens: { 'Sandite': 3,  'Dunecore': 1 } },
+      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de areia em 50%', preco: 45,  itens: { 'Sandite': 5,  'Dunecore': 2 } },
+      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de areia em 60%', preco: 60,  itens: { 'Sandite': 8,  'Dunecore': 3 } },
+      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de areia em 70%', preco: 80,  itens: { 'Sandite': 12, 'Dunecore': 5 } },
+      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de areia em 80%', preco: 105, itens: { 'Sandite': 18, 'Dunecore': 7 } },
+      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de areia em 90%', preco: 135, itens: { 'Sandite': 25, 'Dunecore': 10 } },
+    ]
+  }
+};
+
+// State: { water: [0,0,0,0,0,0], ice: [...], sand: [...] }
+const reducesState = { water: [0,0,0,0,0,0], ice: [0,0,0,0,0,0], sand: [0,0,0,0,0,0] };
+
+function buildReducesPanels() {
+  ['water','ice','sand'].forEach(type => {
+    const cfg = reducesConfig[type];
+    const panel = document.getElementById(`panel-${type}`);
+    const ul = document.createElement('div');
+    ul.className = 'reduces-levels';
+    cfg.levels.forEach((lv, i) => {
+      const card = document.createElement('div');
+      card.className = 'reduces-level-card';
+      card.id = `rl-${type}-${i}`;
+      card.style.setProperty('--tc-lv', cfg.color);
+      card.style.setProperty('--ta-lv', cfg.colorA);
+      const itensStr = Object.entries(lv.itens).map(([k,v]) => `${k} ×${v}`).join(' • ');
+      card.innerHTML = `
+        <div class="rl-left">
+          <div class="rl-badge">${lv.pct}%</div>
+          <div class="rl-info">
+            <div class="rl-name">${lv.name} — ${cfg.icon} ${cfg.label}</div>
+            <div class="rl-desc">${itensStr}</div>
+          </div>
+        </div>
+        <div class="rl-right">
+          <div class="rl-price">R$ ${lv.preco},00</div>
+          <div class="rl-counter">
+            <button class="rl-counter-btn" data-type="${type}" data-idx="${i}" data-delta="-1">−</button>
+            <span class="rl-counter-val" id="rlv-${type}-${i}">0</span>
+            <button class="rl-counter-btn" data-type="${type}" data-idx="${i}" data-delta="1">+</button>
+          </div>
+        </div>
+      `;
+      card.querySelectorAll('.rl-counter-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          changeReducesCount(type, i, parseInt(btn.dataset.delta));
+        });
+      });
+      ul.appendChild(card);
+    });
+    panel.appendChild(ul);
+  });
+}
+
+function changeReducesCount(type, idx, delta) {
+  reducesState[type][idx] = Math.max(0, reducesState[type][idx] + delta);
+  const val = reducesState[type][idx];
+  document.getElementById(`rlv-${type}-${idx}`).textContent = val;
+  document.getElementById(`rl-${type}-${idx}`).classList.toggle('selected', val > 0);
+  atualizar();
+}
+
+function switchReducesTab(type) {
+  document.querySelectorAll('.reduces-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.reduces-tab.${type}`).classList.add('active');
+  document.querySelectorAll('.reduces-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${type}`).classList.add('active');
+}
+
+buildReducesPanels();
+
 // ===== ELEMENTALS =====
 const tipos = [
   { name:'Bug',      icon:'<img src=https://i.imgur.com/I3TEtIE.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-bug',      preco:60 },
@@ -1138,6 +1484,61 @@ tipos.forEach(t => {
   d.addEventListener('click', () => changeElementalCount(d, 1));
   grid.appendChild(d);
 });
+
+// ===== ACCELERATES =====
+const accelConfig = [
+  { name: 'Normal',   img: 'https://i.imgur.com/y8UcqNW.png', color: '#a0a29f', preco: 120 },
+  { name: 'Fogo',     img: 'https://i.imgur.com/LUSja0u.png', color: '#fba54c', preco: 120 },
+  { name: 'Pedra',    img: 'https://i.imgur.com/GRxYHJv.png', color: '#c9bb8a', preco: 120 },
+  { name: 'Água',     img: 'https://i.imgur.com/Lf2dISW.png', color: '#539ddf', preco: 120 },
+  { name: 'Elétrico', img: 'https://i.imgur.com/9gYIDvI.png', color: '#f2d94e', preco: 120 },
+  { name: 'Planta',   img: 'https://i.imgur.com/kmtM2s2.png', color: '#5fbd58', preco: 120 },
+  { name: 'Poison',   img: 'https://i.imgur.com/blOp418.png', color: '#b763cf', preco: 120 },
+  { name: 'Voador',   img: 'https://i.imgur.com/ZsmO7z7.png', color: '#89aae3', preco: 120 },
+];
+const accelState = new Array(accelConfig.length).fill(0);
+
+function buildAccelGrid() {
+  const grid = document.getElementById('accel-grid');
+  accelConfig.forEach((ac, i) => {
+    const card = document.createElement('div');
+    card.className = 'accel-card';
+    card.id = `ac-${i}`;
+    card.style.setProperty('--tc-ac', ac.color);
+    card.innerHTML = `
+      <div class="accel-left">
+        <div class="accel-icon"><img src="${ac.img}" alt="${ac.name}"></div>
+        <div>
+          <div class="accel-name">${ac.name.toUpperCase()}</div>
+          <div class="accel-price">R$ ${ac.preco},00</div>
+        </div>
+      </div>
+      <div class="accel-right">
+        <button class="accel-counter-btn" data-idx="${i}" data-delta="-1">−</button>
+        <span class="accel-counter-val" id="acv-${i}">0</span>
+        <button class="accel-counter-btn" data-idx="${i}" data-delta="1">+</button>
+      </div>
+    `;
+    card.querySelectorAll('.accel-counter-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        changeAccelCount(i, parseInt(btn.dataset.delta));
+      });
+    });
+    card.addEventListener('click', () => changeAccelCount(i, 1));
+    grid.appendChild(card);
+  });
+}
+
+function changeAccelCount(idx, delta) {
+  accelState[idx] = Math.max(0, accelState[idx] + delta);
+  const val = accelState[idx];
+  document.getElementById(`acv-${idx}`).textContent = val;
+  document.getElementById(`ac-${idx}`).classList.toggle('selected', val > 0);
+  atualizar();
+}
+
+buildAccelGrid();
 
 // ===== STATE =====
 let hpCount = 0, speedCount = 0;
@@ -1197,15 +1598,30 @@ function atualizar() {
     }
   });
 
-  const totalServicos = hpCount + speedCount + totalEls;
+  // Reduces Speed
+  let totalReduces = 0, subReduces = 0;
+  ['water','ice','sand'].forEach(type => {
+    reducesConfig[type].levels.forEach((lv, i) => {
+      const cnt = reducesState[type][i];
+      if (cnt > 0) { totalReduces += cnt; subReduces += cnt * lv.preco; }
+    });
+  });
+
+  // Accelerates
+  let totalAccel = 0, subAccel = 0;
+  accelState.forEach((cnt, i) => {
+    if (cnt > 0) { totalAccel += cnt; subAccel += cnt * accelConfig[i].preco; }
+  });
+
+  const totalServicos = hpCount + speedCount + totalEls + totalReduces + totalAccel;
   let pct = 0;
   if (totalServicos >= 8) pct = 0.20;
   else if (totalServicos >= 6) pct = 0.15;
   else if (totalServicos >= 4) pct = 0.10;
   else if (totalServicos >= 2) pct = 0.05;
 
-  const desc = sub * pct;
-  total += sub - desc;
+  const desc = (sub + subReduces + subAccel) * pct;
+  total += sub + subReduces + subAccel - desc;
 
   ['ds-2','ds-4','ds-6','ds-8'].forEach((id, i) => {
     document.getElementById(id).classList.toggle('active', totalServicos >= [2,4,6,8][i]);
@@ -1215,6 +1631,8 @@ function atualizar() {
   show('row-hp',      hpCount > 0);
   show('row-speed',   speedCount > 0);
   show('row-talentos', totalEls > 0);
+  show('row-reduces',  totalReduces > 0);
+  show('row-accelerates', totalAccel > 0);
   show('row-desconto', desc > 0);
 
   const hpLabel = `❤️ HP ×${hpCount}${pairs>0?' (combo)':''}`;
@@ -1228,6 +1646,10 @@ function atualizar() {
   document.getElementById('val-speed').textContent   = `R$ ${speedDisplay.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-talentos').textContent = `Talentos (${totalEls}×)`;
   document.getElementById('val-talentos').textContent = `R$ ${sub.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-reduces').textContent  = `Reduces Speed (${totalReduces}×)`;
+  document.getElementById('val-reduces').textContent  = `R$ ${subReduces.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-accelerates').textContent = `Accelerates (${totalAccel}×)`;
+  document.getElementById('val-accelerates').textContent = `R$ ${subAccel.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
   document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
   document.getElementById('total').textContent        = total.toFixed(2).replace('.',',');
@@ -1247,6 +1669,20 @@ function confirmarLimpar() {
     el.querySelector('.el-counter-val').textContent = '0';
     el.classList.remove('selected');
   });
+  ['water','ice','sand'].forEach(type => {
+    reducesState[type] = [0,0,0,0,0,0];
+    reducesConfig[type].levels.forEach((_, i) => {
+      const el = document.getElementById(`rlv-${type}-${i}`);
+      if (el) el.textContent = '0';
+      const card = document.getElementById(`rl-${type}-${i}`);
+      if (card) card.classList.remove('selected');
+    });
+  });
+  accelState.fill(0);
+  accelConfig.forEach((_, i) => {
+    document.getElementById(`acv-${i}`).textContent = '0';
+    document.getElementById(`ac-${i}`).classList.remove('selected');
+  });
   fecharModalLimpar();
   atualizar();
 }
@@ -1263,11 +1699,23 @@ function enviarWhats() {
     const cnt = parseInt(el.dataset.count) || 0;
     if (cnt > 0) items.push(`${el.dataset.name} ×${cnt}`);
   });
+  ['water','ice','sand'].forEach(type => {
+    const cfg = reducesConfig[type];
+    cfg.levels.forEach((lv, i) => {
+      const cnt = reducesState[type][i];
+      if (cnt > 0) items.push(`${cfg.icon} Reduces ${cfg.label} ${lv.pct}% ×${cnt}`);
+    });
+  });
+  accelState.forEach((cnt, i) => {
+    if (cnt > 0) items.push(`🏟️ Accelerate ${accelConfig[i].name} ×${cnt}`);
+  });
   if (items.length === 0) { alert('Selecione ao menos um serviço!'); return; }
 
   const total = document.getElementById('total').textContent;
   let totalServicos = hpCount + speedCount;
   document.querySelectorAll('.elemental-card').forEach(el => { totalServicos += parseInt(el.dataset.count)||0; });
+  ['water','ice','sand'].forEach(type => { reducesState[type].forEach(c => { totalServicos += c; }); });
+  accelState.forEach(c => { totalServicos += c; });
   let pct = 0;
   if (totalServicos >= 8) pct = 20;
   else if (totalServicos >= 6) pct = 15;
