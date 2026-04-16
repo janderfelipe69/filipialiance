@@ -971,6 +971,129 @@
   .modal-confirm:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(224,53,53,0.5); }
   .modal-confirm:active { transform: scale(0.97); }
 
+  /* ---- BOOST STONES SECTION ---- */
+  .boost-section {
+    margin-top: 4px;
+  }
+
+  .boost-tabs {
+    display: flex; gap: 6px; margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .boost-tab {
+    flex: 1; min-width: 60px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 0.05em;
+    cursor: pointer; text-align: center;
+    transition: all 0.25s cubic-bezier(.34,1.2,.64,1);
+    user-select: none;
+  }
+  .boost-tab .bt-icon { font-size: 16px; display: block; margin-bottom: 3px; }
+  .boost-tab:hover { border-color: var(--tc-boost, var(--border2)); transform: translateY(-2px); }
+  .boost-tab.active {
+    border-color: var(--tc-boost);
+    background: var(--ta-boost);
+    color: var(--tc-boost);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--tc-boost) 30%, transparent);
+    transform: translateY(-3px);
+  }
+  .boost-tab.bt-bug     { --tc-boost:#92bc2c; --ta-boost:rgba(146,188,44,0.12); }
+  .boost-tab.bt-dark    { --tc-boost:#8b8a96; --ta-boost:rgba(89,87,97,0.2); }
+  .boost-tab.bt-dragon  { --tc-boost:#0c69c8; --ta-boost:rgba(12,105,200,0.12); }
+  .boost-tab.bt-electric{ --tc-boost:#f2d94e; --ta-boost:rgba(242,217,78,0.12); }
+  .boost-tab.bt-fairy   { --tc-boost:#ee90e6; --ta-boost:rgba(238,144,230,0.12); }
+  .boost-tab.bt-fighting{ --tc-boost:#d3425f; --ta-boost:rgba(211,66,95,0.12); }
+  .boost-tab.bt-fire    { --tc-boost:#fba54c; --ta-boost:rgba(251,165,76,0.12); }
+  .boost-tab.bt-flying  { --tc-boost:#89aae3; --ta-boost:rgba(137,170,227,0.12); }
+  .boost-tab.bt-ghost   { --tc-boost:#5f6dbc; --ta-boost:rgba(95,109,188,0.12); }
+  .boost-tab.bt-grass   { --tc-boost:#5fbd58; --ta-boost:rgba(95,189,88,0.12); }
+  .boost-tab.bt-ground  { --tc-boost:#da7c4d; --ta-boost:rgba(218,124,77,0.12); }
+  .boost-tab.bt-ice     { --tc-boost:#75d0c1; --ta-boost:rgba(117,208,193,0.12); }
+  .boost-tab.bt-normal  { --tc-boost:#a0a29f; --ta-boost:rgba(160,162,159,0.12); }
+  .boost-tab.bt-poison  { --tc-boost:#b763cf; --ta-boost:rgba(183,99,207,0.12); }
+  .boost-tab.bt-psychic { --tc-boost:#fa8581; --ta-boost:rgba(250,133,129,0.12); }
+  .boost-tab.bt-rock    { --tc-boost:#c9bb8a; --ta-boost:rgba(201,187,138,0.12); }
+  .boost-tab.bt-steel   { --tc-boost:#5695a3; --ta-boost:rgba(86,149,163,0.12); }
+  .boost-tab.bt-water   { --tc-boost:#539ddf; --ta-boost:rgba(83,157,223,0.12); }
+
+  .boost-panel { display: none; }
+  .boost-panel.active { display: block; animation: panel-in 0.25s ease-out; }
+
+  .boost-tiers {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .boost-tier-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    cursor: default; position: relative; overflow: hidden;
+    --tc-bt: #a0a29f; --ta-bt: rgba(160,162,159,0.15);
+  }
+  .boost-tier-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+    background: var(--tc-bt);
+    border-radius: 14px 0 0 14px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .boost-tier-card.selected {
+    border-color: var(--tc-bt);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--tc-bt) 25%, transparent), 0 6px 20px rgba(0,0,0,0.35);
+    transform: translateX(4px);
+  }
+  .boost-tier-card.selected::before { opacity: 1; }
+
+  .bt-left { display: flex; align-items: center; gap: 12px; }
+  .bt-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    background: var(--ta-bt);
+    color: var(--tc-bt);
+    border-radius: 8px; padding: 4px 8px;
+    min-width: 52px; text-align: center;
+    border: 1px solid color-mix(in srgb, var(--tc-bt) 40%, transparent);
+    white-space: nowrap;
+  }
+  .bt-info {}
+  .bt-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .bt-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .bt-right { display: flex; align-items: center; gap: 10px; }
+  .bt-price {
+    font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--tc-bt); min-width: 68px; text-align: right;
+  }
+  .bt-counter {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .bt-counter-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: rgba(255,255,255,0.04);
+    color: var(--muted); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s cubic-bezier(.34,1.56,.64,1), color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .bt-counter-btn:hover {
+    background: rgba(255,255,255,0.1); transform: scale(1.2);
+    border-color: var(--tc-bt); color: var(--tc-bt);
+  }
+  .bt-counter-btn:active { transform: scale(0.9); }
+  .bt-counter-val {
+    font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+    min-width: 18px; text-align: center; color: var(--white);
+  }
+  .boost-tier-card.selected .bt-counter-btn { border-color: color-mix(in srgb, var(--tc-bt) 60%, transparent); color: var(--tc-bt); }
+
   /* FOOTER */
   footer {
     position: relative; z-index: 1;
@@ -1108,6 +1231,36 @@
     <div class="reduces-panel" id="panel-sand" data-type="sand"></div>
   </div>
 
+  <div class="section-title">BOOST STONES — ELEMENTAIS</div>
+
+  <div class="boost-section">
+    <div class="boost-tabs" id="boost-tabs"></div>
+    <div id="boost-panels"></div>
+  </div>
+
+  <div class="discount-bar" id="boost-discount-bar" style="margin-top:12px; border-color: rgba(201,162,39,0.35);">
+    <div class="discount-bar-title" style="color:var(--gold);">💎 DESCONTO EXCLUSIVO — BOOST STONES</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:12px; font-family:'Rajdhani',sans-serif;">A cada 5 boost stones (qualquer tipo/tier) — máx. 20%</div>
+    <div class="discount-steps">
+      <div class="discount-step" id="bds-5" style="border-color:rgba(201,162,39,0.2);">
+        <div class="ds-val">5%</div>
+        <div class="ds-label">5 stones</div>
+      </div>
+      <div class="discount-step" id="bds-10" style="border-color:rgba(201,162,39,0.2);">
+        <div class="ds-val">10%</div>
+        <div class="ds-label">10 stones</div>
+      </div>
+      <div class="discount-step" id="bds-15" style="border-color:rgba(201,162,39,0.2);">
+        <div class="ds-val">15%</div>
+        <div class="ds-label">15 stones</div>
+      </div>
+      <div class="discount-step" id="bds-20" style="border-color:rgba(201,162,39,0.2);">
+        <div class="ds-val">20%</div>
+        <div class="ds-label">20+ stones</div>
+      </div>
+    </div>
+  </div>
+
   <div class="section-title">ACCELERATES — GINÁSIOS</div>
 
   <div class="accelerates-section">
@@ -1160,6 +1313,14 @@
     <div class="total-row" id="row-accelerates" style="display:none">
       <span class="label" id="lbl-accelerates">Accelerates (0×)</span>
       <span class="value" id="val-accelerates">R$ 0,00</span>
+    </div>
+    <div class="total-row" id="row-boost" style="display:none">
+      <span class="label" id="lbl-boost">Boost Stones (0×)</span>
+      <span class="value" id="val-boost">R$ 0,00</span>
+    </div>
+    <div class="total-row discount" id="row-boost-desconto" style="display:none">
+      <span class="label" id="lbl-boost-desconto">💎 Desconto Boost (0%)</span>
+      <span class="value" id="val-boost-desconto">-R$ 0,00</span>
     </div>
     <div class="total-row discount" id="row-desconto" style="display:none">
       <span class="label" id="lbl-desconto">Desconto (0%)</span>
@@ -1538,9 +1699,144 @@ function changeAccelCount(idx, delta) {
   atualizar();
 }
 
-buildAccelGrid();
+// ===== BOOST STONES =====
+const boostTypes = [
+  { key: 'bug',      label: 'BUG',      icon: '🐛' },
+  { key: 'dark',     label: 'DARK',     icon: '🌑' },
+  { key: 'dragon',   label: 'DRAGON',   icon: '🐉' },
+  { key: 'electric', label: 'ELEC',     icon: '⚡' },
+  { key: 'fairy',    label: 'FAIRY',    icon: '🧚' },
+  { key: 'fighting', label: 'FIGHT',    icon: '🥊' },
+  { key: 'fire',     label: 'FIRE',     icon: '🔥' },
+  { key: 'flying',   label: 'FLYING',   icon: '🦅' },
+  { key: 'ghost',    label: 'GHOST',    icon: '👻' },
+  { key: 'grass',    label: 'GRASS',    icon: '🌿' },
+  { key: 'ground',   label: 'GROUND',   icon: '🌍' },
+  { key: 'ice',      label: 'ICE',      icon: '🧊' },
+  { key: 'normal',   label: 'NORMAL',   icon: '⭐' },
+  { key: 'poison',   label: 'POISON',   icon: '☠️' },
+  { key: 'psychic',  label: 'PSYCHIC',  icon: '🔮' },
+  { key: 'rock',     label: 'ROCK',     icon: '🪨' },
+  { key: 'steel',    label: 'STEEL',    icon: '⚙️' },
+  { key: 'water',    label: 'WATER',    icon: '💧' },
+];
 
-// ===== STATE =====
+const boostTiers = [
+  { range: '+0 ao +5',    price: 3  },
+  { range: '+6 ao +10',   price: 5  },
+  { range: '+11 ao +15',  price: 7  },
+  { range: '+16 ao +20',  price: 9  },
+  { range: '+21 ao +25',  price: 11 },
+  { range: '+26 ao +30',  price: 13 },
+  { range: '+31 ao +35',  price: 15 },
+  { range: '+36 ao +40',  price: 17 },
+  { range: '+41 ao +45',  price: 19 },
+  { range: '+46 ao +50',  price: 21 },
+];
+
+// boostState[typeKey][tierIndex] = count
+const boostState = {};
+boostTypes.forEach(t => { boostState[t.key] = new Array(boostTiers.length).fill(0); });
+
+let activeBoostType = 'bug';
+
+function buildBoostUI() {
+  const tabsEl = document.getElementById('boost-tabs');
+  const panelsEl = document.getElementById('boost-panels');
+
+  boostTypes.forEach(t => {
+    // Tab
+    const tab = document.createElement('div');
+    tab.className = `boost-tab bt-${t.key}${t.key === activeBoostType ? ' active' : ''}`;
+    tab.id = `btab-${t.key}`;
+    tab.innerHTML = `<span class="bt-icon">${t.icon}</span>${t.label}`;
+    tab.addEventListener('click', () => switchBoostTab(t.key));
+    tabsEl.appendChild(tab);
+
+    // Panel
+    const panel = document.createElement('div');
+    panel.className = `boost-panel${t.key === activeBoostType ? ' active' : ''}`;
+    panel.id = `bpanel-${t.key}`;
+
+    const tiersDiv = document.createElement('div');
+    tiersDiv.className = 'boost-tiers';
+
+    // Tier color progression (darker → brighter)
+    const tierColors = [
+      { tc: '#6a9a50', ta: 'rgba(106,154,80,0.15)' },
+      { tc: '#7ab860', ta: 'rgba(122,184,96,0.15)' },
+      { tc: '#f2d94e', ta: 'rgba(242,217,78,0.15)' },
+      { tc: '#fba54c', ta: 'rgba(251,165,76,0.15)' },
+      { tc: '#fa8581', ta: 'rgba(250,133,129,0.15)' },
+      { tc: '#d3425f', ta: 'rgba(211,66,95,0.15)' },
+      { tc: '#b763cf', ta: 'rgba(183,99,207,0.15)' },
+      { tc: '#5f6dbc', ta: 'rgba(95,109,188,0.15)' },
+      { tc: '#0c69c8', ta: 'rgba(12,105,200,0.15)' },
+      { tc: '#c9a227', ta: 'rgba(201,162,39,0.15)' },
+    ];
+
+    boostTiers.forEach((tier, i) => {
+      const col = tierColors[i];
+      const card = document.createElement('div');
+      card.className = 'boost-tier-card';
+      card.id = `btcard-${t.key}-${i}`;
+      card.style.setProperty('--tc-bt', col.tc);
+      card.style.setProperty('--ta-bt', col.ta);
+      card.innerHTML = `
+        <div class="bt-left">
+          <div class="bt-badge">Tier ${i+1}</div>
+          <div class="bt-info">
+            <div class="bt-name">Boost Stone ${tier.range}</div>
+            <div class="bt-desc">Eleva 1 nível dentro do intervalo ${tier.range}</div>
+          </div>
+        </div>
+        <div class="bt-right">
+          <div class="bt-price">R$ ${tier.price},00</div>
+          <div class="bt-counter">
+            <button class="bt-counter-btn" data-type="${t.key}" data-tier="${i}" data-delta="-1">−</button>
+            <span class="bt-counter-val" id="btval-${t.key}-${i}">0</span>
+            <button class="bt-counter-btn" data-type="${t.key}" data-tier="${i}" data-delta="1">+</button>
+          </div>
+        </div>
+      `;
+      tiersDiv.appendChild(card);
+    });
+
+    panel.appendChild(tiersDiv);
+    panelsEl.appendChild(panel);
+  });
+
+  // Event delegation for boost counter buttons
+  panelsEl.addEventListener('click', e => {
+    const btn = e.target.closest('.bt-counter-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const type = btn.dataset.type;
+    const tier = parseInt(btn.dataset.tier);
+    const delta = parseInt(btn.dataset.delta);
+    changeBoostCount(type, tier, delta);
+  });
+}
+
+function switchBoostTab(key) {
+  document.getElementById(`btab-${activeBoostType}`)?.classList.remove('active');
+  document.getElementById(`bpanel-${activeBoostType}`)?.classList.remove('active');
+  activeBoostType = key;
+  document.getElementById(`btab-${key}`)?.classList.add('active');
+  document.getElementById(`bpanel-${key}`)?.classList.add('active');
+}
+
+function changeBoostCount(type, tier, delta) {
+  boostState[type][tier] = Math.max(0, boostState[type][tier] + delta);
+  const val = boostState[type][tier];
+  document.getElementById(`btval-${type}-${tier}`).textContent = val;
+  document.getElementById(`btcard-${type}-${tier}`).classList.toggle('selected', val > 0);
+  atualizar();
+}
+
+buildBoostUI();
+
+
 let hpCount = 0, speedCount = 0;
 const PRECO_HP = 25, PRECO_SPEED = 25, PRECO_COMBO = 45;
 
@@ -1613,6 +1909,25 @@ function atualizar() {
     if (cnt > 0) { totalAccel += cnt; subAccel += cnt * accelConfig[i].preco; }
   });
 
+  // Boost Stones (desconto próprio, não entra no sistema geral)
+  let totalBoost = 0, subBoost = 0;
+  boostTypes.forEach(t => {
+    boostTiers.forEach((tier, i) => {
+      const cnt = boostState[t.key][i];
+      if (cnt > 0) { totalBoost += cnt; subBoost += cnt * tier.price; }
+    });
+  });
+
+  // Desconto exclusivo das Boost Stones: a cada 5, +5% (máx 20%)
+  let boostPct = 0;
+  if (totalBoost >= 20) boostPct = 0.20;
+  else if (totalBoost >= 15) boostPct = 0.15;
+  else if (totalBoost >= 10) boostPct = 0.10;
+  else if (totalBoost >= 5)  boostPct = 0.05;
+  const descBoost = subBoost * boostPct;
+  const subBoostComDesc = subBoost - descBoost;
+
+  // Desconto geral (boost NÃO entra aqui)
   const totalServicos = hpCount + speedCount + totalEls + totalReduces + totalAccel;
   let pct = 0;
   if (totalServicos >= 8) pct = 0.20;
@@ -1621,10 +1936,15 @@ function atualizar() {
   else if (totalServicos >= 2) pct = 0.05;
 
   const desc = (sub + subReduces + subAccel) * pct;
-  total += sub + subReduces + subAccel - desc;
+  total += sub + subReduces + subAccel - desc + subBoostComDesc;
 
   ['ds-2','ds-4','ds-6','ds-8'].forEach((id, i) => {
     document.getElementById(id).classList.toggle('active', totalServicos >= [2,4,6,8][i]);
+  });
+
+  // Atualizar barra de desconto boost
+  ['bds-5','bds-10','bds-15','bds-20'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', totalBoost >= [5,10,15,20][i]);
   });
 
   const show = (id, v) => document.getElementById(id).style.display = v ? '' : 'none';
@@ -1633,6 +1953,8 @@ function atualizar() {
   show('row-talentos', totalEls > 0);
   show('row-reduces',  totalReduces > 0);
   show('row-accelerates', totalAccel > 0);
+  show('row-boost', totalBoost > 0);
+  show('row-boost-desconto', descBoost > 0);
   show('row-desconto', desc > 0);
 
   const hpLabel = `❤️ HP ×${hpCount}${pairs>0?' (combo)':''}`;
@@ -1650,6 +1972,10 @@ function atualizar() {
   document.getElementById('val-reduces').textContent  = `R$ ${subReduces.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-accelerates').textContent = `Accelerates (${totalAccel}×)`;
   document.getElementById('val-accelerates').textContent = `R$ ${subAccel.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-boost').textContent = `💎 Boost Stones (${totalBoost}×)`;
+  document.getElementById('val-boost').textContent = `R$ ${subBoost.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-boost-desconto').textContent = `💎 Desconto Boost (${boostPct*100}%)`;
+  document.getElementById('val-boost-desconto').textContent = `-R$ ${descBoost.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
   document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
   document.getElementById('total').textContent        = total.toFixed(2).replace('.',',');
@@ -1683,6 +2009,15 @@ function confirmarLimpar() {
     document.getElementById(`acv-${i}`).textContent = '0';
     document.getElementById(`ac-${i}`).classList.remove('selected');
   });
+  boostTypes.forEach(t => {
+    boostState[t.key].fill(0);
+    boostTiers.forEach((_, i) => {
+      const valEl = document.getElementById(`btval-${t.key}-${i}`);
+      if (valEl) valEl.textContent = '0';
+      const card = document.getElementById(`btcard-${t.key}-${i}`);
+      if (card) card.classList.remove('selected');
+    });
+  });
   fecharModalLimpar();
   atualizar();
 }
@@ -1709,6 +2044,12 @@ function enviarWhats() {
   accelState.forEach((cnt, i) => {
     if (cnt > 0) items.push(`🏟️ Accelerate ${accelConfig[i].name} ×${cnt}`);
   });
+  boostTypes.forEach(t => {
+    boostTiers.forEach((tier, i) => {
+      const cnt = boostState[t.key][i];
+      if (cnt > 0) items.push(`💎 Boost Stone ${t.label} ${tier.range} ×${cnt}`);
+    });
+  });
   if (items.length === 0) { alert('Selecione ao menos um serviço!'); return; }
 
   const total = document.getElementById('total').textContent;
@@ -1716,15 +2057,26 @@ function enviarWhats() {
   document.querySelectorAll('.elemental-card').forEach(el => { totalServicos += parseInt(el.dataset.count)||0; });
   ['water','ice','sand'].forEach(type => { reducesState[type].forEach(c => { totalServicos += c; }); });
   accelState.forEach(c => { totalServicos += c; });
+  // Boost NÃO entra no desconto geral
   let pct = 0;
   if (totalServicos >= 8) pct = 20;
   else if (totalServicos >= 6) pct = 15;
   else if (totalServicos >= 4) pct = 10;
   else if (totalServicos >= 2) pct = 5;
 
+  // Desconto boost separado
+  let totalBoostWA = 0;
+  boostTypes.forEach(t => { boostState[t.key].forEach(c => { totalBoostWA += c; }); });
+  let boostPctWA = 0;
+  if (totalBoostWA >= 20) boostPctWA = 20;
+  else if (totalBoostWA >= 15) boostPctWA = 15;
+  else if (totalBoostWA >= 10) boostPctWA = 10;
+  else if (totalBoostWA >= 5) boostPctWA = 5;
+
   let msg = `Olá Filipi! Quero contratar os seguintes serviços:%0A%0A`;
   msg += items.map(i => `• ${i}`).join('%0A');
-  if (pct > 0) msg += `%0A%0A🎉 Desconto aplicado: ${pct}%`;
+  if (pct > 0) msg += `%0A%0A🎉 Desconto geral aplicado: ${pct}%`;
+  if (boostPctWA > 0) msg += `%0A💎 Desconto Boost Stones: ${boostPctWA}%`;
   msg += `%0A%0A💰 Total: R$ ${total}`;
   window.open(`https://wa.me/5565999911832?text=${msg}`, '_blank');
 }
