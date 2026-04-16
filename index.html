@@ -231,6 +231,7 @@
     opacity: 0;
     transition: opacity 0.3s;
     border-radius: 12px;
+    pointer-events: none;
   }
   .service-card.hp::before { background: radial-gradient(circle at 20% 50%, rgba(224,53,53,0.12), transparent 60%); }
   .service-card.speed::before { background: radial-gradient(circle at 20% 50%, rgba(240,192,64,0.12), transparent 60%); }
@@ -297,6 +298,8 @@
     justify-content: center;
     transition: background 0.15s, border-color 0.15s, transform 0.1s;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
   }
   .counter-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.15); }
   .counter-btn:active { transform: scale(0.92); }
@@ -818,9 +821,9 @@
       <div class="card-desc">Serviço de itens<br>de pontos de vida</div>
       <div class="card-price" id="price-hp">R$ 25,00</div>
       <div class="counter-wrap">
-        <button class="counter-btn" id="btn-hp-minus" onclick="changeCount('hp',-1)">−</button>
+        <button class="counter-btn" id="btn-hp-minus">−</button>
         <span class="counter-val" id="count-hp">0</span>
-        <button class="counter-btn" id="btn-hp-plus" onclick="changeCount('hp',1)">+</button>
+        <button class="counter-btn" id="btn-hp-plus">+</button>
       </div>
     </div>
     <div class="service-card speed" id="card-speed">
@@ -830,9 +833,9 @@
       <div class="card-desc">Serviço de itens<br>de velocidade</div>
       <div class="card-price" id="price-speed">R$ 25,00</div>
       <div class="counter-wrap">
-        <button class="counter-btn" id="btn-speed-minus" onclick="changeCount('speed',-1)">−</button>
+        <button class="counter-btn" id="btn-speed-minus">−</button>
         <span class="counter-val" id="count-speed">0</span>
-        <button class="counter-btn" id="btn-speed-plus" onclick="changeCount('speed',1)">+</button>
+        <button class="counter-btn" id="btn-speed-plus">+</button>
       </div>
     </div>
   </div>
