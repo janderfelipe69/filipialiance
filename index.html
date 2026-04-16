@@ -818,9 +818,9 @@
       <div class="card-desc">Serviço de itens<br>de pontos de vida</div>
       <div class="card-price" id="price-hp">R$ 25,00</div>
       <div class="counter-wrap">
-        <button class="counter-btn" id="btn-hp-minus">−</button>
+        <button class="counter-btn" id="btn-hp-minus" onclick="changeCount('hp',-1)">−</button>
         <span class="counter-val" id="count-hp">0</span>
-        <button class="counter-btn" id="btn-hp-plus">+</button>
+        <button class="counter-btn" id="btn-hp-plus" onclick="changeCount('hp',1)">+</button>
       </div>
     </div>
     <div class="service-card speed" id="card-speed">
@@ -830,9 +830,9 @@
       <div class="card-desc">Serviço de itens<br>de velocidade</div>
       <div class="card-price" id="price-speed">R$ 25,00</div>
       <div class="counter-wrap">
-        <button class="counter-btn" id="btn-speed-minus">−</button>
+        <button class="counter-btn" id="btn-speed-minus" onclick="changeCount('speed',-1)">−</button>
         <span class="counter-val" id="count-speed">0</span>
-        <button class="counter-btn" id="btn-speed-plus">+</button>
+        <button class="counter-btn" id="btn-speed-plus" onclick="changeCount('speed',1)">+</button>
       </div>
     </div>
   </div>
