@@ -513,6 +513,115 @@
   .elemental-card.selected { border-color: var(--tc); box-shadow: 0 0 20px color-mix(in srgb, var(--tc) 40%, transparent), 0 8px 24px rgba(0,0,0,0.4); }
   .elemental-card .el-check { background: var(--tc); border-color: var(--tc); }
 
+  /* INVENTÁRIO — PAINEL */
+  .el-inv-btn {
+    position: absolute; bottom: 7px; left: 7px;
+    font-size: 13px; cursor: pointer; opacity: 0.45;
+    transition: opacity 0.2s, transform 0.2s;
+    line-height: 1; user-select: none;
+    z-index: 3;
+  }
+  .elemental-card:hover .el-inv-btn { opacity: 1; transform: scale(1.2); }
+  .elemental-card.inv-open .el-inv-btn { opacity: 1; }
+
+  .inventario-panel {
+    background: var(--card2);
+    border: 1.5px solid var(--border2);
+    border-radius: 16px;
+    padding: 16px 18px 18px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .inv-header {
+    display: flex; align-items: center;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .inv-close {
+    margin-left: auto;
+    cursor: pointer; color: var(--muted); font-size: 14px;
+    transition: color 0.2s, transform 0.2s;
+    padding: 2px 6px;
+  }
+  .inv-close:hover { color: var(--text); transform: scale(1.2); }
+  .inv-hint {
+    font-size: 12px; color: var(--muted); margin-bottom: 14px;
+    border-left: 2px solid var(--border2); padding-left: 10px;
+    line-height: 1.5;
+  }
+  .inv-itens {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  @media (min-width: 500px) { .inv-itens { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 680px) { .inv-itens { grid-template-columns: repeat(4, 1fr); } }
+
+  .inv-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.25s, background 0.25s, transform 0.2s;
+    user-select: none; position: relative;
+  }
+  .inv-item:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .inv-item-checked {
+    border-color: var(--green) !important;
+    background: rgba(34,197,94,0.07) !important;
+  }
+  .inv-item-img { flex-shrink: 0; }
+  .inv-item-nome {
+    font-size: 12px; font-weight: 700; color: var(--text);
+    flex: 1; line-height: 1.3;
+  }
+  .inv-item-checked .inv-item-nome { color: var(--green); }
+  .inv-item-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; color: white;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .inv-item-checked .inv-item-check {
+    background: var(--green); border-color: var(--green);
+  }
+
+  /* MISSÃO TABS */
+  .inv-missoes-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .inv-missao-tab {
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; padding: 5px 13px;
+    border-radius: 20px; border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.04); color: var(--muted);
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    position: relative;
+  }
+  .inv-missao-tab:hover { border-color: var(--border2); color: var(--text); }
+  .inv-missao-tab.active {
+    border-color: var(--inv-tc, var(--gold));
+    background: rgba(255,255,255,0.07);
+    color: var(--white);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--inv-tc, var(--gold)) 30%, transparent);
+  }
+  .inv-missao-tab .tab-check-badge {
+    display: none; position: absolute; top: -5px; right: -5px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--green); font-size: 8px; color: white;
+    align-items: center; justify-content: center; font-weight: bold;
+  }
+  .inv-missao-tab.all-checked .tab-check-badge { display: flex; }
+
+  .inv-missao-panel { display: none; }
+  .inv-missao-panel.active { display: block; }
+
+
   /* REDUCES SPEED SECTION */
   .reduces-section {
     margin-top: 4px;
@@ -1786,6 +1895,22 @@
   <div style="margin-top:6px; font-size:8px; letter-spacing:0.2em; opacity:0.4;">TALENTOS ELEMENTAIS • BOOST STONES • GINÁSIOS</div>
 </footer>
 
+<!-- MODAL BOAS-VINDAS -->
+<div class="modal-overlay" id="modal-boas-vindas" style="z-index:1100;">
+  <div class="modal-box" style="max-width:420px; text-align:center;">
+    <div class="modal-icon">⚔️</div>
+    <div class="modal-title" style="font-size:15px; letter-spacing:0.2em;">ANTES DE COMEÇAR</div>
+    <div class="modal-desc" style="line-height:1.75; font-size:14px; color:#a0b8d0;">
+      Aqui você está contratando <strong style="color:#f0d060;">meu tempo</strong>.<br>
+      Eu paro o que estou fazendo para focar<br>100% no que você precisa — sem você<br>precisar largar o seu projeto.<br><br>
+      <span style="color:#5a7a9a; font-size:12px;">Se o preço não parecer justo, tudo bem.<br>A opção de farmar por conta sempre existe. 🙂</span>
+    </div>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="modal-confirm" onclick="fecharBoasVindas()" style="min-width:160px;">ENTENDIDO — VAMOS LÁ</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-limpar">
   <div class="modal-box">
@@ -2281,29 +2406,346 @@ function switchReducesTab(type) {
 buildReducesPanels();
 
 // ===== ELEMENTALS =====
+// ─────────────────────────────────────────────────────────────────
+// COMO ADICIONAR ITENS:
+// Dentro de cada tipo, há um array "itens". Cada item tem:
+//   { nome: 'Nome do item', img: 'URL da imagem (opcional)' }
+// Se não tiver imagem, deixe img: '' e o ícone do tipo será usado.
+// Para adicionar um novo TIPO, copie um bloco e ajuste name/img/cls/preco/itens.
+// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// ESTRUTURA DE MISSÕES:
+// Cada tipo tem um array "missoes". Cada missão tem:
+//   { label: 'Nome da missão', itens: [ { nome: '...', img: '...' }, ... ] }
+// Cada missão = uma mini-quest para liberar um buff do elemento.
+// Adicione quantas missões quiser por tipo!
+// ─────────────────────────────────────────────────────────────────
 const tipos = [
-  { name:'Bug',      icon:'<img src=https://i.imgur.com/I3TEtIE.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-bug',      preco:60 },
-  { name:'Dark',     icon:'<img src=https://i.imgur.com/Ea75cVf.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dark',     preco:60 },
-  { name:'Dragon',   icon:'<img src=https://i.imgur.com/NaEUJov.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-dragon',   preco:90 },
-  { name:'Electric', icon:'<img src=https://i.imgur.com/9gYIDvI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-electric', preco:60 },
-  { name:'Fairy',    icon:'<img src=https://i.imgur.com/cPVKird.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fairy',    preco:90 },
-  { name:'Fighting', icon:'<img src=https://i.imgur.com/WvAqULu.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fighting', preco:60 },
-  { name:'Fire',     icon:'<img src=https://i.imgur.com/LUSja0u.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-fire',     preco:60 },
-  { name:'Flying',   icon:'<img src=https://i.imgur.com/ZsmO7z7.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-flying',   preco:60 },
-  { name:'Ghost',    icon:'<img src=https://i.imgur.com/xxpTBDI.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ghost',    preco:60 },
-  { name:'Grass',    icon:'<img src=https://i.imgur.com/kmtM2s2.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-grass',    preco:60 },
-  { name:'Ground',   icon:'<img src=https://i.imgur.com/BMwn78D.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ground',   preco:60 },
-  { name:'Ice',      icon:'<img src=https://i.imgur.com/8yVeZEU.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-ice',      preco:60 },
-  { name:'Normal',   icon:'<img src=https://i.imgur.com/y8UcqNW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-normal',   preco:60 },
-  { name:'Poison',   icon:'<img src=https://i.imgur.com/blOp418.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-poison',   preco:60 },
-  { name:'Psychic',  icon:'<img src=https://i.imgur.com/aOgZCsq.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-psychic',  preco:60 },
-  { name:'Rock',     icon:'<img src=https://i.imgur.com/GRxYHJv.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-rock',     preco:60 },
-  { name:'Steel',    icon:'<img src=https://i.imgur.com/CBGW1PZ.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-steel',    preco:90 },
-  { name:'Water',    icon:'<img src=https://i.imgur.com/Lf2dISW.png style="width:22px;height:22px;object-fit:contain;display:block">', cls:'type-water',    preco:60 },
+  {
+    name: 'Bug', cls: 'type-bug', preco: 60,
+    img: 'https://i.imgur.com/I3TEtIE.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png' },
+        { nome: 'Silver Orb', img: 'https://i.imgur.com/I3TEtIE.png' },
+        { nome: 'Silk Scarf', img: 'https://i.imgur.com/I3TEtIE.png' },
+      ]},
+      { label: 'Missão 2', itens: [
+        { nome: 'Stick',      img: 'https://i.imgur.com/I3TEtIE.png' },
+        { nome: 'Bug Gem',    img: 'https://i.imgur.com/I3TEtIE.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Dark', cls: 'type-dark', preco: 60,
+    img: 'https://i.imgur.com/Ea75cVf.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Dark Orb',   img: 'https://i.imgur.com/Ea75cVf.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Dragon', cls: 'type-dragon', preco: 90,
+    img: 'https://i.imgur.com/NaEUJov.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Dragon Orb', img: 'https://i.imgur.com/NaEUJov.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Electric', cls: 'type-electric', preco: 60,
+    img: 'https://i.imgur.com/9gYIDvI.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Electric Orb', img: 'https://i.imgur.com/9gYIDvI.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Fairy', cls: 'type-fairy', preco: 90,
+    img: 'https://i.imgur.com/cPVKird.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Fairy Orb',  img: 'https://i.imgur.com/cPVKird.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Fighting', cls: 'type-fighting', preco: 60,
+    img: 'https://i.imgur.com/WvAqULu.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Fighting Orb', img: 'https://i.imgur.com/WvAqULu.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Fire', cls: 'type-fire', preco: 60,
+    img: 'https://i.imgur.com/LUSja0u.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Fire Orb',   img: 'https://i.imgur.com/LUSja0u.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Flying', cls: 'type-flying', preco: 60,
+    img: 'https://i.imgur.com/ZsmO7z7.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Flying Orb', img: 'https://i.imgur.com/ZsmO7z7.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Ghost', cls: 'type-ghost', preco: 60,
+    img: 'https://i.imgur.com/xxpTBDI.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Ghost Orb',  img: 'https://i.imgur.com/xxpTBDI.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Grass', cls: 'type-grass', preco: 60,
+    img: 'https://i.imgur.com/kmtM2s2.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Grass Orb',  img: 'https://i.imgur.com/kmtM2s2.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Ground', cls: 'type-ground', preco: 60,
+    img: 'https://i.imgur.com/BMwn78D.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Ground Orb', img: 'https://i.imgur.com/BMwn78D.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Ice', cls: 'type-ice', preco: 60,
+    img: 'https://i.imgur.com/8yVeZEU.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Ice Orb',    img: 'https://i.imgur.com/8yVeZEU.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Normal', cls: 'type-normal', preco: 60,
+    img: 'https://i.imgur.com/y8UcqNW.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Normal Orb', img: 'https://i.imgur.com/y8UcqNW.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Poison', cls: 'type-poison', preco: 60,
+    img: 'https://i.imgur.com/blOp418.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Poison Orb', img: 'https://i.imgur.com/blOp418.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Psychic', cls: 'type-psychic', preco: 60,
+    img: 'https://i.imgur.com/aOgZCsq.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Psychic Orb', img: 'https://i.imgur.com/aOgZCsq.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Rock', cls: 'type-rock', preco: 60,
+    img: 'https://i.imgur.com/GRxYHJv.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Rock Orb',   img: 'https://i.imgur.com/GRxYHJv.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Steel', cls: 'type-steel', preco: 90,
+    img: 'https://i.imgur.com/CBGW1PZ.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Steel Orb',  img: 'https://i.imgur.com/CBGW1PZ.png' },
+      ]},
+    ]
+  },
+  {
+    name: 'Water', cls: 'type-water', preco: 60,
+    img: 'https://i.imgur.com/Lf2dISW.png',
+    missoes: [
+      { label: 'Missão 1', itens: [
+        { nome: 'Water Orb',  img: 'https://i.imgur.com/Lf2dISW.png' },
+      ]},
+    ]
+  },
 ];
 
+// Estado do inventário: { 'Bug:0': true, 'Bug:1': false, ... }
+const inventarioState = {};
+
+let tipoAtivoIdx = null; // qual painel de inventário está aberto
+
+function buildElementalIcon(t) {
+  return `<img src="${t.img}" style="width:22px;height:22px;object-fit:contain;display:block">`;
+}
+
 const grid = document.getElementById('elementals-grid');
-tipos.forEach(t => {
+
+// Painel de inventário (singleton, reutilizado)
+const inventarioPanel = document.createElement('div');
+inventarioPanel.id = 'inventario-panel';
+inventarioPanel.className = 'inventario-panel';
+inventarioPanel.style.display = 'none';
+grid.insertAdjacentElement('afterend', inventarioPanel);
+
+function fecharInventario() {
+  inventarioPanel.style.opacity = '0';
+  setTimeout(() => { inventarioPanel.style.display = 'none'; }, 220);
+  if (tipoAtivoIdx !== null) {
+    const card = grid.children[tipoAtivoIdx];
+    if (card) card.classList.remove('inv-open');
+  }
+  tipoAtivoIdx = null;
+}
+
+function abrirInventario(idx) {
+  const t = tipos[idx];
+  // Se clicar no mesmo, fecha
+  if (tipoAtivoIdx === idx) { fecharInventario(); return; }
+  // Fecha anterior
+  if (tipoAtivoIdx !== null) {
+    const old = grid.children[tipoAtivoIdx];
+    if (old) old.classList.remove('inv-open');
+  }
+  tipoAtivoIdx = idx;
+  grid.children[idx].classList.add('inv-open');
+
+  // Cor do tipo para as abas
+  const typeColor = getComputedStyle(document.documentElement).getPropertyValue(`--${t.name.toLowerCase()}`).trim() || '#c9a227';
+
+  // Renderizar abas de missões
+  const missoes = t.missoes || [];
+  let missaoAtiva = 0;
+
+  function renderMissaoTab(mIdx) {
+    const m = missoes[mIdx];
+    const itens = m.itens || [];
+    const allChecked = itens.length > 0 && itens.every((item, i) => !!inventarioState[`${t.name}:${mIdx}:${i}`]);
+    return `
+      <div class="inv-missao-tab ${mIdx === missaoAtiva ? 'active' : ''} ${allChecked ? 'all-checked' : ''}"
+           data-midx="${mIdx}" style="--inv-tc:${typeColor}">
+        ${m.label}
+        <span class="tab-check-badge">✓</span>
+      </div>
+    `;
+  }
+
+  function renderMissaoPanel(mIdx) {
+    const m = missoes[mIdx];
+    const itens = m.itens || [];
+    return `
+      <div class="inv-missao-panel ${mIdx === missaoAtiva ? 'active' : ''}" data-mpanel="${mIdx}">
+        ${itens.length === 0
+          ? `<div style="color:var(--muted);font-size:12px;padding:10px 0;">Nenhum item nesta missão ainda.</div>`
+          : `<div class="inv-itens">${itens.map((item, i) => {
+              const key = `${t.name}:${mIdx}:${i}`;
+              const checked = !!inventarioState[key];
+              const imgSrc = item.img || t.img;
+              return `
+                <div class="inv-item ${checked ? 'inv-item-checked' : ''}" data-key="${key}" onclick="toggleInventarioItem(this,'${key}',${idx})">
+                  <div class="inv-item-img">
+                    <img src="${imgSrc}" alt="${item.nome}" style="width:26px;height:26px;object-fit:contain;">
+                  </div>
+                  <div class="inv-item-nome">${item.nome}</div>
+                  <div class="inv-item-check">${checked ? '✓' : ''}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>`
+        }
+      </div>
+    `;
+  }
+
+  function buildInventarioHTML() {
+    return `
+      <div class="inv-header">
+        <img src="${t.img}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:8px;">
+        <span style="font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:.1em;color:var(--gold2);">${t.name.toUpperCase()} — ITENS NECESSÁRIOS</span>
+        <span class="inv-close" onclick="fecharInventario()">✕</span>
+      </div>
+      <div class="inv-hint">Marque os itens que você <strong>já possui</strong> — assim eu sei o que ainda preciso providenciar.</div>
+      ${missoes.length > 1 ? `<div class="inv-missoes-tabs" id="inv-tabs-${idx}">${missoes.map((_, mi) => renderMissaoTab(mi)).join('')}</div>` : ''}
+      <div id="inv-panels-${idx}">
+        ${missoes.map((_, mi) => renderMissaoPanel(mi)).join('')}
+      </div>
+    `;
+  }
+
+  inventarioPanel.innerHTML = buildInventarioHTML();
+
+  // Tab click handler
+  if (missoes.length > 1) {
+    inventarioPanel.querySelector(`#inv-tabs-${idx}`).addEventListener('click', e => {
+      const tab = e.target.closest('.inv-missao-tab');
+      if (!tab) return;
+      missaoAtiva = parseInt(tab.dataset.midx);
+      // Re-render
+      inventarioPanel.innerHTML = buildInventarioHTML();
+      // Re-bind
+      bindTabHandlers();
+    });
+  }
+
+  function bindTabHandlers() {
+    if (missoes.length > 1) {
+      inventarioPanel.querySelector(`#inv-tabs-${idx}`)?.addEventListener('click', e => {
+        const tab = e.target.closest('.inv-missao-tab');
+        if (!tab) return;
+        missaoAtiva = parseInt(tab.dataset.midx);
+        inventarioPanel.innerHTML = buildInventarioHTML();
+        bindTabHandlers();
+      });
+    }
+  }
+
+  inventarioPanel.style.display = 'block';
+  inventarioPanel.style.opacity = '0';
+  requestAnimationFrame(() => {
+    inventarioPanel.style.transition = 'opacity 0.22s ease';
+    inventarioPanel.style.opacity = '1';
+  });
+}
+
+function toggleInventarioItem(el, key, tipoIdx) {
+  inventarioState[key] = !inventarioState[key];
+  el.classList.toggle('inv-item-checked', inventarioState[key]);
+  el.querySelector('.inv-item-check').textContent = inventarioState[key] ? '✓' : '';
+  // Atualizar badge da aba se hover
+  const parts = key.split(':'); // tipo:missaoIdx:itemIdx
+  if (parts.length === 3 && tipoIdx !== undefined) {
+    const mIdx = parseInt(parts[1]);
+    const t = tipos[tipoIdx];
+    const m = t.missoes[mIdx];
+    const allChecked = m.itens.every((_, i) => !!inventarioState[`${t.name}:${mIdx}:${i}`]);
+    const tab = inventarioPanel.querySelector(`.inv-missao-tab[data-midx="${mIdx}"]`);
+    if (tab) tab.classList.toggle('all-checked', allChecked);
+  }
+}
+
+tipos.forEach((t, idx) => {
+  const icon = buildElementalIcon(t);
   const d = document.createElement('div');
   d.className = `elemental-card ${t.cls}`;
   d.dataset.name = t.name;
@@ -2312,7 +2754,7 @@ tipos.forEach(t => {
   d.innerHTML = `
     <div class="el-glow"></div>
     <div class="el-check"></div>
-    <div class="el-dot">${t.icon}</div>
+    <div class="el-dot">${icon}</div>
     <div class="el-name">${t.name}</div>
     <div class="el-price">R$ ${t.preco}</div>
     <div class="el-counter">
@@ -2320,6 +2762,7 @@ tipos.forEach(t => {
       <span class="el-counter-val">0</span>
       <button class="el-counter-btn" data-delta="1" data-type="${t.name}">+</button>
     </div>
+    <div class="el-inv-btn" title="Ver itens necessários" onclick="event.stopPropagation(); abrirInventario(${idx})">🎒</div>
   `;
   d.querySelectorAll('.el-counter-btn').forEach(btn => {
     btn.addEventListener('click', e => {
@@ -2757,12 +3200,27 @@ function confirmarLimpar() {
       if (card) card.classList.remove('selected');
     });
   });
+  // Limpar estado do inventário (novo formato tipo:missaoIdx:itemIdx)
+  Object.keys(inventarioState).forEach(k => { inventarioState[k] = false; });
+  fecharInventario();
   fecharModalLimpar();
   atualizar();
 }
 
 document.getElementById('modal-limpar').addEventListener('click', function(e) {
   if (e.target === this) fecharModalLimpar();
+});
+
+// ===== MODAL BOAS-VINDAS =====
+function fecharBoasVindas() {
+  const m = document.getElementById('modal-boas-vindas');
+  m.style.opacity = '0';
+  m.style.transition = 'opacity 0.3s';
+  setTimeout(() => m.style.display = 'none', 300);
+}
+// Abre automaticamente ao carregar
+window.addEventListener('load', () => {
+  document.getElementById('modal-boas-vindas').style.display = 'flex';
 });
 
 // ===== RIPPLE ON CARDS =====
