@@ -1704,6 +1704,105 @@
     box-shadow: 0 4px 24px rgba(37,211,102,0.5) !important;
   }
 
+
+  /* ===== ACCORDION SECTIONS ===== */
+  .acc-section {
+    margin-bottom: 10px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .acc-section.open {
+    border-color: var(--border2);
+    box-shadow: 0 0 30px rgba(201,162,39,0.07), 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  .acc-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 22px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+    position: relative;
+  }
+  .acc-header:hover { background: rgba(255,255,255,0.025); }
+
+  .acc-header-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .acc-section.open .acc-header-icon { transform: scale(1.15); }
+
+  .acc-header-text { flex: 1; }
+  .acc-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.2em; color: var(--text);
+    transition: color 0.2s;
+  }
+  .acc-section.open .acc-header-title { color: var(--gold2); }
+  .acc-header-sub {
+    font-size: 11px; color: var(--muted);
+    margin-top: 3px; letter-spacing: 0.05em;
+  }
+
+  /* badge showing selected count */
+  .acc-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    background: rgba(201,162,39,0.15); color: var(--gold2);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 20px; padding: 3px 10px;
+    display: none; white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .acc-badge.visible { display: inline-block; }
+
+  .acc-chevron {
+    font-size: 16px; color: var(--muted);
+    transition: transform 0.3s cubic-bezier(.34,1.3,.64,1), color 0.2s;
+    flex-shrink: 0;
+  }
+  .acc-section.open .acc-chevron {
+    transform: rotate(180deg); color: var(--gold);
+  }
+
+  /* top accent line */
+  .acc-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--acc-color, var(--gold)), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .acc-section.open .acc-header::before { opacity: 1; }
+
+  .acc-body {
+    display: none;
+    padding: 0 16px 20px;
+    border-top: 1px solid var(--border);
+    animation: acc-in 0.22s ease-out;
+  }
+  .acc-body.pad-top { padding-top: 16px; }
+  @keyframes acc-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .acc-section.open .acc-body { display: block; }
+
+  /* remove old section-title margin when inside accordion */
+  .acc-body .section-title { display: none; }
+
+  /* make hpspeed-grid/combo-banner/reduces/boost/accel look right inside accordion */
+  .acc-body .hpspeed-grid { margin-top: 0; }
+  .acc-body .combo-banner { margin-top: 14px; margin-bottom: 0; }
+  .acc-body .reduces-section { margin-top: 0; }
+  .acc-body .boost-section { margin-top: 0; }
+  .acc-body .accelerates-section { margin-top: 0; border-radius: 12px; }
+  .acc-body .discount-bar { margin-top: 14px; }
+  .acc-body .elementals-grid { margin-top: 0; }
+
 </style>
 </head>
 <body>
@@ -1788,110 +1887,162 @@
 
 <main>
 
-  <div class="section-title"><span class="section-icon">⚔️</span> SERVIÇOS DE STATUS <span class="section-icon">🛡️</span></div>
-
-  <div class="hpspeed-grid">
-    <!-- HP CARD -->
-    <div class="service-card hp" id="card-hp">
-      <div class="card-particles" id="particles-hp"></div>
-      <div class="card-check" id="check-hp"></div>
-      <div class="card-icon">❤️</div>
-      <div class="card-name">HP</div>
-      <div class="card-desc">Serviço de itens<br>de pontos de vida</div>
-      <div class="card-price" id="price-hp">R$ 25,00</div>
-      <div class="counter-wrap">
-        <button class="counter-btn" id="btn-hp-minus">−</button>
-        <span class="counter-val" id="count-hp">0</span>
-        <button class="counter-btn" id="btn-hp-plus">+</button>
+  <!-- ══════════════════════════════════════════
+       ACCORDION — SERVIÇOS DE STATUS
+  ══════════════════════════════════════════ -->
+  <div class="acc-section open" id="acc-status" style="--acc-color:#e03535;">
+    <div class="acc-header" onclick="toggleAcc('acc-status')">
+      <div class="acc-header-icon">⚔️</div>
+      <div class="acc-header-text">
+        <div class="acc-header-title">SERVIÇOS DE STATUS</div>
+        <div class="acc-header-sub">HP · Speed · Combo disponível</div>
       </div>
+      <span class="acc-badge" id="badge-status">0 selecionados</span>
+      <div class="acc-chevron">▾</div>
     </div>
-    <!-- SPEED CARD -->
-    <div class="service-card speed" id="card-speed">
-      <div class="card-particles" id="particles-speed"></div>
-      <div class="card-check" id="check-speed"></div>
-      <div class="card-icon">⚡</div>
-      <div class="card-name">SPEED</div>
-      <div class="card-desc">Serviço de itens<br>de velocidade</div>
-      <div class="card-price" id="price-speed">R$ 25,00</div>
-      <div class="counter-wrap">
-        <button class="counter-btn" id="btn-speed-minus">−</button>
-        <span class="counter-val" id="count-speed">0</span>
-        <button class="counter-btn" id="btn-speed-plus">+</button>
+    <div class="acc-body pad-top">
+      <div class="hpspeed-grid">
+        <!-- HP CARD -->
+        <div class="service-card hp" id="card-hp">
+          <div class="card-particles" id="particles-hp"></div>
+          <div class="card-check" id="check-hp"></div>
+          <div class="card-icon">❤️</div>
+          <div class="card-name">HP</div>
+          <div class="card-desc">Serviço de itens<br>de pontos de vida</div>
+          <div class="card-price" id="price-hp">R$ 25,00</div>
+          <div class="counter-wrap">
+            <button class="counter-btn" id="btn-hp-minus">−</button>
+            <span class="counter-val" id="count-hp">0</span>
+            <button class="counter-btn" id="btn-hp-plus">+</button>
+          </div>
+        </div>
+        <!-- SPEED CARD -->
+        <div class="service-card speed" id="card-speed">
+          <div class="card-particles" id="particles-speed"></div>
+          <div class="card-check" id="check-speed"></div>
+          <div class="card-icon">⚡</div>
+          <div class="card-name">SPEED</div>
+          <div class="card-desc">Serviço de itens<br>de velocidade</div>
+          <div class="card-price" id="price-speed">R$ 25,00</div>
+          <div class="counter-wrap">
+            <button class="counter-btn" id="btn-speed-minus">−</button>
+            <span class="counter-val" id="count-speed">0</span>
+            <button class="counter-btn" id="btn-speed-plus">+</button>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div class="combo-banner">
-    COMBO ESPECIAL &nbsp;•&nbsp;
-    <strong>HP + SPEED = R$ 45,00</strong>
-    &nbsp;|&nbsp; TALENTO = R$ 60,00 &nbsp;•&nbsp; Steel / Fairy / Dragon = R$ 90,00
-  </div>
-
-  <div class="section-title"><span class="section-icon">✨</span> TALENTOS ELEMENTAIS <span class="section-icon">🔮</span></div>
-
-  <div class="elementals-grid" id="elementals-grid"></div>
-  <div class="elemental-drawer" id="elemental-drawer"></div>
-
-  <div class="section-title"><span class="section-icon">💧</span> REDUCES SPEED IMPAIRMENT <span class="section-icon">🧊</span></div>
-
-  <div class="reduces-section">
-    <div class="reduces-tabs">
-      <div class="reduces-tab water active" onclick="switchReducesTab('water')">
-        <span class="rt-icon">💧</span>ÁGUA
-      </div>
-      <div class="reduces-tab ice" onclick="switchReducesTab('ice')">
-        <span class="rt-icon">🧊</span>GELO
-      </div>
-      <div class="reduces-tab sand" onclick="switchReducesTab('sand')">
-        <span class="rt-icon">🏜️</span>AREIA
-      </div>
-    </div>
-
-    <!-- ÁGUA -->
-    <div class="reduces-panel active" id="panel-water" data-type="water"></div>
-    <!-- GELO -->
-    <div class="reduces-panel" id="panel-ice" data-type="ice"></div>
-    <!-- AREIA -->
-    <div class="reduces-panel" id="panel-sand" data-type="sand"></div>
-  </div>
-
-  <div class="section-title"><span class="section-icon">💎</span> BOOST STONES — ELEMENTAIS <span class="section-icon">⬆️</span></div>
-
-  <div class="boost-section">
-    <div class="boost-tabs" id="boost-tabs"></div>
-    <div id="boost-panels"></div>
-  </div>
-
-  <div class="discount-bar" id="boost-discount-bar" style="margin-top:12px; border-color: rgba(201,162,39,0.35);">
-    <div class="discount-bar-title" style="color:var(--gold);">💎 DESCONTO EXCLUSIVO — BOOST STONES</div>
-    <div style="font-size:11px; color:var(--muted); margin-bottom:12px; font-family:'Rajdhani',sans-serif;">A cada 5 boost stones (qualquer tipo/tier) — máx. 20%</div>
-    <div class="discount-steps">
-      <div class="discount-step" id="bds-5" style="border-color:rgba(201,162,39,0.2);">
-        <div class="ds-val">5%</div>
-        <div class="ds-label">5 stones</div>
-      </div>
-      <div class="discount-step" id="bds-10" style="border-color:rgba(201,162,39,0.2);">
-        <div class="ds-val">10%</div>
-        <div class="ds-label">10 stones</div>
-      </div>
-      <div class="discount-step" id="bds-15" style="border-color:rgba(201,162,39,0.2);">
-        <div class="ds-val">15%</div>
-        <div class="ds-label">15 stones</div>
-      </div>
-      <div class="discount-step" id="bds-20" style="border-color:rgba(201,162,39,0.2);">
-        <div class="ds-val">20%</div>
-        <div class="ds-label">20+ stones</div>
+      <div class="combo-banner">
+        COMBO ESPECIAL &nbsp;•&nbsp;
+        <strong>HP + SPEED = R$ 45,00</strong>
+        &nbsp;|&nbsp; TALENTO = R$ 60,00 &nbsp;•&nbsp; Steel / Fairy / Dragon = R$ 90,00
       </div>
     </div>
   </div>
 
-  <div class="section-title"><span class="section-icon">🏟️</span> ACCELERATES — GINÁSIOS <span class="section-icon">🏆</span></div>
-
-  <div class="accelerates-section">
-    <div class="accelerates-notice">
-      ⚠️ <span><strong>Atenção:</strong> A parte do ginásio (batalha/conquista) é por conta do player. Eu forneço apenas os <strong>itens necessários</strong> para cada ginásio. Cada ginásio = <strong>R$ 120,00</strong>.</span>
+  <!-- ══════════════════════════════════════════
+       ACCORDION — TALENTOS ELEMENTAIS
+  ══════════════════════════════════════════ -->
+  <div class="acc-section" id="acc-talentos" style="--acc-color:#f0d060;">
+    <div class="acc-header" onclick="toggleAcc('acc-talentos')">
+      <div class="acc-header-icon">✨</div>
+      <div class="acc-header-text">
+        <div class="acc-header-title">TALENTOS ELEMENTAIS</div>
+        <div class="acc-header-sub">18 tipos · Bug, Fire, Water e mais · R$ 60–90</div>
+      </div>
+      <span class="acc-badge" id="badge-talentos">0 selecionados</span>
+      <div class="acc-chevron">▾</div>
     </div>
-    <div class="accel-grid" id="accel-grid"></div>
+    <div class="acc-body pad-top">
+      <div class="elementals-grid" id="elementals-grid"></div>
+      <div class="elemental-drawer" id="elemental-drawer"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ACCORDION — REDUCES SPEED IMPAIRMENT
+  ══════════════════════════════════════════ -->
+  <div class="acc-section" id="acc-reduces" style="--acc-color:#539ddf;">
+    <div class="acc-header" onclick="toggleAcc('acc-reduces')">
+      <div class="acc-header-icon">💧</div>
+      <div class="acc-header-text">
+        <div class="acc-header-title">REDUCES SPEED IMPAIRMENT</div>
+        <div class="acc-header-sub">Água · Gelo · Areia · Níveis 1–6</div>
+      </div>
+      <span class="acc-badge" id="badge-reduces">0 selecionados</span>
+      <div class="acc-chevron">▾</div>
+    </div>
+    <div class="acc-body pad-top">
+      <div class="reduces-section">
+        <div class="reduces-tabs">
+          <div class="reduces-tab water active" onclick="switchReducesTab('water')">
+            <span class="rt-icon">💧</span>ÁGUA
+          </div>
+          <div class="reduces-tab ice" onclick="switchReducesTab('ice')">
+            <span class="rt-icon">🧊</span>GELO
+          </div>
+          <div class="reduces-tab sand" onclick="switchReducesTab('sand')">
+            <span class="rt-icon">🏜️</span>AREIA
+          </div>
+        </div>
+        <div class="reduces-panel active" id="panel-water" data-type="water"></div>
+        <div class="reduces-panel" id="panel-ice" data-type="ice"></div>
+        <div class="reduces-panel" id="panel-sand" data-type="sand"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ACCORDION — BOOST STONES
+  ══════════════════════════════════════════ -->
+  <div class="acc-section" id="acc-boost" style="--acc-color:#c9a227;">
+    <div class="acc-header" onclick="toggleAcc('acc-boost')">
+      <div class="acc-header-icon">💎</div>
+      <div class="acc-header-text">
+        <div class="acc-header-title">BOOST STONES — ELEMENTAIS</div>
+        <div class="acc-header-sub">18 tipos · 10 tiers · Desconto até 20%</div>
+      </div>
+      <span class="acc-badge" id="badge-boost">0 selecionados</span>
+      <div class="acc-chevron">▾</div>
+    </div>
+    <div class="acc-body pad-top">
+      <div class="boost-section">
+        <div class="boost-tabs" id="boost-tabs"></div>
+        <div id="boost-panels"></div>
+      </div>
+      <div class="discount-bar" id="boost-discount-bar" style="border-color:rgba(201,162,39,0.35);">
+        <div class="discount-bar-title" style="color:var(--gold);">💎 DESCONTO EXCLUSIVO — BOOST STONES</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'Rajdhani',sans-serif;">A cada 5 boost stones (qualquer tipo/tier) — máx. 20%</div>
+        <div class="discount-steps">
+          <div class="discount-step" id="bds-5" style="border-color:rgba(201,162,39,0.2);"><div class="ds-val">5%</div><div class="ds-label">5 stones</div></div>
+          <div class="discount-step" id="bds-10" style="border-color:rgba(201,162,39,0.2);"><div class="ds-val">10%</div><div class="ds-label">10 stones</div></div>
+          <div class="discount-step" id="bds-15" style="border-color:rgba(201,162,39,0.2);"><div class="ds-val">15%</div><div class="ds-label">15 stones</div></div>
+          <div class="discount-step" id="bds-20" style="border-color:rgba(201,162,39,0.2);"><div class="ds-val">20%</div><div class="ds-label">20+ stones</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ACCORDION — ACCELERATES GINÁSIOS
+  ══════════════════════════════════════════ -->
+  <div class="acc-section" id="acc-accel" style="--acc-color:#f0c040;">
+    <div class="acc-header" onclick="toggleAcc('acc-accel')">
+      <div class="acc-header-icon">🏟️</div>
+      <div class="acc-header-text">
+        <div class="acc-header-title">ACCELERATES — GINÁSIOS</div>
+        <div class="acc-header-sub">8 ginásios · R$ 120,00 cada · itens inclusos</div>
+      </div>
+      <span class="acc-badge" id="badge-accel">0 selecionados</span>
+      <div class="acc-chevron">▾</div>
+    </div>
+    <div class="acc-body pad-top">
+      <div class="accelerates-section">
+        <div class="accelerates-notice">
+          ⚠️ <span><strong>Atenção:</strong> A parte do ginásio (batalha/conquista) é por conta do player. Eu forneço apenas os <strong>itens necessários</strong> para cada ginásio. Cada ginásio = <strong>R$ 120,00</strong>.</span>
+        </div>
+        <div class="accel-grid" id="accel-grid"></div>
+      </div>
+    </div>
   </div>
 
   <div class="discount-bar">
@@ -3239,6 +3390,13 @@ function atualizar() {
   document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
   document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
   document.getElementById('total').textContent        = total.toFixed(2).replace('.',',');
+
+  // Atualizar badges dos acordeões
+  updateAccBadge('badge-status', hpCount + speedCount);
+  updateAccBadge('badge-talentos', totalEls);
+  updateAccBadge('badge-reduces', totalReduces);
+  updateAccBadge('badge-boost', totalBoost, 'stones');
+  updateAccBadge('badge-accel', totalAccel);
 }
 
 function abrirModalLimpar()  { document.getElementById('modal-limpar').classList.add('open'); }
@@ -3433,6 +3591,25 @@ function enviarWhats() {
   msg += `%0A%0A💰 Total: R$ ${total}`;
   window.open(`https://wa.me/5565999911832?text=${msg}`, '_blank');
 }
+
+// ===== ACCORDION =====
+function toggleAcc(id) {
+  const sec = document.getElementById(id);
+  const isOpen = sec.classList.contains('open');
+  sec.classList.toggle('open', !isOpen);
+}
+
+function updateAccBadge(id, count, label) {
+  const badge = document.getElementById(id);
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count + ' ' + (label || 'selecionado' + (count !== 1 ? 's' : ''));
+    badge.classList.add('visible');
+  } else {
+    badge.classList.remove('visible');
+  }
+}
+
 </script>
 </body>
 </html>
