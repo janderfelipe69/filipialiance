@@ -725,6 +725,25 @@
     color: var(--white);
     box-shadow: 0 0 10px color-mix(in srgb, var(--inv-tc, var(--gold)) 30%, transparent);
   }
+  .drawer-tab .tab-discount {
+    display: none; position: absolute; top: -7px; left: -5px;
+    background: var(--green);
+    color: white; font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 6px;
+    white-space: nowrap; font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0;
+  }
+  .drawer-tab.has-discount .tab-discount { display: block; }
+
+  .drawer-missao-savings {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(34,197,94,0.08);
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 8px; padding: 6px 12px;
+    margin-bottom: 10px; font-size: 12px; color: var(--green);
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+  }
+
   .inv-missao-tab .tab-check-badge {
     display: none; position: absolute; top: -5px; right: -5px;
     width: 14px; height: 14px; border-radius: 50%;
@@ -1819,6 +1838,96 @@
   .acc-body .discount-bar { margin-top: 14px; }
   .acc-body .elementals-grid { margin-top: 0; }
 
+  /* ===== CONFIG MODAL ===== */
+  .cfg-overlay {
+    display: none; position: fixed; inset: 0; z-index: 2000;
+    background: rgba(4,9,15,0.85); backdrop-filter: blur(6px);
+    align-items: flex-start; justify-content: center;
+    padding: 20px 12px 40px;
+    overflow-y: auto;
+  }
+  .cfg-overlay.open { display: flex; }
+  .cfg-box {
+    background: var(--card); border: 1.5px solid var(--border2);
+    border-radius: 20px; width: 100%; max-width: 680px;
+    padding: 28px 24px 32px; position: relative;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.7);
+  }
+  .cfg-title {
+    font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700;
+    color: var(--gold2); letter-spacing: 0.15em; margin-bottom: 4px;
+  }
+  .cfg-sub { font-size: 12px; color: var(--muted); margin-bottom: 22px; }
+  .cfg-close {
+    position: absolute; top: 16px; right: 20px;
+    cursor: pointer; color: var(--muted); font-size: 20px;
+    transition: color 0.2s, transform 0.2s;
+  }
+  .cfg-close:hover { color: var(--text); transform: scale(1.2); }
+  .cfg-section-title {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.2em; color: var(--gold); margin: 22px 0 12px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .cfg-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  @media (min-width: 500px) { .cfg-grid { grid-template-columns: repeat(3, 1fr); } }
+  .cfg-field {
+    background: var(--card2); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 10px 12px;
+    transition: border-color 0.2s;
+  }
+  .cfg-field:focus-within { border-color: var(--border2); }
+  .cfg-label {
+    font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 5px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+  }
+  .cfg-input-wrap {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .cfg-prefix { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+  .cfg-input {
+    background: transparent; border: none; outline: none;
+    color: var(--white); font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700;
+    width: 100%; min-width: 0;
+  }
+  .cfg-input::-webkit-inner-spin-button { display: none; }
+
+  /* Elemental row: service price + market price + multiplier */
+  .cfg-el-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    background: var(--card2); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 10px 12px; align-items: start;
+  }
+  .cfg-el-name {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--text); margin-bottom: 8px;
+    grid-column: 1 / -1;
+  }
+  .cfg-el-subfield {}
+  .cfg-el-sublabel { font-size: 9px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 700; }
+  .cfg-save-btn {
+    margin-top: 24px; width: 100%;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    border: none; border-radius: 12px; padding: 14px;
+    font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+    color: #0a1628; letter-spacing: 0.15em; cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .cfg-save-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .cfg-saved-msg {
+    text-align: center; margin-top: 10px; font-size: 12px; color: var(--green);
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 0.1em;
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .cfg-saved-msg.show { opacity: 1; }
+  .cfg-hint {
+    font-size: 11px; color: var(--muted); background: rgba(201,162,39,0.06);
+    border: 1px solid rgba(201,162,39,0.18); border-radius: 8px;
+    padding: 8px 12px; line-height: 1.6; margin-bottom: 4px;
+  }
+
 </style>
 </head>
 <body>
@@ -1848,6 +1957,10 @@
   <button class="float-btn top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
     ↑
     <span class="tooltip">Voltar ao topo</span>
+  </button>
+  <button class="float-btn top" onclick="abrirConfig()" style="font-size:18px;">
+    ⚙️
+    <span class="tooltip">Configurar Preços</span>
   </button>
 </div>
 
@@ -2113,6 +2226,10 @@
       <span class="label" id="lbl-boost-desconto">💎 Desconto Boost (0%)</span>
       <span class="value" id="val-boost-desconto">-R$ 0,00</span>
     </div>
+    <div class="total-row discount" id="row-inv-desconto" style="display:none">
+      <span class="label" id="lbl-inv-desconto">🎒 Desconto Inventário</span>
+      <span class="value" id="val-inv-desconto">-R$ 0,00</span>
+    </div>
     <div class="total-row discount" id="row-desconto" style="display:none">
       <span class="label" id="lbl-desconto">Desconto (0%)</span>
       <span class="value" id="val-desconto">-R$ 0,00</span>
@@ -2162,6 +2279,28 @@
   <div style="margin-top:6px; font-size:8px; letter-spacing:0.2em; opacity:0.4;">TALENTOS ELEMENTAIS • BOOST STONES • GINÁSIOS</div>
 </footer>
 
+
+<!-- MODAL CONFIG PREÇOS -->
+<div class="cfg-overlay" id="modal-config">
+  <div class="cfg-box">
+    <div class="cfg-title">⚙️ CONFIGURAR PREÇOS</div>
+    <div class="cfg-sub">Altere qualquer valor — clique em Aplicar para salvar.</div>
+    <span class="cfg-close" onclick="fecharConfig()">✕</span>
+    <div class="cfg-section-title">💊 STATUS — HP / SPEED</div>
+    <div class="cfg-grid" id="cfg-status-grid"></div>
+    <div class="cfg-section-title">🔷 TALENTOS ELEMENTAIS</div>
+    <div class="cfg-hint">💡 <strong>Multiplicador de itens:</strong> Preço real = <em>Serviço</em> + (<em>Market</em> × <em>Mult.</em>). Market = 0 para ignorar.</div>
+    <div id="cfg-elementais-grid" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>
+    <div class="cfg-section-title">🌊 REDUCES SPEED</div>
+    <div id="cfg-reduces-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="cfg-section-title">🏟️ ACCELERATES</div>
+    <div class="cfg-grid" id="cfg-accel-grid"></div>
+    <div class="cfg-section-title">💎 BOOST STONES — TIERS</div>
+    <div class="cfg-grid" id="cfg-boost-grid"></div>
+    <button class="cfg-save-btn" onclick="salvarConfig()">✔ APLICAR E FECHAR</button>
+    <div class="cfg-saved-msg" id="cfg-saved-msg">✓ PREÇOS ATUALIZADOS!</div>
+  </div>
+</div>
 <!-- MODAL BOAS-VINDAS -->
 <div class="modal-overlay" id="modal-boas-vindas" style="z-index:1100;">
   <div class="modal-box" style="max-width:420px; text-align:center;">
@@ -2683,8 +2822,10 @@ buildReducesPanels();
 // ─────────────────────────────────────────────────────────────────
 // ESTRUTURA DE MISSÕES:
 // Cada tipo tem um array "missoes". Cada missão tem:
-//   { label: 'Nome da missão', itens: [ { nome: '...', img: '...' }, ... ] }
-// Cada missão = uma mini-quest para liberar um buff do elemento.
+//   { label: 'Nome da missão', preco: 10, itens: [ { nome: '...', img: '...' }, ... ] }
+// preco: valor que essa missão representa dentro do total do tipo.
+//   Se a pessoa já tiver TODOS os itens da missão, aquele valor é descontado.
+//   Se tiver ALGUNS itens, desconta proporcionalmente (por item marcado).
 // Adicione quantas missões quiser por tipo!
 // ─────────────────────────────────────────────────────────────────
 const tipos = [
@@ -2692,40 +2833,40 @@ const tipos = [
     name: 'Bug', cls: 'type-bug', preco: 60,
     img: 'https://i.imgur.com/I3TEtIE.png',
     missoes: [
-      { label: 'Increase Defense Bug 5%', itens: [
+      { label: 'Increase Defense Bug 5%', preco: 8, itens: [
         { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Red Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Butterfree Wing', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120 },
       ]},
-      { label: 'Increase Defense Bug 3%', itens: [
+      { label: 'Increase Defense Bug 3%', preco: 6, itens: [
         { nome: 'Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
         { nome: 'Yellow Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
       ]},
-      { label: 'Increase Defense Bug 5%', itens: [
+      { label: 'Increase Defense Bug 5%', preco: 8, itens: [
         { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5 },
         { nome: 'Sparkle Antena', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
       ]},
-      { label: 'Increase Damage Bug 5%', itens: [
-        { nome: 'Mythic Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 2 },
-        { nome: 'Bug Essence',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 100 },
-		{ nome: 'Worm Horn',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 },
-      ]},
-      { label: 'Increase Damage Bug 3%', itens: [
+      <!-- { label: 'Increase Damage Bug 5%', preco: 10, itens: [ -->
+        <!-- { nome: 'Mythic Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 2 }, -->
+        <!-- { nome: 'Bug Essence',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 100 }, -->
+        <!-- { nome: 'Worm Horn',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 }, -->
+      <!-- ]}, -->
+      { label: 'Increase Damage Bug 3%', preco: 7, itens: [
         { nome: 'Mythic Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Pink Bug Horn', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 1 },
         { nome: 'Moth Wing', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 },
       ]},
-      { label: 'Increase Damage Bug 5%', itens: [
+      { label: 'Increase Damage Bug 5%', preco: 8, itens: [
         { nome: 'Simple Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5 },
         { nome: 'Yellow Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
       ]},
-      { label: 'Increase Damage Bug 3%', itens: [
+      { label: 'Increase Damage Bug 3%', preco: 6, itens: [
         { nome: 'Bee Sting',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
       ]},
-      { label: 'Increase Damage Bug 5%', itens: [
+      { label: 'Increase Damage Bug 5%', preco: 7, itens: [
         { nome: 'Arcane Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Red Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
-		{ nome: 'Bee Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120 },
+        { nome: 'Bee Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120 },
       ]},
     ]
   },
@@ -2941,7 +3082,16 @@ function renderDrawer(idx) {
     <div class="drawer-tabs" id="drawer-tabs-${idx}">
       ${missoes.map((m, mi) => {
         const allChecked = (m.itens||[]).length > 0 && (m.itens||[]).every((_,ii) => !!inventarioState[`${t.name}:${mi}:${ii}`]);
-        return `<div class="drawer-tab ${mi === missaoAtiva ? 'active' : ''} ${allChecked ? 'all-checked' : ''}" data-midx="${mi}" style="--drawer-color:${typeColor}">
+        const precMissao = m.preco || 0;
+        const itens = m.itens || [];
+        let descMissao = 0;
+        if (precMissao > 0 && itens.length > 0) {
+          const vpi = precMissao / itens.length;
+          itens.forEach((_,ii) => { if (inventarioState[`${t.name}:${mi}:${ii}`]) descMissao += vpi; });
+        }
+        const hasDiscount = descMissao > 0;
+        return `<div class="drawer-tab ${mi === missaoAtiva ? 'active' : ''} ${allChecked ? 'all-checked' : ''} ${hasDiscount ? 'has-discount' : ''}" data-midx="${mi}" style="--drawer-color:${typeColor}">
+          ${hasDiscount ? `<span class="tab-discount">-R$${descMissao.toFixed(0)}</span>` : ''}
           ${m.label}<span class="tab-ok">✓</span>
         </div>`;
       }).join('')}
@@ -2973,13 +3123,19 @@ function renderDrawer(idx) {
     </div>`;
   }).join('');
 
+  const totalDescInvTipo = calcInventarioDesconto(t.name);
+  const savingsHTML = totalDescInvTipo > 0
+    ? `<div class="drawer-missao-savings">✅ Economia com seu inventário: <strong>-R$ ${totalDescInvTipo.toFixed(2).replace('.',',')}</strong> &nbsp;(de R$ ${t.preco} → R$ ${Math.max(0, t.preco - totalDescInvTipo).toFixed(0)})</div>`
+    : '';
+
   drawer.innerHTML = `
     <div class="drawer-header">
       <img src="${t.img}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:6px;">
       <span class="drawer-title">${t.name.toUpperCase()} — ITENS NECESSÁRIOS</span>
       <span class="drawer-close" onclick="fecharDrawer()">✕</span>
     </div>
-    <div class="drawer-hint">Marque os itens que você <strong>já possui</strong> — os desmarcados são os que ainda preciso buscar.</div>
+    <div class="drawer-hint">Marque os itens que você <strong>já possui</strong> — cada item marcado reduz o valor proporcional da missão.</div>
+    ${savingsHTML}
     ${tabsHTML}
     <div id="drawer-panels-${idx}">${panelsHTML}</div>
   `;
@@ -2996,6 +3152,48 @@ function renderDrawer(idx) {
   }
 }
 
+// Atualiza os badges de desconto das abas e o banner de economia no drawer aberto
+function renderMissaoDesconto(idx) {
+  if (!drawer.classList.contains('open') || drawerAtivoIdx !== idx) return;
+  const t = tipos[idx];
+  const typeColor = getTypeColor(t.name);
+  // Atualiza cada tab
+  drawer.querySelectorAll('.drawer-tab').forEach(tab => {
+    const mi = parseInt(tab.dataset.midx);
+    const m = t.missoes[mi];
+    if (!m) return;
+    const precMissao = m.preco || 0;
+    const itens = m.itens || [];
+    let descMissao = 0;
+    if (precMissao > 0 && itens.length > 0) {
+      const vpi = precMissao / itens.length;
+      itens.forEach((_,ii) => { if (inventarioState[`${t.name}:${mi}:${ii}`]) descMissao += vpi; });
+    }
+    tab.classList.toggle('has-discount', descMissao > 0);
+    let badge = tab.querySelector('.tab-discount');
+    if (descMissao > 0) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'tab-discount'; tab.prepend(badge); }
+      badge.textContent = `-R$${descMissao.toFixed(0)}`;
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+  // Atualiza banner de economia
+  const totalDescInvTipo = calcInventarioDesconto(t.name);
+  let savingsBanner = drawer.querySelector('.drawer-missao-savings');
+  if (totalDescInvTipo > 0) {
+    if (!savingsBanner) {
+      savingsBanner = document.createElement('div');
+      savingsBanner.className = 'drawer-missao-savings';
+      const hint = drawer.querySelector('.drawer-hint');
+      hint.insertAdjacentElement('afterend', savingsBanner);
+    }
+    savingsBanner.innerHTML = `✅ Economia com seu inventário: <strong>-R$ ${totalDescInvTipo.toFixed(2).replace('.',',')}</strong> &nbsp;(de R$ ${t.preco} → R$ ${Math.max(0, t.preco - totalDescInvTipo).toFixed(0)})`;
+  } else if (savingsBanner) {
+    savingsBanner.remove();
+  }
+}
+
 function toggleDrawerItem(el, key, tipoIdx, mIdx) {
   inventarioState[key] = !inventarioState[key];
   el.classList.toggle('checked', inventarioState[key]);
@@ -3006,6 +3204,10 @@ function toggleDrawerItem(el, key, tipoIdx, mIdx) {
   const allChecked = (m.itens||[]).every((_,ii) => !!inventarioState[`${t.name}:${mIdx}:${ii}`]);
   const tab = drawer.querySelector(`.drawer-tab[data-midx="${mIdx}"]`);
   if (tab) tab.classList.toggle('all-checked', allChecked);
+  // Atualiza preços e total
+  atualizar();
+  // Atualiza badge de desconto da missão no drawer se estiver aberto
+  renderMissaoDesconto(tipoIdx);
 }
 
 // Build elemental cards (compact — click opens drawer)
@@ -3291,7 +3493,189 @@ document.getElementById('elemental-drawer').addEventListener('click', e => {
 
 
 let hpCount = 0, speedCount = 0;
-const PRECO_HP = 25, PRECO_SPEED = 25, PRECO_COMBO = 45;
+
+// ===== CONFIG CENTRAL DE PREÇOS =====
+// Edite aqui diretamente OU use o painel ⚙️ no canto inferior direito
+const CONFIG = {
+  hp:    25,   // preço por HP
+  speed: 25,   // preço por Speed
+  combo: 45,   // preço combo HP+Speed juntos
+  // Multiplicador de itens por tipo elemental
+  // precoReal = servico + (market * mult)
+  elementais: Object.fromEntries(tipos.map(t => [t.name, {
+    servico: t.preco,  // preço do serviço (mão de obra)
+    market:  0,        // preço de market do item principal (moedas do jogo)
+    mult:    1,        // multiplicador (ex: 4 = você cobra 4× o market price)
+  }])),
+  // Reduces Speed
+  reduces: {
+    water: [30, 45, 60, 80, 105, 135],
+    ice:   [30, 45, 60, 80, 105, 135],
+    sand:  [30, 45, 60, 80, 105, 135],
+  },
+  // Accelerates
+  accel: Array(accelConfig.length).fill(120),
+  // Boost Stones tiers
+  boost: [3, 5, 7, 9, 11, 13, 15, 17, 19, 21],
+};
+
+// Derived constants (lidos pelo atualizar())
+let PRECO_HP    = CONFIG.hp;
+let PRECO_SPEED = CONFIG.speed;
+let PRECO_COMBO = CONFIG.combo;
+
+// Aplica CONFIG nos arrays originais
+function aplicarConfig() {
+  PRECO_HP    = CONFIG.hp;
+  PRECO_SPEED = CONFIG.speed;
+  PRECO_COMBO = CONFIG.combo;
+  // Elementais
+  tipos.forEach(t => {
+    const c = CONFIG.elementais[t.name];
+    const precoReal = c.servico + c.market * c.mult;
+    t.preco = precoReal;
+  });
+  // Reduces
+  ['water','ice','sand'].forEach(type => {
+    reducesConfig[type].levels.forEach((lv, i) => {
+      lv.preco = CONFIG.reduces[type][i];
+    });
+  });
+  // Accel
+  accelConfig.forEach((ac, i) => { ac.preco = CONFIG.accel[i]; });
+  // Boost tiers
+  boostTiers.forEach((tier, i) => { tier.price = CONFIG.boost[i]; });
+  // Refresh visual prices on elemental cards
+  document.querySelectorAll('.elemental-card').forEach(card => {
+    const name = card.dataset.name;
+    const tipo = tipos.find(t => t.name === name);
+    if (tipo) {
+      card.dataset.preco = tipo.preco;
+      const priceEl = card.querySelector('.el-price');
+      if (priceEl) priceEl.textContent = `R$ ${tipo.preco}`;
+    }
+  });
+  // Refresh price labels on HP/Speed
+  document.getElementById('price-hp').textContent    = `R$ ${PRECO_HP},00`;
+  document.getElementById('price-speed').textContent = `R$ ${PRECO_SPEED},00`;
+  atualizar();
+}
+
+// ===== CONFIG PANEL =====
+function abrirConfig() {
+  buildConfigPanel();
+  document.getElementById('modal-config').classList.add('open');
+}
+function fecharConfig() {
+  document.getElementById('modal-config').classList.remove('open');
+}
+function salvarConfig() {
+  // Ler status
+  CONFIG.hp    = parseFloat(document.getElementById('cfg-hp').value)    || CONFIG.hp;
+  CONFIG.speed = parseFloat(document.getElementById('cfg-speed').value) || CONFIG.speed;
+  CONFIG.combo = parseFloat(document.getElementById('cfg-combo').value) || CONFIG.combo;
+  // Elementais
+  tipos.forEach(t => {
+    const s = parseFloat(document.getElementById(`cfg-el-srv-${t.name}`).value);
+    const m = parseFloat(document.getElementById(`cfg-el-mkt-${t.name}`).value);
+    const x = parseFloat(document.getElementById(`cfg-el-mul-${t.name}`).value);
+    if (!isNaN(s)) CONFIG.elementais[t.name].servico = s;
+    if (!isNaN(m)) CONFIG.elementais[t.name].market  = m;
+    if (!isNaN(x)) CONFIG.elementais[t.name].mult    = x;
+  });
+  // Reduces
+  ['water','ice','sand'].forEach(type => {
+    reducesConfig[type].levels.forEach((_, i) => {
+      const v = parseFloat(document.getElementById(`cfg-rd-${type}-${i}`)?.value);
+      if (!isNaN(v)) CONFIG.reduces[type][i] = v;
+    });
+  });
+  // Accel
+  accelConfig.forEach((_, i) => {
+    const v = parseFloat(document.getElementById(`cfg-ac-${i}`)?.value);
+    if (!isNaN(v)) CONFIG.accel[i] = v;
+  });
+  // Boost
+  boostTiers.forEach((_, i) => {
+    const v = parseFloat(document.getElementById(`cfg-bt-${i}`)?.value);
+    if (!isNaN(v)) CONFIG.boost[i] = v;
+  });
+  aplicarConfig();
+  const msg = document.getElementById('cfg-saved-msg');
+  msg.classList.add('show');
+  setTimeout(() => { msg.classList.remove('show'); fecharConfig(); }, 1200);
+}
+
+function cfgField(id, label, prefix, value) {
+  return `<div class="cfg-field">
+    <div class="cfg-label">${label}</div>
+    <div class="cfg-input-wrap">
+      <span class="cfg-prefix">${prefix}</span>
+      <input class="cfg-input" id="${id}" type="number" step="0.01" min="0" value="${value}">
+    </div>
+  </div>`;
+}
+
+function buildConfigPanel() {
+  // Status
+  document.getElementById('cfg-status-grid').innerHTML =
+    cfgField('cfg-hp',    'HP (por unidade)',    'R$', CONFIG.hp) +
+    cfgField('cfg-speed', 'Speed (por unidade)', 'R$', CONFIG.speed) +
+    cfgField('cfg-combo', 'Combo HP+Speed',      'R$', CONFIG.combo);
+
+  // Elementais
+  const elGrid = document.getElementById('cfg-elementais-grid');
+  elGrid.innerHTML = tipos.map(t => {
+    const c = CONFIG.elementais[t.name];
+    return `<div class="cfg-el-row">
+      <div class="cfg-el-name">${t.name.toUpperCase()}</div>
+      <div class="cfg-el-subfield">
+        <div class="cfg-el-sublabel">SERVIÇO (R$)</div>
+        <div class="cfg-input-wrap"><span class="cfg-prefix">R$</span>
+          <input class="cfg-input" id="cfg-el-srv-${t.name}" type="number" step="0.01" min="0" value="${c.servico}">
+        </div>
+      </div>
+      <div class="cfg-el-subfield">
+        <div class="cfg-el-sublabel">MARKET (moedas)</div>
+        <div class="cfg-input-wrap">
+          <input class="cfg-input" id="cfg-el-mkt-${t.name}" type="number" step="1" min="0" value="${c.market}" placeholder="0">
+        </div>
+      </div>
+      <div class="cfg-el-subfield">
+        <div class="cfg-el-sublabel">MULTIPLICADOR</div>
+        <div class="cfg-input-wrap"><span class="cfg-prefix">×</span>
+          <input class="cfg-input" id="cfg-el-mul-${t.name}" type="number" step="0.1" min="1" value="${c.mult}">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Reduces
+  const rdGrid = document.getElementById('cfg-reduces-grid');
+  rdGrid.innerHTML = ['water','ice','sand'].map(type => {
+    const cfg = reducesConfig[type];
+    return `<div style="background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;">
+      <div class="cfg-el-name">${cfg.icon} ${cfg.label.toUpperCase()}</div>
+      <div class="cfg-grid">
+        ${cfg.levels.map((lv, i) =>
+          cfgField(`cfg-rd-${type}-${i}`, `Nível ${i+1} (${lv.pct}%)`, 'R$', CONFIG.reduces[type][i])
+        ).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Accel
+  document.getElementById('cfg-accel-grid').innerHTML =
+    accelConfig.map((ac, i) => cfgField(`cfg-ac-${i}`, ac.name, 'R$', CONFIG.accel[i])).join('');
+
+  // Boost
+  document.getElementById('cfg-boost-grid').innerHTML =
+    boostTiers.map((tier, i) => cfgField(`cfg-bt-${i}`, tier.range, 'R$', CONFIG.boost[i])).join('');
+}
+
+document.getElementById('modal-config').addEventListener('click', function(e) {
+  if (e.target === this) fecharConfig();
+});
 
 document.getElementById('btn-hp-minus').addEventListener('click', () => changeCount('hp', -1));
 document.getElementById('btn-hp-plus').addEventListener('click',  () => changeCount('hp',  1));
@@ -3329,6 +3713,26 @@ function changeElementalCount(el, delta) {
   atualizar();
 }
 
+// ── Calcula o desconto de inventário para um tipo (por nome) ──
+// Para cada missão: se tem preco definido, cada item marcado desconta (preco/totalItens)
+function calcInventarioDesconto(typeName) {
+  const tipo = tipos.find(t => t.name === typeName);
+  if (!tipo || !tipo.missoes) return 0;
+  let desconto = 0;
+  tipo.missoes.forEach((m, mIdx) => {
+    const precMissao = m.preco || 0;
+    if (precMissao <= 0) return;
+    const itens = m.itens || [];
+    if (itens.length === 0) return;
+    const valorPorItem = precMissao / itens.length;
+    itens.forEach((_, iIdx) => {
+      const key = `${typeName}:${mIdx}:${iIdx}`;
+      if (inventarioState[key]) desconto += valorPorItem;
+    });
+  });
+  return desconto;
+}
+
 function atualizar() {
   let total = 0;
   const pairs = Math.min(hpCount, speedCount);
@@ -3337,13 +3741,32 @@ function atualizar() {
   const hpSpeedTotal = pairs * PRECO_COMBO + hpExtra * PRECO_HP + speedExtra * PRECO_SPEED;
   total += hpSpeedTotal;
 
-  let totalEls = 0, sub = 0;
+  let totalEls = 0, sub = 0, subDescInv = 0;
   document.querySelectorAll('.elemental-card').forEach(el => {
     const cnt = parseInt(el.dataset.count) || 0;
+    const typeName = el.dataset.name;
+    const tipo = tipos.find(t => t.name === typeName);
+    const preco = tipo ? tipo.preco : (parseInt(el.dataset.preco) || 60);
+    el.dataset.preco = preco;
+    const descInv = calcInventarioDesconto(typeName);
+    const precoEfetivo = Math.max(0, preco - descInv);
+    // Atualiza visual do preço no card
+    const priceEl = el.querySelector('.el-price');
+    const cfgEl = CONFIG.elementais[typeName];
+    if (priceEl) {
+      if (descInv > 0) {
+        priceEl.innerHTML = `<span style="text-decoration:line-through;opacity:0.45;font-size:10px;">R$ ${preco}</span> <span style="color:var(--green)">R$ ${precoEfetivo.toFixed(0)}</span>`;
+      } else if (cfgEl && cfgEl.market > 0) {
+        const mktTotal = cfgEl.market * cfgEl.mult;
+        priceEl.innerHTML = `<span style="font-size:10px;opacity:0.6;">R$ ${cfgEl.servico} + ${mktTotal.toFixed(0)}m</span><br><span>R$ ${preco}</span>`;
+      } else {
+        priceEl.textContent = `R$ ${preco}`;
+      }
+    }
     if (cnt > 0) {
-      const preco = parseInt(el.dataset.preco) || 60;
       totalEls += cnt;
-      sub += cnt * preco;
+      sub += cnt * precoEfetivo;
+      subDescInv += cnt * descInv;
     }
   });
 
@@ -3406,6 +3829,7 @@ function atualizar() {
   show('row-talentos', totalEls > 0);
   show('row-reduces',  totalReduces > 0);
   show('row-accelerates', totalAccel > 0);
+  show('row-inv-desconto', subDescInv > 0);
   show('row-boost', totalBoost > 0);
   show('row-boost-desconto', descBoost > 0);
   show('row-desconto', desc > 0);
@@ -3419,6 +3843,7 @@ function atualizar() {
   const speedDisplay = pairs * (PRECO_COMBO/2) + speedExtra * PRECO_SPEED;
   document.getElementById('val-hp').textContent      = `R$ ${hpDisplay.toFixed(2).replace('.',',')}`;
   document.getElementById('val-speed').textContent   = `R$ ${speedDisplay.toFixed(2).replace('.',',')}`;
+  document.getElementById('val-inv-desconto').textContent = `-R$ ${subDescInv.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-talentos').textContent = `Talentos (${totalEls}×)`;
   document.getElementById('val-talentos').textContent = `R$ ${sub.toFixed(2).replace('.',',')}`;
   document.getElementById('lbl-reduces').textContent  = `Reduces Speed (${totalReduces}×)`;
