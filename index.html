@@ -2041,6 +2041,78 @@
   .kk-opcao-sep { font-size: 12px; color: var(--muted); flex-shrink: 0; }
   .total-kk-row { flex-direction: column; padding: 14px 0 0; border-top: 1px solid var(--border); margin-top: 8px; }
 
+
+  /* ===== MINI-DRAWER DE ITENS (HP/Speed/Reduces/Accel) ===== */
+  .mini-drawer {
+    display: none;
+    background: var(--card2);
+    border: 1.5px solid var(--border2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 8px;
+    animation: drawer-in 0.2s ease-out;
+    grid-column: 1 / -1;
+  }
+  .mini-drawer.open { display: block; }
+  .mini-drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .mini-drawer-title {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: .1em;
+    color: var(--gold2);
+  }
+  .mini-drawer-close {
+    cursor: pointer; color: var(--muted); font-size: 16px;
+    padding: 2px 6px; border-radius: 5px; transition: color 0.2s;
+  }
+  .mini-drawer-close:hover { color: var(--text); }
+  .mini-drawer-hint {
+    font-size: 11px; color: var(--muted);
+    border-left: 2px solid var(--border2); padding-left: 8px;
+    margin-bottom: 10px; line-height: 1.5;
+  }
+  .mini-drawer-items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+  }
+  @media (min-width: 500px) { .mini-drawer-items { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 700px) { .mini-drawer-items { grid-template-columns: repeat(4, 1fr); } }
+  /* botão "VER ITENS" nos cards de HP/Speed/Reduces/Accel */
+  .card-itens-btn {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    margin-top: 10px;
+    font-size: 10px; font-family: 'Orbitron', sans-serif;
+    letter-spacing: .08em; font-weight: 700;
+    color: var(--muted); border: 1px dashed var(--border2);
+    border-radius: 8px; padding: 5px 10px; cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    background: transparent;
+  }
+  .card-itens-btn:hover { color: var(--gold2); border-color: var(--gold); background: rgba(201,162,39,0.06); }
+  .card-itens-btn.open  { color: var(--gold2); border-color: var(--gold); border-style: solid; background: rgba(201,162,39,0.08); }
+  /* savings banner mini */
+  .mini-savings {
+    font-size: 11px; color: var(--green);
+    background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px; padding: 6px 10px; margin-bottom: 8px;
+  }
+  .mini-savings strong { font-family: 'Orbitron', sans-serif; }
+
+  /* VER ITENS dentro de cards que usam grid interno */
+  .reduces-level-card .card-itens-btn,
+  .accel-card .card-itens-btn {
+    margin-top: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .reduces-level-card .mini-drawer,
+  .accel-card .mini-drawer {
+    margin-top: 8px;
+  }
+  /* garantir que o card consiga expandir */
+  .reduces-level-card, .accel-card { overflow: visible !important; }
 </style>
 </head>
 <body>
@@ -2157,6 +2229,7 @@
             <span class="counter-val" id="count-hp">0</span>
             <button class="counter-btn" id="btn-hp-plus">+</button>
           </div>
+          <div class="card-itens-btn" id="btn-hp-itens" onclick="toggleMiniDrawer('hp', this)">🎒 VER ITENS</div>
         </div>
         <!-- SPEED CARD -->
         <div class="service-card speed" id="card-speed">
@@ -2171,8 +2244,11 @@
             <span class="counter-val" id="count-speed">0</span>
             <button class="counter-btn" id="btn-speed-plus">+</button>
           </div>
+          <div class="card-itens-btn" id="btn-speed-itens" onclick="toggleMiniDrawer('speed', this)">🎒 VER ITENS</div>
         </div>
       </div>
+      <div id="mini-drawer-hp"    class="mini-drawer"></div>
+      <div id="mini-drawer-speed" class="mini-drawer"></div>
       <div class="combo-banner">
         COMBO ESPECIAL &nbsp;•&nbsp;
         <strong>HP + SPEED = R$ 45,00</strong>
@@ -2844,36 +2920,90 @@ const reducesConfig = {
     label: 'Água', icon: '💧',
     color: '#539ddf', colorA: 'rgba(83,157,223,0.15)',
     levels: [
-      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de água em 40%', preco: 30,  itens: { 'Azurite': 3,  'Hydrocore': 1 } },
-      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de água em 50%', preco: 45,  itens: { 'Azurite': 5,  'Hydrocore': 2 } },
-      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de água em 60%', preco: 60,  itens: { 'Azurite': 8,  'Hydrocore': 3 } },
-      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de água em 70%', preco: 80,  itens: { 'Azurite': 12, 'Hydrocore': 5 } },
-      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de água em 80%', preco: 105, itens: { 'Azurite': 18, 'Hydrocore': 7 } },
-      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de água em 90%', preco: 135, itens: { 'Azurite': 25, 'Hydrocore': 10 } },
+      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de água em 40%', preco: 30,  itens: [
+        { nome: 'Azurite',   img: '', qtd: 3,  precMkt: 0 }, // ← preencha img e precMkt
+        { nome: 'Hydrocore', img: '', qtd: 1,  precMkt: 0 },
+      ]},
+      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de água em 50%', preco: 45,  itens: [
+        { nome: 'Azurite',   img: '', qtd: 5,  precMkt: 0 },
+        { nome: 'Hydrocore', img: '', qtd: 2,  precMkt: 0 },
+      ]},
+      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de água em 60%', preco: 60,  itens: [
+        { nome: 'Azurite',   img: '', qtd: 8,  precMkt: 0 },
+        { nome: 'Hydrocore', img: '', qtd: 3,  precMkt: 0 },
+      ]},
+      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de água em 70%', preco: 80,  itens: [
+        { nome: 'Azurite',   img: '', qtd: 12, precMkt: 0 },
+        { nome: 'Hydrocore', img: '', qtd: 5,  precMkt: 0 },
+      ]},
+      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de água em 80%', preco: 105, itens: [
+        { nome: 'Azurite',   img: '', qtd: 18, precMkt: 0 },
+        { nome: 'Hydrocore', img: '', qtd: 7,  precMkt: 0 },
+      ]},
+      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de água em 90%', preco: 135, itens: [
+        { nome: 'Azurite',   img: '', qtd: 25, precMkt: 0 },
+        { nome: 'Hydrocore', img: '', qtd: 10, precMkt: 0 },
+      ]},
     ]
   },
   ice: {
     label: 'Gelo', icon: '🧊',
     color: '#75d0c1', colorA: 'rgba(117,208,193,0.15)',
     levels: [
-      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de gelo em 40%', preco: 30,  itens: { 'Frostite': 3,  'Cryocore': 1 } },
-      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de gelo em 50%', preco: 45,  itens: { 'Frostite': 5,  'Cryocore': 2 } },
-      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de gelo em 60%', preco: 60,  itens: { 'Frostite': 8,  'Cryocore': 3 } },
-      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de gelo em 70%', preco: 80,  itens: { 'Frostite': 12, 'Cryocore': 5 } },
-      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de gelo em 80%', preco: 105, itens: { 'Frostite': 18, 'Cryocore': 7 } },
-      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de gelo em 90%', preco: 135, itens: { 'Frostite': 25, 'Cryocore': 10 } },
+      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de gelo em 40%', preco: 30,  itens: [
+        { nome: 'Frostite', img: '', qtd: 3,  precMkt: 0 },
+        { nome: 'Cryocore', img: '', qtd: 1,  precMkt: 0 },
+      ]},
+      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de gelo em 50%', preco: 45,  itens: [
+        { nome: 'Frostite', img: '', qtd: 5,  precMkt: 0 },
+        { nome: 'Cryocore', img: '', qtd: 2,  precMkt: 0 },
+      ]},
+      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de gelo em 60%', preco: 60,  itens: [
+        { nome: 'Frostite', img: '', qtd: 8,  precMkt: 0 },
+        { nome: 'Cryocore', img: '', qtd: 3,  precMkt: 0 },
+      ]},
+      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de gelo em 70%', preco: 80,  itens: [
+        { nome: 'Frostite', img: '', qtd: 12, precMkt: 0 },
+        { nome: 'Cryocore', img: '', qtd: 5,  precMkt: 0 },
+      ]},
+      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de gelo em 80%', preco: 105, itens: [
+        { nome: 'Frostite', img: '', qtd: 18, precMkt: 0 },
+        { nome: 'Cryocore', img: '', qtd: 7,  precMkt: 0 },
+      ]},
+      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de gelo em 90%', preco: 135, itens: [
+        { nome: 'Frostite', img: '', qtd: 25, precMkt: 0 },
+        { nome: 'Cryocore', img: '', qtd: 10, precMkt: 0 },
+      ]},
     ]
   },
   sand: {
     label: 'Areia', icon: '🏜️',
     color: '#da7c4d', colorA: 'rgba(218,124,77,0.15)',
     levels: [
-      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de areia em 40%', preco: 30,  itens: { 'Sandite': 3,  'Dunecore': 1 } },
-      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de areia em 50%', preco: 45,  itens: { 'Sandite': 5,  'Dunecore': 2 } },
-      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de areia em 60%', preco: 60,  itens: { 'Sandite': 8,  'Dunecore': 3 } },
-      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de areia em 70%', preco: 80,  itens: { 'Sandite': 12, 'Dunecore': 5 } },
-      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de areia em 80%', preco: 105, itens: { 'Sandite': 18, 'Dunecore': 7 } },
-      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de areia em 90%', preco: 135, itens: { 'Sandite': 25, 'Dunecore': 10 } },
+      { pct: 40, name: 'Nível 1', desc: 'Reduz impairment de areia em 40%', preco: 30,  itens: [
+        { nome: 'Sandite',  img: '', qtd: 3,  precMkt: 0 },
+        { nome: 'Dunecore', img: '', qtd: 1,  precMkt: 0 },
+      ]},
+      { pct: 50, name: 'Nível 2', desc: 'Reduz impairment de areia em 50%', preco: 45,  itens: [
+        { nome: 'Sandite',  img: '', qtd: 5,  precMkt: 0 },
+        { nome: 'Dunecore', img: '', qtd: 2,  precMkt: 0 },
+      ]},
+      { pct: 60, name: 'Nível 3', desc: 'Reduz impairment de areia em 60%', preco: 60,  itens: [
+        { nome: 'Sandite',  img: '', qtd: 8,  precMkt: 0 },
+        { nome: 'Dunecore', img: '', qtd: 3,  precMkt: 0 },
+      ]},
+      { pct: 70, name: 'Nível 4', desc: 'Reduz impairment de areia em 70%', preco: 80,  itens: [
+        { nome: 'Sandite',  img: '', qtd: 12, precMkt: 0 },
+        { nome: 'Dunecore', img: '', qtd: 5,  precMkt: 0 },
+      ]},
+      { pct: 80, name: 'Nível 5', desc: 'Reduz impairment de areia em 80%', preco: 105, itens: [
+        { nome: 'Sandite',  img: '', qtd: 18, precMkt: 0 },
+        { nome: 'Dunecore', img: '', qtd: 7,  precMkt: 0 },
+      ]},
+      { pct: 90, name: 'Nível 6', desc: 'Reduz impairment de areia em 90%', preco: 135, itens: [
+        { nome: 'Sandite',  img: '', qtd: 25, precMkt: 0 },
+        { nome: 'Dunecore', img: '', qtd: 10, precMkt: 0 },
+      ]},
     ]
   }
 };
@@ -2893,7 +3023,11 @@ function buildReducesPanels() {
       card.id = `rl-${type}-${i}`;
       card.style.setProperty('--tc-lv', cfg.color);
       card.style.setProperty('--ta-lv', cfg.colorA);
-      const itensStr = Object.entries(lv.itens).map(([k,v]) => `${k} ×${v}`).join(' • ');
+      const itensArr = Array.isArray(lv.itens)
+        ? lv.itens
+        : Object.entries(lv.itens).map(([nome,qtd]) => ({ nome, img: '', qtd, precMkt: 0 }));
+      const itensStr = itensArr.map(it => `${it.nome} ×${it.qtd}`).join(' • ');
+      const mdId = `mini-drawer-rl-${type}-${i}`;
       card.innerHTML = `
         <div class="rl-left">
           <div class="rl-badge">${lv.pct}%</div>
@@ -2910,6 +3044,8 @@ function buildReducesPanels() {
             <button class="rl-counter-btn" data-type="${type}" data-idx="${i}" data-delta="1">+</button>
           </div>
         </div>
+        <div class="card-itens-btn" onclick="event.stopPropagation(); toggleMiniDrawerById('${mdId}', this, ${JSON.stringify(itensArr).replace(/"/g,'&quot;')}, 1)">🎒 VER ITENS</div>
+        <div class="mini-drawer" id="${mdId}"></div>
       `;
       card.querySelectorAll('.rl-counter-btn').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -2938,20 +3074,197 @@ function switchReducesTab(type) {
   document.getElementById(`panel-${type}`).classList.add('active');
 }
 
+
+// ===== MINI-DRAWER DE ITENS (HP / Speed / Reduces / Accel) =====
+
+// Estado do inventário dos mini-drawers: { 'hp:0': true, 'speed:1': false, ... }
+const miniInvState = {};
+
+function renderMiniDrawerContent(drawerId, itens, mult, prefix) {
+  const el = document.getElementById(drawerId);
+  if (!el) return;
+
+  // Calcula desconto do inventário
+  let totalMkt = 0, desconto = 0;
+  itens.forEach((item, ii) => {
+    const mktTotal = (item.precMkt || 0) * (item.qtd || 1);
+    const vendaTotal = mktTotal * mult;
+    totalMkt += vendaTotal;
+    const key = `${prefix}:${ii}`;
+    if (miniInvState[key]) desconto += (itens.length > 0 ? vendaTotal / itens.length : 0);
+  });
+
+  const savingsHTML = desconto > 0
+    ? `<div class="mini-savings">✅ Economia com inventário: <strong>-${formatKKShort(desconto)}</strong></div>`
+    : '';
+
+  el.innerHTML = `
+    <div class="mini-drawer-header">
+      <span class="mini-drawer-title">🎒 ITENS NECESSÁRIOS</span>
+      <span class="mini-drawer-close" onclick="fecharMiniDrawer('${drawerId}')">✕</span>
+    </div>
+    <div class="mini-drawer-hint">Marque os itens que você <strong>já possui</strong> — desconta proporcionalmente do valor.</div>
+    ${savingsHTML}
+    <div class="mini-drawer-items">
+      ${itens.map((item, ii) => {
+        const key = `${prefix}:${ii}`;
+        const checked = !!miniInvState[key];
+        const imgSrc = item.img || '';
+        const imgTag = imgSrc
+          ? `<img src="${imgSrc}" alt="${item.nome}" style="width:28px;height:28px;object-fit:contain;">`
+          : `<span style="font-size:22px;line-height:28px;">📦</span>`;
+        const qtd = item.qtd || 1;
+        const mktUnit = item.precMkt || 0;
+        const mktTotal = mktUnit * qtd;
+        const vendaTotal = mktTotal * mult;
+        const qtdBadge = qtd > 1 ? `<div class="drawer-item-qty">×${qtd}</div>` : '';
+        let precoBadges = '';
+        if (mktUnit > 0) {
+          const mktUnitCurto  = formatKKShort(mktUnit);
+          const mktTotalCurto = formatKKShort(mktTotal);
+          const vendaCurto    = formatKKShort(vendaTotal);
+          const mktUnitLongo  = formatKKLong(mktUnit);
+          const mktTotalLongo = formatKKLong(mktTotal);
+          const vendaLongo    = formatKKLong(vendaTotal);
+          precoBadges = qtd > 1 ? `
+            <div class="drawer-item-precos">
+              <div class="drawer-item-preco-row">
+                <span class="drawer-item-preco-label">mkt</span>
+                <span class="drawer-item-preco-val mkt-unit"  title="Unitário: ${mktUnitLongo}">${mktUnitCurto}</span>
+                <span class="drawer-item-preco-sep">→</span>
+                <span class="drawer-item-preco-val mkt-total" title="Total: ${mktTotalLongo}">${mktTotalCurto}</span>
+              </div>
+              <div class="drawer-item-preco-row">
+                <span class="drawer-item-preco-label lbl-venda">venda</span>
+                <span class="drawer-item-preco-val venda" title="Seu preço: ${vendaLongo}">▶ ${vendaCurto}</span>
+              </div>
+            </div>` : `
+            <div class="drawer-item-precos">
+              <div class="drawer-item-preco-row">
+                <span class="drawer-item-preco-label">mkt</span>
+                <span class="drawer-item-preco-val mkt-unit" title="${mktUnitLongo}">${mktUnitCurto}</span>
+              </div>
+              <div class="drawer-item-preco-row">
+                <span class="drawer-item-preco-label lbl-venda">venda</span>
+                <span class="drawer-item-preco-val venda" title="${vendaLongo}">▶ ${vendaCurto}</span>
+              </div>
+            </div>`;
+        }
+        return `<div class="drawer-item ${checked ? 'checked' : ''}" onclick="toggleMiniItem('${drawerId}','${key}',${JSON.stringify(itens)},${mult},'${prefix}')">
+          <div class="drawer-item-img">${imgTag}</div>
+          <div class="drawer-item-info">
+            <div class="drawer-item-name">${item.nome}</div>
+            ${qtdBadge}${precoBadges}
+          </div>
+          <div class="drawer-item-check">${checked ? '✓' : ''}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function toggleMiniItem(drawerId, key, itens, mult, prefix) {
+  miniInvState[key] = !miniInvState[key];
+  renderMiniDrawerContent(drawerId, itens, mult, prefix);
+  atualizar();
+}
+
+function fecharMiniDrawer(drawerId) {
+  const el = document.getElementById(drawerId);
+  if (el) el.classList.remove('open');
+  // Remove classe .open do botão associado
+  document.querySelectorAll('.card-itens-btn.open').forEach(b => {
+    if (b.dataset.drawerTarget === drawerId) b.classList.remove('open');
+  });
+}
+
+// Para HP e Speed (drawer fora do card)
+function toggleMiniDrawer(type, btn) {
+  const drawerId = `mini-drawer-${type}`;
+  const el = document.getElementById(drawerId);
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  // Fecha todos os mini-drawers externos
+  ['hp','speed'].forEach(t => {
+    document.getElementById(`mini-drawer-${t}`)?.classList.remove('open');
+    document.getElementById(`btn-${t}-itens`)?.classList.remove('open');
+  });
+  if (!isOpen) {
+    const mult = CONFIG.elementais ? 1 : 1; // HP/Speed não tem mult de KK
+    const itens = hpSpeedItens[type] || [];
+    renderMiniDrawerContent(drawerId, itens, 1, type);
+    el.classList.add('open');
+    btn.classList.add('open');
+    btn.dataset.drawerTarget = drawerId;
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  }
+}
+
+// Para Reduces e Accel (drawer dentro do card)
+function toggleMiniDrawerById(drawerId, btn, itens, mult) {
+  const el = document.getElementById(drawerId);
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  // Fecha todos os mini-drawers inline abertos
+  document.querySelectorAll('.mini-drawer.open').forEach(d => {
+    if (d.id !== drawerId) {
+      d.classList.remove('open');
+      d.previousElementSibling?.classList.remove('open');
+    }
+  });
+  if (!isOpen) {
+    const prefix = drawerId;
+    renderMiniDrawerContent(drawerId, itens, mult, prefix);
+    el.classList.add('open');
+    btn.classList.add('open');
+    btn.dataset.drawerTarget = drawerId;
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  } else {
+    el.classList.remove('open');
+    btn.classList.remove('open');
+  }
+}
+
 buildReducesPanels();
 
 // ===== ELEMENTALS =====
 // ===== ACCELERATES CONFIG (declarado aqui para o CONFIG poder usá-lo) =====
 const accelConfig = [
-  { name: 'Normal',   img: 'https://i.imgur.com/y8UcqNW.png', color: '#a0a29f', preco: 120 },
-  { name: 'Fogo',     img: 'https://i.imgur.com/LUSja0u.png', color: '#fba54c', preco: 120 },
-  { name: 'Pedra',    img: 'https://i.imgur.com/GRxYHJv.png', color: '#c9bb8a', preco: 120 },
-  { name: 'Água',     img: 'https://i.imgur.com/Lf2dISW.png', color: '#539ddf', preco: 120 },
-  { name: 'Elétrico', img: 'https://i.imgur.com/9gYIDvI.png', color: '#f2d94e', preco: 120 },
-  { name: 'Planta',   img: 'https://i.imgur.com/kmtM2s2.png', color: '#5fbd58', preco: 120 },
-  { name: 'Poison',   img: 'https://i.imgur.com/blOp418.png', color: '#b763cf', preco: 120 },
-  { name: 'Voador',   img: 'https://i.imgur.com/ZsmO7z7.png', color: '#89aae3', preco: 120 },
+  { name: 'Normal',   img: 'https://i.imgur.com/y8UcqNW.png', color: '#a0a29f', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 }, // ← preencha nome, img, qtd, precMkt
+  ]},
+  { name: 'Fogo',     img: 'https://i.imgur.com/LUSja0u.png', color: '#fba54c', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
+  { name: 'Pedra',    img: 'https://i.imgur.com/GRxYHJv.png', color: '#c9bb8a', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
+  { name: 'Água',     img: 'https://i.imgur.com/Lf2dISW.png', color: '#539ddf', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
+  { name: 'Elétrico', img: 'https://i.imgur.com/9gYIDvI.png', color: '#f2d94e', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
+  { name: 'Planta',   img: 'https://i.imgur.com/kmtM2s2.png', color: '#5fbd58', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
+  { name: 'Poison',   img: 'https://i.imgur.com/blOp418.png', color: '#b763cf', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
+  { name: 'Voador',   img: 'https://i.imgur.com/ZsmO7z7.png', color: '#89aae3', preco: 120, itens: [
+    { nome: 'Item Exemplo', img: '', qtd: 1, precMkt: 0 },
+  ]},
 ];
+
+// Dados de itens para HP e Speed
+const hpSpeedItens = {
+  hp: [
+    { nome: 'Item Exemplo HP', img: '', qtd: 1, precMkt: 0 }, // ← preencha
+  ],
+  speed: [
+    { nome: 'Item Exemplo Speed', img: '', qtd: 1, precMkt: 0 }, // ← preencha
+  ],
+};
 
 // ─────────────────────────────────────────────────────────────────
 // COMO ADICIONAR ITENS:
@@ -3473,6 +3786,8 @@ function buildAccelGrid() {
     card.className = 'accel-card';
     card.id = `ac-${i}`;
     card.style.setProperty('--tc-ac', ac.color);
+    const acMdId = `mini-drawer-ac-${i}`;
+    const acItens = ac.itens || [];
     card.innerHTML = `
       <div class="accel-left">
         <div class="accel-icon"><img src="${ac.img}" alt="${ac.name}"></div>
@@ -3486,6 +3801,8 @@ function buildAccelGrid() {
         <span class="accel-counter-val" id="acv-${i}">0</span>
         <button class="accel-counter-btn" data-idx="${i}" data-delta="1">+</button>
       </div>
+      <div class="card-itens-btn" onclick="event.stopPropagation(); toggleMiniDrawerById('${acMdId}', this, ${JSON.stringify(acItens).replace(/"/g,'&quot;')}, 1)">🎒 VER ITENS</div>
+      <div class="mini-drawer" id="${acMdId}"></div>
     `;
     card.querySelectorAll('.accel-counter-btn').forEach(btn => {
       btn.addEventListener('click', e => {
