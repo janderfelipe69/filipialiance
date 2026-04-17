@@ -1047,6 +1047,35 @@
   .total-row .label { font-size: 14px; }
   .total-row .value { font-family: 'Orbitron', sans-serif; font-size: 15px; color: var(--text); }
   .total-row.discount .value { color: var(--green); }
+  .total-kk-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 16px;
+    background: rgba(201,162,39,0.07);
+    border: 1px solid rgba(201,162,39,0.2);
+    border-radius: 10px;
+    flex-wrap: wrap;
+  }
+  .total-kk-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .total-kk-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold2);
+    letter-spacing: 0.05em;
+  }
+  #kk-reais { color: var(--green); }
+  #kk-valor { color: var(--gold2); }
+
   .total-main {
     display: flex; justify-content: space-between; align-items: center;
     margin-top: 16px; padding-top: 16px;
@@ -2237,6 +2266,10 @@
     <div class="total-main">
       <span class="total-label">TOTAL</span>
       <span class="total-value">R$ <span id="total">0,00</span></span>
+    </div>
+    <div class="total-kk-row" id="row-kk" style="display:none">
+      <span class="total-kk-label">💰 equivale a</span>
+      <span class="total-kk-value"><span id="kk-reais">R$ 0,00</span> &nbsp;·&nbsp; <span id="kk-valor">0 KK</span></span>
     </div>
   </div>
 
@@ -3733,6 +3766,22 @@ function calcInventarioDesconto(typeName) {
   return desconto;
 }
 
+// ===== FORMATAÇÃO KK (moeda do jogo) =====
+// 1 KK = R$ 1,70 no jogo PokeAlliance
+// Escala: 1 = moeda, 1.000 = K, 1.000.000 = KK, 1.000.000.000 = KKK, etc.
+function formatKK(valor) {
+  const unidades = ['', 'K', 'KK', 'KKK', 'KKKK', 'KKKKK'];
+  let idx = 0;
+  let v = valor;
+  while (v >= 1000 && idx < unidades.length - 1) {
+    v /= 1000;
+    idx++;
+  }
+  // Formata com até 2 casas decimais, remove zeros desnecessários
+  const fmt = parseFloat(v.toFixed(2)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return fmt + ' ' + (unidades[idx] || 'KK'.repeat(idx));
+}
+
 function atualizar() {
   let total = 0;
   const pairs = Math.min(hpCount, speedCount);
@@ -3857,6 +3906,17 @@ function atualizar() {
   document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
   document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
   document.getElementById('total').textContent        = total.toFixed(2).replace('.',',');
+
+  // ===== CONVERSÃO KK =====
+  const PRECO_KK = 1.70; // R$ por KK
+  if (total > 0) {
+    const kkTotal = total / PRECO_KK * 1_000_000; // quantas moedas equivalem
+    document.getElementById('kk-reais').textContent  = 'R$ ' + total.toFixed(2).replace('.',',');
+    document.getElementById('kk-valor').textContent  = formatKK(kkTotal);
+    document.getElementById('row-kk').style.display  = '';
+  } else {
+    document.getElementById('row-kk').style.display  = 'none';
+  }
 
   // Atualizar badges dos acordeões
   updateAccBadge('badge-status', hpCount + speedCount);
