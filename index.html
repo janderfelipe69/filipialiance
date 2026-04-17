@@ -614,14 +614,30 @@
 
   /* INVENTÁRIO — PAINEL */
   .el-inv-btn {
-    position: absolute; bottom: 7px; left: 7px;
-    font-size: 13px; cursor: pointer; opacity: 0.45;
-    transition: opacity 0.2s, transform 0.2s;
-    line-height: 1; user-select: none;
-    z-index: 3;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    margin-top: 8px;
+    width: 100%;
+    padding: 5px 4px;
+    border-radius: 8px;
+    border: 1.5px solid var(--tc, var(--border2));
+    background: color-mix(in srgb, var(--tc, var(--border2)) 12%, transparent);
+    color: var(--tc, var(--text));
+    font-family: 'Rajdhani', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    z-index: 3; position: relative;
   }
-  .elemental-card:hover .el-inv-btn { opacity: 1; transform: scale(1.2); }
-  .elemental-card.inv-open .el-inv-btn { opacity: 1; }
+  .el-inv-btn:hover {
+    background: color-mix(in srgb, var(--tc, var(--border2)) 25%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--tc, var(--border2)) 40%, transparent);
+    transform: translateY(-1px);
+  }
+  .elemental-card.inv-open .el-inv-btn {
+    background: color-mix(in srgb, var(--tc, var(--border2)) 28%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--tc, var(--border2)) 50%, transparent);
+  }
 
   .inventario-panel {
     background: var(--card2);
@@ -2685,6 +2701,32 @@ const tipos = [
         { nome: 'Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
         { nome: 'Yellow Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
       ]},
+      { label: 'Increase Defense Bug 5%', itens: [
+        { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5 },
+        { nome: 'Sparkle Antena', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
+      ]},
+      { label: 'Increase Damage Bug 5%', itens: [
+        { nome: 'Mythic Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 2 },
+        { nome: 'Bug Essence',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 100 },
+		{ nome: 'Worm Horn',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 },
+      ]},
+      { label: 'Increase Damage Bug 3%', itens: [
+        { nome: 'Mythic Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
+        { nome: 'Pink Bug Horn', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 1 },
+        { nome: 'Moth Wing', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 },
+      ]},
+      { label: 'Increase Damage Bug 5%', itens: [
+        { nome: 'Simple Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5 },
+        { nome: 'Yellow Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
+      ]},
+      { label: 'Increase Damage Bug 3%', itens: [
+        { nome: 'Bee Sting',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
+      ]},
+      { label: 'Increase Damage Bug 5%', itens: [
+        { nome: 'Arcane Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
+        { nome: 'Red Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
+		{ nome: 'Bee Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120 },
+      ]},
     ]
   },
   {
@@ -2985,7 +3027,7 @@ tipos.forEach((t, idx) => {
       <span class="el-counter-val">0</span>
       <button class="el-counter-btn" data-delta="1" data-type="${t.name}">+</button>
     </div>
-    <div class="el-inv-btn" title="Ver itens necessários" onclick="event.stopPropagation(); abrirDrawer(${idx})">🎒</div>
+    <div class="el-inv-btn" title="Ver itens necessários" onclick="event.stopPropagation(); abrirDrawer(${idx})">🎒 <span>VER ITENS</span></div>
   `;
   d.querySelectorAll('.el-counter-btn').forEach(btn => {
     btn.addEventListener('click', e => {
