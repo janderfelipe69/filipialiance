@@ -503,6 +503,53 @@
     border-radius: 6px; padding: 2px 7px; margin-top: 3px; letter-spacing: 0.05em;
   }
   .drawer-item.checked .drawer-item-qty { background: rgba(34,197,94,0.15); color: var(--green); border-color: rgba(34,197,94,0.3); }
+  /* ---- PREÇO ITEM: bloco de 2 linhas (mkt + venda) ---- */
+  .drawer-item-precos {
+    display: flex; flex-direction: column; gap: 3px; margin-top: 5px;
+  }
+  .drawer-item-preco-row {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .drawer-item-preco-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--muted); min-width: 32px; opacity: 0.7; text-transform: uppercase;
+  }
+  .drawer-item-preco-label.lbl-venda { color: var(--gold); }
+  .drawer-item-preco-val {
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    border-radius: 5px; padding: 1px 7px; letter-spacing: 0.03em;
+    cursor: help; transition: background 0.2s;
+  }
+  .drawer-item-preco-val.mkt-unit {
+    background: rgba(90,122,154,0.12); color: var(--muted);
+    border: 1px solid rgba(90,122,154,0.2);
+  }
+  .drawer-item-preco-sep {
+    font-size: 9px; color: var(--muted); opacity: 0.4;
+  }
+  .drawer-item-preco-val.mkt-total {
+    background: rgba(90,122,154,0.2); color: #7aa8cc;
+    border: 1px solid rgba(90,122,154,0.35);
+  }
+  .drawer-item-preco-val.venda {
+    background: rgba(201,162,39,0.14); color: var(--gold2);
+    border: 1px solid rgba(201,162,39,0.3);
+  }
+  .drawer-item-preco-val.venda:hover { background: rgba(201,162,39,0.25); }
+  .drawer-item-preco-val.mkt-unit:hover,
+  .drawer-item-preco-val.mkt-total:hover { background: rgba(90,122,154,0.32); }
+  /* checked state */
+  .drawer-item.checked .drawer-item-preco-label { color: var(--green); opacity: 0.6; }
+  .drawer-item.checked .drawer-item-preco-label.lbl-venda { color: var(--green); }
+  .drawer-item.checked .drawer-item-preco-val.mkt-unit  { background: rgba(34,197,94,0.07); color: #5dd98a; border-color: rgba(34,197,94,0.18); }
+  .drawer-item.checked .drawer-item-preco-val.mkt-total { background: rgba(34,197,94,0.12); color: var(--green); border-color: rgba(34,197,94,0.25); }
+  .drawer-item.checked .drawer-item-preco-val.venda      { background: rgba(34,197,94,0.15); color: var(--green); border-color: rgba(34,197,94,0.35); }
+  .drawer-missao-preco-total {
+    font-size: 12px; color: var(--muted); margin-bottom: 10px;
+    padding: 7px 12px; background: rgba(201,162,39,0.06);
+    border: 1px solid rgba(201,162,39,0.15); border-radius: 8px;
+  }
+  .drawer-missao-preco-total strong { color: var(--gold2); font-family: 'Orbitron', sans-serif; }
   .drawer-item-check {
     width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border);
     display: flex; align-items: center; justify-content: center;
@@ -1957,6 +2004,43 @@
     padding: 8px 12px; line-height: 1.6; margin-bottom: 4px;
   }
 
+  /* ===== OPÇÕES DE PAGAMENTO KK / REAL ===== */
+  .kk-opcoes {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px; width: 100%;
+    justify-content: center;
+  }
+  .kk-opcao {
+    flex: 1; max-width: 140px;
+    background: var(--card2); border: 2px solid var(--border);
+    border-radius: 14px; padding: 12px 10px; text-align: center;
+    cursor: pointer; transition: all 0.25s cubic-bezier(.34,1.3,.64,1);
+    user-select: none; position: relative; overflow: hidden;
+  }
+  .kk-opcao:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .kk-opcao.selected {
+    border-color: var(--gold2);
+    background: rgba(201,162,39,0.1);
+    box-shadow: 0 0 20px rgba(201,162,39,0.25);
+    transform: translateY(-3px);
+  }
+  .kk-opcao::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(201,162,39,0.08), transparent);
+    opacity: 0; transition: opacity 0.3s; border-radius: 12px; pointer-events: none;
+  }
+  .kk-opcao.selected::after { opacity: 1; }
+  .kk-opcao-icon { font-size: 22px; margin-bottom: 5px; }
+  .kk-opcao-val {
+    font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--gold2); margin-bottom: 3px;
+    transition: color 0.2s;
+  }
+  .kk-opcao.selected .kk-opcao-val { color: var(--gold3); }
+  .kk-opcao-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; font-family: 'Rajdhani', sans-serif; font-weight: 700; }
+  .kk-opcao-sep { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .total-kk-row { flex-direction: column; padding: 14px 0 0; border-top: 1px solid var(--border); margin-top: 8px; }
+
 </style>
 </head>
 <body>
@@ -2268,8 +2352,20 @@
       <span class="total-value">R$ <span id="total">0,00</span></span>
     </div>
     <div class="total-kk-row" id="row-kk" style="display:none">
-      <span class="total-kk-label">💰 equivale a</span>
-      <span class="total-kk-value"><span id="kk-reais">R$ 0,00</span> &nbsp;·&nbsp; <span id="kk-valor">0 KK</span></span>
+      <span class="total-kk-label">💰 Pague em</span>
+      <div class="kk-opcoes">
+        <div class="kk-opcao" id="kk-opcao-real" onclick="selecionarPagamento('real')">
+          <div class="kk-opcao-icon">🇧🇷</div>
+          <div class="kk-opcao-val" id="kk-reais">R$ 0,00</div>
+          <div class="kk-opcao-label">Reais</div>
+        </div>
+        <div class="kk-opcao-sep">ou</div>
+        <div class="kk-opcao" id="kk-opcao-kk" onclick="selecionarPagamento('kk')">
+          <div class="kk-opcao-icon">🪙</div>
+          <div class="kk-opcao-val" id="kk-valor">0 KK</div>
+          <div class="kk-opcao-label">In-Game (KK)</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2845,6 +2941,18 @@ function switchReducesTab(type) {
 buildReducesPanels();
 
 // ===== ELEMENTALS =====
+// ===== ACCELERATES CONFIG (declarado aqui para o CONFIG poder usá-lo) =====
+const accelConfig = [
+  { name: 'Normal',   img: 'https://i.imgur.com/y8UcqNW.png', color: '#a0a29f', preco: 120 },
+  { name: 'Fogo',     img: 'https://i.imgur.com/LUSja0u.png', color: '#fba54c', preco: 120 },
+  { name: 'Pedra',    img: 'https://i.imgur.com/GRxYHJv.png', color: '#c9bb8a', preco: 120 },
+  { name: 'Água',     img: 'https://i.imgur.com/Lf2dISW.png', color: '#539ddf', preco: 120 },
+  { name: 'Elétrico', img: 'https://i.imgur.com/9gYIDvI.png', color: '#f2d94e', preco: 120 },
+  { name: 'Planta',   img: 'https://i.imgur.com/kmtM2s2.png', color: '#5fbd58', preco: 120 },
+  { name: 'Poison',   img: 'https://i.imgur.com/blOp418.png', color: '#b763cf', preco: 120 },
+  { name: 'Voador',   img: 'https://i.imgur.com/ZsmO7z7.png', color: '#89aae3', preco: 120 },
+];
+
 // ─────────────────────────────────────────────────────────────────
 // COMO ADICIONAR ITENS:
 // Dentro de cada tipo, há um array "itens". Cada item tem:
@@ -2855,7 +2963,7 @@ buildReducesPanels();
 // ─────────────────────────────────────────────────────────────────
 // ESTRUTURA DE MISSÕES:
 // Cada tipo tem um array "missoes". Cada missão tem:
-//   { label: 'Nome da missão', preco: 10, itens: [ { nome: '...', img: '...' }, ... ] }
+//   { label: 'Nome da missão', itens: [ { nome: '...', img: '...' }, ... ] }
 // preco: valor que essa missão representa dentro do total do tipo.
 //   Se a pessoa já tiver TODOS os itens da missão, aquele valor é descontado.
 //   Se tiver ALGUNS itens, desconta proporcionalmente (por item marcado).
@@ -2866,37 +2974,37 @@ const tipos = [
     name: 'Bug', cls: 'type-bug', preco: 60,
     img: 'https://i.imgur.com/I3TEtIE.png',
     missoes: [
-      { label: 'Increase Defense Bug 5%', preco: 8, itens: [
-        { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
-        { nome: 'Red Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
-        { nome: 'Butterfree Wing', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120 },
+      { label: 'Increase Defense Bug 5%', itens: [
+        { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3,   precMkt: 300 },
+        { nome: 'Red Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3, precMkt: 150 },
+        { nome: 'Butterfree Wing', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120,   precMkt: 50  },
       ]},
-      { label: 'Increase Defense Bug 3%', preco: 6, itens: [
-        { nome: 'Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
-        { nome: 'Yellow Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
+      { label: 'Increase Defense Bug 3%', itens: [
+        { nome: 'Piece Of Cocoon', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25, precMkt: 120 },
+        { nome: 'Yellow Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25, precMkt: 200 },
       ]},
-      { label: 'Increase Defense Bug 5%', preco: 8, itens: [
-        { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5 },
-        { nome: 'Sparkle Antena', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
+      { label: 'Increase Defense Bug 5%', itens: [
+        { nome: 'Simple Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5, precMkt: 300 },
+        { nome: 'Sparkle Antena', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3,    precMkt: 500 },
       ]},
-      <!-- { label: 'Increase Damage Bug 5%', preco: 10, itens: [ -->
-        <!-- { nome: 'Mythic Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 2 }, -->
-        <!-- { nome: 'Bug Essence',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 100 }, -->
-        <!-- { nome: 'Worm Horn',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 }, -->
-      <!-- ]}, -->
-      { label: 'Increase Damage Bug 3%', preco: 7, itens: [
+      // { label: 'Increase Damage Bug 5%', itens: [
+      //   { nome: 'Mythic Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 2 },
+      //   { nome: 'Bug Essence',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 100 },
+      //   { nome: 'Worm Horn',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 },
+      // ]},
+      { label: 'Increase Damage Bug 3%', itens: [
         { nome: 'Mythic Bug Orb',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Pink Bug Horn', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 1 },
         { nome: 'Moth Wing', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 500 },
       ]},
-      { label: 'Increase Damage Bug 5%', preco: 8, itens: [
+      { label: 'Increase Damage Bug 5%', itens: [
         { nome: 'Simple Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 5 },
         { nome: 'Yellow Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
       ]},
-      { label: 'Increase Damage Bug 3%', preco: 6, itens: [
+      { label: 'Increase Damage Bug 3%', itens: [
         { nome: 'Bee Sting',    img: 'https://i.imgur.com/I3TEtIE.png', qtd: 25 },
       ]},
-      { label: 'Increase Damage Bug 5%', preco: 7, itens: [
+      { label: 'Increase Damage Bug 5%', itens: [
         { nome: 'Arcane Bug Orb', img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Red Cocoon',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 3 },
         { nome: 'Bee Sting',   img: 'https://i.imgur.com/I3TEtIE.png', qtd: 120 },
@@ -2908,7 +3016,7 @@ const tipos = [
     img: 'https://i.imgur.com/Ea75cVf.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Dark Orb',   img: 'https://i.imgur.com/Ea75cVf.png' },
+        { nome: 'Dark Orb', img: 'https://i.imgur.com/Ea75cVf.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2917,7 +3025,7 @@ const tipos = [
     img: 'https://i.imgur.com/NaEUJov.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Dragon Orb', img: 'https://i.imgur.com/NaEUJov.png' },
+        { nome: 'Dragon Orb', img: 'https://i.imgur.com/NaEUJov.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2926,7 +3034,7 @@ const tipos = [
     img: 'https://i.imgur.com/9gYIDvI.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Electric Orb', img: 'https://i.imgur.com/9gYIDvI.png' },
+        { nome: 'Electric Orb', img: 'https://i.imgur.com/9gYIDvI.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2935,7 +3043,7 @@ const tipos = [
     img: 'https://i.imgur.com/cPVKird.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Fairy Orb',  img: 'https://i.imgur.com/cPVKird.png' },
+        { nome: 'Fairy Orb', img: 'https://i.imgur.com/cPVKird.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2944,7 +3052,7 @@ const tipos = [
     img: 'https://i.imgur.com/WvAqULu.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Fighting Orb', img: 'https://i.imgur.com/WvAqULu.png' },
+        { nome: 'Fighting Orb', img: 'https://i.imgur.com/WvAqULu.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2953,7 +3061,7 @@ const tipos = [
     img: 'https://i.imgur.com/LUSja0u.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Fire Orb',   img: 'https://i.imgur.com/LUSja0u.png' },
+        { nome: 'Fire Orb', img: 'https://i.imgur.com/LUSja0u.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2962,7 +3070,7 @@ const tipos = [
     img: 'https://i.imgur.com/ZsmO7z7.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Flying Orb', img: 'https://i.imgur.com/ZsmO7z7.png' },
+        { nome: 'Flying Orb', img: 'https://i.imgur.com/ZsmO7z7.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2971,7 +3079,7 @@ const tipos = [
     img: 'https://i.imgur.com/xxpTBDI.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Ghost Orb',  img: 'https://i.imgur.com/xxpTBDI.png' },
+        { nome: 'Ghost Orb', img: 'https://i.imgur.com/xxpTBDI.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2980,7 +3088,7 @@ const tipos = [
     img: 'https://i.imgur.com/kmtM2s2.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Grass Orb',  img: 'https://i.imgur.com/kmtM2s2.png' },
+        { nome: 'Grass Orb', img: 'https://i.imgur.com/kmtM2s2.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2989,7 +3097,7 @@ const tipos = [
     img: 'https://i.imgur.com/BMwn78D.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Ground Orb', img: 'https://i.imgur.com/BMwn78D.png' },
+        { nome: 'Ground Orb', img: 'https://i.imgur.com/BMwn78D.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -2998,7 +3106,7 @@ const tipos = [
     img: 'https://i.imgur.com/8yVeZEU.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Ice Orb',    img: 'https://i.imgur.com/8yVeZEU.png' },
+        { nome: 'Ice Orb', img: 'https://i.imgur.com/8yVeZEU.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -3007,7 +3115,7 @@ const tipos = [
     img: 'https://i.imgur.com/y8UcqNW.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Normal Orb', img: 'https://i.imgur.com/y8UcqNW.png' },
+        { nome: 'Normal Orb', img: 'https://i.imgur.com/y8UcqNW.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -3016,7 +3124,7 @@ const tipos = [
     img: 'https://i.imgur.com/blOp418.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Poison Orb', img: 'https://i.imgur.com/blOp418.png' },
+        { nome: 'Poison Orb', img: 'https://i.imgur.com/blOp418.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -3025,7 +3133,7 @@ const tipos = [
     img: 'https://i.imgur.com/aOgZCsq.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Psychic Orb', img: 'https://i.imgur.com/aOgZCsq.png' },
+        { nome: 'Psychic Orb', img: 'https://i.imgur.com/aOgZCsq.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -3034,7 +3142,7 @@ const tipos = [
     img: 'https://i.imgur.com/GRxYHJv.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Rock Orb',   img: 'https://i.imgur.com/GRxYHJv.png' },
+        { nome: 'Rock Orb', img: 'https://i.imgur.com/GRxYHJv.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -3043,7 +3151,7 @@ const tipos = [
     img: 'https://i.imgur.com/CBGW1PZ.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Steel Orb',  img: 'https://i.imgur.com/CBGW1PZ.png' },
+        { nome: 'Steel Orb', img: 'https://i.imgur.com/CBGW1PZ.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
@@ -3052,11 +3160,42 @@ const tipos = [
     img: 'https://i.imgur.com/Lf2dISW.png',
     missoes: [
       { label: 'Missão 1', itens: [
-        { nome: 'Water Orb',  img: 'https://i.imgur.com/Lf2dISW.png' },
+        { nome: 'Water Orb', img: 'https://i.imgur.com/Lf2dISW.png', qtd: 1, precMkt: 0 } // ← preencha qtd e precMkt,
       ]},
     ]
   },
 ];
+
+// ===== CONFIG CENTRAL DE PREÇOS =====
+// Edite aqui diretamente OU use o painel ⚙️ no canto inferior direito
+// ATENÇÃO: preco dos elementais/missões é em KK (moeda do jogo)
+// HP/Speed/Combo/Reduces/Accel continuam em R$ (serviço de mão de obra)
+const CONFIG = {
+  hp:    25,   // preço por HP (R$)
+  speed: 25,   // preço por Speed (R$)
+  combo: 45,   // preço combo HP+Speed juntos (R$)
+  // Elementais — servico em KK, market em moedas brutas
+  elementais: Object.fromEntries(tipos.map(t => [t.name, {
+    servico: t.preco,  // preço base
+    market:  0,        // preço de market do item principal (moedas brutas)
+    mult:    4,        // multiplicador (ex: 4 = você cobra 4× o market price)
+  }])),
+  // Reduces Speed
+  reduces: {
+    water: [30, 45, 60, 80, 105, 135],
+    ice:   [30, 45, 60, 80, 105, 135],
+    sand:  [30, 45, 60, 80, 105, 135],
+  },
+  // Accelerates
+  accel: Array(accelConfig.length).fill(120),
+  // Boost Stones tiers
+  boost: [3, 5, 7, 9, 11, 13, 15, 17, 19, 21],
+};
+
+// Derived constants (lidos pelo atualizar())
+let PRECO_HP    = CONFIG.hp;
+let PRECO_SPEED = CONFIG.speed;
+let PRECO_COMBO = CONFIG.combo;
 
 // ===== INVENTÁRIO / DRAWER STATE =====
 // Estado do inventário: { 'Bug:missaoIdx:itemIdx': true/false }
@@ -3114,18 +3253,20 @@ function renderDrawer(idx) {
   const tabsHTML = missoes.length > 1 ? `
     <div class="drawer-tabs" id="drawer-tabs-${idx}">
       ${missoes.map((m, mi) => {
+        const mult = CONFIG.elementais[t.name]?.mult || 1;
         const allChecked = (m.itens||[]).length > 0 && (m.itens||[]).every((_,ii) => !!inventarioState[`${t.name}:${mi}:${ii}`]);
-        const precMissao = m.preco || 0;
+        const precoMissao = calcPrecoMissao(m, mult); // moedas
         const itens = m.itens || [];
         let descMissao = 0;
-        if (precMissao > 0 && itens.length > 0) {
-          const vpi = precMissao / itens.length;
+        if (precoMissao > 0 && itens.length > 0) {
+          const vpi = precoMissao / itens.length;
           itens.forEach((_,ii) => { if (inventarioState[`${t.name}:${mi}:${ii}`]) descMissao += vpi; });
         }
         const hasDiscount = descMissao > 0;
+        const tabPreco = precoMissao > 0 ? ` <span style="font-size:10px;opacity:0.55;font-family:'Orbitron',sans-serif;">${formatKKShort(precoMissao)}</span>` : '';
         return `<div class="drawer-tab ${mi === missaoAtiva ? 'active' : ''} ${allChecked ? 'all-checked' : ''} ${hasDiscount ? 'has-discount' : ''}" data-midx="${mi}" style="--drawer-color:${typeColor}">
-          ${hasDiscount ? `<span class="tab-discount">-R$${descMissao.toFixed(0)}</span>` : ''}
-          ${m.label}<span class="tab-ok">✓</span>
+          ${hasDiscount ? `<span class="tab-discount">-${formatKKShort(descMissao)}</span>` : ''}
+          ${m.label}${tabPreco}<span class="tab-ok">✓</span>
         </div>`;
       }).join('')}
     </div>` : '';
@@ -3133,7 +3274,10 @@ function renderDrawer(idx) {
   // Build panels HTML
   const panelsHTML = missoes.map((m, mi) => {
     const itens = m.itens || [];
+    const mult = CONFIG.elementais[t.name]?.mult || 1;
+    const precoMissaoTotal = calcPrecoMissao(m, mult);
     return `<div class="drawer-panel ${mi === missaoAtiva ? 'active' : ''}" data-dpanel="${mi}">
+      ${precoMissaoTotal > 0 ? `<div class="drawer-missao-preco-total">💰 Total desta missão: <strong>${formatKKShort(precoMissaoTotal)}</strong> <span style="opacity:0.5;font-size:11px;">(${formatKKLong(precoMissaoTotal)} moedas)</span></div>` : ''}
       ${itens.length === 0
         ? `<div style="color:var(--muted);font-size:12px;padding:10px 0;">Nenhum item nesta missão.</div>`
         : `<div class="drawer-items">
@@ -3142,11 +3286,53 @@ function renderDrawer(idx) {
             const checked = !!inventarioState[key];
             const imgSrc = item.img || t.img;
             const qtdBadge = item.qtd ? `<div class="drawer-item-qty">×${item.qtd}</div>` : '';
+            // Preços: mkt unitário · total, e venda total
+            let precoBadges = '';
+            if (item.precMkt && item.precMkt > 0) {
+              const qtd           = item.qtd || 1;
+              const mktUnit       = item.precMkt;
+              const mktTotal      = mktUnit * qtd;
+              const vendaTotal    = mktTotal * mult;
+              const mktUnitCurto  = formatKKShort(mktUnit);
+              const mktTotalCurto = formatKKShort(mktTotal);
+              const vendaCurto    = formatKKShort(vendaTotal);
+              const mktUnitLongo  = formatKKLong(mktUnit);
+              const mktTotalLongo = formatKKLong(mktTotal);
+              const vendaLongo    = formatKKLong(vendaTotal);
+              const mktTotalTitle = `Total market: ${mktTotalLongo} moedas`;
+              const mktUnitTitle  = `Unitário: ${mktUnitLongo} moedas`;
+              const vendaTitle    = `Seu preço de venda: ${vendaLongo} moedas`;
+              precoBadges = qtd > 1 ? `
+                <div class="drawer-item-precos">
+                  <div class="drawer-item-preco-row">
+                    <span class="drawer-item-preco-label">mkt</span>
+                    <span class="drawer-item-preco-val mkt-unit"  title="${mktUnitTitle}">${mktUnitCurto}</span>
+                    <span class="drawer-item-preco-sep">→</span>
+                    <span class="drawer-item-preco-val mkt-total" title="${mktTotalTitle}">${mktTotalCurto}</span>
+                  </div>
+                  <div class="drawer-item-preco-row">
+                    <span class="drawer-item-preco-label lbl-venda">venda</span>
+                    <span class="drawer-item-preco-val venda" title="${vendaTitle}">▶ ${vendaCurto}</span>
+                  </div>
+                </div>` : `
+                <div class="drawer-item-precos">
+                  <div class="drawer-item-preco-row">
+                    <span class="drawer-item-preco-label">mkt</span>
+                    <span class="drawer-item-preco-val mkt-unit" title="${mktUnitTitle}">${mktUnitCurto}</span>
+                  </div>
+                  <div class="drawer-item-preco-row">
+                    <span class="drawer-item-preco-label lbl-venda">venda</span>
+                    <span class="drawer-item-preco-val venda" title="${vendaTitle}">▶ ${vendaCurto}</span>
+                  </div>
+                </div>`;
+            }
             return `<div class="drawer-item ${checked ? 'checked' : ''}" onclick="toggleDrawerItem(this,'${key}',${idx},${mi})">
               <div class="drawer-item-img"><img src="${imgSrc}" alt="${item.nome}" style="width:28px;height:28px;object-fit:contain;"></div>
               <div class="drawer-item-info">
                 <div class="drawer-item-name">${item.nome}</div>
-                ${qtdBadge}
+                <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:3px;">
+                  ${qtdBadge}${precoBadges}
+                </div>
               </div>
               <div class="drawer-item-check">${checked ? '✓' : ''}</div>
             </div>`;
@@ -3156,9 +3342,10 @@ function renderDrawer(idx) {
     </div>`;
   }).join('');
 
-  const totalDescInvTipo = calcInventarioDesconto(t.name);
-  const savingsHTML = totalDescInvTipo > 0
-    ? `<div class="drawer-missao-savings">✅ Economia com seu inventário: <strong>-R$ ${totalDescInvTipo.toFixed(2).replace('.',',')}</strong> &nbsp;(de R$ ${t.preco} → R$ ${Math.max(0, t.preco - totalDescInvTipo).toFixed(0)})</div>`
+  const totalDescInvMoedas = calcInventarioDesconto(t.name);
+  const totalPrecoTipo     = calcPrecoTipo(t.name);
+  const savingsHTML = totalDescInvMoedas > 0
+    ? `<div class="drawer-missao-savings">✅ Economia com seu inventário: <strong>-${formatKKShort(totalDescInvMoedas)}</strong> &nbsp;(de ${formatKKShort(totalPrecoTipo)} → ${formatKKShort(Math.max(0, totalPrecoTipo - totalDescInvMoedas))})</div>`
     : '';
 
   drawer.innerHTML = `
@@ -3195,33 +3382,35 @@ function renderMissaoDesconto(idx) {
     const mi = parseInt(tab.dataset.midx);
     const m = t.missoes[mi];
     if (!m) return;
-    const precMissao = m.preco || 0;
+    const mult = CONFIG.elementais[t.name]?.mult || 1;
+    const precoMissao = calcPrecoMissao(m, mult);
     const itens = m.itens || [];
     let descMissao = 0;
-    if (precMissao > 0 && itens.length > 0) {
-      const vpi = precMissao / itens.length;
+    if (precoMissao > 0 && itens.length > 0) {
+      const vpi = precoMissao / itens.length;
       itens.forEach((_,ii) => { if (inventarioState[`${t.name}:${mi}:${ii}`]) descMissao += vpi; });
     }
     tab.classList.toggle('has-discount', descMissao > 0);
     let badge = tab.querySelector('.tab-discount');
     if (descMissao > 0) {
       if (!badge) { badge = document.createElement('span'); badge.className = 'tab-discount'; tab.prepend(badge); }
-      badge.textContent = `-R$${descMissao.toFixed(0)}`;
+      badge.textContent = `-${formatKKShort(descMissao)}`;
     } else if (badge) {
       badge.remove();
     }
   });
   // Atualiza banner de economia
-  const totalDescInvTipo = calcInventarioDesconto(t.name);
+  const totalDescInvMoedas = calcInventarioDesconto(t.name);
+  const totalPrecoTipo     = calcPrecoTipo(t.name);
   let savingsBanner = drawer.querySelector('.drawer-missao-savings');
-  if (totalDescInvTipo > 0) {
+  if (totalDescInvMoedas > 0) {
     if (!savingsBanner) {
       savingsBanner = document.createElement('div');
       savingsBanner.className = 'drawer-missao-savings';
       const hint = drawer.querySelector('.drawer-hint');
       hint.insertAdjacentElement('afterend', savingsBanner);
     }
-    savingsBanner.innerHTML = `✅ Economia com seu inventário: <strong>-R$ ${totalDescInvTipo.toFixed(2).replace('.',',')}</strong> &nbsp;(de R$ ${t.preco} → R$ ${Math.max(0, t.preco - totalDescInvTipo).toFixed(0)})`;
+    savingsBanner.innerHTML = `✅ Economia com seu inventário: <strong>-${formatKKShort(totalDescInvMoedas)}</strong> &nbsp;(de ${formatKKShort(totalPrecoTipo)} → ${formatKKShort(Math.max(0, totalPrecoTipo - totalDescInvMoedas))})`;
   } else if (savingsBanner) {
     savingsBanner.remove();
   }
@@ -3256,7 +3445,7 @@ tipos.forEach((t, idx) => {
     <div class="el-check"></div>
     <div class="el-dot">${icon}</div>
     <div class="el-name">${t.name}</div>
-    <div class="el-price">R$ ${t.preco}</div>
+    <div class="el-price">${formatKKShort(calcPrecoTipo(t.name))}</div>
     <div class="el-counter">
       <button class="el-counter-btn" data-delta="-1" data-type="${t.name}">−</button>
       <span class="el-counter-val">0</span>
@@ -3275,16 +3464,6 @@ tipos.forEach((t, idx) => {
 });
 
 // ===== ACCELERATES =====
-const accelConfig = [
-  { name: 'Normal',   img: 'https://i.imgur.com/y8UcqNW.png', color: '#a0a29f', preco: 120 },
-  { name: 'Fogo',     img: 'https://i.imgur.com/LUSja0u.png', color: '#fba54c', preco: 120 },
-  { name: 'Pedra',    img: 'https://i.imgur.com/GRxYHJv.png', color: '#c9bb8a', preco: 120 },
-  { name: 'Água',     img: 'https://i.imgur.com/Lf2dISW.png', color: '#539ddf', preco: 120 },
-  { name: 'Elétrico', img: 'https://i.imgur.com/9gYIDvI.png', color: '#f2d94e', preco: 120 },
-  { name: 'Planta',   img: 'https://i.imgur.com/kmtM2s2.png', color: '#5fbd58', preco: 120 },
-  { name: 'Poison',   img: 'https://i.imgur.com/blOp418.png', color: '#b763cf', preco: 120 },
-  { name: 'Voador',   img: 'https://i.imgur.com/ZsmO7z7.png', color: '#89aae3', preco: 120 },
-];
 const accelState = new Array(accelConfig.length).fill(0);
 
 function buildAccelGrid() {
@@ -3527,46 +3706,17 @@ document.getElementById('elemental-drawer').addEventListener('click', e => {
 
 let hpCount = 0, speedCount = 0;
 
-// ===== CONFIG CENTRAL DE PREÇOS =====
-// Edite aqui diretamente OU use o painel ⚙️ no canto inferior direito
-const CONFIG = {
-  hp:    25,   // preço por HP
-  speed: 25,   // preço por Speed
-  combo: 45,   // preço combo HP+Speed juntos
-  // Multiplicador de itens por tipo elemental
-  // precoReal = servico + (market * mult)
-  elementais: Object.fromEntries(tipos.map(t => [t.name, {
-    servico: t.preco,  // preço do serviço (mão de obra)
-    market:  0,        // preço de market do item principal (moedas do jogo)
-    mult:    1,        // multiplicador (ex: 4 = você cobra 4× o market price)
-  }])),
-  // Reduces Speed
-  reduces: {
-    water: [30, 45, 60, 80, 105, 135],
-    ice:   [30, 45, 60, 80, 105, 135],
-    sand:  [30, 45, 60, 80, 105, 135],
-  },
-  // Accelerates
-  accel: Array(accelConfig.length).fill(120),
-  // Boost Stones tiers
-  boost: [3, 5, 7, 9, 11, 13, 15, 17, 19, 21],
-};
-
-// Derived constants (lidos pelo atualizar())
-let PRECO_HP    = CONFIG.hp;
-let PRECO_SPEED = CONFIG.speed;
-let PRECO_COMBO = CONFIG.combo;
-
 // Aplica CONFIG nos arrays originais
 function aplicarConfig() {
   PRECO_HP    = CONFIG.hp;
   PRECO_SPEED = CONFIG.speed;
   PRECO_COMBO = CONFIG.combo;
-  // Elementais
+  // Elementais — preco já em KK; servico no CONFIG agora é em KK também
   tipos.forEach(t => {
     const c = CONFIG.elementais[t.name];
-    const precoReal = c.servico + c.market * c.mult;
-    t.preco = precoReal;
+    // precoKK = servico (KK) + market_moedas * mult / 1_000_000
+    const precoKK = c.servico + (c.market * c.mult) / 1_000_000;
+    t.preco = precoKK;
   });
   // Reduces
   ['water','ice','sand'].forEach(type => {
@@ -3578,15 +3728,11 @@ function aplicarConfig() {
   accelConfig.forEach((ac, i) => { ac.preco = CONFIG.accel[i]; });
   // Boost tiers
   boostTiers.forEach((tier, i) => { tier.price = CONFIG.boost[i]; });
-  // Refresh visual prices on elemental cards
+  // Refresh visual prices on elemental cards (em moedas)
   document.querySelectorAll('.elemental-card').forEach(card => {
     const name = card.dataset.name;
-    const tipo = tipos.find(t => t.name === name);
-    if (tipo) {
-      card.dataset.preco = tipo.preco;
-      const priceEl = card.querySelector('.el-price');
-      if (priceEl) priceEl.textContent = `R$ ${tipo.preco}`;
-    }
+    const priceEl = card.querySelector('.el-price');
+    if (priceEl) priceEl.textContent = formatKKShort(calcPrecoTipo(name));
   });
   // Refresh price labels on HP/Speed
   document.getElementById('price-hp').textContent    = `R$ ${PRECO_HP},00`;
@@ -3746,24 +3892,45 @@ function changeElementalCount(el, delta) {
   atualizar();
 }
 
-// ── Calcula o desconto de inventário para um tipo (por nome) ──
-// Para cada missão: se tem preco definido, cada item marcado desconta (preco/totalItens)
+// ── Calcula preço de venda de uma missão em moedas brutas ──
+// Auto-soma precMkt * qtd * mult de cada item. Fallback: preco manual (em moedas).
+function calcPrecoMissao(missao, mult) {
+  const itens = missao.itens || [];
+  const temMkt = itens.some(it => it.precMkt && it.precMkt > 0);
+  if (temMkt) {
+    let total = 0;
+    itens.forEach(it => { total += (it.precMkt || 0) * (it.qtd || 1) * mult; });
+    return total; // moedas brutas
+  }
+  return (missao.preco || 0); // fallback: valor já em moedas brutas
+}
+
+// ── Preço total de venda de um tipo (soma todas missões) em moedas ──
+function calcPrecoTipo(typeName) {
+  const tipo = tipos.find(t => t.name === typeName);
+  if (!tipo || !tipo.missoes) return 0;
+  const mult = CONFIG.elementais[typeName]?.mult || 1;
+  return tipo.missoes.reduce((s, m) => s + calcPrecoMissao(m, mult), 0);
+}
+
+// ── Desconto de inventário para um tipo ── retorna em moedas brutas
 function calcInventarioDesconto(typeName) {
   const tipo = tipos.find(t => t.name === typeName);
   if (!tipo || !tipo.missoes) return 0;
+  const mult = CONFIG.elementais[typeName]?.mult || 1;
   let desconto = 0;
   tipo.missoes.forEach((m, mIdx) => {
-    const precMissao = m.preco || 0;
-    if (precMissao <= 0) return;
     const itens = m.itens || [];
     if (itens.length === 0) return;
-    const valorPorItem = precMissao / itens.length;
+    const precoMissao = calcPrecoMissao(m, mult); // moedas
+    if (precoMissao <= 0) return;
+    const valorPorItem = precoMissao / itens.length;
     itens.forEach((_, iIdx) => {
       const key = `${typeName}:${mIdx}:${iIdx}`;
       if (inventarioState[key]) desconto += valorPorItem;
     });
   });
-  return desconto;
+  return desconto; // moedas
 }
 
 // ===== FORMATAÇÃO KK (moeda do jogo) =====
@@ -3782,44 +3949,60 @@ function formatKK(valor) {
   return fmt + ' ' + (unidades[idx] || 'KK'.repeat(idx));
 }
 
+// Formato curto para preço de item (ex: 1200 → "1.2K", 300000 → "300K", 1500000 → "1.5KK")
+function formatKKShort(valor) {
+  if (valor <= 0) return '';
+  const unidades = ['', 'K', 'KK', 'KKK'];
+  let idx = 0;
+  let v = valor;
+  while (v >= 1000 && idx < unidades.length - 1) { v /= 1000; idx++; }
+  const fmt = parseFloat(v.toFixed(1)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+  return fmt + (unidades[idx] || '');
+}
+
+// Formato longo para tooltip (ex: 1200 → "1.200")
+function formatKKLong(valor) {
+  return valor.toLocaleString('pt-BR');
+}
+
 function atualizar() {
-  let total = 0;
+  const KK_RATE = 1.70;        // R$ por 1 KK (= 1.000.000 moedas)
+  const MOEDA_RATE = KK_RATE / 1_000_000; // R$ por 1 moeda
+
+  // HP / Speed em Real (mão de obra)
+  let totalReal = 0;
   const pairs = Math.min(hpCount, speedCount);
   const hpExtra = hpCount - pairs;
   const speedExtra = speedCount - pairs;
-  const hpSpeedTotal = pairs * PRECO_COMBO + hpExtra * PRECO_HP + speedExtra * PRECO_SPEED;
-  total += hpSpeedTotal;
+  totalReal += pairs * PRECO_COMBO + hpExtra * PRECO_HP + speedExtra * PRECO_SPEED;
 
-  let totalEls = 0, sub = 0, subDescInv = 0;
+  // Elementais — preço calculado em moedas brutas → convertido para Real
+  let totalEls = 0, subMoedas = 0, subDescInvMoedas = 0;
   document.querySelectorAll('.elemental-card').forEach(el => {
     const cnt = parseInt(el.dataset.count) || 0;
     const typeName = el.dataset.name;
-    const tipo = tipos.find(t => t.name === typeName);
-    const preco = tipo ? tipo.preco : (parseInt(el.dataset.preco) || 60);
-    el.dataset.preco = preco;
-    const descInv = calcInventarioDesconto(typeName);
-    const precoEfetivo = Math.max(0, preco - descInv);
+    const precoMoedas = calcPrecoTipo(typeName);           // moedas brutas
+    const descInvMoedas = calcInventarioDesconto(typeName); // moedas brutas
+    const precoEfMoedas = Math.max(0, precoMoedas - descInvMoedas);
     // Atualiza visual do preço no card
     const priceEl = el.querySelector('.el-price');
-    const cfgEl = CONFIG.elementais[typeName];
     if (priceEl) {
-      if (descInv > 0) {
-        priceEl.innerHTML = `<span style="text-decoration:line-through;opacity:0.45;font-size:10px;">R$ ${preco}</span> <span style="color:var(--green)">R$ ${precoEfetivo.toFixed(0)}</span>`;
-      } else if (cfgEl && cfgEl.market > 0) {
-        const mktTotal = cfgEl.market * cfgEl.mult;
-        priceEl.innerHTML = `<span style="font-size:10px;opacity:0.6;">R$ ${cfgEl.servico} + ${mktTotal.toFixed(0)}m</span><br><span>R$ ${preco}</span>`;
+      if (descInvMoedas > 0) {
+        priceEl.innerHTML = `<span style="text-decoration:line-through;opacity:0.45;font-size:10px;">${formatKKShort(precoMoedas)}</span> <span style="color:var(--green)">${formatKKShort(precoEfMoedas)}</span>`;
       } else {
-        priceEl.textContent = `R$ ${preco}`;
+        priceEl.textContent = formatKKShort(precoMoedas);
       }
     }
     if (cnt > 0) {
       totalEls += cnt;
-      sub += cnt * precoEfetivo;
-      subDescInv += cnt * descInv;
+      subMoedas += cnt * precoEfMoedas;
+      subDescInvMoedas += cnt * descInvMoedas;
     }
   });
+  const subReal       = subMoedas       * MOEDA_RATE;
+  const subDescInvReal = subDescInvMoedas * MOEDA_RATE;
 
-  // Reduces Speed
+  // Reduces Speed (Real)
   let totalReduces = 0, subReduces = 0;
   ['water','ice','sand'].forEach(type => {
     reducesConfig[type].levels.forEach((lv, i) => {
@@ -3828,13 +4011,13 @@ function atualizar() {
     });
   });
 
-  // Accelerates
+  // Accelerates (Real)
   let totalAccel = 0, subAccel = 0;
   accelState.forEach((cnt, i) => {
     if (cnt > 0) { totalAccel += cnt; subAccel += cnt * accelConfig[i].preco; }
   });
 
-  // Boost Stones (desconto próprio, não entra no sistema geral)
+  // Boost Stones (Real)
   let totalBoost = 0, subBoost = 0;
   boostTypes.forEach(t => {
     boostTiers.forEach((tier, i) => {
@@ -3843,7 +4026,6 @@ function atualizar() {
     });
   });
 
-  // Desconto exclusivo das Boost Stones: a cada 5, +5% (máx 20%)
   let boostPct = 0;
   if (totalBoost >= 20) boostPct = 0.20;
   else if (totalBoost >= 15) boostPct = 0.15;
@@ -3852,7 +4034,6 @@ function atualizar() {
   const descBoost = subBoost * boostPct;
   const subBoostComDesc = subBoost - descBoost;
 
-  // Desconto geral (boost NÃO entra aqui)
   const totalServicos = hpCount + speedCount + totalEls + totalReduces + totalAccel;
   let pct = 0;
   if (totalServicos >= 8) pct = 0.20;
@@ -3860,28 +4041,27 @@ function atualizar() {
   else if (totalServicos >= 4) pct = 0.10;
   else if (totalServicos >= 2) pct = 0.05;
 
-  const desc = (sub + subReduces + subAccel) * pct;
-  total += sub + subReduces + subAccel - desc + subBoostComDesc;
+  const baseParaDesconto = subReal + subReduces + subAccel;
+  const desc = baseParaDesconto * pct;
+  const total = totalReal + baseParaDesconto - desc + subBoostComDesc;
 
   ['ds-2','ds-4','ds-6','ds-8'].forEach((id, i) => {
     document.getElementById(id).classList.toggle('active', totalServicos >= [2,4,6,8][i]);
   });
-
-  // Atualizar barra de desconto boost
   ['bds-5','bds-10','bds-15','bds-20'].forEach((id, i) => {
     document.getElementById(id).classList.toggle('active', totalBoost >= [5,10,15,20][i]);
   });
 
   const show = (id, v) => document.getElementById(id).style.display = v ? '' : 'none';
-  show('row-hp',      hpCount > 0);
-  show('row-speed',   speedCount > 0);
-  show('row-talentos', totalEls > 0);
-  show('row-reduces',  totalReduces > 0);
-  show('row-accelerates', totalAccel > 0);
-  show('row-inv-desconto', subDescInv > 0);
-  show('row-boost', totalBoost > 0);
+  show('row-hp',           hpCount > 0);
+  show('row-speed',        speedCount > 0);
+  show('row-talentos',     totalEls > 0);
+  show('row-reduces',      totalReduces > 0);
+  show('row-accelerates',  totalAccel > 0);
+  show('row-inv-desconto', subDescInvReal > 0);
+  show('row-boost',        totalBoost > 0);
   show('row-boost-desconto', descBoost > 0);
-  show('row-desconto', desc > 0);
+  show('row-desconto',     desc > 0);
 
   const hpLabel = `❤️ HP ×${hpCount}${pairs>0?' (combo)':''}`;
   const spLabel = `⚡ Speed ×${speedCount}${pairs>0?' (combo)':''}`;
@@ -3890,22 +4070,22 @@ function atualizar() {
 
   const hpDisplay    = pairs * (PRECO_COMBO/2) + hpExtra * PRECO_HP;
   const speedDisplay = pairs * (PRECO_COMBO/2) + speedExtra * PRECO_SPEED;
-  document.getElementById('val-hp').textContent      = `R$ ${hpDisplay.toFixed(2).replace('.',',')}`;
-  document.getElementById('val-speed').textContent   = `R$ ${speedDisplay.toFixed(2).replace('.',',')}`;
-  document.getElementById('val-inv-desconto').textContent = `-R$ ${subDescInv.toFixed(2).replace('.',',')}`;
-  document.getElementById('lbl-talentos').textContent = `Talentos (${totalEls}×)`;
-  document.getElementById('val-talentos').textContent = `R$ ${sub.toFixed(2).replace('.',',')}`;
-  document.getElementById('lbl-reduces').textContent  = `Reduces Speed (${totalReduces}×)`;
-  document.getElementById('val-reduces').textContent  = `R$ ${subReduces.toFixed(2).replace('.',',')}`;
-  document.getElementById('lbl-accelerates').textContent = `Accelerates (${totalAccel}×)`;
-  document.getElementById('val-accelerates').textContent = `R$ ${subAccel.toFixed(2).replace('.',',')}`;
-  document.getElementById('lbl-boost').textContent = `💎 Boost Stones (${totalBoost}×)`;
-  document.getElementById('val-boost').textContent = `R$ ${subBoost.toFixed(2).replace('.',',')}`;
-  document.getElementById('lbl-boost-desconto').textContent = `💎 Desconto Boost (${boostPct*100}%)`;
-  document.getElementById('val-boost-desconto').textContent = `-R$ ${descBoost.toFixed(2).replace('.',',')}`;
-  document.getElementById('lbl-desconto').textContent = `Desconto (${pct*100}%)`;
-  document.getElementById('val-desconto').textContent = `-R$ ${desc.toFixed(2).replace('.',',')}`;
-  document.getElementById('total').textContent        = total.toFixed(2).replace('.',',');
+  document.getElementById('val-hp').textContent            = `R$ ${hpDisplay.toFixed(2).replace('.',',')}`;
+  document.getElementById('val-speed').textContent         = `R$ ${speedDisplay.toFixed(2).replace('.',',')}`;
+  document.getElementById('val-inv-desconto').textContent  = `-R$ ${subDescInvReal.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-talentos').textContent      = `Talentos (${totalEls}×)`;
+  document.getElementById('val-talentos').textContent      = `R$ ${subReal.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-reduces').textContent       = `Reduces Speed (${totalReduces}×)`;
+  document.getElementById('val-reduces').textContent       = `R$ ${subReduces.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-accelerates').textContent   = `Accelerates (${totalAccel}×)`;
+  document.getElementById('val-accelerates').textContent   = `R$ ${subAccel.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-boost').textContent         = `💎 Boost Stones (${totalBoost}×)`;
+  document.getElementById('val-boost').textContent         = `R$ ${subBoost.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-boost-desconto').textContent= `💎 Desconto Boost (${boostPct*100}%)`;
+  document.getElementById('val-boost-desconto').textContent= `-R$ ${descBoost.toFixed(2).replace('.',',')}`;
+  document.getElementById('lbl-desconto').textContent      = `Desconto (${pct*100}%)`;
+  document.getElementById('val-desconto').textContent      = `-R$ ${desc.toFixed(2).replace('.',',')}`;
+  document.getElementById('total').textContent             = total.toFixed(2).replace('.',',');
 
   // ===== CONVERSÃO KK =====
   const PRECO_KK = 1.70; // R$ por KK
@@ -3914,8 +4094,11 @@ function atualizar() {
     document.getElementById('kk-reais').textContent  = 'R$ ' + total.toFixed(2).replace('.',',');
     document.getElementById('kk-valor').textContent  = formatKK(kkTotal);
     document.getElementById('row-kk').style.display  = '';
+    // Mantém seleção atual ou reseta
+    if (!pagamentoSelecionado) selecionarPagamento(null);
   } else {
     document.getElementById('row-kk').style.display  = 'none';
+    pagamentoSelecionado = null;
   }
 
   // Atualizar badges dos acordeões
@@ -3924,6 +4107,15 @@ function atualizar() {
   updateAccBadge('badge-reduces', totalReduces);
   updateAccBadge('badge-boost', totalBoost, 'stones');
   updateAccBadge('badge-accel', totalAccel);
+}
+
+// ===== FORMA DE PAGAMENTO =====
+let pagamentoSelecionado = null; // 'real' | 'kk' | null
+
+function selecionarPagamento(tipo) {
+  pagamentoSelecionado = tipo;
+  document.getElementById('kk-opcao-real').classList.toggle('selected', tipo === 'real');
+  document.getElementById('kk-opcao-kk').classList.toggle('selected', tipo === 'kk');
 }
 
 function abrirModalLimpar()  { document.getElementById('modal-limpar').classList.add('open'); }
@@ -3965,6 +4157,7 @@ function confirmarLimpar() {
   });
   // Limpar estado do inventário
   Object.keys(inventarioState).forEach(k => { inventarioState[k] = false; });
+  pagamentoSelecionado = null;
   fecharDrawer();
   fecharModalLimpar();
   atualizar();
@@ -4090,7 +4283,17 @@ function enviarWhats() {
   });
   if (items.length === 0) { alert('Selecione ao menos um serviço!'); return; }
 
-  const total = document.getElementById('total').textContent;
+  const totalReal = document.getElementById('total').textContent;
+  const totalKK   = document.getElementById('kk-valor').textContent;
+
+  let totalStr = '';
+  if (pagamentoSelecionado === 'kk') {
+    totalStr = `💰 Total: ${totalKK} (in-game KK)`;
+  } else if (pagamentoSelecionado === 'real') {
+    totalStr = `💰 Total: R$ ${totalReal}`;
+  } else {
+    totalStr = `💰 Total: R$ ${totalReal} OU ${totalKK} in-game`;
+  }
   let totalServicos = hpCount + speedCount;
   document.querySelectorAll('.elemental-card').forEach(el => { totalServicos += parseInt(el.dataset.count)||0; });
   ['water','ice','sand'].forEach(type => { reducesState[type].forEach(c => { totalServicos += c; }); });
@@ -4115,7 +4318,7 @@ function enviarWhats() {
   msg += items.map(i => `• ${i}`).join('%0A');
   if (pct > 0) msg += `%0A%0A🎉 Desconto geral aplicado: ${pct}%`;
   if (boostPctWA > 0) msg += `%0A💎 Desconto Boost Stones: ${boostPctWA}%`;
-  msg += `%0A%0A💰 Total: R$ ${total}`;
+  msg += `%0A%0A${totalStr}`;
   window.open(`https://wa.me/5565999911832?text=${msg}`, '_blank');
 }
 
