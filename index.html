@@ -3770,7 +3770,7 @@ function addToCart(i) {
 
 function updateCartBadge() {
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
-  const total = keys.reduce((s, k) => s + cart[k], 0) + capturaCart.length;
+  const total = keys.reduce((s, k) => s + cart[k], 0);
   document.getElementById('cart-count-badge').textContent = total.toLocaleString();
 }
 
@@ -3792,7 +3792,7 @@ function renderCart() {
   const footer = document.getElementById('cart-footer');
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
 
-  if (!keys.length && !capturaCart.length) {
+  if (!keys.length) {
     list.innerHTML = `<div class="cart-empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
         <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -3804,18 +3804,18 @@ function renderCart() {
     return;
   }
 
-  const total = keys.reduce((s, k) => s + cart[k], 0) + capturaCart.length;
+  const total = keys.reduce((s, k) => s + cart[k], 0);
   const grandTotalRaw = keys.reduce((s, k) => {
     const item = items[k];
     return s + (item && item.price ? item.price * cart[k] : 0);
-  }, 0) + capturaCart.reduce((s, c) => s + c.finalPrice, 0);
-
+  }, 0);
   document.getElementById('cart-total-num').textContent = total.toLocaleString();
   footer.style.display = 'block';
 
-  const TAXA_THRESHOLD = 10000000;
-  const TAXA_VALOR = 5000000;
+  const TAXA_THRESHOLD = 10000000; // 10kk
+  const TAXA_VALOR = 5000000;      // 5kk
 
+  // Update grand total in footer
   const gtKkEl = document.getElementById('cart-grand-kk');
   const gtBrlEl = document.getElementById('cart-grand-brl');
   const gtKkFinalEl = document.getElementById('cart-grand-kk-final');
@@ -3828,48 +3828,23 @@ function renderCart() {
     const gtData = formatKK(grandTotalRaw);
     const gtFinalData = formatKK(grandTotalFinal);
     if (gtKkEl) gtKkEl.textContent = gtData.label;
+    // BRL is always based on final total
     if (gtBrlEl) gtBrlEl.textContent = formatKK(grandTotalFinal).brl;
     if (taxaAviso) taxaAviso.style.display = hasTaxa ? 'flex' : 'none';
     if (taxaRow) taxaRow.style.display = hasTaxa ? 'flex' : 'none';
     if (totalFinalRow) totalFinalRow.style.display = hasTaxa ? 'flex' : 'none';
     if (gtKkFinalEl && hasTaxa) gtKkFinalEl.textContent = gtFinalData.label;
     document.getElementById('cart-grand-total-block').style.display = 'block';
+    // Atualiza painel de pagamento
     updatePayDisplay(grandTotalRaw, grandTotalFinal, parseFloat((grandTotalFinal / 1000000 * 1.70).toFixed(2)));
   } else {
     document.getElementById('cart-grand-total-block').style.display = 'none';
     if (taxaAviso) taxaAviso.style.display = 'none';
   }
 
-  // Itens de captura no topo
-  const capturaRows = capturaCart.map(c => {
-    const priceData = c.finalPrice ? formatKK(c.finalPrice) : null;
-    const ball = BALLS.find(b => b.id === c.ballId);
-    const ballEmojiSmall = `<img src="${ball ? ball.emoji.match(/src="([^"]+)"/)?.[1] : ''}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:4px" />`;
-    return `<div class="cart-row" style="border-color:rgba(240,180,41,0.25)">
-      <div style="display:flex;align-items:center;gap:8px">
-        <img src="${c.pokeImage}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.04)" onerror="this.style.display='none'" />
-        <div>
-          <div class="cart-row-name" style="color:var(--gold-bright)">${c.pokeName}</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:flex;align-items:center;margin-top:2px">${ballEmojiSmall}${c.ballName}</div>
-        </div>
-      </div>
-      <div class="cart-row-right">
-        ${priceData ? `<div class="cart-price-block">
-          <span class="cart-price-kk">${priceData.label}</span>
-          <span class="cart-price-brl">${priceData.brl}</span>
-        </div>` : ''}
-        <button class="rem-btn" onclick="removeCapturaFromCart(${c.pokeIdx})" title="Remover captura">&#x2715;</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Divisor se tiver ambos
-  const divider = capturaCart.length && keys.length
-    ? `<div style="height:1px;background:var(--border);margin:6px 0;opacity:0.5"></div>`
-    : '';
-
-  const normalRows = keys.map(k => {
+  list.innerHTML = keys.map(k => {
     const item = items[k];
+    const src = '';
     const itemTotalRaw = item.price ? item.price * cart[k] : 0;
     const priceBlock = itemTotalRaw > 0
       ? (() => {
@@ -3885,6 +3860,7 @@ function renderCart() {
     return `<div class="cart-row">
       <div>
         <div class="cart-row-name">${item.name}</div>
+        ${src}
       </div>
       <div class="cart-row-right">
         ${priceBlock}
@@ -3893,8 +3869,6 @@ function renderCart() {
       </div>
     </div>`;
   }).join('');
-
-  list.innerHTML = capturaRows + divider + normalRows;
 }
 
 // ===================== PAYMENT MODE =====================
@@ -4520,37 +4494,18 @@ addToCart = function(i) {
 // Exemplos de preço: 1000000 = 1kk | 5000000 = 5kk | 500000 = 500k | 0 = sem preço
 const POKEMONS = [
   { name: "Shiny Venusaur",  price: 45000000, image: "https://i.imgur.com/gmZVZIS.gif" },
+  { name: "Shiny Blastoise",  price: 45000000, image: "https://i.imgur.com/9iQ7wNL.gif" },
+  { name: "Shiny Charizard",  price: 45000000, image: "https://i.imgur.com/SrQU5gi.gif" },
 ];
 
 const BALLS = [
   { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
-  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.3 },
-  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.6 },
+  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
+  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
 ];
 
 let currentCapturaIdx = null;
 let selectedBall = null;
-
-// Carrinho de capturas: array de { pokeIdx, ballId, finalPrice, pokeName, ballName, pokeImage }
-const capturaCart = [];
-
-function addCapturaToCart(pokeIdx, ballId) {
-  const poke = POKEMONS[pokeIdx];
-  const ball = BALLS.find(b => b.id === ballId);
-  const finalPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
-  const existing = capturaCart.findIndex(c => c.pokeIdx === pokeIdx);
-  if (existing !== -1) capturaCart.splice(existing, 1);
-  capturaCart.push({ pokeIdx, ballId, finalPrice, pokeName: poke.name, ballName: ball.name, pokeImage: poke.image });
-  updateCartBadge();
-}
-
-function removeCapturaFromCart(pokeIdx) {
-  const i = capturaCart.findIndex(c => c.pokeIdx === pokeIdx);
-  if (i !== -1) capturaCart.splice(i, 1);
-  updateCartBadge();
-  renderCart();
-  renderCaptura();
-}
 
 function renderCaptura() {
   const grid = document.getElementById('captura-grid');
@@ -4564,25 +4519,18 @@ function renderCaptura() {
   grid.innerHTML = filtered.map((poke) => {
     const idx = POKEMONS.indexOf(poke);
     const priceData = formatKK(poke.price);
-    const inCart = capturaCart.find(c => c.pokeIdx === idx);
     const priceHtml = priceData
       ? `<div class="captura-card-price">
            <span class="captura-price-kk">${priceData.label}</span>
            <span class="captura-price-brl">${priceData.brl}</span>
          </div>`
       : `<div class="captura-card-price"><span class="price-none">sem preço</span></div>`;
-    const btnHtml = inCart
-      ? `<div style="display:flex;gap:6px;width:100%">
-           <button class="captura-catch-btn" style="flex:1;background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.4);color:#25d366" onclick="openCapturaModal(${idx});event.stopPropagation()">✓ No Carrinho</button>
-           <button class="captura-catch-btn" style="flex:0 0 36px;padding:0;background:rgba(255,60,60,0.1);border-color:rgba(255,60,60,0.3);color:#ff6b6b;font-size:14px" onclick="removeCapturaFromCart(${idx});event.stopPropagation()" title="Remover do carrinho">✕</button>
-         </div>`
-      : `<button class="captura-catch-btn">⬟ Capturar</button>`;
     return `<div class="captura-card" onclick="openCapturaModal(${idx})">
       <img class="captura-card-img" src="${poke.image}" alt="${poke.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
       <div class="captura-card-img-placeholder" style="display:none">🎮</div>
       <div class="captura-card-name">${poke.name}</div>
       ${priceHtml}
-      ${btnHtml}
+      <button class="captura-catch-btn">⬟ Capturar</button>
     </div>`;
   }).join('');
 }
@@ -4613,7 +4561,7 @@ function openCapturaModal(idx) {
         ${BALLS.map(ball => {
           const ballPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
           const ballPriceData = formatKK(ballPrice);
-          const multLabel = '';
+          const multLabel = ball.mult === 1.0 ? '' : `<span class="ball-mult">×${ball.mult}</span>`;
           return `
           <button class="captura-ball-btn" data-ball="${ball.id}" onclick="selectBall('${ball.id}')">
             <span class="captura-ball-check" style="color:${ball.color}">✓</span>
@@ -4678,24 +4626,19 @@ function confirmCaptura() {
   const finalPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
   const priceData  = formatKK(finalPrice);
   const priceStr   = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
-
-  // Adiciona ao carrinho
-  addCapturaToCart(currentCapturaIdx, selectedBall);
-  renderCaptura();
-
   const msg = document.getElementById('captura-success-msg');
   const btn = document.getElementById('captura-confirm-btn');
   if (msg) {
-    msg.querySelector('#captura-success-text').textContent = `${poke.name} adicionado ao carrinho!`;
+    msg.querySelector('#captura-success-text').textContent = `${poke.name} capturado com ${ball.name}${priceStr}!`;
     msg.classList.add('show');
   }
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span>✓ No Carrinho</span>`;
+    btn.innerHTML = `<span>✓ Captura Registrada</span>`;
     btn.style.borderColor = 'rgba(37,211,102,0.5)';
     btn.style.color = '#25d366';
   }
-  setTimeout(() => closeCapturaModal(), 1800);
+  setTimeout(() => closeCapturaModal(), 2600);
 }
 
 function closeCapturaModal() {
