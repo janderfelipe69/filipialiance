@@ -448,6 +448,31 @@ select:focus { border-color: var(--blue); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+.item-img-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 2px;
+  min-height: 80px;
+}
+
+.item-img-wrap img {
+  width: 100%;
+  height: 80px;
+  object-fit: contain;
+  display: block;
+  padding: 6px;
+  transition: transform 0.2s;
+}
+
+.card:hover .item-img-wrap img {
+  transform: scale(1.06);
+}
+
 .item-name {
   font-family: var(--font-body);
   font-size: 13px;
@@ -1574,7 +1599,7 @@ const RAW = [
   ["arcane bug orb","",600000,"","evo2"],
   ["arcane dark orb","",600000,"","evo2"],
   ["arcane dragon orb","",600000,"","evo2"],
-  ["arcane electric orb","",600000,"","evo2"],
+  ["arcane electric orb","https://i.imgur.com/tKUiavc.png",600000,"","evo2"],
   ["arcane fairy orb","",600000,"","evo2"],
   ["arcane fighting orb","",600000,"","evo2"],
   ["arcane fire orb","",600000,"","evo2"],
@@ -1599,8 +1624,8 @@ const RAW = [
   ["big leaf","",400,"mark",""],
   ["big petal","",720,"mark",""],
   ["bird crest","",60,"mark",""],
-  ["bird tail","",180,"mark",""],
-  ["bird wing","",80,"mark",""],
+  ["bird tail","https://i.imgur.com/mZY9D1t.png",180,"mark",""],
+  ["bird wing","https://i.imgur.com/RQHZZ4c.png",80,"mark",""],
   ["black lizard tail","",600000,"t4","evo2"],
   ["black tail","",350000,"t5","evo1"],
   ["blaze fur","",720,"mark",""],
@@ -1627,12 +1652,12 @@ const RAW = [
   ["carmine wing","Shiny Spearow",350000,"","evo1"],
   ["champion underwear","Shiny Machoke",0,"",""],
   ["cobra tail","Arbok",0,"",""],
-  ["cocoon stone","",4500,"",""],
+  ["cocoon stone","https://i.imgur.com/uMyCnBn.png",4500,"",""],
   ["coconut leaves","Exeggutor",0,"",""],
   ["contagious pore","Shiny Koffing",0,"",""],
   ["cow tail","",720,"mark",""],
   ["crocodile hair","Croconaw",400,"mark",""],
-  ["crystal stone","",15000,"",""],
+  ["crystal stone","https://i.imgur.com/Mq3MD9U.png",15000,"",""],
   ["cute ball","Whismur",0,"",""],
   ["cyan ear","Shiny Wartortle",600000,"t4","evo2"],
   ["cyan feather","Shiny Sneasel",0,"",""],
@@ -1650,7 +1675,7 @@ const RAW = [
   ["dratini ear","Dratini",0,"",""],
   ["drowzee trunk","Drowzee",0,"",""],
   ["duck paw","Golduck",0,"",""],
-  ["earth stone","",4500,"",""],
+  ["earth stone","https://i.imgur.com/qEsbPOw.png",4500,"",""],
   ["ectoplasm","Gengar",0,"",""],
   ["electric collar","Jolteon",0,"",""],
   ["electric ear","Raichu",0,"",""],
@@ -1663,7 +1688,7 @@ const RAW = [
   ["electric tail","",0,"",""],
   ["elephant foot","",0,"",""],
   ["enchanted spoon","",0,"",""],
-  ["enigma stone","",4500,"",""],
+  ["enigma stone","https://i.imgur.com/p1csjCu.png",4500,"",""],
   ["fairy essence","",0,"",""],
   ["feather tail","",0,"",""],
   ["fighter essence","",0,"",""],
@@ -1672,7 +1697,7 @@ const RAW = [
   ["fire hair","",160,"mark",""],
   ["fire hoof","",960,"mark",""],
   ["fire plume","",0,"",""],
-  ["fire stone","",4500,"",""],
+  ["fire stone","https://i.imgur.com/C7fIrj4.png",4500,"",""],
   ["fire tail","",0,"",""],
   ["fire wing","",0,"",""],
   ["flower stem","",0,"",""],
@@ -1698,16 +1723,16 @@ const RAW = [
   ["green remains","",0,"",""],
   ["ground essence","",0,"",""],
   ["gyarados tail","",0,"",""],
-  ["heart stone","",4500,"",""],
+  ["heart stone","https://i.imgur.com/s4daG8O.png",4500,"",""],
   ["horn drill","",0,"",""],
   ["horsea tail","",80,"mark",""],
   ["hypnosis pendant","",0,"",""],
   ["ice essence","",0,"",""],
-  ["ice stone","",4500,"",""],
+  ["ice stone","https://i.imgur.com/KCxKLwO.png",4500,"",""],
   ["king ear","",0,"",""],
   ["lapras fin","",0,"",""],
   ["leaf","",0,"",""],
-  ["leaf stone","",4500,"",""],
+  ["leaf stone","https://i.imgur.com/5ZJAr9N.png",4500,"",""],
   ["leaves","",0,"",""],
   ["lizard tail","",0,"",""],
   ["locksmith of shell","",0,"",""],
@@ -1715,7 +1740,7 @@ const RAW = [
   ["magikarp fin","",60,"mark",""],
   ["magma foot","",0,"",""],
   ["magma shell","",0,"",""],
-  ["magnet","Magneton",720,"mark",""],
+  ["magnet","https://i.imgur.com/CBo9fUR.png",720,"mark",""],
   ["malfunctioning core","",5000000,"t2","evo2"],
   ["mankey tail","",0,"",""],
   ["metal bracelet","",0,"",""],
@@ -1782,7 +1807,7 @@ const RAW = [
   ["rock fist","",0,"",""],
   ["rock nose","",0,"",""],
   ["rock plate","",0,"",""],
-  ["rock stone","",4500,"",""],
+  ["rock stone","https://i.imgur.com/Zhxk2rh.png",4500,"",""],
   ["sea dragon fin","",0,"",""],
   ["seel tail","Seel",0,"",""],
   ["shiny bat wing","",0,"",""],
@@ -1798,13 +1823,13 @@ const RAW = [
   ["simple flying orb","",350000,"",""],
   ["simple ghost orb","",350000,"","evo1"],
   ["simple grass orb","",350000,"","evo1"],
-  ["simple ground orb","",350000,"","evo1"],
+  ["simple ground orb","https://i.imgur.com/lsYFPoW.png",350000,"","evo1"],
   ["simple ice orb","",350000,"","evo1"],
   ["simple metal orb","",350000,"","evo1"],
   ["simple normal orb","",350000,"","evo1"],
   ["simple poison orb","",350000,"","evo1"],
   ["simple psychic orb","",350000,"","evo1"],
-  ["simple rock orb","",350000,"","evo1"],
+  ["simple rock orb","https://i.imgur.com/B7tt4xZ.png",350000,"","evo1"],
   ["simple water orb","",350000,"","evo1"],
   ["small blue fin","",100,"mark",""],
   ["small handfull of stones","",0,"",""],
@@ -1823,18 +1848,18 @@ const RAW = [
   ["stone rocks","Golem",0,"",""],
   ["strange ball","Trapinch",0,"",""],
   ["strong magnet","Shiny Magneton",5000000,"t2","evo2"],
-  ["thunder stone","",4500,"",""],
+  ["thunder stone","https://i.imgur.com/qk0I92Y.png",4500,"",""],
   ["toxic scale","Weezing",0,"",""],
   ["toxic thing","Gulpin",0,"",""],
   ["two-colored tail","Shiny Pidgeotto",0,"",""],
   ["two-eyed black tail","Wobbuffet",0,"",""],
   ["tyranitar tail","Tyranitar",0,"",""],
-  ["venom stone","",4500,"",""],
+  ["venom stone","https://i.imgur.com/4TltADd.png",4500,"",""],
   ["vine hair","Tangela",0,"",""],
   ["wartortle ear","Wartortle",400,"mark",""],
   ["water cannon","Blastoise",0,"",""],
   ["water essence","",0,"",""],
-  ["water stone","",4500,"",""],
+  ["water stone","https://i.imgur.com/F0oPvtP.png",4500,"",""],
   ["white monkey tail","Shiny Mankey",0,"",""],
   ["white tail","",350000,"t5","evo1"],
   ["wigglytuff ear","",740,"mark",""],
@@ -2294,9 +2319,9 @@ function formatKK(raw) {
 
 const items = [];
 const seen = new Set();
-RAW.forEach(([name, source, price, tier, evo]) => {
-  const key = name + '|' + source;
-  if (!seen.has(key)) { seen.add(key); items.push({ name, source, price: price || 0, tier: tier || '', evo: evo || '' }); }
+RAW.forEach(([name, image, price, tier, evo]) => {
+  const key = name + '|' + (image || '');
+  if (!seen.has(key)) { seen.add(key); items.push({ name, image: image || '', price: price || 0, tier: tier || '', evo: evo || '' }); }
 });
 
 document.getElementById('total-count').textContent = items.length + ' itens no índice';
@@ -2304,8 +2329,8 @@ document.getElementById('total-count').textContent = items.length + ' itens no �
 const cart = {};
 
 function getTag(item) {
-  const n = item.name.toLowerCase(), s = item.source.toLowerCase();
-  if (s.startsWith('shiny')) return 'shiny';
+  const n = item.name.toLowerCase();
+  if (n.includes('shiny')) return 'shiny';
   if (n.includes('orb')) return 'orb';
   if (n.includes('essence')) return 'essence';
   return 'normal';
@@ -2353,7 +2378,7 @@ function render() {
   const visible = items.filter((item) => {
     const tag = getTag(item);
     const tier = (item.tier || '').toLowerCase();
-    const matchQ = !q || item.name.toLowerCase().includes(q) || item.source.toLowerCase().includes(q);
+    const matchQ = !q || item.name.toLowerCase().includes(q);
     const isTierFilter = ['t1','t2','t3','t4','t5','hard','mark'].includes(f);
     const matchF = f === 'all'
       || (isTierFilter && tier === f)
@@ -2389,7 +2414,11 @@ function render() {
           </div>
         </div>`
       : `<div class="item-price"><span class="price-none">sem preço</span></div>`;
+    const imgHtml = item.image
+      ? `<div class="item-img-wrap"><img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.parentElement.style.display='none'" /></div>`
+      : '';
     return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}">
+      ${imgHtml}
       <div class="item-name">${item.name}</div>
       ${getTierHtml(item.tier)}
       ${getEvoHtml(item.evo)}
