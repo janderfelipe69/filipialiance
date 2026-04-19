@@ -1590,9 +1590,216 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
   .grid-wrap { padding: 16px 12px 100px; }
   .cart-panel { max-width: 100%; }
 }
+
+/* ===================== CURSOR CUSTOM ===================== */
+body { cursor: none; }
+.cursor-dot {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: var(--blue-bright);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%,-50%);
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 0 10px var(--glow-blue), 0 0 20px rgba(58,140,255,0.3);
+}
+.cursor-ring {
+  position: fixed;
+  width: 32px; height: 32px;
+  border: 1.5px solid rgba(58,140,255,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%,-50%);
+  transition: width 0.2s, height 0.2s, border-color 0.2s, transform 0.08s;
+}
+body:has(button:hover) .cursor-ring,
+body:has(a:hover) .cursor-ring,
+body:has(.card:hover) .cursor-ring {
+  width: 48px; height: 48px;
+  border-color: rgba(240,180,41,0.6);
+}
+body:has(button:hover) .cursor-dot {
+  background: var(--gold-bright);
+  box-shadow: 0 0 10px var(--glow-gold);
+}
+
+/* ===================== RIPPLE CLICK ===================== */
+.click-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%,-50%) scale(0);
+  animation: rippleOut 0.7s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes rippleOut {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 0.9; }
+  100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+}
+.click-sparks {
+  position: absolute;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+  animation: sparkFade 0.6s ease-out forwards;
+}
+@keyframes sparkFade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===================== CARD 3D TILT ===================== */
+.card {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.card .card-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.08) 0%, transparent 65%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+.card:hover .card-shine { opacity: 1; }
+
+/* ===================== BUTTON PRESS EFFECT ===================== */
+.add-btn, .cart-trigger, .whats-btn, .pkg-add-btn, .pay-mode-btn {
+  transition: transform 0.1s, box-shadow 0.1s, all 0.2s;
+}
+.add-btn:active, .cart-trigger:active, .whats-btn:active, .pkg-add-btn:active, .pay-mode-btn:active {
+  transform: scale(0.94) !important;
+}
+
+/* ===================== AURORA HEADER ===================== */
+.aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.aurora::before {
+  content: '';
+  position: absolute;
+  width: 200%; height: 300%;
+  top: -100%; left: -50%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(58,140,255,0.04) 30deg,
+    rgba(240,180,41,0.03) 80deg,
+    transparent 120deg,
+    rgba(120,60,255,0.03) 180deg,
+    rgba(58,140,255,0.04) 240deg,
+    transparent 360deg
+  );
+  animation: auroraRotate 20s linear infinite;
+}
+@keyframes auroraRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ===================== SCAN LINE EFFECT ===================== */
+.bg-canvas::before {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(58,140,255,0.012) 2px,
+    rgba(58,140,255,0.012) 4px
+  ),
+  radial-gradient(circle, rgba(58,140,255,0.07) 0%, transparent 70%);
+  animation: floatOrb1 18s ease-in-out infinite, scanPulse 4s ease-in-out infinite;
+}
+@keyframes scanPulse {
+  0%,100% { opacity: 0.8; }
+  50%      { opacity: 1; }
+}
+
+/* ===================== CARD ADD BURST ===================== */
+@keyframes cardBurst {
+  0%   { box-shadow: 0 0 0 0 rgba(58,140,255,0.6); }
+  60%  { box-shadow: 0 0 0 20px rgba(58,140,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(58,140,255,0); }
+}
+.card.burst { animation: cardBurst 0.5s ease-out; }
+
+/* ===================== FLOATING PARTICLES ===================== */
+.particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  animation: particleFloat linear infinite;
+  opacity: 0;
+}
+@keyframes particleFloat {
+  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* ===================== GLITCH TITLE ===================== */
+.seller-name {
+  position: relative;
+}
+.seller-name::before,
+.seller-name::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  background: linear-gradient(135deg, #fff 0%, var(--blue-bright) 40%, var(--gold) 70%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+}
+.seller-name::before {
+  animation: glitch1 8s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+}
+.seller-name::after {
+  animation: glitch2 8s infinite;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+}
+@keyframes glitch1 {
+  0%,89%,91%,100% { transform: translate(0); filter: none; }
+  90% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); opacity: 0.8; }
+}
+@keyframes glitch2 {
+  0%,89%,91%,100% { transform: translate(0); filter: none; }
+  90% { transform: translate(2px, -1px); filter: hue-rotate(-90deg); opacity: 0.8; }
+}
+
+/* ===================== CART PANEL GLOW EDGE ===================== */
+.cart-panel {
+  box-shadow: -8px 0 60px rgba(58,140,255,0.12), -2px 0 20px rgba(240,180,41,0.06);
+}
+
+/* ===================== NUMBER TICKER ===================== */
+@keyframes tickUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.tick-anim { animation: tickUp 0.25s ease-out; }
 </style>
 </head>
 <body>
+
+<!-- WebGL shader canvas -->
+<canvas id="shader-canvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%;"></canvas>
+
+<!-- Click ripple container -->
+<div id="ripple-root" style="position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;"></div>
+
+<!-- Cursor trail canvas -->
+<canvas id="cursor-canvas" style="position:fixed;inset:0;z-index:9998;pointer-events:none;"></canvas>
 
 <!-- Animated background -->
 <div class="bg-canvas">
@@ -1601,6 +1808,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 
 <!-- HEADER -->
 <header>
+  <div class="aurora"></div>
   <div class="header-grid">
 
     <!-- Emblem SVG -->
@@ -1644,7 +1852,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 
     <!-- Seller info -->
     <div class="seller-info">
-      <div class="seller-name">F I L I P I</div>
+      <div class="seller-name" data-text="F I L I P I">F I L I P I</div>
       <div class="seller-meta">
         <span class="seller-title">Loja de Itens</span>
         <span class="divider-v"></span>
@@ -3458,6 +3666,234 @@ function removePackageFromCart(pi) {
     renderCart();
   }
 }
+
+// ===================== VISUAL FX =====================
+
+// --- Cursor ---
+(function() {
+  const dot  = document.createElement('div'); dot.className  = 'cursor-dot';
+  const ring = document.createElement('div'); ring.className = 'cursor-ring';
+  document.body.appendChild(dot); document.body.appendChild(ring);
+  let mx = window.innerWidth/2, my = window.innerHeight/2;
+  let rx = mx, ry = my;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function loop() {
+    dot.style.left  = mx + 'px'; dot.style.top  = my + 'px';
+    rx += (mx - rx) * 0.14; ry += (my - ry) * 0.14;
+    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+// --- Click Ripple + Sparks ---
+(function() {
+  const root = document.getElementById('ripple-root');
+  const COLORS = ['rgba(58,140,255,0.7)','rgba(240,180,41,0.7)','rgba(96,170,255,0.7)','rgba(255,209,102,0.6)'];
+  document.addEventListener('click', e => {
+    const x = e.clientX, y = e.clientY;
+    const col = COLORS[Math.floor(Math.random()*COLORS.length)];
+    // Main ripple
+    const r = document.createElement('div');
+    r.className = 'click-ripple';
+    const sz = 120 + Math.random()*80;
+    Object.assign(r.style, {
+      left: x+'px', top: y+'px',
+      width: sz+'px', height: sz+'px',
+      background: `radial-gradient(circle, ${col} 0%, transparent 70%)`,
+      border: `1.5px solid ${col}`
+    });
+    root.appendChild(r);
+    setTimeout(() => r.remove(), 700);
+    // Sparks
+    const numSparks = 8 + Math.floor(Math.random()*6);
+    for (let i = 0; i < numSparks; i++) {
+      const s = document.createElement('div');
+      s.className = 'click-sparks';
+      const angle = (i / numSparks) * Math.PI * 2;
+      const dist  = 30 + Math.random() * 50;
+      const tx    = Math.cos(angle) * dist;
+      const ty    = Math.sin(angle) * dist;
+      const sz2   = 2 + Math.random()*3;
+      Object.assign(s.style, {
+        left: x+'px', top: y+'px',
+        width: sz2+'px', height: sz2+'px',
+        background: col,
+        borderRadius: '50%',
+        transition: `transform 0.5s ease-out, opacity 0.5s ease-out`
+      });
+      root.appendChild(s);
+      requestAnimationFrame(() => {
+        s.style.transform = `translate(${tx}px, ${ty}px) scale(0)`;
+        s.style.opacity   = '0';
+      });
+      setTimeout(() => s.remove(), 550);
+    }
+  });
+})();
+
+// --- Card 3D Tilt + Shine ---
+(function() {
+  document.addEventListener('mousemove', e => {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const cx   = rect.left + rect.width/2;
+      const cy   = rect.top  + rect.height/2;
+      const dx   = (e.clientX - cx) / rect.width;
+      const dy   = (e.clientY - cy) / rect.height;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 0.9) {
+        const rx  = dy * 12;
+        const ry  = -dx * 12;
+        const mxp = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+        const myp = ((e.clientY - rect.top)  / rect.height* 100).toFixed(1);
+        card.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px)`;
+        card.style.setProperty('--mx', mxp+'%');
+        card.style.setProperty('--my', myp+'%');
+      } else {
+        card.style.transform = '';
+      }
+    });
+  });
+  // Inject shine div into every new card
+  const obs = new MutationObserver(() => {
+    document.querySelectorAll('.card:not([data-shine])').forEach(card => {
+      card.setAttribute('data-shine','1');
+      const shine = document.createElement('div');
+      shine.className = 'card-shine';
+      card.appendChild(shine);
+    });
+  });
+  obs.observe(document.getElementById('grid'), { childList: true, subtree: true });
+  obs.observe(document.getElementById('packages-grid'), { childList: true, subtree: true });
+  document.addEventListener('mouseleave', () => {
+    document.querySelectorAll('.card').forEach(c => c.style.transform = '');
+  });
+})();
+
+// --- Cursor trail canvas ---
+(function() {
+  const canvas = document.getElementById('cursor-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+  W(); window.addEventListener('resize', W);
+  const trail = [];
+  const MAX = 22;
+  let mx = -999, my = -999;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function draw() {
+    trail.push({ x: mx, y: my, life: 1 });
+    if (trail.length > MAX) trail.shift();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 1; i < trail.length; i++) {
+      const t   = trail[i];
+      const pt  = trail[i-1];
+      const age = i / trail.length;
+      ctx.beginPath();
+      ctx.moveTo(pt.x, pt.y);
+      ctx.lineTo(t.x, t.y);
+      ctx.strokeStyle = `rgba(58,140,255,${age * 0.3})`;
+      ctx.lineWidth   = age * 3;
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// --- WebGL plasma shader background ---
+(function() {
+  const canvas = document.getElementById('shader-canvas');
+  const gl = canvas.getContext('webgl', { alpha: true });
+  if (!gl) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  window.addEventListener('resize', () => {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  });
+  const vert = `attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}`;
+  const frag = `
+    precision mediump float;
+    uniform float t;
+    uniform vec2 res;
+    void main(){
+      vec2 uv=(gl_FragCoord.xy/res)*2.0-1.0;
+      uv.x*=res.x/res.y;
+      float v=0.0;
+      v+=sin(uv.x*3.0+t*0.4)*0.5;
+      v+=sin(uv.y*2.5-t*0.3)*0.5;
+      v+=sin((uv.x+uv.y)*2.0+t*0.25)*0.5;
+      v+=sin(sqrt(uv.x*uv.x+uv.y*uv.y)*4.0-t*0.5)*0.5;
+      v=v*0.5+0.5;
+      float r=sin(v*3.14159)*0.03+0.01;
+      float g=sin(v*3.14159+1.0)*0.02;
+      float b=sin(v*3.14159+2.0)*0.06+0.02;
+      gl_FragColor=vec4(r,g,b,0.7);
+    }`;
+  function mkShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, mkShader(gl.VERTEX_SHADER, vert));
+  gl.attachShader(prog, mkShader(gl.FRAGMENT_SHADER, frag));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const aLoc = gl.getAttribLocation(prog,'a');
+  gl.enableVertexAttribArray(aLoc);
+  gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+  const tLoc   = gl.getUniformLocation(prog,'t');
+  const resLoc = gl.getUniformLocation(prog,'res');
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  let start = performance.now();
+  function frame() {
+    const elapsed = (performance.now()-start)/1000;
+    gl.viewport(0,0,canvas.width,canvas.height);
+    gl.uniform1f(tLoc, elapsed);
+    gl.uniform2f(resLoc, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+// --- Floating ambient particles ---
+(function() {
+  const COLORS = ['rgba(58,140,255,','rgba(240,180,41,','rgba(96,170,255,','rgba(160,80,255,'];
+  for (let i = 0; i < 18; i++) {
+    const p   = document.createElement('div');
+    p.className = 'particle';
+    const sz  = 2 + Math.random()*4;
+    const col = COLORS[Math.floor(Math.random()*COLORS.length)];
+    const dur = 8 + Math.random()*14;
+    const del = -Math.random()*dur;
+    const lft = Math.random()*100;
+    Object.assign(p.style, {
+      width:  sz+'px', height: sz+'px',
+      left:   lft+'%',
+      background: col+'0.7)',
+      boxShadow: `0 0 ${sz*3}px ${col}0.5)`,
+      animationDuration: dur+'s',
+      animationDelay:    del+'s',
+    });
+    document.body.appendChild(p);
+  }
+})();
+
+// --- Add burst animation on addToCart ---
+const _origAddToCart = addToCart;
+addToCart = function(i) {
+  _origAddToCart(i);
+  const card = document.querySelector(`#addbtn-${i}`)?.closest('.card');
+  if (card) { card.classList.remove('burst'); void card.offsetWidth; card.classList.add('burst'); }
+};
 
 render();
 </script>
