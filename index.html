@@ -584,6 +584,135 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 .add-btn.added { border-color: var(--blue); color: #fff; }
 .add-btn.added::before { opacity: 1; }
 
+
+/* ===================== TIER TAGS ===================== */
+.tier-tag {
+  display: inline-block;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tier-tag::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: rgba(255,255,255,0.15);
+  transform: skewX(-20deg);
+  animation: tagSweep 3s ease-in-out infinite;
+}
+
+@keyframes tagSweep {
+  0%,70%,100% { left: -60%; opacity: 0; }
+  20% { left: 130%; opacity: 1; }
+}
+
+.tier-t1 {
+  background: linear-gradient(90deg, rgba(160,60,255,0.25), rgba(120,30,220,0.15));
+  border: 1px solid rgba(180,80,255,0.6);
+  color: #d580ff;
+  box-shadow: 0 0 8px rgba(180,80,255,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.tier-t2 {
+  background: linear-gradient(90deg, rgba(41,120,255,0.25), rgba(20,80,200,0.15));
+  border: 1px solid rgba(58,140,255,0.6);
+  color: #70b8ff;
+  box-shadow: 0 0 8px rgba(58,140,255,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.tier-t3 {
+  background: linear-gradient(90deg, rgba(60,200,100,0.2), rgba(30,160,70,0.12));
+  border: 1px solid rgba(80,210,110,0.6);
+  color: #60dd80;
+  box-shadow: 0 0 8px rgba(60,200,100,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.tier-t4 {
+  background: linear-gradient(90deg, rgba(220,160,40,0.18), rgba(180,120,10,0.1));
+  border: 1px solid rgba(220,160,40,0.45);
+  color: #d4a843;
+  box-shadow: 0 0 6px rgba(220,160,40,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.tier-t5 {
+  background: linear-gradient(90deg, rgba(100,120,160,0.15), rgba(70,90,130,0.08));
+  border: 1px solid rgba(100,120,160,0.35);
+  color: #7a90b0;
+  box-shadow: 0 0 4px rgba(100,120,160,0.1), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.tier-hard {
+  background: linear-gradient(90deg, rgba(255,60,60,0.22), rgba(200,20,20,0.12));
+  border: 1px solid rgba(255,80,80,0.6);
+  color: #ff7070;
+  animation: hardGlow 2s ease-in-out infinite;
+}
+
+@keyframes hardGlow {
+  0%,100% { box-shadow: 0 0 6px rgba(255,60,60,0.2); }
+  50%      { box-shadow: 0 0 16px rgba(255,60,60,0.5); }
+}
+
+.tier-mark {
+  background: linear-gradient(90deg, rgba(240,180,41,0.22), rgba(200,130,10,0.12));
+  border: 1px solid rgba(240,180,41,0.6);
+  color: #ffd166;
+  box-shadow: 0 0 8px rgba(240,180,41,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* ===================== EVO SUB-TAGS ===================== */
+.evo-tag {
+  display: inline-block;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  width: fit-content;
+  margin-top: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.evo-1 {
+  background: linear-gradient(90deg, rgba(240,180,41,0.18), rgba(200,130,10,0.1));
+  border: 1px solid rgba(240,180,41,0.5);
+  color: #ffd166;
+  box-shadow: 0 0 6px rgba(240,180,41,0.2);
+}
+
+.evo-2 {
+  background: linear-gradient(90deg, rgba(240,180,41,0.18), rgba(200,130,10,0.1));
+  border: 1px solid rgba(240,180,41,0.5);
+  color: #ffd166;
+  box-shadow: 0 0 6px rgba(240,180,41,0.2);
+}
+
+.evo-3 {
+  background: linear-gradient(90deg, rgba(240,180,41,0.22), rgba(200,130,10,0.12));
+  border: 1px solid rgba(240,180,41,0.6);
+  color: #ffd166;
+  box-shadow: 0 0 8px rgba(240,180,41,0.35);
+  animation: evo3Glow 2.5s ease-in-out infinite;
+}
+
+@keyframes evo3Glow {
+  0%,100% { box-shadow: 0 0 6px rgba(240,180,41,0.25); }
+  50%      { box-shadow: 0 0 16px rgba(240,180,41,0.55); }
+}
+
 .no-results {
   grid-column: 1 / -1;
   text-align: center;
@@ -909,10 +1038,17 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
   </div>
   <select id="filter" onchange="render()">
     <option value="all">Todos</option>
+    <option value="t1">T1</option>
+    <option value="t2">T2</option>
+    <option value="t3">T3</option>
+    <option value="t4">T4</option>
+    <option value="t5">T5</option>
+    <option value="hard">Hard</option>
+    <option value="mark">Mark</option>
     <option value="shiny">Shiny</option>
     <option value="orb">Orbs</option>
     <option value="essence">Essências</option>
-    <option value="normal">Normal</option>
+    <option value="normal">Sem tag</option>
   </select>
   <span class="count-label" id="count-label">— itens</span>
 </div>
@@ -961,302 +1097,314 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 
 <script>
 // ============================================================
-// PREÇOS DOS ITENS
-// Edite o 3º valor de cada linha com o número real do preço:
-//   5            =  5
-//   1000         =  1k
-//   500000       =  500k
-//   1000000      =  1kk
-//   10000000     =  10kk
-//   1000000000   =  1kkk
-// Deixe 0 para item sem preço definido.
-// O valor em R$ é calculado automaticamente (1kk = R$1,70)
+// CONFIGURAÇÃO DOS ITENS
+// Formato: ["nome", "source", preço, "tier", "evo"]
+//
+// PREÇO — 3º valor:
+//   1000      = 1k  |  500000  = 500k
+//   1000000   = 1kk |  1000000000 = 1kkk
+//   0         = sem preço
+//
+// TIER — 4º valor (opcional, deixe "" ou omita para sem tag):
+//   "t1"   → roxo    ◆ T1
+//   "t2"   → azul    ◆◆ T2
+//   "t3"   → verde   ◆◆◆ T3
+//   "hard" → vermelho ☠ HARD
+//   "mark" → dourado  ★ MARK
+//
+// EVO — 5º valor (opcional, sub-tag de evolução):
+//   "evo1" → verde   EVO 1
+//   "evo2" → laranja EVO 2
+//   "evo3" → roxo    EVO 3  (com brilho pulsante)
+//
+// Exemplos:
+//   ["simple fire orb", "", 350000, "t1"]
+//   ["arcane dragon orb", "", 600000, "hard", "evo2"]
+//   ["fire tail", "", 1000, "mark", "evo3"]
 // ============================================================
 const RAW = [
-  ["aquatic tail","",180],
-  ["arcane bug orb","",600000],
-  ["arcane dark orb","",600000],
-  ["arcane dragon orb","",600000],
-  ["arcane electric orb","",600000],
-  ["arcane fairy orb","",600000],
-  ["arcane fighting orb","",600000],
-  ["arcane fire orb","",600000],
-  ["arcane flying orb","",600000],
-  ["arcane ghost orb","",600000],
-  ["arcane grass orb","",600000],
-  ["arcane ground orb","",600000],
-  ["arcane ice orb","",600000],
-  ["arcane metal orb","",600000],
-  ["arcane normal orb","",600000],
-  ["arcane poison orb","",600000],
-  ["arcane psychic orb","",600000],
-  ["arcane rock orb","",600000],
-  ["arcane water orb","",600000],
-  ["armadillo red tail","",250000],
-  ["armadillo tail","",160],
-  ["aron helmet","",0],
-  ["baby blue tail","",0],
-  ["bear claw","",0],
-  ["bee sting","",0],
-  ["big cute ear","",0],
-  ["big fist gloves","",0],
-  ["big green piece","",0],
-  ["big leaf","",0],
-  ["big petal","",0],
-  ["bird crest","",0],
-  ["bird tail","",0],
-  ["bird wing","",0],
-  ["black lizard tail","",0],
-  ["black tail","",0],
-  ["blaze fur","",0],
-  ["blond hawk","",0],
-  ["blue canine tail","",0],
-  ["blue coconut leaves","",0],
-  ["blue hair","",0],
-  ["blue mohawk","",0],
-  ["blue mouse tail","",0],
-  ["blue psychic vest","",0],
-  ["blue ray tail","",0],
-  ["blue screws","",0],
-  ["blue seel tail","",0],
-  ["blue shell","",0],
-  ["blue wings","",0],
-  ["bone","",0],
-  ["boulder badge","",0],
-  ["bowl hair","",0],
-  ["boxing gloves","",0],
-  ["brown bulb","",0],
-  ["bug essence","",0],
-  ["bull tail","Tauros",0],
-  ["butterfree wing","Butterfree",0],
-  ["canine tail","Vulpix",0],
-  ["carmine wing","Shiny Spearow",0],
-  ["cascade badge","Cerulean Gym",0],
-  ["champion underwear","Shiny Machoke",0],
-  ["cobra tail","Arbok",0],
-  ["cocoon stone","",0],
-  ["coconut leaves","Exeggutor",0],
-  ["contagious pore","Shiny Koffing",0],
-  ["cow tail","Miltank",0],
-  ["crocodile hair","Croconaw",0],
-  ["crystal stone","",0],
-  ["cute ball","Whismur",0],
-  ["cyan ear","Shiny Wartortle",0],
-  ["cyan feather","Shiny Sneasel",0],
-  ["dark beak","Shiny Murkrow",0],
-  ["dark claw","Shiny Haunter",0],
-  ["dark essence","",0],
-  ["dewgong tail","Dewgong",0],
-  ["disgusting gosme","Shiny Grimer",0],
-  ["dodrio feather","Dodrio",0],
-  ["dog fur","Growlithe",0],
-  ["dragon essence","",0],
-  ["dragon topknot","Bagon",0],
-  ["dragonair tail","Dragonair",0],
-  ["dragonite tail","Dragonite",0],
-  ["dratini ear","Dratini",0],
-  ["drowzee trunk","Drowzee",0],
-  ["duck paw","Golduck",0],
-  ["earth badge","Viridian Gym",0],
-  ["earth stone","",0],
-  ["ectoplasm","Gengar",0],
-  ["electric collar","Jolteon",0],
-  ["electric ear","Raichu",0],
-  ["electric essence","",0],
-  ["electric rat tail","Pikachu",0],
-  ["electric rat tail","Shiny Pikachu",0],
-  ["electric screws","Magnemite",0],
-  ["electric sheep tail","Ampharos",0],
-  ["electric soft wool","Shiny Flaaffy",0],
-  ["electric tail","Electabuzz",0],
-  ["elephant foot","Donphan",0],
-  ["enchanted spoon","Shiny Kadabra",0],
-  ["enigma stone","",0],
-  ["fairy essence","",0],
-  ["feather tail","Taillow",0],
-  ["fighter essence","",0],
-  ["fighter hawk","Machop",0],
-  ["fighter underwear","Machoke",0],
-  ["fire hair","Ponyta",0],
-  ["fire hoof","Rapidash",0],
-  ["fire plume","Torchic",0],
-  ["fire stone","",0],
-  ["fire tail","Charmander",0],
-  ["fire wing","Charizard",0],
-  ["flower stem","Bellsprout",0],
-  ["flying essence","",0],
-  ["forretress shell","Forretress",0],
-  ["frog tail","Poliwag",0],
-  ["ghost bottle","Gastly",0],
-  ["ghost claw","Haunter",0],
-  ["ghost essence","",0],
-  ["giant bat wing","Crobat",0],
-  ["giant piece of fur","Arcanine",0],
-  ["giant ruby","Tentacruel",0],
-  ["giraffe antenna","Girafarig",0],
-  ["gold tail","Shiny Onix",0],
-  ["golden drill","",0],
-  ["golden shell","",0],
-  ["grass essence","",0],
-  ["gray cloth","",0],
-  ["gray frog tail","",0],
-  ["gray snake tail","",0],
-  ["green crest","",0],
-  ["green ghost bottle","",0],
-  ["green remains","",0],
-  ["ground essence","",0],
-  ["gyarados tail","",0],
-  ["heart stone","",0],
-  ["horn drill","",0],
-  ["horsea tail","",0],
-  ["hypnosis pendant","",0],
-  ["ice essence","",0],
-  ["ice stone","",0],
-  ["king ear","",0],
-  ["lapras fin","",0],
-  ["leaf","",0],
-  ["leaf stone","",0],
-  ["leaves","",0],
-  ["lizard tail","",0],
-  ["locksmith of shell","",0],
-  ["loud microphone","",0],
-  ["magikarp fin","",0],
-  ["magma foot","",0],
-  ["magma shell","",0],
-  ["magnet","Magneton",0],
-  ["malfunctioning core","",0],
-  ["mankey tail","",0],
-  ["marsh badge","",0],
-  ["metal bracelet","",0],
-  ["miss traces","",0],
-  ["moon topknot","",0],
-  ["moth wing","",0],
-  ["mouse tail","",0],
-  ["mud tail","",0],
-  ["mythic bug orb","",5000000],
-  ["mythic dark orb","",5000000],
-  ["mythic dragon orb","",9000000],
-  ["mythic electric orb","",5000000],
-  ["mythic fairy orb","",9000000],
-  ["mythic fighting orb","",5000000],
-  ["mythic fire orb","",5000000],
-  ["mythic flying orb","",5000000],
-  ["mythic ghost orb","",5000000],
-  ["mythic grass orb","",5000000],
-  ["mythic ground orb","",5000000],
-  ["mythic ice orb","",5000000],
-  ["mythic metal orb","",9000000],
-  ["mythic normal orb","",5000000],
-  ["mythic poison orb","",5000000],
-  ["mythic psychic orb","",5000000],
-  ["mythic rock orb","",5000000],
-  ["mythic water orb","",5000000],
-  ["normal essence","",0],
-  ["orange trunk","Shiny Drowzee",0],
-  ["piece of cocoon","Metapod",0],
-  ["pieces of shell","Cloyster",0],
-  ["pink bug horn","Shiny Heracross",0],
-  ["pink dainty wing","Shiny Togetic",0],
-  ["pink wings","Clefable",0],
-  ["poison essence","",0],
-  ["poison pore","Koffing",0],
-  ["poisoned fish tail","Shiny Qwilfish",0],
-  ["pooch fur","Poochyena",0],
-  ["psychic essence","",0],
-  ["psychic moustache","Alakazam",0],
-  ["psychic spoon","Kadabra",0],
-  ["psychic vest","Abra",0],
-  ["psychic wig","Jynx",0],
-  ["psychic wings","Shiny Xatu",0],
-  ["punk ear","Shiny Snubbull",0],
-  ["punching machine","Hitmonchan",0],
-  ["purple big leaf","Shiny Bayleef",0],
-  ["purple chicory","Shiny Chikorita",0],
-  ["purple egg","Shiny Chansey",0],
-  ["purple fist","Shiny Geodude",0],
-  ["purple leaf","Shiny Ivysaur",0],
-  ["purple moon topknot","Shiny Clefairy",0],
-  ["purple stone forehead","Shiny Graveler",0],
-  ["queen ear","Nidoqueen",0],
-  ["quilava fur","Quilava",0],
-  ["rainbow badge","Celadon Gym",0],
-  ["rainbow gift tail","Shiny Delibird",0],
-  ["red cocoon","Shiny Kakuna",0],
-  ["red hair","Feraligatr",0],
-  ["red petal","Venusaur",0],
-  ["red piece of cocoon","Shiny Metapod",0],
-  ["remains of voltorb","Voltorb",0],
-  ["reptilian tail","Treecko",0],
-  ["rock essence","",0],
-  ["rock forehead","Graveler",0],
-  ["rock fist","Geodude",0],
-  ["rock nose","Nosepass",0],
-  ["rock plate","Pupitar",0],
-  ["rock stone","",0],
-  ["sea dragon fin","Kingdra",0],
-  ["seel tail","Seel",0],
-  ["shiny bat wing","Shiny Crobat",0],
-  ["shiny dragon ears","Shiny Dratini",0],
-  ["short tail","Spheal",0],
-  ["simple bug orb","",350000],
-  ["simple dark orb","Shiny Houndour",350000],
-  ["simple dragon orb","Shiny Dratini",350000],
-  ["simple electric orb","",350000],
-  ["simple fairy orb","",350000],
-  ["simple fighting orb","",350000],
-  ["simple fire orb","",350000],
-  ["simple flying orb","",350000],
-  ["simple ghost orb","Shiny Gastly",350000],
-  ["simple grass orb","",350000],
-  ["simple ground orb","",350000],
-  ["simple ice orb","",350000],
-  ["simple metal orb","Shiny Magnemite",350000],
-  ["simple normal orb","",350000],
-  ["simple poison orb","",350000],
-  ["simple psychic orb","",350000],
-  ["simple rock orb","",350000],
-  ["simple water orb","",350000],
-  ["small blue fin","Shiny Remoraid",0],
-  ["small handfull of stones","Diglett",0],
-  ["small yellow stones","Shiny Diglett",0],
-  ["smoked bones","Shiny Houndour",0],
-  ["snake tail","Ekans",0],
-  ["snorlax paw","Snorlax",0],
-  ["snubull ear","Snubbull",0],
-  ["soft wool","Flaaffy",0],
-  ["soul badge","Fuchsia Gym",0],
-  ["sparkle antenna","Shiny Caterpie",0],
-  ["star jewel","Starmie",0],
-  ["steel essence","",0],
-  ["steel wing","Skarmory",0],
-  ["steelix tail","Steelix",0],
-  ["stinky hand","Muk",0],
-  ["stone rocks","Golem",0],
-  ["strange ball","Trapinch",0],
-  ["strong magnet","Shiny Magneton",0],
-  ["thunder badge","Vermilion Gym",0],
-  ["thunder stone","",0],
-  ["toxic scale","Weezing",0],
-  ["toxic thing","Gulpin",0],
-  ["two-colored tail","Shiny Pidgeotto",0],
-  ["two-eyed black tail","Wobbuffet",0],
-  ["tyranitar tail","Tyranitar",0],
-  ["venom stone","",0],
-  ["vine hair","Tangela",0],
-  ["volcano badge","Cinnabar Gym",0],
-  ["wartortle ear","Wartortle",0],
-  ["water cannon","Blastoise",0],
-  ["water essence","",0],
-  ["water stone","",0],
-  ["white monkey tail","Shiny Mankey",0],
-  ["white tail","Shiny Horsea",0],
-  ["wigglytuff ear","Wigglytuff",0],
-  ["worm horn","Wurmple",0],
-  ["xatu wing","Xatu",0],
-  ["yellow beak","Murkrow",0],
-  ["yellow bird crest","Shiny Pidgey",0],
-  ["yellow cocoon","Kakuna",0],
-  ["yellow sting","Shiny Weedle",0],
+  ["aquatic tail","",180,"mark",""],
+  ["arcane bug orb","",600000,"","evo2"],
+  ["arcane dark orb","",600000,"","evo2"],
+  ["arcane dragon orb","",600000,"","evo2"],
+  ["arcane electric orb","",600000,"","evo2"],
+  ["arcane fairy orb","",600000,"","evo2"],
+  ["arcane fighting orb","",600000,"","evo2"],
+  ["arcane fire orb","",600000,"","evo2"],
+  ["arcane flying orb","",600000,"","evo2"],
+  ["arcane ghost orb","",600000,"","evo2"],
+  ["arcane grass orb","",600000,"","evo2"],
+  ["arcane ground orb","",600000,"","evo2"],
+  ["arcane ice orb","",600000,"","evo2"],
+  ["arcane metal orb","",600000,"","evo2"],
+  ["arcane normal orb","",600000,"","evo2"],
+  ["arcane poison orb","",600000,"","evo2"],
+  ["arcane psychic orb","",600000,"","evo2"],
+  ["arcane rock orb","",600000,"","evo2"],
+  ["arcane water orb","",600000,"","evo2"],
+  ["armadillo red tail","",350000,"t5","evo1"],
+  ["armadillo tail","",160,"mark",""],
+  ["bear claw","",800,"mark",""],
+  ["bee sting","",312,"mark",""],
+  ["big cute ear","",5000000,"t2","evo3"],
+  ["big fist gloves","",720,"mark",""],
+  ["big green piece","",3500000,"t3","evo2"],
+  ["big leaf","",400,"mark",""],
+  ["big petal","",720,"mark",""],
+  ["bird crest","",60,"mark",""],
+  ["bird tail","",180,"mark",""],
+  ["bird wing","",80,"mark",""],
+  ["black lizard tail","",600000,"t4","evo2"],
+  ["black tail","",350000,"t5","evo1"],
+  ["blaze fur","",720,"mark",""],
+  ["blond hawk","",350000,"t5","evo1"],
+  ["blue canine tail","",350000,"t5","evo1"],
+  ["blue coconut leaves","",5000000,"t2","evo2"],
+  ["blue hair","",0,"",""],
+  ["blue mohawk","",0,"",""],
+  ["blue mouse tail","",0,"",""],
+  ["blue psychic vest","",0,"",""],
+  ["blue ray tail","",0,"",""],
+  ["blue screws","",0,"",""],
+  ["blue seel tail","",0,"",""],
+  ["blue shell","",0,"",""],
+  ["blue wings","",0,"",""],
+  ["bone","",0,"",""],
+  ["boulder badge","",0,"",""],
+  ["bowl hair","",0,"",""],
+  ["boxing gloves","",0,"",""],
+  ["brown bulb","",0,"",""],
+  ["bug essence","",0,"",""],
+  ["bull tail","Tauros",0,"",""],
+  ["butterfree wing","Butterfree",0,"",""],
+  ["canine tail","Vulpix",0,"",""],
+  ["carmine wing","Shiny Spearow",0,"",""],
+  ["cascade badge","Cerulean Gym",0,"",""],
+  ["champion underwear","Shiny Machoke",0,"",""],
+  ["cobra tail","Arbok",0,"",""],
+  ["cocoon stone","",4500,"",""],
+  ["coconut leaves","Exeggutor",0,"",""],
+  ["contagious pore","Shiny Koffing",0,"",""],
+  ["cow tail","Miltank",0,"",""],
+  ["crocodile hair","Croconaw",0,"",""],
+  ["crystal stone","",15000,"",""],
+  ["cute ball","Whismur",0,"",""],
+  ["cyan ear","Shiny Wartortle",0,"",""],
+  ["cyan feather","Shiny Sneasel",0,"",""],
+  ["dark beak","Shiny Murkrow",0,"",""],
+  ["dark claw","Shiny Haunter",0,"",""],
+  ["dark essence","",0,"",""],
+  ["dewgong tail","Dewgong",0,"",""],
+  ["disgusting gosme","Shiny Grimer",0,"",""],
+  ["dodrio feather","Dodrio",0,"",""],
+  ["dog fur","Growlithe",0,"",""],
+  ["dragon essence","",0,"",""],
+  ["dragon topknot","Bagon",0,"",""],
+  ["dragonair tail","Dragonair",0,"",""],
+  ["dragonite tail","Dragonite",0,"",""],
+  ["dratini ear","Dratini",0,"",""],
+  ["drowzee trunk","Drowzee",0,"",""],
+  ["duck paw","Golduck",0,"",""],
+  ["earth badge","Viridian Gym",0,"",""],
+  ["earth stone","",4500,"",""],
+  ["ectoplasm","Gengar",0,"",""],
+  ["electric collar","Jolteon",0,"",""],
+  ["electric ear","Raichu",0,"",""],
+  ["electric essence","",0,"",""],
+  ["electric rat tail","Pikachu",0,"",""],
+  ["electric rat tail","Shiny Pikachu",0,"",""],
+  ["electric screws","Magnemite",0,"",""],
+  ["electric sheep tail","Ampharos",0,"",""],
+  ["electric soft wool","Shiny Flaaffy",0,"",""],
+  ["electric tail","Electabuzz",0,"",""],
+  ["elephant foot","Donphan",0,"",""],
+  ["enchanted spoon","Shiny Kadabra",0,"",""],
+  ["enigma stone","",4500,"",""],
+  ["fairy essence","",0,"",""],
+  ["feather tail","Taillow",0,"",""],
+  ["fighter essence","",0,"",""],
+  ["fighter hawk","Machop",0,"",""],
+  ["fighter underwear","Machoke",0,"",""],
+  ["fire hair","Ponyta",0,"",""],
+  ["fire hoof","Rapidash",0,"",""],
+  ["fire plume","Torchic",0,"",""],
+  ["fire stone","",4500,"",""],
+  ["fire tail","Charmander",0,"",""],
+  ["fire wing","Charizard",0,"",""],
+  ["flower stem","Bellsprout",0,"",""],
+  ["flying essence","",0,"",""],
+  ["forretress shell","Forretress",0,"",""],
+  ["frog tail","Poliwag",0,"",""],
+  ["ghost bottle","Gastly",0,"",""],
+  ["ghost claw","Haunter",0,"",""],
+  ["ghost essence","",0,"",""],
+  ["giant bat wing","Crobat",0,"",""],
+  ["giant piece of fur","Arcanine",0,"",""],
+  ["giant ruby","Tentacruel",0,"",""],
+  ["giraffe antenna","Girafarig",0,"",""],
+  ["gold tail","Shiny Onix",0,"",""],
+  ["golden drill","",0,"",""],
+  ["golden shell","",0,"",""],
+  ["grass essence","",0,"",""],
+  ["gray cloth","",0,"",""],
+  ["gray frog tail","",0,"",""],
+  ["gray snake tail","",0,"",""],
+  ["green crest","",0,"",""],
+  ["green ghost bottle","",0,"",""],
+  ["green remains","",0,"",""],
+  ["ground essence","",0,"",""],
+  ["gyarados tail","",0,"",""],
+  ["heart stone","",4500,"",""],
+  ["horn drill","",0,"",""],
+  ["horsea tail","",0,"",""],
+  ["hypnosis pendant","",0,"",""],
+  ["ice essence","",0,"",""],
+  ["ice stone","",4500,"",""],
+  ["king ear","",0,"",""],
+  ["lapras fin","",0,"",""],
+  ["leaf","",0,"",""],
+  ["leaf stone","",4500,"",""],
+  ["leaves","",0,"",""],
+  ["lizard tail","",0,"",""],
+  ["locksmith of shell","",0,"",""],
+  ["loud microphone","",0,"",""],
+  ["magikarp fin","",0,"",""],
+  ["magma foot","",0,"",""],
+  ["magma shell","",0,"",""],
+  ["magnet","Magneton",0,"",""],
+  ["malfunctioning core","",0,"",""],
+  ["mankey tail","",0,"",""],
+  ["marsh badge","",0,"",""],
+  ["metal bracelet","",0,"",""],
+  ["miss traces","",0,"",""],
+  ["moon topknot","",0,"",""],
+  ["moth wing","",0,"",""],
+  ["mouse tail","",0,"",""],
+  ["mud tail","",0,"",""],
+  ["mythic bug orb","",4000000,"",""],
+  ["mythic dark orb","",4000000,"",""],
+  ["mythic dragon orb","",9000000,"",""],
+  ["mythic electric orb","",4000000,"",""],
+  ["mythic fairy orb","",9000000,"",""],
+  ["mythic fighting orb","",4000000,"",""],
+  ["mythic fire orb","",4000000,"",""],
+  ["mythic flying orb","",4000000,"",""],
+  ["mythic ghost orb","",4000000,"",""],
+  ["mythic grass orb","",4000000,"",""],
+  ["mythic ground orb","",4000000,"",""],
+  ["mythic ice orb","",4000000,"",""],
+  ["mythic metal orb","",9000000,"",""],
+  ["mythic normal orb","",4000000,"",""],
+  ["mythic poison orb","",4000000,"",""],
+  ["mythic psychic orb","",4000000,"",""],
+  ["mythic rock orb","",4000000,"",""],
+  ["mythic water orb","",4000000,"",""],
+  ["normal essence","",0,"",""],
+  ["orange trunk","Shiny Drowzee",0,"",""],
+  ["piece of cocoon","Metapod",0,"",""],
+  ["pieces of shell","Cloyster",0,"",""],
+  ["pink bug horn","Shiny Heracross",0,"",""],
+  ["pink dainty wing","Shiny Togetic",0,"",""],
+  ["pink wings","Clefable",0,"",""],
+  ["poison essence","",0,"",""],
+  ["poison pore","Koffing",0,"",""],
+  ["poisoned fish tail","Shiny Qwilfish",0,"",""],
+  ["pooch fur","Poochyena",0,"",""],
+  ["psychic essence","",0,"",""],
+  ["psychic moustache","Alakazam",0,"",""],
+  ["psychic spoon","Kadabra",0,"",""],
+  ["psychic vest","Abra",0,"",""],
+  ["psychic wig","Jynx",0,"",""],
+  ["psychic wings","Shiny Xatu",0,"",""],
+  ["punk ear","Shiny Snubbull",0,"",""],
+  ["punching machine","Hitmonchan",0,"",""],
+  ["purple big leaf","Shiny Bayleef",0,"",""],
+  ["purple chicory","Shiny Chikorita",0,"",""],
+  ["purple egg","Shiny Chansey",0,"",""],
+  ["purple fist","Shiny Geodude",0,"",""],
+  ["purple leaf","Shiny Ivysaur",0,"",""],
+  ["purple moon topknot","Shiny Clefairy",0,"",""],
+  ["purple stone forehead","",0,"",""],
+  ["queen ear","Nidoqueen",0,"",""],
+  ["quilava fur","Quilava",0,"",""],
+  ["rainbow badge","Celadon Gym",0,"",""],
+  ["rainbow gift tail","Shiny Delibird",0,"",""],
+  ["red cocoon","Shiny Kakuna",0,"",""],
+  ["red hair","Feraligatr",0,"",""],
+  ["red petal","Venusaur",0,"",""],
+  ["red piece of cocoon","Shiny Metapod",0,"",""],
+  ["remains of voltorb","Voltorb",0,"",""],
+  ["reptilian tail","Treecko",0,"",""],
+  ["rock essence","",0,"",""],
+  ["rock forehead","Graveler",0,"",""],
+  ["rock fist","Geodude",0,"",""],
+  ["rock nose","Nosepass",0,"",""],
+  ["rock plate","Pupitar",0,"",""],
+  ["rock stone","",4500,"",""],
+  ["sea dragon fin","Kingdra",0,"",""],
+  ["seel tail","Seel",0,"",""],
+  ["shiny bat wing","Shiny Crobat",0,"",""],
+  ["shiny dragon ears","Shiny Dratini",0,"",""],
+  ["short tail","Spheal",0,"",""],
+  ["simple bug orb","",350000,"",""],
+  ["simple dark orb","Shiny Houndour",350000,"",""],
+  ["simple dragon orb","Shiny Dratini",350000,"",""],
+  ["simple electric orb","",350000,"",""],
+  ["simple fairy orb","",350000,"",""],
+  ["simple fighting orb","",350000,"",""],
+  ["simple fire orb","",350000,"",""],
+  ["simple flying orb","",350000,"",""],
+  ["simple ghost orb","Shiny Gastly",350000,"",""],
+  ["simple grass orb","",350000,"",""],
+  ["simple ground orb","",350000,"",""],
+  ["simple ice orb","",350000,"",""],
+  ["simple metal orb","Shiny Magnemite",350000,"",""],
+  ["simple normal orb","",350000,"",""],
+  ["simple poison orb","",350000,"",""],
+  ["simple psychic orb","",350000,"",""],
+  ["simple rock orb","",350000,"",""],
+  ["simple water orb","",350000,"",""],
+  ["small blue fin","Shiny Remoraid",0,"",""],
+  ["small handfull of stones","Diglett",0,"",""],
+  ["small yellow stones","Shiny Diglett",0,"",""],
+  ["smoked bones","Shiny Houndour",0,"",""],
+  ["snake tail","Ekans",0,"",""],
+  ["snorlax paw","Snorlax",0,"",""],
+  ["snubull ear","Snubbull",0,"",""],
+  ["soft wool","Flaaffy",0,"",""],
+  ["soul badge","Fuchsia Gym",0,"",""],
+  ["sparkle antenna","Shiny Caterpie",0,"",""],
+  ["star jewel","Starmie",0,"",""],
+  ["steel essence","",0,"",""],
+  ["steel wing","Skarmory",0,"",""],
+  ["steelix tail","Steelix",0,"",""],
+  ["stinky hand","Muk",0,"",""],
+  ["stone rocks","Golem",0,"",""],
+  ["strange ball","Trapinch",0,"",""],
+  ["strong magnet","Shiny Magneton",0,"",""],
+  ["thunder badge","Vermilion Gym",0,"",""],
+  ["thunder stone","",4500,"",""],
+  ["toxic scale","Weezing",0,"",""],
+  ["toxic thing","Gulpin",0,"",""],
+  ["two-colored tail","Shiny Pidgeotto",0,"",""],
+  ["two-eyed black tail","Wobbuffet",0,"",""],
+  ["tyranitar tail","Tyranitar",0,"",""],
+  ["venom stone","",4500,"",""],
+  ["vine hair","Tangela",0,"",""],
+  ["volcano badge","Cinnabar Gym",0,"",""],
+  ["wartortle ear","Wartortle",0,"",""],
+  ["water cannon","Blastoise",0,"",""],
+  ["water essence","",0,"",""],
+  ["water stone","",4500,"",""],
+  ["white monkey tail","Shiny Mankey",0,"",""],
+  ["white tail","Shiny Horsea",0,"",""],
+  ["wigglytuff ear","Wigglytuff",0,"",""],
+  ["worm horn","Wurmple",0,"",""],
+  ["xatu wing","Xatu",0,"",""],
+  ["yellow beak","Murkrow",0,"",""],
+  ["yellow bird crest","Shiny Pidgey",0,"",""],
+  ["yellow cocoon","Kakuna",0,"",""],
+  ["yellow sting","Shiny Weedle",0,"",""],
 ];
 
 const KK_TO_BRL = 1.70;
@@ -1282,9 +1430,9 @@ function formatKK(raw) {
 
 const items = [];
 const seen = new Set();
-RAW.forEach(([name, source, price]) => {
+RAW.forEach(([name, source, price, tier, evo]) => {
   const key = name + '|' + source;
-  if (!seen.has(key)) { seen.add(key); items.push({ name, source, price: price || 0 }); }
+  if (!seen.has(key)) { seen.add(key); items.push({ name, source, price: price || 0, tier: tier || '', evo: evo || '' }); }
 });
 
 document.getElementById('total-count').textContent = items.length + ' itens no índice';
@@ -1303,6 +1451,36 @@ function tagLabel(t) {
   return { shiny:'Shiny', orb:'Orb', essence:'Essência', normal:'Normal' }[t];
 }
 
+const TIER_CONFIG = {
+  t1:   { label: 'T1',   cls: 'tier-t1' },
+  t2:   { label: 'T2',   cls: 'tier-t2' },
+  t3:   { label: 'T3',   cls: 'tier-t3' },
+  t4:   { label: 'T4',   cls: 'tier-t4' },
+  t5:   { label: 'T5',   cls: 'tier-t5' },
+  hard: { label: 'HARD', cls: 'tier-hard' },
+  mark: { label: 'MARK', cls: 'tier-mark' },
+};
+
+function getTierHtml(tier) {
+  if (!tier) return '';
+  const t = tier.toLowerCase();
+  const cfg = TIER_CONFIG[t];
+  if (!cfg) return '';
+  return `<span class="tier-tag ${cfg.cls}">${cfg.label}</span>`;
+}
+
+function getEvoHtml(evo) {
+  if (!evo) return '';
+  const map = {
+    evo1: { label: 'EVO 1', cls: 'evo-1' },
+    evo2: { label: 'EVO 2', cls: 'evo-2' },
+    evo3: { label: 'EVO 3', cls: 'evo-3' },
+  };
+  const cfg = map[evo.toLowerCase()];
+  if (!cfg) return '';
+  return `<span class="evo-tag ${cfg.cls}">${cfg.label}</span>`;
+}
+
 function render() {
   const q = document.getElementById('search').value.toLowerCase();
   const f = document.getElementById('filter').value;
@@ -1310,8 +1488,13 @@ function render() {
 
   const visible = items.filter((item) => {
     const tag = getTag(item);
+    const tier = (item.tier || '').toLowerCase();
     const matchQ = !q || item.name.toLowerCase().includes(q) || item.source.toLowerCase().includes(q);
-    const matchF = f === 'all' || tag === f;
+    const isTierFilter = ['t1','t2','t3','t4','t5','hard','mark'].includes(f);
+    const matchF = f === 'all'
+      || (isTierFilter && tier === f)
+      || (!isTierFilter && f === 'normal' && !item.tier && tag === 'normal')
+      || (!isTierFilter && !['normal'].includes(f) && tag === f);
     return matchQ && matchF;
   });
 
@@ -1344,6 +1527,8 @@ function render() {
       : `<div class="item-price"><span class="price-none">sem preço</span></div>`;
     return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}">
       <div class="item-name">${item.name}</div>
+      ${getTierHtml(item.tier)}
+      ${getEvoHtml(item.evo)}
       ${src}
       ${priceHtml}
       <div class="card-footer">
