@@ -609,6 +609,32 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 .add-btn.added { border-color: var(--blue); color: #fff; }
 .add-btn.added::before { opacity: 1; }
 
+/* inline remove button shown when item is in cart */
+.card-footer-added {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.inline-rem-btn {
+  flex-shrink: 0;
+  background: rgba(255,80,80,0.08);
+  border: 1px solid rgba(255,80,80,0.3);
+  border-radius: 8px;
+  color: rgba(255,107,107,0.8);
+  font-size: 13px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.inline-rem-btn:hover { background: rgba(255,80,80,0.18); border-color: rgba(255,80,80,0.6); color: #ff6b6b; }
+
 
 /* ===================== TIER TAGS ===================== */
 .tier-tag {
@@ -1153,6 +1179,31 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 .pkg-add-btn span { position: relative; z-index: 1; }
 .pkg-add-btn:hover { border-color: var(--blue); color: #fff; }
 .pkg-add-btn:hover::before { opacity: 1; }
+.pkg-add-btn.added { border-color: var(--blue); color: #fff; }
+.pkg-add-btn.added::before { opacity: 1; }
+.pkg-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pkg-inline-rem-btn {
+  flex-shrink: 0;
+  background: rgba(255,80,80,0.08);
+  border: 1px solid rgba(255,80,80,0.3);
+  border-radius: 8px;
+  color: rgba(255,107,107,0.8);
+  font-size: 13px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.pkg-inline-rem-btn:hover { background: rgba(255,80,80,0.18); border-color: rgba(255,80,80,0.6); color: #ff6b6b; }
 
 /* ===================== MODAL DE PACOTE ===================== */
 .pkg-overlay {
@@ -1363,6 +1414,172 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 }
 .pkg-modal-add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 25px var(--glow-blue); }
 
+/* ===================== PAGAMENTO MODE SELECTOR ===================== */
+.pay-mode-selector {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+.pay-mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: var(--font-title);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 7px 6px;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.pay-mode-btn.active {
+  background: var(--surface3);
+  color: var(--text);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
+}
+.pay-mode-btn.active.kk  { color: var(--blue-bright); }
+.pay-mode-btn.active.brl { color: #4ade80; }
+.pay-mode-btn.active.mix { color: var(--gold); }
+
+.pay-block { display: none; }
+.pay-block.active { display: block; }
+
+/* KK block */
+.pay-kk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.pay-kk-total {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--blue-bright);
+}
+.pay-kk-brl-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* BRL block */
+.pay-brl-total {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: #4ade80;
+  margin-bottom: 4px;
+}
+.pay-brl-kk-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* MIX block */
+.pay-mix-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.pay-mix-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: 28px;
+}
+.pay-mix-input {
+  flex: 1;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  text-align: right;
+}
+.pay-mix-input:focus { border-color: var(--blue); }
+.pay-mix-input.kk-input:focus { border-color: var(--blue-bright); }
+.pay-mix-input.brl-input:focus { border-color: #4ade80; }
+.pay-mix-balance {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 2px;
+}
+.pay-mix-balance.ok { color: #4ade80; }
+.pay-mix-balance.over { color: #ff6b6b; }
+.pay-mix-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+/* ===================== TAXA AVISO ===================== */
+.taxa-aviso {
+  background: linear-gradient(135deg, rgba(240,180,41,0.12), rgba(240,100,41,0.08));
+  border: 1px solid rgba(240,180,41,0.4);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.taxa-aviso-icon { font-size: 14px; flex-shrink: 0; }
+.taxa-aviso-text { font-family: var(--font-mono); font-size: 10px; color: var(--gold); line-height: 1.4; }
+.taxa-aviso-text strong { color: #ffd166; }
+
+.cart-taxa-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px dashed rgba(240,180,41,0.2);
+  margin-top: 4px;
+}
+.cart-taxa-label { font-family: var(--font-mono); font-size: 10px; color: #ff9944; text-transform: uppercase; letter-spacing: 1px; }
+.cart-taxa-val { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #ff9944; }
+
+/* ===================== PACKAGES SEARCH ===================== */
+.packages-controls {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  background: rgba(4,6,14,0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 32px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.pkg-count-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 700px) {
   .header-grid { grid-template-columns: auto 1fr; padding: 14px 16px; gap: 14px; }
@@ -1502,6 +1719,16 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 
 <!-- TAB: PACOTES -->
 <div class="tab-content" id="tab-pacotes">
+  <div class="packages-controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+        <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="pkg-search" placeholder="Buscar pacote..." oninput="renderPackages()" />
+    </div>
+    <span class="pkg-count-label" id="pkg-count-label">— pacotes</span>
+  </div>
   <div class="packages-wrap">
     <div class="packages-grid" id="packages-grid"></div>
   </div>
@@ -1551,14 +1778,65 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
         <span>TOTAL DE ITENS</span>
         <strong id="cart-total-num">0</strong>
       </div>
+      <div id="cart-taxa-aviso" class="taxa-aviso" style="display:none">
+        <span class="taxa-aviso-icon">⚠️</span>
+        <span class="taxa-aviso-text">Compras abaixo de <strong>10kk</strong> têm uma taxa de <strong>+5kk</strong>.</span>
+      </div>
       <div class="cart-grand-total" id="cart-grand-total-block" style="display:none">
-        <div class="cart-grand-row">
-          <span class="cart-grand-label">Total KK</span>
+        <!-- subtotal / taxa rows (mantidos para lógica JS) -->
+        <div class="cart-grand-row" style="display:none">
+          <span class="cart-grand-label">Subtotal KK</span>
           <span class="cart-grand-val" id="cart-grand-kk">—</span>
         </div>
-        <div class="cart-grand-row">
+        <div id="cart-taxa-row" class="cart-taxa-row" style="display:none">
+          <span class="cart-taxa-label">Taxa (compra &lt; 10kk)</span>
+          <span class="cart-taxa-val">+5kk</span>
+        </div>
+        <div class="cart-grand-row" id="cart-total-final-row" style="display:none">
+          <span class="cart-grand-label">Total Final KK</span>
+          <span class="cart-grand-val" id="cart-grand-kk-final" style="color:var(--gold-bright)">—</span>
+        </div>
+        <div class="cart-grand-row" style="display:none">
           <span class="cart-grand-label">Total R$</span>
           <span class="cart-grand-val-brl" id="cart-grand-brl">—</span>
+        </div>
+
+        <!-- ── SELETOR DE MODO DE PAGAMENTO ── -->
+        <div class="pay-mode-selector">
+          <button class="pay-mode-btn kk active" onclick="setPayMode('kk')">⚔ KK</button>
+          <button class="pay-mode-btn brl" onclick="setPayMode('brl')">💵 PIX R$</button>
+          <button class="pay-mode-btn mix" onclick="setPayMode('mix')">⚡ Misto</button>
+        </div>
+
+        <!-- KK puro -->
+        <div class="pay-block active" id="pay-block-kk">
+          <div class="pay-kk-row">
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Total em KK</span>
+            <span class="pay-kk-total" id="pay-kk-total">—</span>
+          </div>
+          <div class="pay-kk-brl-hint" id="pay-kk-brl-hint">equivale a —</div>
+        </div>
+
+        <!-- BRL puro -->
+        <div class="pay-block" id="pay-block-brl">
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Total via PIX</div>
+          <div class="pay-brl-total" id="pay-brl-total">—</div>
+          <div class="pay-brl-kk-hint" id="pay-brl-kk-hint">equivale a —</div>
+        </div>
+
+        <!-- Misto -->
+        <div class="pay-block" id="pay-block-mix">
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Dividir pagamento</div>
+          <div class="pay-mix-row">
+            <span class="pay-mix-label">KK</span>
+            <input class="pay-mix-input kk-input" id="mix-kk-input" type="number" min="0" placeholder="0" oninput="onMixKkChange(this.value)" />
+          </div>
+          <div class="pay-mix-row">
+            <span class="pay-mix-label">R$</span>
+            <input class="pay-mix-input brl-input" id="mix-brl-input" type="number" min="0" step="0.01" placeholder="0,00" oninput="onMixBrlChange(this.value)" />
+          </div>
+          <div class="pay-mix-divider"></div>
+          <div class="pay-mix-balance" id="mix-balance">Preencha os valores acima</div>
         </div>
       </div>
       <button class="whats-btn" onclick="sendToWhatsApp()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Enviar para WhatsApp</button>
@@ -1595,7 +1873,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 //   ["fire tail", "", 1000, "mark", "evo3"]
 // ============================================================
 const RAW = [
-  ["aquatic tail","",180,"mark",""],
+  ["aquatic tail","",720,"mark",""],
   ["arcane bug orb","",600000,"","evo2"],
   ["arcane dark orb","",600000,"","evo2"],
   ["arcane dragon orb","",600000,"","evo2"],
@@ -1652,12 +1930,12 @@ const RAW = [
   ["carmine wing","Shiny Spearow",350000,"","evo1"],
   ["champion underwear","Shiny Machoke",0,"",""],
   ["cobra tail","Arbok",0,"",""],
-  ["cocoon stone","https://i.imgur.com/uMyCnBn.png",4500,"",""],
+  ["cocoon stone","https://i.imgur.com/uMyCnBn.png",6000,"",""],
   ["coconut leaves","Exeggutor",0,"",""],
   ["contagious pore","Shiny Koffing",0,"",""],
   ["cow tail","",720,"mark",""],
   ["crocodile hair","Croconaw",400,"mark",""],
-  ["crystal stone","https://i.imgur.com/Mq3MD9U.png",15000,"",""],
+  ["crystal stone","https://i.imgur.com/Mq3MD9U.png",20000,"",""],
   ["cute ball","Whismur",0,"",""],
   ["cyan ear","Shiny Wartortle",600000,"t4","evo2"],
   ["cyan feather","Shiny Sneasel",0,"",""],
@@ -1674,8 +1952,8 @@ const RAW = [
   ["dragonite tail","Dragonite",0,"",""],
   ["dratini ear","Dratini",0,"",""],
   ["drowzee trunk","Drowzee",0,"",""],
-  ["duck paw","Golduck",0,"",""],
-  ["earth stone","https://i.imgur.com/qEsbPOw.png",4500,"",""],
+  ["duck paw","Golduck",580,"mark",""],
+  ["earth stone","https://i.imgur.com/qEsbPOw.png",6000,"",""],
   ["ectoplasm","Gengar",0,"",""],
   ["electric collar","Jolteon",0,"",""],
   ["electric ear","Raichu",0,"",""],
@@ -1688,7 +1966,7 @@ const RAW = [
   ["electric tail","",0,"",""],
   ["elephant foot","",0,"",""],
   ["enchanted spoon","",0,"",""],
-  ["enigma stone","https://i.imgur.com/p1csjCu.png",4500,"",""],
+  ["enigma stone","https://i.imgur.com/p1csjCu.png",6000,"",""],
   ["fairy essence","",0,"",""],
   ["feather tail","",0,"",""],
   ["fighter essence","",0,"",""],
@@ -1697,7 +1975,7 @@ const RAW = [
   ["fire hair","",160,"mark",""],
   ["fire hoof","",960,"mark",""],
   ["fire plume","",0,"",""],
-  ["fire stone","https://i.imgur.com/C7fIrj4.png",4500,"",""],
+  ["fire stone","https://i.imgur.com/C7fIrj4.png",6000,"",""],
   ["fire tail","",0,"",""],
   ["fire wing","",0,"",""],
   ["flower stem","",0,"",""],
@@ -1709,7 +1987,7 @@ const RAW = [
   ["ghost essence","",0,"",""],
   ["giant bat wing","",0,"",""],
   ["giant piece of fur","",960,"mark",""],
-  ["giant ruby","Tentacruel",0,"",""],
+  ["giant ruby","Tentacruel",720,"mark",""],
   ["giraffe antenna","Girafarig",0,"",""],
   ["gold tail","Shiny Onix",0,"",""],
   ["golden drill","",0,"",""],
@@ -1722,17 +2000,17 @@ const RAW = [
   ["green ghost bottle","",0,"",""],
   ["green remains","",0,"",""],
   ["ground essence","",0,"",""],
-  ["gyarados tail","",0,"",""],
-  ["heart stone","https://i.imgur.com/s4daG8O.png",4500,"",""],
+  ["gyarados tail","",960,"mark",""],
+  ["heart stone","https://i.imgur.com/s4daG8O.png",6000,"",""],
   ["horn drill","",0,"",""],
   ["horsea tail","",80,"mark",""],
   ["hypnosis pendant","",0,"",""],
   ["ice essence","",0,"",""],
-  ["ice stone","https://i.imgur.com/KCxKLwO.png",4500,"",""],
+  ["ice stone","https://i.imgur.com/KCxKLwO.png",6000,"",""],
   ["king ear","",0,"",""],
   ["lapras fin","",0,"",""],
   ["leaf","",0,"",""],
-  ["leaf stone","https://i.imgur.com/5ZJAr9N.png",4500,"",""],
+  ["leaf stone","https://i.imgur.com/5ZJAr9N.png",6000,"",""],
   ["leaves","",0,"",""],
   ["lizard tail","",0,"",""],
   ["locksmith of shell","",0,"",""],
@@ -1807,7 +2085,7 @@ const RAW = [
   ["rock fist","",0,"",""],
   ["rock nose","",0,"",""],
   ["rock plate","",0,"",""],
-  ["rock stone","https://i.imgur.com/Zhxk2rh.png",4500,"",""],
+  ["rock stone","https://i.imgur.com/Zhxk2rh.png",6000,"",""],
   ["sea dragon fin","",0,"",""],
   ["seel tail","Seel",0,"",""],
   ["shiny bat wing","",0,"",""],
@@ -1848,18 +2126,18 @@ const RAW = [
   ["stone rocks","Golem",0,"",""],
   ["strange ball","Trapinch",0,"",""],
   ["strong magnet","Shiny Magneton",5000000,"t2","evo2"],
-  ["thunder stone","https://i.imgur.com/qk0I92Y.png",4500,"",""],
+  ["thunder stone","https://i.imgur.com/qk0I92Y.png",6000,"",""],
   ["toxic scale","Weezing",0,"",""],
   ["toxic thing","Gulpin",0,"",""],
   ["two-colored tail","Shiny Pidgeotto",0,"",""],
   ["two-eyed black tail","Wobbuffet",0,"",""],
   ["tyranitar tail","Tyranitar",0,"",""],
-  ["venom stone","https://i.imgur.com/4TltADd.png",4500,"",""],
+  ["venom stone","https://i.imgur.com/4TltADd.png",6000,"",""],
   ["vine hair","Tangela",0,"",""],
   ["wartortle ear","Wartortle",400,"mark",""],
   ["water cannon","Blastoise",0,"",""],
   ["water essence","",0,"",""],
-  ["water stone","https://i.imgur.com/F0oPvtP.png",4500,"",""],
+  ["water stone","https://i.imgur.com/F0oPvtP.png",6000,"",""],
   ["white monkey tail","Shiny Mankey",0,"",""],
   ["white tail","",350000,"t5","evo1"],
   ["wigglytuff ear","",740,"mark",""],
@@ -1908,7 +2186,7 @@ const PACKAGES = [
    {
     name: "Full HP",
     items: [
-      ["Blue wings", 1],
+      ["blue wings", 1],
       ["big cute ear", 1],
       ["pink wings", 250],
       ["wigglytuff ear", 250],
@@ -1935,7 +2213,7 @@ const PACKAGES = [
 	  ["simple water orb", 5],
 	  ["gray frog tail", 3],
 	  ["arcane water orb", 3],
-	  ["Blue mohawk", 3],
+	  ["blue mohawk", 3],
 	  ["crocodile hair", 120],
     ]
   },
@@ -2004,294 +2282,450 @@ const PACKAGES = [
     name: "Talent Poison 7/8",
     items: [
       ["poison pore", 50],
+	  
 	  ["simple poison orb", 5],
       ["contagious pore", 3],
+	  
 	  ["arcane poison orb", 3],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["gray snake tail", 3],
+	  ["toxic scale", 120],	
+	  
+	  ["mythic poison orb", 3],
+	  ["poisoned fish tail", 1],
+	  ["king ear", 500],
+	  
+	  ["simple poison orb", 5],
+	  ["disgusting gosme", 3],
+	  
+	  ["arcane poison orb", 3],
+      ["contagious pore", 3],
+	  ["cobra tail", 120],
+	  
+	  ["snake tail", 50],
     ]
   },
          {
     name: "Talent Normal 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["mouse tail", 50],
+	  
+	  ["simple normal orb", 5],
+	  ["blue mouse tail", 3],
+	  
+	  ["arcane normal orb", 3],
+	  ["loud microphone", 3],
+	  ["bull tail", 120],
+	  
+	  ["mythic normal orb", 3],
+	  ["purple egg", 2],
+	  ["cow tail", 500],
+	  
+	  ["mouse tail", 50],
+	  
+	  ["simple normal orb", 5],
+	  ["blue mouse tail", 3],
+	  
+	  ["arcane normal orb", 3],
+	  ["loud microphone", 3],
+	  ["bull tail", 120],
     ]
   },
          {
     name: "Talent Ice 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["mythic ice orb", 3],
+	  ["raibow gift tail", 1],
+	  ["psychic wig", 500],
+	  
+	  ["seel tail", 50],
+	  
+	  ["simple ice orb", 5],
+	  ["blue seel tail", 3],
+	  
+	  ["arcane ice orb", 3],
+	  ["blue seel tail", 3],
+	  ["dewgong tail", 120],
+	  
+	  ["locksmith of shell", 50],
+	  
+	  ["simple ice orb", 5],
+	  ["blue shell", 3],
+	  
+	  ["arcane ice orb", 3],
+	  ["blue shell", 3],
+	  ["pieces of shell", 120],
     ]
   },
          {
     name: "Talent Ground 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Grass 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Ghost 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Flying 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Fire 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Figthing 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Fairy 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Electric 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Dragon 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Dark 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
     ]
   },
            {
     name: "Talent Bug 7/8",
     items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
 	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+	  ["magnet", 120],
+    ]
+  },
+            {
+    name: "Gym Viridian",
+    items: [
+	  ["snorlax paw", 1500],
+	  ["bear claw", 1500],
+	  ["cow tail", 1100],
+	  ["wigglytuff ear", 450],
+	  ["pink wings", 450],
+	  ["heart stone", 1000],
+    ]
+  },
+            {
+    name: "Gym Cinnabar",
+    items: [
+	  ["fire wing", 1500],
+	  ["magma foot", 1500],
+	  ["giant peice of fur", 1100],
+	  ["magma shell", 450],
+	  ["fire stone", 1000],
+    ]
+  },
+            {
+    name: "Gym Pewter",
+    items: [
+	  ["stone rocks", 1500],
+	  ["horn drill", 1500],
+	  ["bone", 1100],
+	  ["steelix tail", 900],
+	  ["rock stone", 500],
+	  ["earth stone", 500],
+    ]
+  },
+            {
+    name: "Gym Cerulean",
+    items: [
+	  ["lapras fin", 900],
+	  ["gyarados tail", 1100],
+	  ["aquatic tail", 1500],
+	  ["water cannon", 1500],
+	  ["water stone", 500],
+	  ["ice stone", 500],
+    ]
+  },
+            {
+    name: "Gym Vermilion",
+    items: [
+	  ["electric sheep tail", 1100],
+	  ["electric tail", 1500],
+	  ["electric ear", 1500],
+	  ["electric collar", 900],
+	  ["thunder stone", 1000],
+    ]
+  },
+            {
+    name: "Gym Celadon",
+    items: [
+	  ["red petal", 1500],
+	  ["big petal", 1500],
+	  ["coconut leaves", 1100],
+	  ["vine hair", 900],
+	  ["leaf stone", 500],
+	  ["cocoon stone", 500],
+    ]
+  },
+            {
+    name: "Gym Fuchsia",
+    items: [
+	  ["queen ear", 1500],
+	  ["king ear", 1500],
+	  ["giant bat wing", 1100],
+	  ["stinky hand", 900],
+	  ["venom stone", 1000],
+    ]
+  },
+            {
+    name: "Gym Saffron",
+    items: [
+	  ["psychic moustache", 1500],
+	  ["two-eyed black tail", 1500],
+	  ["xatu wing", 1100],
+	  ["giraffe antenna", 900],
+	  ["enigma stone", 1000],
+    ]
+  },
+            {
+    name: "Reduces Speed Water 6/6",
+    items: [
+      ["crystal stone", 25],
+      ["water stone", 50],
+      ["duck paw", 250],
+      ["aquatic tail", 300],
+	  ["big fist gloves", 300],
+	  ["gyarados tail", 500],
+	  ["giant ruby", 300],
+	  
+      ["crystal stone", 50],
+      ["water stone", 100],
+      ["duck paw", 300],
+      ["aquatic tail", 360],
+	  ["big fist gloves", 360],
+	  ["gyarados tail", 600],
+	  ["giant ruby", 360],
+	  ["simple water orb", 10],
+	  
+      ["crystal stone", 100],
+      ["water stone", 200],
+      ["duck paw", 375],
+      ["aquatic tail", 420],
+	  ["big fist gloves", 420],
+	  ["gyarados tail", 700],
+	  ["giant ruby", 420],
+	  ["simple water orb", 20],
+	  
+      ["crystal stone", 200],
+      ["water stone", 400],
+      ["duck paw", 375],
+      ["aquatic tail", 450],
+	  ["big fist gloves", 450],
+	  ["gyarados tail", 750],
+	  ["giant ruby", 450],
+	  ["arcane water orb", 5],
+	  
+      ["crystal stone", 400],
+      ["water stone", 800],
+      ["duck paw", 400],
+      ["aquatic tail", 525],
+	  ["big fist gloves", 525],
+	  ["gyarados tail", 875],
+	  ["giant ruby", 525],
+	  ["arcane water orb", 20],
+	  
+      ["crystal stone", 500],
+      ["water stone", 1000],
+      ["duck paw", 500],
+      ["aquatic tail", 600],
+	  ["big fist gloves", 600],
+	  ["gyarados tail", 1000],
+	  ["giant ruby", 600],
+	  ["mythic water orb", 3],
     ]
   },
 ];
@@ -2327,6 +2761,7 @@ RAW.forEach(([name, image, price, tier, evo]) => {
 document.getElementById('total-count').textContent = items.length + ' itens no índice';
 
 const cart = {};
+let pkgCartCount = {};
 
 function getTag(item) {
   const n = item.name.toLowerCase();
@@ -2425,10 +2860,13 @@ function render() {
       ${src}
       ${priceHtml}
       <div class="card-footer">
-        <input type="number" id="qty-${i}" value="1" min="1" max="100000" oninput="updateTotalPrice(${i}, this.value)" />
-        <button class="add-btn${inCart ? ' added' : ''}" id="addbtn-${i}" onclick="addToCart(${i})">
-          <span>${inCart ? '✓ Adicionado' : 'Adicionar'}</span>
-        </button>
+        <input type="number" id="qty-${i}" value="1" min="1" max="100000" oninput="const v=parseInt(this.value,10); this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v); updateTotalPrice(${i}, this.value)" onkeydown="if(event.key==='-'||event.key==='e')event.preventDefault()" />
+        <div class="card-footer-added">
+          <button class="add-btn${inCart ? ' added' : ''}" id="addbtn-${i}" onclick="addToCart(${i})" style="flex:1">
+            <span id="addbtn-label-${i}">${inCart ? '✓ ' + cart[i].toLocaleString() : 'Adicionar'}</span>
+          </button>
+          ${inCart ? `<button class="inline-rem-btn" id="rembtn-${i}" onclick="removeFromCart(${i})" title="Remover do carrinho">&#x2715;</button>` : `<span id="rembtn-${i}"></span>`}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2467,8 +2905,34 @@ function sendToWhatsApp() {
 
   let msg = '🛒 *Lista de Itens*\n\n' + lines.join('\n');
   if (grandTotalRaw > 0) {
+    const TAXA_THRESHOLD = 10000000;
+    const TAXA_VALOR = 5000000;
+    const hasTaxa = grandTotalRaw < TAXA_THRESHOLD;
+    const grandTotalFinal = hasTaxa ? grandTotalRaw + TAXA_VALOR : grandTotalRaw;
     const gt = formatKK(grandTotalRaw);
-    msg += `\n\n💰 *Total: ${gt.label} (${gt.brl})*`;
+    msg += `\n\n💰 *Subtotal: ${gt.label} (${gt.brl})*`;
+    if (hasTaxa) {
+      const gtFinal = formatKK(grandTotalFinal);
+      msg += `\n⚠️ *Taxa (compra < 10kk): +5kk*\n💳 *Total Final: ${gtFinal.label} (${gtFinal.brl})*`;
+    }
+  }
+
+  // Adiciona forma de pagamento à mensagem
+  const mode = _currentPayMode;
+  if (mode === 'kk') {
+    const kkD = formatKK(_payTotalKk);
+    msg += kkD ? `\n\n💎 *Pagamento: ${kkD.label} KK (moeda do jogo)*` : '';
+  } else if (mode === 'brl') {
+    const brlStr = _payTotalBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    msg += `\n\n💵 *Pagamento: ${brlStr} via PIX*`;
+  } else if (mode === 'mix') {
+    const kkVal  = parseFloat(document.getElementById('mix-kk-input').value) || 0;
+    const brlVal = parseFloat(document.getElementById('mix-brl-input').value) || 0;
+    if (kkVal > 0 || brlVal > 0) {
+      const kkD   = formatKK(kkVal * 1000000);
+      const brlStr = brlVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      msg += `\n\n⚡ *Pagamento misto:*\n   💎 ${kkD ? kkD.label : '0'} KK + 💵 ${brlStr} via PIX`;
+    }
   }
 
   const phone = '5565999911832';
@@ -2483,8 +2947,26 @@ function addToCart(i) {
   if (val > 100000) val = 100000;
   cart[i] = (cart[i] || 0) + val;
   updateCartBadge();
+  // Atualiza label do botão com a quantidade total no carrinho
   const btn = document.getElementById('addbtn-' + i);
-  if (btn) { btn.innerHTML = '<span>✓ Adicionado</span>'; btn.classList.add('added'); }
+  const lbl = document.getElementById('addbtn-label-' + i);
+  if (btn) { btn.classList.add('added'); }
+  if (lbl) { lbl.textContent = '\u2713 ' + cart[i].toLocaleString(); }
+  // Mostra botão remover inline se ainda não estiver visível
+  const remSlot = document.getElementById('rembtn-' + i);
+  if (remSlot && remSlot.tagName === 'SPAN') {
+    const remBtn = document.createElement('button');
+    remBtn.className = 'inline-rem-btn';
+    remBtn.id = 'rembtn-' + i;
+    remBtn.title = 'Remover do carrinho';
+    remBtn.innerHTML = '\u2715';
+    remBtn.onclick = () => removeFromCart(i);
+    remSlot.replaceWith(remBtn);
+  }
+  // Atualiza carrinho se estiver aberto
+  if (document.getElementById('cart-overlay').classList.contains('open')) {
+    renderCart();
+  }
 }
 
 function updateCartBadge() {
@@ -2531,16 +3013,34 @@ function renderCart() {
   document.getElementById('cart-total-num').textContent = total.toLocaleString();
   footer.style.display = 'block';
 
+  const TAXA_THRESHOLD = 10000000; // 10kk
+  const TAXA_VALOR = 5000000;      // 5kk
+
   // Update grand total in footer
   const gtKkEl = document.getElementById('cart-grand-kk');
   const gtBrlEl = document.getElementById('cart-grand-brl');
+  const gtKkFinalEl = document.getElementById('cart-grand-kk-final');
+  const taxaRow = document.getElementById('cart-taxa-row');
+  const taxaAviso = document.getElementById('cart-taxa-aviso');
+  const totalFinalRow = document.getElementById('cart-total-final-row');
   if (grandTotalRaw > 0) {
+    const hasTaxa = grandTotalRaw < TAXA_THRESHOLD;
+    const grandTotalFinal = hasTaxa ? grandTotalRaw + TAXA_VALOR : grandTotalRaw;
     const gtData = formatKK(grandTotalRaw);
+    const gtFinalData = formatKK(grandTotalFinal);
     if (gtKkEl) gtKkEl.textContent = gtData.label;
-    if (gtBrlEl) gtBrlEl.textContent = gtData.brl;
+    // BRL is always based on final total
+    if (gtBrlEl) gtBrlEl.textContent = formatKK(grandTotalFinal).brl;
+    if (taxaAviso) taxaAviso.style.display = hasTaxa ? 'flex' : 'none';
+    if (taxaRow) taxaRow.style.display = hasTaxa ? 'flex' : 'none';
+    if (totalFinalRow) totalFinalRow.style.display = hasTaxa ? 'flex' : 'none';
+    if (gtKkFinalEl && hasTaxa) gtKkFinalEl.textContent = gtFinalData.label;
     document.getElementById('cart-grand-total-block').style.display = 'block';
+    // Atualiza painel de pagamento
+    updatePayDisplay(grandTotalRaw, grandTotalFinal, parseFloat((grandTotalFinal / 1000000 * 1.70).toFixed(2)));
   } else {
     document.getElementById('cart-grand-total-block').style.display = 'none';
+    if (taxaAviso) taxaAviso.style.display = 'none';
   }
 
   list.innerHTML = keys.map(k => {
@@ -2572,10 +3072,108 @@ function renderCart() {
   }).join('');
 }
 
+// ===================== PAYMENT MODE =====================
+let _payTotalKk = 0;  // total final em KK (após taxa)
+let _payTotalBrl = 0; // total final em BRL
+let _currentPayMode = 'kk';
+
+function setPayMode(mode) {
+  _currentPayMode = mode;
+  document.querySelectorAll('.pay-mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.pay-mode-btn.' + mode).classList.add('active');
+  document.querySelectorAll('.pay-block').forEach(b => b.classList.remove('active'));
+  document.getElementById('pay-block-' + mode).classList.add('active');
+  if (mode === 'mix') syncMixInputs();
+}
+
+function updatePayDisplay(totalKkRaw, totalFinalKkRaw, totalFinalBrl) {
+  _payTotalKk  = totalFinalKkRaw;
+  _payTotalBrl = totalFinalBrl;
+
+  // KK block
+  const kkData = formatKK(totalFinalKkRaw);
+  document.getElementById('pay-kk-total').textContent    = kkData ? kkData.label : '—';
+  document.getElementById('pay-kk-brl-hint').textContent = kkData ? 'equivale a ' + kkData.brl : '';
+
+  // BRL block
+  const brlStr = (totalFinalBrl).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const kkHint = kkData ? kkData.label + ' KK' : '—';
+  document.getElementById('pay-brl-total').textContent    = brlStr;
+  document.getElementById('pay-brl-kk-hint').textContent  = 'equivale a ' + kkHint;
+
+  // Mix: reset inputs quando o total muda
+  if (_currentPayMode === 'mix') syncMixInputs(true);
+  else {
+    document.getElementById('mix-kk-input').value  = '';
+    document.getElementById('mix-brl-input').value = '';
+    document.getElementById('mix-balance').textContent = 'Preencha os valores acima';
+    document.getElementById('mix-balance').className   = 'pay-mix-balance';
+  }
+}
+
+function syncMixInputs(reset) {
+  if (reset) {
+    document.getElementById('mix-kk-input').value  = '';
+    document.getElementById('mix-brl-input').value = '';
+    document.getElementById('mix-balance').textContent = 'Preencha os valores acima';
+    document.getElementById('mix-balance').className   = 'pay-mix-balance';
+  }
+}
+
+function onMixKkChange(val) {
+  const kkPaid  = Math.max(0, parseFloat(val) || 0);
+  // kk inserido é em unidades de kk (ex: 5 = 5kk = 5_000_000)
+  const kkPaidRaw = kkPaid * 1000000;
+  const remaining = _payTotalBrl - (kkPaidRaw / 1000000 * 1.70);
+  const brlLeft = Math.max(0, _payTotalBrl - (kkPaidRaw / 1000000 * 1.70));
+  // Atualiza campo BRL
+  document.getElementById('mix-brl-input').value = brlLeft > 0 ? brlLeft.toFixed(2) : '0.00';
+  updateMixBalance(kkPaidRaw, brlLeft);
+}
+
+function onMixBrlChange(val) {
+  const brlPaid = Math.max(0, parseFloat(val) || 0);
+  const brlLeft = Math.max(0, _payTotalBrl - brlPaid);
+  // converte o restante em KK
+  const kkLeft  = brlLeft / 1.70; // 1kk = R$1.70
+  document.getElementById('mix-kk-input').value = kkLeft > 0 ? kkLeft.toFixed(4) : '0';
+  updateMixBalance(kkLeft * 1000000, brlPaid);
+}
+
+function updateMixBalance(kkPaidRaw, brlPaid) {
+  const totalPaidBrl = (kkPaidRaw / 1000000 * 1.70) + brlPaid;
+  const diff = totalPaidBrl - _payTotalBrl;
+  const el   = document.getElementById('mix-balance');
+  const kkData = formatKK(kkPaidRaw);
+  const brlStr = brlPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  if (Math.abs(diff) < 0.01) {
+    el.textContent = '✓ Pagamento completo: ' + (kkData ? kkData.label + ' KK' : '0') + ' + ' + brlStr;
+    el.className = 'pay-mix-balance ok';
+  } else if (diff < 0) {
+    const falta = Math.abs(diff).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    el.textContent = 'Falta ' + falta + ' para completar';
+    el.className = 'pay-mix-balance';
+  } else {
+    const excesso = diff.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    el.textContent = 'Excedendo ' + excesso + ' do total';
+    el.className = 'pay-mix-balance over';
+  }
+}
+
 function removeFromCart(i) {
   delete cart[i];
+  // Reseta botão adicionar
   const btn = document.getElementById('addbtn-' + i);
-  if (btn) { btn.innerHTML = '<span>Adicionar</span>'; btn.classList.remove('added'); }
+  const lbl = document.getElementById('addbtn-label-' + i);
+  if (btn) { btn.classList.remove('added'); }
+  if (lbl) { lbl.textContent = 'Adicionar'; }
+  // Remove botão inline de remover, volta para span vazio
+  const remBtn = document.getElementById('rembtn-' + i);
+  if (remBtn && remBtn.tagName === 'BUTTON') {
+    const span = document.createElement('span');
+    span.id = 'rembtn-' + i;
+    remBtn.replaceWith(span);
+  }
   updateCartBadge();
   renderCart();
 }
@@ -2583,8 +3181,30 @@ function removeFromCart(i) {
 function clearCart() {
   Object.keys(cart).forEach(k => {
     const btn = document.getElementById('addbtn-' + k);
-    if (btn) { btn.innerHTML = '<span>Adicionar</span>'; btn.classList.remove('added'); }
+    const lbl = document.getElementById('addbtn-label-' + k);
+    if (btn) { btn.classList.remove('added'); }
+    if (lbl) { lbl.textContent = 'Adicionar'; }
+    const remBtn = document.getElementById('rembtn-' + k);
+    if (remBtn && remBtn.tagName === 'BUTTON') {
+      const span = document.createElement('span');
+      span.id = 'rembtn-' + k;
+      remBtn.replaceWith(span);
+    }
     delete cart[k];
+  });
+  // Reseta botões de pacote
+  pkgCartCount = {};
+  PACKAGES.forEach((_, pi) => {
+    const pkgBtn = document.getElementById('pkgbtn-' + pi);
+    const pkgLbl = document.getElementById('pkgbtn-label-' + pi);
+    if (pkgBtn) { pkgBtn.classList.remove('added'); }
+    if (pkgLbl) { pkgLbl.textContent = '+ Adicionar ao Carrinho'; }
+    const pkgRemBtn = document.getElementById('pkgrem-' + pi);
+    if (pkgRemBtn && pkgRemBtn.tagName === 'BUTTON') {
+      const span = document.createElement('span');
+      span.id = 'pkgrem-' + pi;
+      pkgRemBtn.replaceWith(span);
+    }
   });
   updateCartBadge();
   renderCart();
@@ -2616,11 +3236,20 @@ function getPkgTotal(pkg) {
 
 function renderPackages() {
   const grid = document.getElementById('packages-grid');
+  const q = (document.getElementById('pkg-search') ? document.getElementById('pkg-search').value : '').toLowerCase();
   if (!PACKAGES.length) {
     grid.innerHTML = '<div class="no-results">Nenhum pacote cadastrado.</div>';
     return;
   }
-  grid.innerHTML = PACKAGES.map((pkg, pi) => {
+  const filtered = PACKAGES.filter((pkg, pi) => !q || pkg.name.toLowerCase().includes(q));
+  const pkgCountEl = document.getElementById('pkg-count-label');
+  if (pkgCountEl) pkgCountEl.textContent = filtered.length + (filtered.length === 1 ? ' pacote' : ' pacotes');
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="no-results">Nenhum pacote encontrado.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map((pkg) => {
+    const pi = PACKAGES.indexOf(pkg);
     const totalRaw = getPkgTotal(pkg);
     const totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
     const previewItems = pkg.items.slice(0, 6).map(([name, qty]) =>
@@ -2639,9 +3268,12 @@ function renderPackages() {
       </div>
       <div class="pkg-body">${previewItems}</div>
       <div class="pkg-footer">
-        <button class="pkg-add-btn" onclick="event.stopPropagation(); addPackageToCartDirect(${pi})">
-          <span>+ Adicionar ao Carrinho</span>
-        </button>
+        <div class="pkg-footer-row">
+          <button class="pkg-add-btn" id="pkgbtn-${pi}" onclick="event.stopPropagation(); addPackageToCartDirect(${pi})" style="flex:1">
+            <span id="pkgbtn-label-${pi}">+ Adicionar ao Carrinho</span>
+          </button>
+          <span id="pkgrem-${pi}"></span>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2670,7 +3302,8 @@ function renderPkgModalRows() {
           class="pkg-modal-qty-input"
           type="number" min="0" max="999999"
           value="${entry.qty}"
-          oninput="updatePkgQty(${idx}, this.value)"
+          oninput="if(this.value<0||this.value==='')this.value=0; updatePkgQty(${idx}, this.value)"
+          onkeydown="if(event.key==='-'||event.key==='e')event.preventDefault()"
         />
         <button class="pkg-modal-rem-btn" onclick="removePkgItem(${idx})" title="Remover">&#x2715;</button>
       </div>
@@ -2741,15 +3374,89 @@ function addPackageToCart() {
 }
 
 function addPackageToCartDirect(pi) {
+  // Contabiliza quantas vezes esse pacote foi adicionado
+  pkgCartCount = pkgCartCount || {};
+  pkgCartCount[pi] = (pkgCartCount[pi] || 0) + 1;
+
   PACKAGES[pi].items.forEach(([name, qty]) => {
     if (!qty || qty <= 0) return;
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + qty;
+    // Atualiza botão inline do card de item se estiver visível
     const btn = document.getElementById('addbtn-' + idx);
-    if (btn) { btn.innerHTML = '<span>✓ Adicionado</span>'; btn.classList.add('added'); }
+    const lbl = document.getElementById('addbtn-label-' + idx);
+    if (btn) { btn.classList.add('added'); }
+    if (lbl) { lbl.textContent = '\u2713 ' + cart[idx].toLocaleString(); }
+    const remSlot = document.getElementById('rembtn-' + idx);
+    if (remSlot && remSlot.tagName === 'SPAN') {
+      const remBtn = document.createElement('button');
+      remBtn.className = 'inline-rem-btn';
+      remBtn.id = 'rembtn-' + idx;
+      remBtn.title = 'Remover do carrinho';
+      remBtn.innerHTML = '\u2715';
+      remBtn.onclick = () => removeFromCart(idx);
+      remSlot.replaceWith(remBtn);
+    }
   });
   updateCartBadge();
+
+  // Atualiza botão do card de pacote com contador de adições
+  const pkgBtn = document.getElementById('pkgbtn-' + pi);
+  const pkgLbl = document.getElementById('pkgbtn-label-' + pi);
+  if (pkgBtn) { pkgBtn.classList.add('added'); }
+  if (pkgLbl) { pkgLbl.textContent = '\u2713 Adicionado ' + pkgCartCount[pi] + '\u00d7'; }
+  // Exibe botão remover inline do pacote
+  const pkgRemSlot = document.getElementById('pkgrem-' + pi);
+  if (pkgRemSlot && pkgRemSlot.tagName === 'SPAN') {
+    const remBtn = document.createElement('button');
+    remBtn.className = 'pkg-inline-rem-btn';
+    remBtn.id = 'pkgrem-' + pi;
+    remBtn.title = 'Remover pacote do carrinho';
+    remBtn.innerHTML = '\u2715';
+    remBtn.onclick = (e) => { e.stopPropagation(); removePackageFromCart(pi); };
+    pkgRemSlot.replaceWith(remBtn);
+  }
+
+  // Atualiza o painel do carrinho caso esteja aberto
+  if (document.getElementById('cart-overlay').classList.contains('open')) {
+    renderCart();
+  }
+}
+
+function removePackageFromCart(pi) {
+  pkgCartCount = pkgCartCount || {};
+  PACKAGES[pi].items.forEach(([name]) => {
+    const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
+    if (idx === -1) return;
+    delete cart[idx];
+    const btn = document.getElementById('addbtn-' + idx);
+    const lbl = document.getElementById('addbtn-label-' + idx);
+    if (btn) { btn.classList.remove('added'); }
+    if (lbl) { lbl.textContent = 'Adicionar'; }
+    const remBtn = document.getElementById('rembtn-' + idx);
+    if (remBtn && remBtn.tagName === 'BUTTON') {
+      const span = document.createElement('span');
+      span.id = 'rembtn-' + idx;
+      remBtn.replaceWith(span);
+    }
+  });
+  delete pkgCartCount[pi];
+  // Reseta botão do card de pacote
+  const pkgBtn = document.getElementById('pkgbtn-' + pi);
+  const pkgLbl = document.getElementById('pkgbtn-label-' + pi);
+  if (pkgBtn) { pkgBtn.classList.remove('added'); }
+  if (pkgLbl) { pkgLbl.textContent = '+ Adicionar ao Carrinho'; }
+  const pkgRemBtn = document.getElementById('pkgrem-' + pi);
+  if (pkgRemBtn && pkgRemBtn.tagName === 'BUTTON') {
+    const span = document.createElement('span');
+    span.id = 'pkgrem-' + pi;
+    pkgRemBtn.replaceWith(span);
+  }
+  updateCartBadge();
+  if (document.getElementById('cart-overlay').classList.contains('open')) {
+    renderCart();
+  }
 }
 
 render();
