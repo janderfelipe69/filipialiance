@@ -938,6 +938,406 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 }
 .cart-empty svg { opacity: 0.15; }
 
+/* ===================== TABS ===================== */
+.tabs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(4,6,14,0.97);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--blue-bright);
+  border-bottom-color: var(--blue);
+  background: rgba(58,140,255,0.05);
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===================== PACOTES ===================== */
+.packages-wrap {
+  padding: 24px 32px 120px;
+  position: relative;
+  z-index: 1;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.pkg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  animation: cardIn 0.3s ease both;
+  cursor: pointer;
+  position: relative;
+}
+
+.pkg-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--gold));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.pkg-card:hover {
+  border-color: rgba(58,140,255,0.4);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(58,140,255,0.08);
+  transform: translateY(-3px);
+}
+.pkg-card:hover::before { opacity: 1; }
+
+.pkg-header {
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.pkg-name {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.pkg-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pkg-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.pkg-total-price {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+}
+
+.pkg-body {
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 160px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pkg-body::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, var(--surface));
+  pointer-events: none;
+}
+
+.pkg-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.pkg-item-name {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text);
+  text-transform: capitalize;
+  opacity: 0.85;
+}
+
+.pkg-item-qty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--blue-bright);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pkg-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.pkg-add-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(58,140,255,0.3);
+  border-radius: 8px;
+  color: var(--muted);
+  font-family: var(--font-title);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+.pkg-add-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--blue), #1a6fe8);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pkg-add-btn span { position: relative; z-index: 1; }
+.pkg-add-btn:hover { border-color: var(--blue); color: #fff; }
+.pkg-add-btn:hover::before { opacity: 1; }
+
+/* ===================== MODAL DE PACOTE ===================== */
+.pkg-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 200;
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pkg-overlay.open { display: flex; }
+
+.pkg-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalIn 0.25s cubic-bezier(.22,.68,0,1.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.pkg-modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--gold), var(--blue));
+  background-size: 200%;
+  animation: cartTop 3s linear infinite;
+}
+
+@keyframes modalIn {
+  from { transform: scale(0.92) translateY(20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.pkg-modal-header {
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pkg-modal-title {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  background: linear-gradient(90deg, var(--blue-bright), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.3;
+}
+
+.pkg-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pkg-modal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 10px;
+  transition: border-color 0.15s, opacity 0.2s;
+}
+.pkg-modal-row:hover { border-color: var(--border-hover); }
+.pkg-modal-row.removed { opacity: 0.3; pointer-events: none; }
+
+.pkg-modal-item-name {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+  flex: 1;
+  min-width: 0;
+}
+
+.pkg-modal-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pkg-modal-qty-input {
+  width: 64px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--blue-bright);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 6px;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.pkg-modal-qty-input:focus { border-color: var(--blue); }
+.pkg-modal-qty-input::-webkit-inner-spin-button { opacity: 0.3; }
+
+.pkg-modal-price {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  min-width: 54px;
+  text-align: right;
+}
+
+.pkg-modal-rem-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.pkg-modal-rem-btn:hover { color: #ff6b6b; }
+
+.pkg-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pkg-modal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(58,140,255,0.08), rgba(240,180,41,0.06));
+  border: 1px solid rgba(240,180,41,0.2);
+  border-radius: var(--radius);
+}
+
+.pkg-modal-total-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pkg-modal-total-val {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.pkg-modal-total-kk {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--blue-bright);
+}
+
+.pkg-modal-total-brl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+}
+
+.pkg-modal-add-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--blue), #1a6fe8);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  box-shadow: 0 4px 20px var(--glow-blue);
+}
+.pkg-modal-add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 25px var(--glow-blue); }
+
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 700px) {
   .header-grid { grid-template-columns: auto 1fr; padding: 14px 16px; gap: 14px; }
@@ -1027,6 +1427,21 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
   </div>
 </header>
 
+<!-- TABS NAV -->
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="switchTab('itens', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Itens
+  </button>
+  <button class="tab-btn" onclick="switchTab('pacotes', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    Pacotes
+  </button>
+</div>
+
+<!-- TAB: ITENS -->
+<div class="tab-content active" id="tab-itens">
+
 <!-- CONTROLS -->
 <div class="controls">
   <div class="search-wrap">
@@ -1056,6 +1471,38 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 <!-- GRID -->
 <div class="grid-wrap">
   <div class="grid" id="grid"></div>
+</div>
+
+</div><!-- /tab-itens -->
+
+<!-- TAB: PACOTES -->
+<div class="tab-content" id="tab-pacotes">
+  <div class="packages-wrap">
+    <div class="packages-grid" id="packages-grid"></div>
+  </div>
+</div>
+
+<!-- MODAL DE PACOTE -->
+<div class="pkg-overlay" id="pkg-overlay" onclick="handlePkgOverlayClick(event)">
+  <div class="pkg-modal" id="pkg-modal">
+    <div class="pkg-modal-header">
+      <div class="pkg-modal-title" id="pkg-modal-title">Pacote</div>
+      <button class="close-btn" onclick="closePkgModal()">&#x2715;</button>
+    </div>
+    <div class="pkg-modal-body" id="pkg-modal-body"></div>
+    <div class="pkg-modal-footer">
+      <div class="pkg-modal-total" id="pkg-modal-total" style="display:none">
+        <span class="pkg-modal-total-label">Total do Pacote</span>
+        <div class="pkg-modal-total-val">
+          <span class="pkg-modal-total-kk" id="pkg-modal-kk">—</span>
+          <span class="pkg-modal-total-brl" id="pkg-modal-brl">—</span>
+        </div>
+      </div>
+      <button class="pkg-modal-add-btn" onclick="addPackageToCart()">
+        + Adicionar Pacote ao Carrinho
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- CART -->
@@ -1160,7 +1607,7 @@ const RAW = [
   ["blond hawk","",350000,"t5","evo1"],
   ["blue canine tail","",350000,"t5","evo1"],
   ["blue coconut leaves","",5000000,"t2","evo2"],
-  ["blue hair","",0,"",""],
+  ["blue hair","",350000,"t5","evo1"],
   ["blue mohawk","",0,"",""],
   ["blue mouse tail","",0,"",""],
   ["blue psychic vest","",0,"",""],
@@ -1170,7 +1617,6 @@ const RAW = [
   ["blue shell","",0,"",""],
   ["blue wings","",0,"",""],
   ["bone","",0,"",""],
-  ["boulder badge","",0,"",""],
   ["bowl hair","",0,"",""],
   ["boxing gloves","",0,"",""],
   ["brown bulb","",0,"",""],
@@ -1179,13 +1625,12 @@ const RAW = [
   ["butterfree wing","Butterfree",0,"",""],
   ["canine tail","Vulpix",0,"",""],
   ["carmine wing","Shiny Spearow",0,"",""],
-  ["cascade badge","Cerulean Gym",0,"",""],
   ["champion underwear","Shiny Machoke",0,"",""],
   ["cobra tail","Arbok",0,"",""],
   ["cocoon stone","",4500,"",""],
   ["coconut leaves","Exeggutor",0,"",""],
   ["contagious pore","Shiny Koffing",0,"",""],
-  ["cow tail","Miltank",0,"",""],
+  ["cow tail","",720,"mark",""],
   ["crocodile hair","Croconaw",0,"",""],
   ["crystal stone","",15000,"",""],
   ["cute ball","Whismur",0,"",""],
@@ -1205,7 +1650,6 @@ const RAW = [
   ["dratini ear","Dratini",0,"",""],
   ["drowzee trunk","Drowzee",0,"",""],
   ["duck paw","Golduck",0,"",""],
-  ["earth badge","Viridian Gym",0,"",""],
   ["earth stone","",4500,"",""],
   ["ectoplasm","Gengar",0,"",""],
   ["electric collar","Jolteon",0,"",""],
@@ -1225,7 +1669,7 @@ const RAW = [
   ["fighter essence","",0,"",""],
   ["fighter hawk","Machop",0,"",""],
   ["fighter underwear","Machoke",0,"",""],
-  ["fire hair","Ponyta",0,"",""],
+  ["fire hair","Ponyta",160,"mark",""],
   ["fire hoof","Rapidash",0,"",""],
   ["fire plume","Torchic",0,"",""],
   ["fire stone","",4500,"",""],
@@ -1274,7 +1718,6 @@ const RAW = [
   ["magnet","Magneton",0,"",""],
   ["malfunctioning core","",0,"",""],
   ["mankey tail","",0,"",""],
-  ["marsh badge","",0,"",""],
   ["metal bracelet","",0,"",""],
   ["miss traces","",0,"",""],
   ["moon topknot","",0,"",""],
@@ -1305,7 +1748,7 @@ const RAW = [
   ["pieces of shell","Cloyster",0,"",""],
   ["pink bug horn","Shiny Heracross",0,"",""],
   ["pink dainty wing","Shiny Togetic",0,"",""],
-  ["pink wings","Clefable",0,"",""],
+  ["pink wings","",740,"mark",""],
   ["poison essence","",0,"",""],
   ["poison pore","Koffing",0,"",""],
   ["poisoned fish tail","Shiny Qwilfish",0,"",""],
@@ -1327,7 +1770,6 @@ const RAW = [
   ["purple stone forehead","",0,"",""],
   ["queen ear","Nidoqueen",0,"",""],
   ["quilava fur","Quilava",0,"",""],
-  ["rainbow badge","Celadon Gym",0,"",""],
   ["rainbow gift tail","Shiny Delibird",0,"",""],
   ["red cocoon","Shiny Kakuna",0,"",""],
   ["red hair","Feraligatr",0,"",""],
@@ -1364,15 +1806,14 @@ const RAW = [
   ["simple psychic orb","",350000,"","evo1"],
   ["simple rock orb","",350000,"","evo1"],
   ["simple water orb","",350000,"","evo1"],
-  ["small blue fin","Shiny Remoraid",0,"",""],
-  ["small handfull of stones","Diglett",0,"",""],
-  ["small yellow stones","Shiny Diglett",0,"",""],
-  ["smoked bones","Shiny Houndour",0,"",""],
-  ["snake tail","Ekans",0,"",""],
-  ["snorlax paw","Snorlax",0,"",""],
+  ["small blue fin","",0,"",""],
+  ["small handfull of stones","",0,"",""],
+  ["small yellow stones","",0,"",""],
+  ["smoked bones","",0,"",""],
+  ["snake tail","",0,"",""],
+  ["snorlax paw","",980,"mark",""],
   ["snubull ear","Snubbull",0,"",""],
   ["soft wool","Flaaffy",0,"",""],
-  ["soul badge","Fuchsia Gym",0,"",""],
   ["sparkle antenna","Shiny Caterpie",0,"",""],
   ["star jewel","Starmie",0,"",""],
   ["steel essence","",0,"",""],
@@ -1382,7 +1823,6 @@ const RAW = [
   ["stone rocks","Golem",0,"",""],
   ["strange ball","Trapinch",0,"",""],
   ["strong magnet","Shiny Magneton",0,"",""],
-  ["thunder badge","Vermilion Gym",0,"",""],
   ["thunder stone","",4500,"",""],
   ["toxic scale","Weezing",0,"",""],
   ["toxic thing","Gulpin",0,"",""],
@@ -1391,20 +1831,55 @@ const RAW = [
   ["tyranitar tail","Tyranitar",0,"",""],
   ["venom stone","",4500,"",""],
   ["vine hair","Tangela",0,"",""],
-  ["volcano badge","Cinnabar Gym",0,"",""],
   ["wartortle ear","Wartortle",0,"",""],
   ["water cannon","Blastoise",0,"",""],
   ["water essence","",0,"",""],
   ["water stone","",4500,"",""],
   ["white monkey tail","Shiny Mankey",0,"",""],
   ["white tail","Shiny Horsea",0,"",""],
-  ["wigglytuff ear","Wigglytuff",0,"",""],
+  ["wigglytuff ear","",740,"mark",""],
   ["worm horn","Wurmple",0,"",""],
   ["xatu wing","Xatu",0,"",""],
   ["yellow beak","Murkrow",0,"",""],
   ["yellow bird crest","Shiny Pidgey",0,"",""],
   ["yellow cocoon","Kakuna",0,"",""],
   ["yellow sting","Shiny Weedle",0,"",""],
+];
+
+// ============================================================
+// CONFIGURAÇÃO DOS PACOTES
+// Formato:
+// {
+//   name: "Nome do Pacote",
+//   items: [
+//     ["nome do item", quantidade],
+//     ...
+//   ]
+// }
+//
+// O nome do item deve bater exatamente com o nome no RAW.
+// Exemplo:
+// { name: "Full Character Speed", items: [
+//     ["fire hair", 80],
+//     ["blue hair", 1],
+//     ["fire hoof", 100],
+//     ["giant piece of fur", 100],
+// ]}
+// ============================================================
+const PACKAGES = [
+  {
+    name: "Exemplo — Full Character Speed",
+    items: [
+      ["fire hair", 80],
+      ["blue hair", 1],
+      ["fire hoof", 100],
+      ["giant piece of fur", 100],
+	  ["yellow bird crest", 100],
+	  ["giant piece of fur", 100],
+	  ["giant piece of fur", 100],
+	  ["giant piece of fur", 100],
+    ]
+  },
 ];
 
 const KK_TO_BRL = 1.70;
@@ -1695,6 +2170,168 @@ function clearCart() {
   });
   updateCartBadge();
   renderCart();
+}
+
+// ===================== TABS =====================
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'pacotes') renderPackages();
+}
+
+// ===================== PACOTES =====================
+let currentPkg = null;
+let currentPkgState = [];
+
+function getPkgItemData(itemName) {
+  return items.find(i => i.name.toLowerCase() === itemName.toLowerCase()) || null;
+}
+
+function getPkgTotal(pkg) {
+  return pkg.items.reduce((sum, [name, qty]) => {
+    const item = getPkgItemData(name);
+    return sum + (item && item.price ? item.price * qty : 0);
+  }, 0);
+}
+
+function renderPackages() {
+  const grid = document.getElementById('packages-grid');
+  if (!PACKAGES.length) {
+    grid.innerHTML = '<div class="no-results">Nenhum pacote cadastrado.</div>';
+    return;
+  }
+  grid.innerHTML = PACKAGES.map((pkg, pi) => {
+    const totalRaw = getPkgTotal(pkg);
+    const totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
+    const previewItems = pkg.items.slice(0, 6).map(([name, qty]) =>
+      `<div class="pkg-item-row">
+        <span class="pkg-item-name">${name}</span>
+        <span class="pkg-item-qty">×${qty.toLocaleString()}</span>
+      </div>`
+    ).join('');
+    return `<div class="pkg-card" onclick="openPkgModal(${pi})">
+      <div class="pkg-header">
+        <div class="pkg-name">${pkg.name}</div>
+        <div class="pkg-meta">
+          <span class="pkg-count">${pkg.items.length} ${pkg.items.length === 1 ? 'item' : 'itens'}</span>
+          ${totalData ? `<span class="pkg-total-price">${totalData.label} · ${totalData.brl}</span>` : ''}
+        </div>
+      </div>
+      <div class="pkg-body">${previewItems}</div>
+      <div class="pkg-footer">
+        <button class="pkg-add-btn" onclick="event.stopPropagation(); addPackageToCartDirect(${pi})">
+          <span>+ Adicionar ao Carrinho</span>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openPkgModal(pi) {
+  currentPkg = pi;
+  // copia os itens para estado editável (não modifica o PACKAGES original)
+  currentPkgState = PACKAGES[pi].items.map(([name, qty]) => ({ name, qty }));
+  document.getElementById('pkg-modal-title').textContent = PACKAGES[pi].name;
+  renderPkgModalRows();
+  document.getElementById('pkg-overlay').classList.add('open');
+}
+
+function renderPkgModalRows() {
+  const body = document.getElementById('pkg-modal-body');
+  body.innerHTML = currentPkgState.map((entry, idx) => {
+    const item = getPkgItemData(entry.name);
+    const lineTotal = item && item.price && entry.qty > 0 ? item.price * entry.qty : 0;
+    const priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
+    return `<div class="pkg-modal-row" id="pkg-row-${idx}">
+      <span class="pkg-modal-item-name">${entry.name}</span>
+      <div class="pkg-modal-item-right">
+        <span class="pkg-modal-price" id="pkg-price-${idx}">${priceData ? priceData.label : '—'}</span>
+        <input
+          class="pkg-modal-qty-input"
+          type="number" min="0" max="999999"
+          value="${entry.qty}"
+          oninput="updatePkgQty(${idx}, this.value)"
+        />
+        <button class="pkg-modal-rem-btn" onclick="removePkgItem(${idx})" title="Remover">&#x2715;</button>
+      </div>
+    </div>`;
+  }).join('');
+  updatePkgTotal();
+}
+
+function updatePkgQty(idx, val) {
+  const qty = Math.max(0, parseInt(val, 10) || 0);
+  currentPkgState[idx].qty = qty;
+  // atualiza o preço da linha
+  const item = getPkgItemData(currentPkgState[idx].name);
+  const lineTotal = item && item.price && qty > 0 ? item.price * qty : 0;
+  const priceEl = document.getElementById('pkg-price-' + idx);
+  if (priceEl) priceEl.textContent = lineTotal > 0 ? formatKK(lineTotal).label : '—';
+  updatePkgTotal();
+}
+
+function removePkgItem(idx) {
+  currentPkgState[idx].qty = 0;
+  const row = document.getElementById('pkg-row-' + idx);
+  if (row) row.classList.add('removed');
+  const priceEl = document.getElementById('pkg-price-' + idx);
+  if (priceEl) priceEl.textContent = '—';
+  updatePkgTotal();
+}
+
+function updatePkgTotal() {
+  let totalRaw = 0;
+  currentPkgState.forEach(entry => {
+    const item = getPkgItemData(entry.name);
+    if (item && item.price && entry.qty > 0) totalRaw += item.price * entry.qty;
+  });
+  const totalBlock = document.getElementById('pkg-modal-total');
+  if (totalRaw > 0) {
+    const td = formatKK(totalRaw);
+    document.getElementById('pkg-modal-kk').textContent = td.label;
+    document.getElementById('pkg-modal-brl').textContent = td.brl;
+    totalBlock.style.display = 'flex';
+  } else {
+    totalBlock.style.display = 'none';
+  }
+}
+
+function closePkgModal() {
+  document.getElementById('pkg-overlay').classList.remove('open');
+  currentPkg = null;
+  currentPkgState = [];
+}
+
+function handlePkgOverlayClick(e) {
+  if (e.target === document.getElementById('pkg-overlay')) closePkgModal();
+}
+
+function addPackageToCart() {
+  if (currentPkg === null) return;
+  currentPkgState.forEach(entry => {
+    if (!entry.qty || entry.qty <= 0) return;
+    const idx = items.findIndex(i => i.name.toLowerCase() === entry.name.toLowerCase());
+    if (idx === -1) return;
+    cart[idx] = (cart[idx] || 0) + entry.qty;
+    const btn = document.getElementById('addbtn-' + idx);
+    if (btn) { btn.innerHTML = '<span>✓ Adicionado</span>'; btn.classList.add('added'); }
+  });
+  updateCartBadge();
+  closePkgModal();
+}
+
+function addPackageToCartDirect(pi) {
+  PACKAGES[pi].items.forEach(([name, qty]) => {
+    if (!qty || qty <= 0) return;
+    const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
+    if (idx === -1) return;
+    cart[idx] = (cart[idx] || 0) + qty;
+    const btn = document.getElementById('addbtn-' + idx);
+    if (btn) { btn.innerHTML = '<span>✓ Adicionado</span>'; btn.classList.add('added'); }
+  });
+  updateCartBadge();
 }
 
 render();
