@@ -4000,7 +4000,13 @@ function renderCart() {
 
   list.innerHTML = keys.map(k => {
     const item = items[k];
-    const src = '';
+    const isCaptura = !!item._capturaId;
+    const imgHtml = isCaptura && item.image
+      ? `<img src="${item.image}" style="width:38px;height:38px;object-fit:contain;border-radius:6px;background:rgba(0,0,0,0.25);flex-shrink:0" onerror="this.style.display='none'" />`
+      : '';
+    const ballHtml = isCaptura && item._ballEmoji
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--gold);font-family:var(--font-mono)">${item._ballEmoji.replace('width:40px;height:40px','width:18px;height:18px')}</span>`
+      : '';
     const itemTotalRaw = item.price ? item.price * cart[k] : 0;
     const priceBlock = itemTotalRaw > 0
       ? (() => {
@@ -4014,9 +4020,11 @@ function renderCart() {
         })()
       : '';
     return `<div class="cart-row">
-      <div>
-        <div class="cart-row-name">${item.name}</div>
-        ${src}
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        ${imgHtml}
+        <div style="min-width:0">
+          <div class="cart-row-name" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${item.name} ${ballHtml}</div>
+        </div>
       </div>
       <div class="cart-row-right">
         ${priceBlock}
@@ -4809,6 +4817,28 @@ function confirmCaptura() {
   const finalPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
   const priceData  = formatKK(finalPrice);
   const priceStr   = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
+
+  // ── Adiciona ao carrinho ──
+  // Monta um nome descritivo: "Shiny Charizard (Alliance Ball)"
+  const cartItemName = `${poke.name} (${ball.name})`;
+  // Verifica se já existe um item idêntico no array items
+  let cartKey = items.findIndex(it => it._capturaId === `${currentCapturaIdx}_${selectedBall}`);
+  if (cartKey === -1) {
+    // Cria novo item dinâmico no array items
+    items.push({
+      name: cartItemName,
+      price: finalPrice,
+      image: poke.image,
+      _capturaId: `${currentCapturaIdx}_${selectedBall}`,
+      _ballEmoji: ball.emoji,
+      _ballName: ball.name,
+    });
+    cartKey = items.length - 1;
+  }
+  cart[cartKey] = (cart[cartKey] || 0) + 1;
+  updateCartBadge();
+  if (!finalPrice) showNoPriceToast(cartItemName);
+
   const msg = document.getElementById('captura-success-msg');
   const btn = document.getElementById('captura-confirm-btn');
   if (msg) {
