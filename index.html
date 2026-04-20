@@ -530,6 +530,104 @@ select:focus { border-color: var(--blue); }
   padding: 4px 0;
 }
 
+/* ===================== AVISO SEM PREÇO ===================== */
+.cart-no-price-warning {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(240,180,41,0.12) 0%, rgba(240,140,20,0.08) 100%);
+  border: 1px solid rgba(240,180,41,0.45);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 16px 12px;
+  animation: warnPulse 3s ease-in-out infinite;
+}
+.cart-no-price-warning.visible {
+  display: flex;
+}
+@keyframes warnPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(240,180,41,0); }
+  50% { box-shadow: 0 0 12px 2px rgba(240,180,41,0.18); }
+}
+.cart-warn-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  animation: warnIconBounce 2s ease-in-out infinite;
+}
+@keyframes warnIconBounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.cart-warn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cart-warn-title {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.cart-warn-desc {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(240,210,100,0.75);
+  line-height: 1.4;
+}
+.cart-warn-items {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(240,190,80,0.65);
+  margin-top: 3px;
+}
+
+/* ===================== TOAST SEM PREÇO ===================== */
+#no-price-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #1a1200 0%, #2a1e00 100%);
+  border: 1px solid rgba(240,180,41,0.6);
+  border-radius: 14px;
+  padding: 14px 20px;
+  min-width: 300px;
+  max-width: 440px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 20px rgba(240,180,41,0.2);
+  transition: transform 0.4s cubic-bezier(.22,.68,0,1.2), opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+#no-price-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast-icon { font-size: 22px; flex-shrink: 0; }
+.toast-body { display: flex; flex-direction: column; gap: 3px; }
+.toast-title {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.toast-msg {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(240,210,120,0.85);
+  line-height: 1.35;
+}
+
 .price-total-kk {
   font-family: var(--font-mono);
   font-size: 13px;
@@ -2563,6 +2661,14 @@ body:has(button:hover) .cursor-dot {
       <h2>Carrinho</h2>
       <button class="close-btn" onclick="closeCart()">&#x2715;</button>
     </div>
+    <div class="cart-no-price-warning" id="cart-no-price-warning">
+      <span class="cart-warn-icon">⚠️</span>
+      <div class="cart-warn-text">
+        <span class="cart-warn-title">Total sujeito a alteração</span>
+        <span class="cart-warn-desc">Um ou mais itens do carrinho ainda não têm preço definido. O valor final será ajustado assim que os preços forem estabelecidos.</span>
+        <span class="cart-warn-items" id="cart-warn-items-list"></span>
+      </div>
+    </div>
     <div class="cart-list" id="cart-list">
       <div class="cart-empty">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
@@ -2763,7 +2869,7 @@ const RAW = [
   ["electric sheep tail","",740,"mark",""],
   ["electric soft wool","",0,"",""],
   ["electric tail","",980,"mark",""],
-  ["elephant foot","",0,"",""],
+  ["elephant foot","",740,"mark",""],
   ["enchanted spoon","",0,"",""],
   ["enigma stone","https://i.imgur.com/p1csjCu.png",6000,"",""],
   ["fairy essence","",0,"",""],
@@ -2789,7 +2895,7 @@ const RAW = [
   ["giant ruby","Tentacruel",720,"mark",""],
   ["giraffe antenna","Girafarig",740,"mark",""],
   ["gold tail","Shiny Onix",3500000,"t3","evo1"],
-  ["golden drill","",0,"",""],
+  ["golden drill","",5000000,"t2","evo2"],
   ["golden shell","",0,"",""],
   ["grass essence","",0,"",""],
   ["gray cloth","",0,"",""],
@@ -3158,22 +3264,27 @@ const PACKAGES = [
          {
     name: "Talent Ground 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["mythic ground orb", 3],
+	  ["golden drill", 1],
+	  ["elephant foot", 500],
+	  
+	  ["simple ground orb", 5],
+	  ["small yellow stones", 3],
+	  
+	  ["arcane ground orb", 3],
+	  ["golden shell", 3],
+	  ["bone", 120],
+	  
+	  ["small handfull of stones", 50],
+	  
+	  ["simple ground orb", 5],
+	  ["armadillo red tail", 3],
+	  
+	  ["arcane ground orb", 3],
+	  ["golden shell", 3],
+	  ["bone", 120],
+	  
+	  ["armadillo tail", 50],
     ]
   },
            {
@@ -3752,12 +3863,28 @@ function sendToWhatsApp() {
   window.open(url, '_blank');
 }
 
+// ===================== TOAST SEM PREÇO =====================
+let _toastTimer = null;
+function showNoPriceToast(itemName) {
+  const toast = document.getElementById('no-price-toast');
+  const msg   = document.getElementById('no-price-toast-msg');
+  if (!toast) return;
+  if (msg) msg.textContent = '"' + itemName + '" ainda não tem valor definido. O total do carrinho será ajustado assim que o preço for estabelecido.';
+  toast.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+}
+
 function addToCart(i) {
   const input = document.getElementById('qty-' + i);
   let val = parseInt(input ? input.value : 1, 10);
   if (isNaN(val) || val < 1) val = 1;
   if (val > 100000) val = 100000;
   cart[i] = (cart[i] || 0) + val;
+  // Avisa se o item não tem preço definido
+  if (!items[i].price) {
+    showNoPriceToast(items[i].name);
+  }
   updateCartBadge();
   // Atualiza label do botão com a quantidade total no carrinho
   const btn = document.getElementById('addbtn-' + i);
@@ -3806,6 +3933,8 @@ function renderCart() {
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
 
   if (!keys.length) {
+    const warnBannerEmpty = document.getElementById('cart-no-price-warning');
+    if (warnBannerEmpty) warnBannerEmpty.classList.remove('visible');
     list.innerHTML = `<div class="cart-empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
         <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -3853,6 +3982,20 @@ function renderCart() {
   } else {
     document.getElementById('cart-grand-total-block').style.display = 'none';
     if (taxaAviso) taxaAviso.style.display = 'none';
+  }
+
+  // Verifica itens sem preço e exibe aviso
+  const noPriceItems = keys.filter(k => !items[k].price);
+  const warnBanner = document.getElementById('cart-no-price-warning');
+  const warnList   = document.getElementById('cart-warn-items-list');
+  if (warnBanner) {
+    if (noPriceItems.length > 0) {
+      warnBanner.classList.add('visible');
+      if (warnList) warnList.textContent = 'Sem preço: ' + noPriceItems.map(k => items[k].name).join(', ');
+    } else {
+      warnBanner.classList.remove('visible');
+      if (warnList) warnList.textContent = '';
+    }
   }
 
   list.innerHTML = keys.map(k => {
@@ -4191,11 +4334,13 @@ function addPackageToCartDirect(pi) {
   pkgCartCount = pkgCartCount || {};
   pkgCartCount[pi] = (pkgCartCount[pi] || 0) + 1;
 
+  let noPriceNames = [];
   PACKAGES[pi].items.forEach(([name, qty]) => {
     if (!qty || qty <= 0) return;
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + qty;
+    if (!items[idx].price) noPriceNames.push(name);
     // Atualiza botão inline do card de item se estiver visível
     const btn = document.getElementById('addbtn-' + idx);
     const lbl = document.getElementById('addbtn-label-' + idx);
@@ -4212,6 +4357,16 @@ function addPackageToCartDirect(pi) {
       remSlot.replaceWith(remBtn);
     }
   });
+  if (noPriceNames.length > 0) {
+    const toast = document.getElementById('no-price-toast');
+    const msg   = document.getElementById('no-price-toast-msg');
+    if (toast && msg) {
+      msg.textContent = 'O pacote contém ' + noPriceNames.length + ' item(ns) sem preço definido: ' + noPriceNames.join(', ') + '. O total será ajustado quando os preços forem estabelecidos.';
+      toast.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => toast.classList.remove('show'), 6000);
+    }
+  }
   updateCartBadge();
 
   // Atualiza botão do card de pacote com contador de adições
@@ -4681,5 +4836,15 @@ function handleCapturaOverlayClick(e) {
 
 render();
 </script>
+
+<!-- Toast: item sem preço -->
+<div id="no-price-toast">
+  <span class="toast-icon">⚠️</span>
+  <div class="toast-body">
+    <span class="toast-title">Atenção — item sem preço!</span>
+    <span class="toast-msg" id="no-price-toast-msg">Este item ainda não tem valor definido. O total do carrinho será atualizado quando o preço for estabelecido.</span>
+  </div>
+</div>
+
 </body>
 </html>
