@@ -655,6 +655,101 @@ select:focus { border-color: var(--blue); }
   margin-top: 2px;
 }
 
+/* ===================== PACK BUTTONS ===================== */
+.pack-footer {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pack-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 7px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  line-height: 1.1;
+}
+
+.pack-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.pack-btn-500 {
+  background: transparent;
+  border: 1px solid rgba(58,140,255,0.35);
+  color: var(--muted);
+}
+
+.pack-btn-500::before {
+  background: linear-gradient(135deg, var(--blue), #1a6fe8);
+}
+
+.pack-btn-500:hover, .pack-btn-500.added {
+  border-color: var(--blue);
+  color: #fff;
+}
+.pack-btn-500:hover::before, .pack-btn-500.added::before { opacity: 1; }
+
+.pack-btn-1000 {
+  background: transparent;
+  border: 1px solid rgba(240,180,41,0.35);
+  color: var(--muted);
+}
+
+.pack-btn-1000::before {
+  background: linear-gradient(135deg, #c88a10, #e0a020);
+}
+
+.pack-btn-1000:hover {
+  border-color: var(--gold);
+  color: #fff;
+}
+.pack-btn-1000:hover::before { opacity: 1; }
+
+.pack-btn-qty {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-title);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.pack-btn-price {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pack-btn-brl {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.manual-footer {
+  margin-top: 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
 input[type=number] {
   width: 72px;
   background: var(--surface3);
@@ -1698,8 +1793,9 @@ body { cursor: none; }
   border-radius: 50%;
   pointer-events: none;
   z-index: 99999;
-  transform: translate(-50%,-50%);
-  transition: background 0.15s, transform 0.1s;
+  top: 0; left: 0;
+  will-change: transform;
+  transition: background 0.15s, width 0.1s, height 0.1s;
   box-shadow: 0 0 10px var(--glow-blue), 0 0 20px rgba(58,140,255,0.3);
 }
 .cursor-ring {
@@ -1709,8 +1805,9 @@ body { cursor: none; }
   border-radius: 50%;
   pointer-events: none;
   z-index: 99998;
-  transform: translate(-50%,-50%);
-  transition: width 0.2s, height 0.2s, border-color 0.2s, transform 0.08s;
+  top: 0; left: 0;
+  will-change: transform;
+  transition: width 0.2s, height 0.2s, border-color 0.2s;
 }
 body:has(button:hover) .cursor-ring,
 body:has(a:hover) .cursor-ring,
@@ -3799,6 +3896,8 @@ function render() {
     const inCart = cart[i] > 0;
     const src = '';
     const priceData = formatKK(item.price);
+    const pack500Data = item.price ? formatKK(item.price * 500) : null;
+    const pack1000Data = item.price ? formatKK(item.price * 1000) : null;
     const priceHtml = priceData
       ? `<div class="price-block">
           <div class="price-row">
@@ -3816,6 +3915,8 @@ function render() {
     const imgHtml = item.image
       ? `<div class="item-img-wrap"><img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.parentElement.style.display='none'" /></div>`
       : '';
+    const pack500Label = pack500Data ? `<span class="pack-btn-qty">+500</span><span class="pack-btn-price">${pack500Data.label}</span><span class="pack-btn-brl">${pack500Data.brl}</span>` : `<span class="pack-btn-qty">+500</span>`;
+    const pack1000Label = pack1000Data ? `<span class="pack-btn-qty">+1000</span><span class="pack-btn-price">${pack1000Data.label}</span><span class="pack-btn-brl">${pack1000Data.brl}</span>` : `<span class="pack-btn-qty">+1000</span>`;
     return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}">
       ${imgHtml}
       <div class="item-name">${item.name}</div>
@@ -3823,10 +3924,18 @@ function render() {
       ${getEvoHtml(item.evo)}
       ${src}
       ${priceHtml}
-      <div class="card-footer">
+      <div class="card-footer pack-footer">
+        <button class="pack-btn pack-btn-500" id="addbtn-${i}" onclick="addPackToCart(${i}, 500)">
+          ${pack500Label}
+        </button>
+        <button class="pack-btn pack-btn-1000" onclick="addPackToCart(${i}, 1000)">
+          ${pack1000Label}
+        </button>
+      </div>
+      <div class="card-footer manual-footer">
         <input type="number" id="qty-${i}" value="1" min="1" max="100000" oninput="const v=parseInt(this.value,10); this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v); updateTotalPrice(${i}, this.value)" onkeydown="if(event.key==='-'||event.key==='e')event.preventDefault()" />
-        <div class="card-footer-added">
-          <button class="add-btn${inCart ? ' added' : ''}" id="addbtn-${i}" onclick="addToCart(${i})" style="flex:1">
+        <div class="card-footer-added" style="flex:1">
+          <button class="add-btn${inCart ? ' added' : ''}" id="manualaddbtn-${i}" onclick="addToCart(${i})" style="flex:1">
             <span id="addbtn-label-${i}">${inCart ? '✓ ' + cart[i].toLocaleString() : 'Adicionar'}</span>
           </button>
           ${inCart ? `<button class="inline-rem-btn" id="rembtn-${i}" onclick="removeFromCart(${i})" title="Remover do carrinho">&#x2715;</button>` : `<span id="rembtn-${i}"></span>`}
@@ -3927,6 +4036,27 @@ function showNoPriceToast(itemName) {
   toast.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+}
+
+function addPackToCart(i, qty) {
+  cart[i] = (cart[i] || 0) + qty;
+  if (!items[i].price) showNoPriceToast(items[i].name);
+  updateCartBadge();
+  // Atualiza botão 500 como "added" e mostra quantidade total
+  const btn = document.getElementById('addbtn-' + i);
+  if (btn) btn.classList.add('added');
+  // Mostra botão remover inline se ainda não estiver visível
+  const remSlot = document.getElementById('rembtn-' + i);
+  if (remSlot && remSlot.tagName === 'SPAN') {
+    const remBtn = document.createElement('button');
+    remBtn.className = 'inline-rem-btn';
+    remBtn.id = 'rembtn-' + i;
+    remBtn.title = 'Remover do carrinho';
+    remBtn.innerHTML = '\u2715';
+    remBtn.onclick = () => removeFromCart(i);
+    remSlot.replaceWith(remBtn);
+  }
+  if (document.getElementById('cart-overlay').classList.contains('open')) renderCart();
 }
 
 function addToCart(i) {
@@ -4500,9 +4630,9 @@ function removePackageFromCart(pi) {
   let rx = mx, ry = my;
   document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
   function loop() {
-    dot.style.left  = mx + 'px'; dot.style.top  = my + 'px';
-    rx += (mx - rx) * 0.14; ry += (my - ry) * 0.14;
-    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    dot.style.transform  = `translate(calc(${mx}px - 50%), calc(${my}px - 50%))`;
+    rx += (mx - rx) * 0.28; ry += (my - ry) * 0.28;
+    ring.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`;
     requestAnimationFrame(loop);
   }
   loop();
@@ -4556,27 +4686,43 @@ function removePackageFromCart(pi) {
 
 // --- Card 3D Tilt + Shine ---
 (function() {
-  document.addEventListener('mousemove', e => {
+  let mx = -9999, my = -9999, rafPending = false;
+  const INFLUENCE_PX = 260; // só processa cards dentro desse raio
+
+  function updateTilt() {
+    rafPending = false;
     const cards = document.querySelectorAll('.card');
     cards.forEach(card => {
       const rect = card.getBoundingClientRect();
-      const cx   = rect.left + rect.width/2;
-      const cy   = rect.top  + rect.height/2;
-      const dx   = (e.clientX - cx) / rect.width;
-      const dy   = (e.clientY - cy) / rect.height;
+      // Culling espacial: ignora cards longe do cursor
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top  + rect.height / 2;
+      const screenDist = Math.abs(mx - cx) + Math.abs(my - cy); // Manhattan dist (mais rápido)
+      if (screenDist > INFLUENCE_PX + rect.width) {
+        if (card._tilted) { card.style.transform = ''; card._tilted = false; }
+        return;
+      }
+      const dx   = (mx - cx) / rect.width;
+      const dy   = (my - cy) / rect.height;
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (dist < 0.9) {
         const rx  = dy * 12;
         const ry  = -dx * 12;
-        const mxp = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-        const myp = ((e.clientY - rect.top)  / rect.height* 100).toFixed(1);
+        const mxp = ((mx - rect.left) / rect.width  * 100).toFixed(1);
+        const myp = ((my - rect.top)  / rect.height * 100).toFixed(1);
         card.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px)`;
         card.style.setProperty('--mx', mxp+'%');
         card.style.setProperty('--my', myp+'%');
+        card._tilted = true;
       } else {
-        card.style.transform = '';
+        if (card._tilted) { card.style.transform = ''; card._tilted = false; }
       }
     });
+  }
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    if (!rafPending) { rafPending = true; requestAnimationFrame(updateTilt); }
   });
   // Inject shine div into every new card
   const obs = new MutationObserver(() => {
@@ -4592,7 +4738,7 @@ function removePackageFromCart(pi) {
   const capturaGrid = document.getElementById('captura-grid');
   if (capturaGrid) obs.observe(capturaGrid, { childList: true, subtree: true });
   document.addEventListener('mouseleave', () => {
-    document.querySelectorAll('.card').forEach(c => c.style.transform = '');
+    document.querySelectorAll('.card').forEach(c => { c.style.transform = ''; c._tilted = false; });
   });
 })();
 
@@ -4603,12 +4749,17 @@ function removePackageFromCart(pi) {
   const W = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
   W(); window.addEventListener('resize', W);
   const trail = [];
-  const MAX = 22;
-  let mx = -999, my = -999;
+  const MAX = 14; // reduzido de 22 para 14
+  let mx = -999, my = -999, lx = -999, ly = -999;
   document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
   function draw() {
-    trail.push({ x: mx, y: my, life: 1 });
-    if (trail.length > MAX) trail.shift();
+    // Só adiciona ponto se o mouse se moveu pelo menos 4px (evita pontos duplicados)
+    const moved = Math.abs(mx - lx) + Math.abs(my - ly);
+    if (moved > 4) {
+      trail.push({ x: mx, y: my });
+      if (trail.length > MAX) trail.shift();
+      lx = mx; ly = my;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let i = 1; i < trail.length; i++) {
       const t   = trail[i];
@@ -4617,8 +4768,8 @@ function removePackageFromCart(pi) {
       ctx.beginPath();
       ctx.moveTo(pt.x, pt.y);
       ctx.lineTo(t.x, t.y);
-      ctx.strokeStyle = `rgba(58,140,255,${age * 0.3})`;
-      ctx.lineWidth   = age * 3;
+      ctx.strokeStyle = `rgba(58,140,255,${age * 0.25})`;
+      ctx.lineWidth   = age * 2.5;
       ctx.lineCap     = 'round';
       ctx.stroke();
     }
