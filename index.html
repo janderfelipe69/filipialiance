@@ -4525,27 +4525,39 @@ let activePkgIdx = null;
 function getPkgIcon(name) {
   const img = (url) => `<img src="${url}" style="width:40px;height:40px;object-fit:contain" />`;
   const n = name.toLowerCase();
-  if (n.includes('speed'))                        return img('URL_SPEED');
-  if (n.includes('hp'))                           return img('URL_HP');
+  if (n.includes('speed'))                        return img('https://i.imgur.com/ODTCGEc.gif');
+  if (n.includes('hp'))                           return img('https://i.imgur.com/QhZ8LL5.gif');
   if (n.includes('water'))                        return img('https://i.imgur.com/zpRe43i.png');
-  if (n.includes('steel') || n.includes('metal')) return img('URL_STEEL');
-  if (n.includes('rock'))                         return img('URL_ROCK');
-  if (n.includes('psychic'))                      return img('URL_PSYCHIC');
-  if (n.includes('poison'))                       return img('URL_POISON');
-  if (n.includes('normal'))                       return img('URL_NORMAL');
-  if (n.includes('ice'))                          return img('URL_ICE');
-  if (n.includes('ground'))                       return img('URL_GROUND');
-  if (n.includes('fire'))                         return img('URL_FIRE');
-  if (n.includes('grass'))                        return img('URL_GRASS');
-  if (n.includes('electric'))                     return img('URL_ELECTRIC');
-  if (n.includes('dark'))                         return img('URL_DARK');
-  if (n.includes('dragon'))                       return img('URL_DRAGON');
-  if (n.includes('ghost'))                        return img('URL_GHOST');
-  if (n.includes('fairy'))                        return img('URL_FAIRY');
-  if (n.includes('flying'))                       return img('URL_FLYING');
-  if (n.includes('bug'))                          return img('URL_BUG');
-  if (n.includes('fighting'))                     return img('URL_FIGHTING');
-  return img('URL_DEFAULT');
+  if (n.includes('steel') || n.includes('metal')) return img('https://i.imgur.com/GleRjiM.png');
+  if (n.includes('rock'))                         return img('https://i.imgur.com/GvD1Mtq.png');
+  if (n.includes('psychic'))                      return img('https://i.imgur.com/ASiZi1K.png');
+  if (n.includes('poison'))                       return img('https://i.imgur.com/xfX0ReE.png');
+  if (n.includes('normal'))                       return img('https://i.imgur.com/w2ChsIe.png');
+  if (n.includes('ice'))                          return img('https://i.imgur.com/ssFz0sA.png');
+  if (n.includes('ground'))                       return img('https://i.imgur.com/JPcD2l3.png');
+  if (n.includes('fire'))                         return img('https://i.imgur.com/O8TONGE.png');
+  if (n.includes('grass'))                        return img('https://i.imgur.com/YjKxtoE.png');
+  if (n.includes('electric'))                     return img('https://i.imgur.com/Yv2WEYc.png');
+  if (n.includes('dark'))                         return img('https://i.imgur.com/7Luj4az.png');
+  if (n.includes('dragon'))                       return img('https://i.imgur.com/o7JWbaN.png');
+  if (n.includes('ghost'))                        return img('https://i.imgur.com/HuybbPn.png');
+  if (n.includes('fairy'))                        return img('https://i.imgur.com/j3HaXTh.png');
+  if (n.includes('flying'))                       return img('https://i.imgur.com/npGjQae.png');
+  if (n.includes('bug'))                          return img('https://i.imgur.com/V4IXR51.png');
+  if (n.includes('fighting') || n.includes('figthing')) return img('https://i.imgur.com/OKsJXh7.png');
+  // Gym - coloque a URL de cada gym abaixo
+  if (n.includes('viridian'))  return img('URL_GYM_VIRIDIAN');
+  if (n.includes('cinnabar'))  return img('URL_GYM_CINNABAR');
+  if (n.includes('pewter'))    return img('https://i.imgur.com/ViA3uQO.png');
+  if (n.includes('cerulean'))  return img('URL_GYM_CERULEAN');
+  if (n.includes('vermilion')) return img('URL_GYM_VERMILION');
+  if (n.includes('celadon'))   return img('URL_GYM_CELADON');
+  if (n.includes('fuchsia'))   return img('URL_GYM_FUCHSIA');
+  if (n.includes('saffron'))   return img('URL_GYM_SAFFRON');
+  if (n.startsWith('gym'))     return img('URL_GYM_DEFAULT');
+  // Reduces
+  if (n.startsWith('reduces') || n.startsWith('reduce')) return img('URL_REDUCES');
+  return img('https://i.imgur.com/ODTCGEc.gif');
 }
 
 function getPkgItemData(itemName) {
@@ -4578,9 +4590,9 @@ function getPkgCategory(name) {
 const PKG_CAT_META = {
   all:     { label: 'Todos',    icon: '📦' },
   talent:  { label: 'Talents',  icon: '✨' },
-  gym:     { label: 'Gym',      icon: '🏛️' },
+  gym:     { label: 'Gym',      icon: '<img src="URL_GYM_DEFAULT" style="width:20px;height:20px;object-fit:contain" />' },
   full:    { label: 'Full',     icon: '⚡' },
-  reduces: { label: 'Reduces',  icon: '🔻' },
+  reduces: { label: 'Reduces',  icon: '<img src="URL_REDUCES" style="width:20px;height:20px;object-fit:contain" />' },
   outros:  { label: 'Outros',   icon: '🎲' },
 };
 
