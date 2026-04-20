@@ -4669,30 +4669,31 @@ addToCart = function(i) {
 // Formato: { name: "Nome", price: <raw kk igual RAW>, image: "url" }
 // Exemplos de preço: 1000000 = 1kk | 5000000 = 5kk | 500000 = 500k | 0 = sem preço
 const POKEMONS = [
-  { name: "Shiny Venusaur",  price: 45000000, image: "https://i.imgur.com/gmZVZIS.gif" },
-  { name: "Shiny Blastoise",  price: 45000000, image: "https://i.imgur.com/9iQ7wNL.gif" },
-  { name: "Shiny Charizard",  price: 45000000, image: "https://i.imgur.com/SrQU5gi.gif" },
-  { name: "Shiny Feraligatr",  price: 45000000, image: "https://i.imgur.com/DP4YWT1.gif" },
-  { name: "Shiny Pidgeot",  price: 45000000, image: "https://i.imgur.com/pHY01e0.gif" },
-  { name: "Shiny Raichu",  price: 45000000, image: "https://i.imgur.com/EbsLav0.gif" },
-  { name: "Shiny Nidoqueen",  price: 45000000, image: "https://i.imgur.com/iIMkTqF.gif" },
-  { name: "Shiny Nidoking",  price: 45000000, image: "https://i.imgur.com/xeDriFy.gif" },
-  { name: "Shiny Ninetales",  price: 45000000, image: "https://i.imgur.com/u0sGCqg.gif" },
-  { name: "Shiny Tentacruel",  price: 45000000, image: "https://i.imgur.com/I9J30Si.gif" },
-  { name: "Shiny Golem",  price: 45000000, image: "https://i.imgur.com/6Wphle1.gif" },
-  { name: "Shiny Meganium",  price: 45000000, image: "https://i.imgur.com/eJvTQJ7.gif" },
-  { name: "Shiny Typhlosion",  price: 45000000, image: "https://i.imgur.com/2BtRLDx.gif" },
-  { name: "Shiny Crobat",  price: 45000000, image: "https://i.imgur.com/agzGxZH.gif" },
-  { name: "Shiny Steelix",  price: 45000000, image: "https://i.imgur.com/zY5AuG0.gif" },
-  { name: "Shiny Politoad",  price: 45000000, image: "https://i.imgur.com/yLbIDLz.gif" },
-  { name: "Shiny Ampharos",  price: 45000000, image: "https://i.imgur.com/DecvtNB.gif" },
-  { name: "Tangrowth",  price: 45000000, image: "https://i.imgur.com/EpEQ1Wx.gif" },
+  { name: "Shiny Venusaur",  price: 38000000, image: "https://i.imgur.com/gmZVZIS.gif" },
+  { name: "Shiny Blastoise",  price: 38000000, image: "https://i.imgur.com/9iQ7wNL.gif" },
+  { name: "Shiny Charizard",  price: 38000000, image: "https://i.imgur.com/SrQU5gi.gif" },
+  { name: "Shiny Feraligatr",  price: 38000000, image: "https://i.imgur.com/DP4YWT1.gif" },
+  { name: "Shiny Pidgeot",  price: 38000000, image: "https://i.imgur.com/pHY01e0.gif" },
+  { name: "Shiny Raichu",  price: 38000000, image: "https://i.imgur.com/EbsLav0.gif" },
+  { name: "Shiny Nidoqueen",  price: 38000000, image: "https://i.imgur.com/iIMkTqF.gif" },
+  { name: "Shiny Nidoking",  price: 38000000, image: "https://i.imgur.com/xeDriFy.gif" },
+  { name: "Shiny Ninetales",  price: 38000000, image: "https://i.imgur.com/u0sGCqg.gif" },
+  { name: "Shiny Tentacruel",  price: 38000000, image: "https://i.imgur.com/I9J30Si.gif" },
+  { name: "Shiny Golem",  price: 38000000, image: "https://i.imgur.com/6Wphle1.gif" },
+  { name: "Shiny Meganium",  price: 38000000, image: "https://i.imgur.com/eJvTQJ7.gif" },
+  { name: "Shiny Typhlosion",  price: 38000000, image: "https://i.imgur.com/2BtRLDx.gif" },
+  { name: "Shiny Crobat",  price: 7000000, image: "https://i.imgur.com/agzGxZH.gif" },
+  { name: "Shiny Steelix",  price: 38000000, image: "https://i.imgur.com/zY5AuG0.gif" },
+  { name: "Shiny Politoad",  price: 38000000, image: "https://i.imgur.com/yLbIDLz.gif" },
+  { name: "Shiny Ampharos",  price: 38000000, image: "https://i.imgur.com/DecvtNB.gif" },
+  { name: "Tangrowth",  price: 38000000, image: "https://i.imgur.com/EpEQ1Wx.gif" },
+  { name: "Shiny Luxray",  price: 180000000, image: "https://i.imgur.com/sWnyJd1.gif" },
 ];
 
 const BALLS = [
   { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
   { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.3 },
-  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.6 },
+  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.5 },
 ];
 
 let currentCapturaIdx = null;
