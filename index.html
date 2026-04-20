@@ -42,6 +42,7 @@ body {
   font-family: var(--font-body);
   min-height: 100vh;
   overflow-x: hidden;
+  cursor: default;
 }
 
 /* ===================== ANIMATED BACKGROUND ===================== */
@@ -1223,162 +1224,608 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-/* ===================== PACOTES ===================== */
+/* ===================== PACOTES — LAYOUT RPG ===================== */
 .packages-wrap {
-  padding: 24px 32px 120px;
+  display: flex;
+  height: calc(100vh - 130px);
   position: relative;
   z-index: 1;
-}
-
-.packages-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-}
-
-.pkg-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-  animation: cardIn 0.3s ease both;
+}
+
+/* ===================== PKG CATEGORY TABS ===================== */
+.pkg-cat-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid rgba(56,140,255,0.18);
+  background: rgba(4,6,14,0.6);
+}
+.pkg-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
-  position: relative;
-}
-
-.pkg-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--blue), var(--gold));
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.pkg-card:hover {
-  border-color: rgba(58,140,255,0.4);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(58,140,255,0.08);
-  transform: translateY(-3px);
-}
-.pkg-card:hover::before { opacity: 1; }
-
-.pkg-header {
-  padding: 16px 18px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface2);
-}
-
-.pkg-name {
-  font-family: var(--font-title);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: 12px;
   font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  transition: all 0.18s;
+  text-align: left;
+  width: 100%;
+}
+.pkg-cat-btn:hover {
+  background: rgba(58,140,255,0.08);
   color: var(--text);
-  letter-spacing: 1px;
-  margin-bottom: 6px;
+  border-color: rgba(58,140,255,0.2);
+}
+.pkg-cat-btn.active {
+  background: rgba(58,140,255,0.15);
+  border-color: rgba(58,140,255,0.45);
+  color: #fff;
+  box-shadow: inset 0 0 10px rgba(58,140,255,0.1);
+}
+.pkg-cat-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  background: rgba(58,140,255,0.1);
+  border: 1px solid rgba(58,140,255,0.2);
+  transition: all 0.18s;
+}
+.pkg-cat-btn.active .pkg-cat-icon {
+  background: rgba(58,140,255,0.25);
+  border-color: rgba(58,140,255,0.5);
+}
+.pkg-cat-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 1px 6px;
+  transition: all 0.18s;
+}
+.pkg-cat-btn.active .pkg-cat-count {
+  background: rgba(58,140,255,0.2);
+  color: var(--blue-bright);
+}
+/* Glow no item quando está no carrinho */
+.pkg-sidebar-item.is-in-cart .pkg-sidebar-item-icon {
+  box-shadow: 0 0 10px rgba(58,140,255,0.6), 0 0 20px rgba(58,140,255,0.3);
+  border-color: var(--blue-bright);
+  background: rgba(58,140,255,0.3);
+  animation: pkgGlow 2s ease-in-out infinite alternate;
+}
+@keyframes pkgGlow {
+  0%   { box-shadow: 0 0 6px rgba(58,140,255,0.5), 0 0 14px rgba(58,140,255,0.2); }
+  100% { box-shadow: 0 0 14px rgba(58,140,255,0.9), 0 0 28px rgba(58,140,255,0.4); }
+}
+.pkg-sidebar-item.is-in-cart .pkg-sidebar-item-name {
+  color: var(--blue-bright);
 }
 
-.pkg-meta {
+/* SIDEBAR — lista de pacotes */
+.pkg-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #0a1020 0%, #070d1a 100%);
+  border-right: 2px solid rgba(56,140,255,0.22);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pkg-sidebar-header {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(56,140,255,0.18);
+  background: rgba(58,140,255,0.07);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pkg-sidebar-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pkg-sidebar-title {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue-bright);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.pkg-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.pkg-sidebar-list::-webkit-scrollbar { width: 4px; }
+.pkg-sidebar-list::-webkit-scrollbar-track { background: transparent; }
+.pkg-sidebar-list::-webkit-scrollbar-thumb { background: rgba(58,140,255,0.3); border-radius: 2px; }
+
+.pkg-sidebar-item {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  border-left: 3px solid transparent;
+  position: relative;
 }
 
-.pkg-count {
+.pkg-sidebar-item:hover {
+  background: rgba(58,140,255,0.07);
+  border-left-color: rgba(58,140,255,0.4);
+}
+
+.pkg-sidebar-item.active {
+  background: rgba(58,140,255,0.13);
+  border-left-color: var(--blue-bright);
+}
+
+.pkg-sidebar-item.active .pkg-sidebar-item-name {
+  color: #fff;
+}
+
+.pkg-sidebar-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(58,140,255,0.12);
+  border: 1px solid rgba(58,140,255,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.pkg-sidebar-item.active .pkg-sidebar-item-icon {
+  background: rgba(58,140,255,0.25);
+  border-color: rgba(58,140,255,0.5);
+}
+
+.pkg-sidebar-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pkg-sidebar-item-name {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  transition: color 0.15s;
+}
+
+.pkg-sidebar-item-sub {
   font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.pkg-sidebar-item-arrow {
   font-size: 10px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.pkg-sidebar-item:hover .pkg-sidebar-item-arrow,
+.pkg-sidebar-item.active .pkg-sidebar-item-arrow {
+  opacity: 1;
+  color: var(--blue-bright);
+}
+
+/* DETAIL PANEL — itens do pacote selecionado */
+.pkg-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #080f1e 0%, #060b17 100%);
+}
+
+.pkg-detail-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   color: var(--muted);
 }
 
-.pkg-total-price {
+.pkg-detail-empty-icon {
+  font-size: 40px;
+  opacity: 0.3;
+}
+
+.pkg-detail-empty-text {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 1px;
+  opacity: 0.5;
+}
+
+.pkg-detail-header {
+  padding: 16px 24px 14px;
+  border-bottom: 1px solid rgba(56,140,255,0.15);
+  background: rgba(58,140,255,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pkg-detail-title {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #fff, var(--blue-bright));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pkg-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pkg-detail-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+.pkg-detail-price {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.pkg-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.pkg-detail-body::-webkit-scrollbar { width: 5px; }
+.pkg-detail-body::-webkit-scrollbar-track { background: transparent; }
+.pkg-detail-body::-webkit-scrollbar-thumb { background: rgba(58,140,255,0.25); border-radius: 3px; }
+
+/* Linha de item no painel de detalhe */
+.pkg-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.12s;
+}
+
+.pkg-detail-row:hover {
+  background: rgba(58,140,255,0.05);
+}
+
+.pkg-detail-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255,60,60,0.15);
+  border: 1px solid rgba(255,60,60,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  color: #ff8080;
+}
+
+.pkg-detail-row-name {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text);
+  text-transform: capitalize;
+  opacity: 0.9;
+}
+
+.pkg-detail-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.pkg-detail-row-price {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  min-width: 60px;
+  text-align: right;
+}
+
+.pkg-detail-row-qty {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(56,140,255,0.2);
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue-bright);
+  min-width: 50px;
+  text-align: center;
+}
+
+
+
+/* ===================== PKG ITEM TOGGLE ===================== */
+.pkg-row-toggle-btn {
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  color: rgba(255,100,100,0.7);
+  font-weight: 700;
+}
+
+.pkg-detail-row:hover .pkg-row-toggle-btn {
+  opacity: 1;
+  background: rgba(255,80,80,0.12);
+}
+
+.pkg-detail-row.row-disabled .pkg-row-toggle-btn {
+  opacity: 1;
+  color: rgba(80,200,120,0.8);
+  background: rgba(80,200,120,0.1);
+}
+
+.pkg-detail-row.row-disabled:hover .pkg-row-toggle-btn {
+  background: rgba(80,200,120,0.2);
+}
+
+
+.pkg-detail-row {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pkg-detail-row:hover {
+  background: rgba(58,140,255,0.08);
+}
+
+.pkg-detail-row.row-disabled {
+  opacity: 0.38;
+  filter: grayscale(0.7);
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,255,255,0.25);
+  background: rgba(255,0,0,0.03);
+  border-left: 2px solid rgba(255,80,80,0.25);
+}
+
+.pkg-detail-row.row-disabled:hover {
+  opacity: 0.55;
+  background: rgba(255,80,80,0.06);
+}
+
+.pkg-detail-row.row-disabled .pkg-detail-row-icon {
+  color: var(--muted);
+}
+
+.row-disabled-label {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: rgba(255,100,100,0.6);
+  letter-spacing: 0.5px;
+  text-decoration: none;
+}
+
+.pkg-slot-btn.all-disabled .pkg-slot-btn-label {
+  color: rgba(255,100,100,0.5);
+  text-decoration: line-through;
+}
+
+.pkg-slot-btn.all-disabled {
+  opacity: 0.5;
+}
+
+/* ===================== PKG SLOT TABS ===================== */
+.pkg-slot-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 20px 0;
+  border-bottom: 1px solid rgba(56,140,255,0.12);
+  background: rgba(4,6,14,0.5);
+}
+
+.pkg-slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid rgba(56,140,255,0.15);
+  border-bottom: none;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+  bottom: -1px;
+}
+
+.pkg-slot-btn:hover {
+  background: rgba(58,140,255,0.1);
+  border-color: rgba(58,140,255,0.35);
+}
+
+.pkg-slot-btn.active {
+  background: var(--surface2);
+  border-color: rgba(58,140,255,0.5);
+  border-bottom: 1px solid var(--surface2);
+  box-shadow: 0 -2px 10px rgba(58,140,255,0.15);
+}
+
+.pkg-slot-btn-label {
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 0.18s;
+}
+
+.pkg-slot-btn.active .pkg-slot-btn-label {
+  color: var(--blue-bright);
+}
+
+.pkg-slot-btn-price {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.pkg-slot-btn-count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.pkg-slot-btn.active .pkg-slot-btn-count {
+  color: var(--text);
+  opacity: 1;
+}
+
+.pkg-detail-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(56,140,255,0.15);
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pkg-detail-total-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pkg-detail-total-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pkg-detail-total-kk {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--blue-bright);
+}
+
+.pkg-detail-total-brl {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--gold);
 }
 
-.pkg-body {
-  padding: 12px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-height: 160px;
-  overflow: hidden;
-  position: relative;
-}
-
-.pkg-body::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 40px;
-  background: linear-gradient(transparent, var(--surface));
-  pointer-events: none;
-}
-
-.pkg-item-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.pkg-item-name {
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--text);
-  text-transform: capitalize;
-  opacity: 0.85;
-}
-
-.pkg-item-qty {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--blue-bright);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.pkg-footer {
-  padding: 12px 18px;
-  border-top: 1px solid var(--border);
-}
-
-.pkg-add-btn {
-  width: 100%;
-  background: transparent;
-  border: 1px solid rgba(58,140,255,0.3);
+.pkg-detail-add-btn {
+  background: linear-gradient(135deg, var(--blue), #1a6fe8);
+  border: none;
   border-radius: 8px;
-  color: var(--muted);
+  color: #fff;
   font-family: var(--font-title);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  padding: 9px;
+  padding: 10px 20px;
   cursor: pointer;
   transition: all 0.2s;
   text-transform: uppercase;
+  box-shadow: 0 4px 16px var(--glow-blue);
+  white-space: nowrap;
   position: relative;
   overflow: hidden;
 }
-.pkg-add-btn::before {
+
+.pkg-detail-add-btn::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--blue), #1a6fe8);
+  background: rgba(255,255,255,0.1);
   opacity: 0;
   transition: opacity 0.2s;
 }
-.pkg-add-btn span { position: relative; z-index: 1; }
-.pkg-add-btn:hover { border-color: var(--blue); color: #fff; }
-.pkg-add-btn:hover::before { opacity: 1; }
-.pkg-add-btn.added { border-color: var(--blue); color: #fff; }
-.pkg-add-btn.added::before { opacity: 1; }
-.pkg-footer-row {
+
+.pkg-detail-add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 22px var(--glow-blue); }
+.pkg-detail-add-btn:hover::before { opacity: 1; }
+.pkg-detail-add-btn.added { background: linear-gradient(135deg, #1a8a3a, #0f6e2d); box-shadow: 0 4px 16px rgba(26,200,80,0.3); }
+
+.pkg-detail-rem-btn {
+  background: rgba(255,60,60,0.08);
+  border: 1px solid rgba(255,60,60,0.25);
+  border-radius: 8px;
+  color: rgba(255,100,100,0.7);
+  font-size: 13px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
 }
+.pkg-detail-rem-btn:hover { background: rgba(255,60,60,0.18); border-color: rgba(255,60,60,0.5); color: #ff6b6b; }
+
+/* Compatibilidade — manter .pkg-inline-rem-btn para não quebrar JS */
 .pkg-inline-rem-btn {
   flex-shrink: 0;
   background: rgba(255,80,80,0.08);
@@ -1386,17 +1833,18 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
   border-radius: 8px;
   color: rgba(255,107,107,0.8);
   font-size: 13px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.15s;
-  padding: 0;
-  line-height: 1;
+  padding: 0; line-height: 1;
 }
 .pkg-inline-rem-btn:hover { background: rgba(255,80,80,0.18); border-color: rgba(255,80,80,0.6); color: #ff6b6b; }
+
+/* Classes legadas mantidas para não quebrar JS antigo */
+.pkg-card { display: none; }
+.pkg-footer-row { display: flex; align-items: center; gap: 6px; }
+.pkg-add-btn { display: none; }
 
 /* ===================== MODAL DE PACOTE ===================== */
 .pkg-overlay {
@@ -1785,40 +2233,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 }
 
 /* ===================== CURSOR CUSTOM ===================== */
-body { cursor: none; }
-.cursor-dot {
-  position: fixed;
-  width: 8px; height: 8px;
-  background: var(--blue-bright);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99999;
-  top: 0; left: 0;
-  will-change: transform;
-  transition: background 0.15s, width 0.1s, height 0.1s;
-  box-shadow: 0 0 10px var(--glow-blue), 0 0 20px rgba(58,140,255,0.3);
-}
-.cursor-ring {
-  position: fixed;
-  width: 32px; height: 32px;
-  border: 1.5px solid rgba(58,140,255,0.5);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99998;
-  top: 0; left: 0;
-  will-change: transform;
-  transition: width 0.2s, height 0.2s, border-color 0.2s;
-}
-body:has(button:hover) .cursor-ring,
-body:has(a:hover) .cursor-ring,
-body:has(.card:hover) .cursor-ring {
-  width: 48px; height: 48px;
-  border-color: rgba(240,180,41,0.6);
-}
-body:has(button:hover) .cursor-dot {
-  background: var(--gold-bright);
-  box-shadow: 0 0 10px var(--glow-gold);
-}
+body { cursor: defaut; }
 
 /* ===================== RIPPLE CLICK ===================== */
 .click-ripple {
@@ -2592,8 +3007,6 @@ body:has(button:hover) .cursor-dot {
 <!-- Click ripple container -->
 <div id="ripple-root" style="position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;"></div>
 
-<!-- Cursor trail canvas -->
-<canvas id="cursor-canvas" style="position:fixed;inset:0;z-index:9998;pointer-events:none;"></canvas>
 
 <!-- Animated background -->
 <div class="bg-canvas">
@@ -2725,18 +3138,23 @@ body:has(button:hover) .cursor-dot {
 
 <!-- TAB: PACOTES -->
 <div class="tab-content" id="tab-pacotes">
-  <div class="packages-controls">
-    <div class="search-wrap">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
-        <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      <input type="text" id="pkg-search" placeholder="Buscar pacote..." oninput="renderPackages()" />
-    </div>
-    <span class="pkg-count-label" id="pkg-count-label">— pacotes</span>
-  </div>
   <div class="packages-wrap">
-    <div class="packages-grid" id="packages-grid"></div>
+    <!-- SIDEBAR -->
+    <div class="pkg-sidebar">
+      <div class="pkg-sidebar-header">
+        <span class="pkg-sidebar-icon">📦</span>
+        <span class="pkg-sidebar-title">Pacotes</span>
+      </div>
+      <div class="pkg-cat-tabs" id="pkg-cat-tabs"></div>
+      <div class="pkg-sidebar-list" id="pkg-sidebar-list"></div>
+    </div>
+    <!-- DETAIL PANEL -->
+    <div class="pkg-detail" id="pkg-detail">
+      <div class="pkg-detail-empty" id="pkg-detail-empty">
+        <div class="pkg-detail-empty-icon">📋</div>
+        <div class="pkg-detail-empty-text">Selecione um pacote</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3228,619 +3646,295 @@ const RAW = [
 const PACKAGES = [
   {
     name: "Full Speed",
-    items: [
-      ["fire hair", 80],
-      ["blue hair", 1],
-      ["fire hoof", 100],
-      ["giant piece of fur", 100],
-	  ["yellow bird crest", 1],
-	  ["carmine wing", 1],
-	  ["bird wing", 5],
-	  ["bird crest", 5],
+    slots: [
+      [["fire hair", 80], ["blue hair", 1]],
+      [["fire hoof", 100], ["giant piece of fur", 100]],
+      [["yellow bird crest", 1], ["carmine wing", 1]],
+      [["bird wing", 5], ["bird crest", 5]],
     ]
   },
-   {
+  {
     name: "Full HP",
-    items: [
-      ["blue wings", 1],
-      ["big cute ear", 1],
-      ["pink wings", 250],
-      ["wigglytuff ear", 250],
-	  ["snorlax paw", 400],
-	  ["bear claw", 400],
-	  ["magikarp fin", 10],
-	  ["mouse tail", 30],
+    slots: [
+      [["blue wings", 1], ["big cute ear", 1]],
+      [["pink wings", 250], ["wigglytuff ear", 250]],
+      [["snorlax paw", 400], ["bear claw", 400]],
+      [["magikarp fin", 10], ["mouse tail", 30]],
     ]
   },
-     {
+  {
     name: "Talent Water 7/8",
-    items: [
-      ["frog tail", 50],
-      ["simple water orb", 5],
-      ["white tail", 3],
-      ["arcane water orb", 3],
-	  ["cyan ear", 3],
-	  ["wartortle ear", 120],
-	  ["mythic water orb", 3],
-	  ["malfunctioning core", 1],
-	  ["star jewel", 500],
-	  ["horsea tail", 25],
-	  ["small blue fin", 25],
-	  ["simple water orb", 5],
-	  ["gray frog tail", 3],
-	  ["arcane water orb", 3],
-	  ["blue mohawk", 3],
-	  ["crocodile hair", 120],
+    slots: [
+      [["frog tail", 50]],
+      [["simple water orb", 5], ["white tail", 3]],
+      [["arcane water orb", 3], ["cyan ear", 3], ["wartortle ear", 120]],
+      [["mythic water orb", 3], ["malfunctioning core", 1], ["star jewel", 500]],
+      [["horsea tail", 25], ["small blue fin", 25]],
+      [["simple water orb", 5], ["gray frog tail", 3]],
+      [["arcane water orb", 3], ["blue mohawk", 3], ["crocodile hair", 120]],
     ]
   },
-       {
+  {
     name: "Talent Steel 7/8",
-    items: [
-      ["mythic metal orb", 3],
-      ["strong magnet", 1],
-      ["steel wing", 500],
-      ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["magnet", 120],
-	  ["electric screws", 50],
-	  ["simple metal orb", 5],
-	  ["blue screws", 3],
-	  ["gray frog tail", 3],
-	  ["arcane metal orb", 3],
-	  ["blue screws", 10],
-	  ["forretress shell", 120],
+    slots: [
+      [["mythic metal orb", 3], ["strong magnet", 1], ["steel wing", 500]],
+      [["electric screws", 50]],
+      [["simple metal orb", 5], ["blue screws", 3]],
+      [["arcane metal orb", 3], ["blue screws", 10], ["magnet", 120]],
+      [["electric screws", 50]],
+      [["simple metal orb", 5], ["blue screws", 3]],
+      [["arcane metal orb", 3], ["blue screws", 10], ["forretress shell", 120]],
     ]
   },
-         {
+  {
     name: "Talent Rock 7/8",
-    items: [
-      ["simple rock orb", 5],
-      ["purple fist", 3],
-      ["arcane rock orb", 3],
-      ["purple stone forehead", 3],
-	  ["rock forehead", 120],
-	  ["mythic rock orb", 3],
-	  ["gold tail", 2],
-	  ["rock plate", 500],
-	  ["rock fist", 50],
-      ["arcane rock orb", 3],
-      ["purple stone forehead", 3],
-	  ["rock forehead", 120],
-      ["simple rock orb", 5],
-      ["purple fist", 3],
-	  ["rock fist", 50],
+    slots: [
+      [["simple rock orb", 5], ["purple fist", 3]],
+      [["arcane rock orb", 3], ["purple stone forehead", 3], ["rock forehead", 120]],
+      [["mythic rock orb", 3], ["gold tail", 2], ["rock plate", 500]],
+      [["rock fist", 50]],
+      [["arcane rock orb", 3], ["purple stone forehead", 3], ["rock forehead", 120]],
+      [["simple rock orb", 5], ["purple fist", 3]],
+      [["rock fist", 50]],
     ]
   },
-         {
+  {
     name: "Talent Psychic 7/8",
-    items: [
-      ["drowzee trunk", 50],
-      ["simple psychic orb", 5],
-      ["orange trunk", 3],
-      ["arcane psychic orb", 3],
-	  ["enchanted spoon", 3],
-	  ["hypnosis pendant", 120],
-      ["mythic psychic orb", 3],
-	  ["psychic wings", 1],
-	  ["giraffe antenna", 500],
-      ["simple psychic orb", 5],
-	  ["blue psychic vest", 3],
-	  ["arcane psychic orb", 3],
-	  ["enchanted spoon", 3],
-	  ["hypnosis pendant", 120],
-	  ["psychic vest", 50],
+    slots: [
+      [["drowzee trunk", 50]],
+      [["simple psychic orb", 5], ["orange trunk", 3]],
+      [["arcane psychic orb", 3], ["enchanted spoon", 3], ["hypnosis pendant", 120]],
+      [["mythic psychic orb", 3], ["psychic wings", 1], ["giraffe antenna", 500]],
+      [["simple psychic orb", 5], ["blue psychic vest", 3]],
+      [["arcane psychic orb", 3], ["enchanted spoon", 3], ["hypnosis pendant", 120]],
+      [["psychic vest", 50]],
     ]
   },
-         {
+  {
     name: "Talent Poison 7/8",
-    items: [
-      ["poison pore", 50],
-	  
-	  ["simple poison orb", 5],
-      ["contagious pore", 3],
-	  
-	  ["arcane poison orb", 3],
-	  ["gray snake tail", 3],
-	  ["toxic scale", 120],	
-	  
-	  ["mythic poison orb", 3],
-	  ["poisoned fish tail", 1],
-	  ["king ear", 500],
-	  
-	  ["simple poison orb", 5],
-	  ["disgusting gosme", 3],
-	  
-	  ["arcane poison orb", 3],
-      ["contagious pore", 3],
-	  ["cobra tail", 120],
-	  
-	  ["snake tail", 50],
+    slots: [
+      [["poison pore", 50]],
+      [["simple poison orb", 5], ["contagious pore", 3]],
+      [["arcane poison orb", 3], ["gray snake tail", 3], ["toxic scale", 120]],
+      [["mythic poison orb", 3], ["poisoned fish tail", 1], ["king ear", 500]],
+      [["simple poison orb", 5], ["disgusting gosme", 3]],
+      [["arcane poison orb", 3], ["contagious pore", 3], ["cobra tail", 120]],
+      [["snake tail", 50]],
     ]
   },
-         {
+  {
     name: "Talent Normal 7/8",
-    items: [
-	  ["mouse tail", 50],
-	  
-	  ["simple normal orb", 5],
-	  ["blue mouse tail", 3],
-	  
-	  ["arcane normal orb", 3],
-	  ["loud microphone", 3],
-	  ["bull tail", 120],
-	  
-	  ["mythic normal orb", 3],
-	  ["purple egg", 2],
-	  ["cow tail", 500],
-	  
-	  ["mouse tail", 50],
-	  
-	  ["simple normal orb", 5],
-	  ["blue mouse tail", 3],
-	  
-	  ["arcane normal orb", 3],
-	  ["loud microphone", 3],
-	  ["bull tail", 120],
+    slots: [
+      [["mouse tail", 50]],
+      [["simple normal orb", 5], ["blue mouse tail", 3]],
+      [["arcane normal orb", 3], ["loud microphone", 3], ["bull tail", 120]],
+      [["mythic normal orb", 3], ["purple egg", 2], ["cow tail", 500]],
+      [["mouse tail", 50]],
+      [["simple normal orb", 5], ["blue mouse tail", 3]],
+      [["arcane normal orb", 3], ["loud microphone", 3], ["bull tail", 120]],
     ]
   },
-         {
+  {
     name: "Talent Ice 7/8",
-    items: [
-	  ["mythic ice orb", 3],
-	  ["raibow gift tail", 1],
-	  ["psychic wig", 500],
-	  
-	  ["seel tail", 50],
-	  
-	  ["simple ice orb", 5],
-	  ["blue seel tail", 3],
-	  
-	  ["arcane ice orb", 3],
-	  ["blue seel tail", 3],
-	  ["dewgong tail", 120],
-	  
-	  ["locksmith of shell", 50],
-	  
-	  ["simple ice orb", 5],
-	  ["blue shell", 3],
-	  
-	  ["arcane ice orb", 3],
-	  ["blue shell", 3],
-	  ["pieces of shell", 120],
+    slots: [
+      [["mythic ice orb", 3], ["raibow gift tail", 1], ["psychic wig", 500]],
+      [["seel tail", 50]],
+      [["simple ice orb", 5], ["blue seel tail", 3]],
+      [["arcane ice orb", 3], ["blue seel tail", 3], ["dewgong tail", 120]],
+      [["locksmith of shell", 50]],
+      [["simple ice orb", 5], ["blue shell", 3]],
+      [["arcane ice orb", 3], ["blue shell", 3], ["pieces of shell", 120]],
     ]
   },
-         {
+  {
     name: "Talent Ground 7/8",
-    items: [
-	  ["mythic ground orb", 3],
-	  ["golden drill", 1],
-	  ["elephant foot", 500],
-	  
-	  ["simple ground orb", 5],
-	  ["small yellow stones", 3],
-	  
-	  ["arcane ground orb", 3],
-	  ["golden shell", 3],
-	  ["bone", 120],
-	  
-	  ["small handfull of stones", 50],
-	  
-	  ["simple ground orb", 5],
-	  ["armadillo red tail", 3],
-	  
-	  ["arcane ground orb", 3],
-	  ["golden shell", 3],
-	  ["bone", 120],
-	  
-	  ["armadillo tail", 50],
+    slots: [
+      [["mythic ground orb", 3], ["golden drill", 1], ["elephant foot", 500]],
+      [["simple ground orb", 5], ["small yellow stones", 3]],
+      [["arcane ground orb", 3], ["golden shell", 3], ["bone", 120]],
+      [["small handfull of stones", 50]],
+      [["simple ground orb", 5], ["armadillo red tail", 3]],
+      [["arcane ground orb", 3], ["golden shell", 3], ["bone", 120]],
+      [["armadillo tail", 50]],
     ]
   },
-           {
+  {
     name: "Talent Grass 7/8",
-    items: [
-	  ["leaves", 50],
-	  
-	  ["simple grass orb", 5],
-	  ["purple chicory", 3],
-	  
-	  ["arcane grass orb", 3],
-	  ["purple bug leaf", 3],
-	  ["big leaf", 120],
-	  
-	  ["mythic grass orb", 3],
-	  ["blue coconut leaves", 1],
-	  ["big petal", 500],
-	  
-	  ["flower stem", 50],
-	  
-	  ["simple grass orb", 5],
-	  ["brown bulb", 3],
-	  
-	  ["arcane grass orb", 3],
-	  ["purple leaf", 3],
-	  ["leaf", 120],
+    slots: [
+      [["leaves", 50]],
+      [["simple grass orb", 5], ["purple chicory", 3]],
+      [["arcane grass orb", 3], ["purple bug leaf", 3], ["big leaf", 120]],
+      [["mythic grass orb", 3], ["blue coconut leaves", 1], ["big petal", 500]],
+      [["flower stem", 50]],
+      [["simple grass orb", 5], ["brown bulb", 3]],
+      [["arcane grass orb", 3], ["purple leaf", 3], ["leaf", 120]],
     ]
   },
-           {
+  {
     name: "Talent Ghost 7/8",
-    items: [
-	  ["ghost bottle", 50],
-	  
-	  ["simple ghost orb", 5],
-	  ["green ghost bottle", 3],
-	  
-	  ["arcane ghost orb", 3],
-	  ["dark claw", 3],
-	  ["ghost claw", 120],
-	  
-	  ["mythic ghost orb", 3],
-	  ["dark claw", 3],
-	  ["ghost claw", 120],
-	  
-	  ["ghost bottle", 50],
-	  
-	  ["simple ghost orb", 5],
-	  ["green ghost bottle", 3],
-	  
-	  ["arcane ghost orb", 3],
-	  ["dark claw", 3],
-	  ["ghost claw", 120],
+    slots: [
+      [["ghost bottle", 50]],
+      [["simple ghost orb", 5], ["green ghost bottle", 3]],
+      [["arcane ghost orb", 3], ["dark claw", 3], ["ghost claw", 120]],
+      [["mythic ghost orb", 3], ["dark claw", 3], ["ghost claw", 120]],
+      [["ghost bottle", 50]],
+      [["simple ghost orb", 5], ["green ghost bottle", 3]],
+      [["arcane ghost orb", 3], ["dark claw", 3], ["ghost claw", 120]],
     ]
   },
-           {
+  {
     name: "Talent Flying 7/8",
-    items: [
-	  ["mythic flying orb", 3],
-	  ["shiny bat wing", 1],
-	  ["dodrio feather", 500],
-	  
-	  ["bird crest", 50],
-	  
-	  ["simple flying orb", 5],
-	  ["yellow bird crest", 3],
-	  
-	  ["arcane flying orb", 3],
-	  ["two-colored tail", 3],
-	  ["bird tail", 120],
-	  
-	  ["bird wing", 50],
-	  
-	  ["simple flying orb", 5],
-	  ["carmine wing", 3],
-	  
-	  ["arcane flying orb", 3],
-	  ["two-colored tail", 3],
-	  ["bird tail", 120],
+    slots: [
+      [["mythic flying orb", 3], ["shiny bat wing", 1], ["dodrio feather", 500]],
+      [["bird crest", 50]],
+      [["simple flying orb", 5], ["yellow bird crest", 3]],
+      [["arcane flying orb", 3], ["two-colored tail", 3], ["bird tail", 120]],
+      [["bird wing", 50]],
+      [["simple flying orb", 5], ["carmine wing", 3]],
+      [["arcane flying orb", 3], ["two-colored tail", 3], ["bird tail", 120]],
     ]
   },
-           {
+  {
     name: "Talent Fire 7/8",
-    items: [
-	  ["mythic fire orb", 3],
-	  ["black lizard tail", 3],
-	  ["magma shell", 500],
-	  
-	  ["simple fire orb", 5],
-	  ["blue canine tail", 3],
-	  
-	  ["arcane fire orb", 3],
-	  ["black lizard tail", 3],
-	  ["lizard tail", 120],
-	  
-	  ["fire tail", 25],
-	  ["canine tail", 25],
-	  
-	  ["simple fire orb", 5],
-	  ["black tail", 3],
-	  
-	  ["arcane fire orb", 3],
-	  ["blaze fur", 3],
-	  ["quilava fur", 120],
-	  
-	  ["fire hair", 25],
-	  ["dog fur", 25],
+    slots: [
+      [["mythic fire orb", 3], ["black lizard tail", 3], ["magma shell", 500]],
+      [["simple fire orb", 5], ["blue canine tail", 3]],
+      [["arcane fire orb", 3], ["black lizard tail", 3], ["lizard tail", 120]],
+      [["fire tail", 25], ["canine tail", 25]],
+      [["simple fire orb", 5], ["black tail", 3]],
+      [["arcane fire orb", 3], ["blaze fur", 3], ["quilava fur", 120]],
+      [["fire hair", 25], ["dog fur", 25]],
     ]
   },
-           {
+  {
     name: "Talent Figthing 7/8",
-    items: [
-	  ["mythic figthing orb", 3],
-	  ["metal bracelet", 2],
-	  ["punching machine", 500],
-	  
-	  ["simple figthing orb", 5],
-	  ["blond hawk", 3],
-	  
-	  ["mankey tail", 50],
-	  
-	  ["arcane figthing orb", 3],
-	  ["champion underwear", 3],
-	  ["fighther underwear", 120],
-	  
-	  ["simple figthing orb", 5],
-	  ["white monkey tail", 3],
-	 
-	  ["arcane figthing orb", 3],
-	  ["champion underwear", 3],
-	  ["fighther underwear", 120],
-	  
-	  ["fighther hawk", 50],
+    slots: [
+      [["mythic figthing orb", 3], ["metal bracelet", 2], ["punching machine", 500]],
+      [["simple figthing orb", 5], ["blond hawk", 3]],
+      [["mankey tail", 50]],
+      [["arcane figthing orb", 3], ["champion underwear", 3], ["fighther underwear", 120]],
+      [["simple figthing orb", 5], ["white monkey tail", 3]],
+      [["arcane figthing orb", 3], ["champion underwear", 3], ["fighther underwear", 120]],
+      [["fighther hawk", 50]],
     ]
   },
-           {
+  {
     name: "Talent Fairy 7/8",
-    items: [
-	  ["simple fairy orb", 5],
-	  ["punk ear", 3],
-	  
-	  ["snubull ear", 50],
-	  
-	  ["arcane fairy orb", 3],
-	  ["purple moon topknot", 3],
-	  ["moon topknot", 120],
-	  
-	  ["mythic fairy orb", 3],
-	  ["pink daint wing", 2],
-	  ["pink wings", 500],
-	  
-	  ["simple fairy orb", 5],
-	  ["punk ear", 3],
-	  
-	  ["snubull ear", 50],
-	  
-	  ["arcane fairy orb", 3],
-	  ["purple moon topknot", 3],
-	  ["moon topknot", 120],
+    slots: [
+      [["simple fairy orb", 5], ["punk ear", 3]],
+      [["snubull ear", 50]],
+      [["arcane fairy orb", 3], ["purple moon topknot", 3], ["moon topknot", 120]],
+      [["mythic fairy orb", 3], ["pink daint wing", 2], ["pink wings", 500]],
+      [["simple fairy orb", 5], ["punk ear", 3]],
+      [["snubull ear", 50]],
+      [["arcane fairy orb", 3], ["purple moon topknot", 3], ["moon topknot", 120]],
     ]
   },
-           {
+  {
     name: "Talent Electric 7/8",
-    items: [
-	  ["simple electric orb", 5],
-	  ["green remains", 3],
-	  
-	  ["arcane electric orb", 3],
-	  ["electric soft wool", 3],
-	  ["soft wool", 120],
-	  
-	  ["mythic electric orb", 3],
-	  ["big green piece", 1],
-	  ["electric sheep tail", 500],
-	  
-	  ["simple electric orb", 5],
-	  ["blue screws", 3],
-	  
-	  ["remains of voltorb", 25],
-	  ["electric screws", 25],
-	  
-	  ["arcane electric orb", 3],
-	  ["electric rat tail (shiny)", 3],
-	  ["electric ear", 120],
-	  
-	  ["electric rat tail", 50],
+    slots: [
+      [["simple electric orb", 5], ["green remains", 3]],
+      [["arcane electric orb", 3], ["electric soft wool", 3], ["soft wool", 120]],
+      [["mythic electric orb", 3], ["big green piece", 1], ["electric sheep tail", 500]],
+      [["simple electric orb", 5], ["blue screws", 3]],
+      [["remains of voltorb", 25], ["electric screws", 25]],
+      [["arcane electric orb", 3], ["electric rat tail (shiny)", 3], ["electric ear", 120]],
+      [["electric rat tail", 50]],
     ]
   },
-           {
+  {
     name: "Talent Dragon 7/8",
-    items: [
-	  ["simple dragon orb", 5],
-	  ["shiny dragon ears", 5],
-	  
-	  ["arcane dragon orb", 3],
-	  ["shiny dragon ears", 10],
-	  ["dratini ear", 120],
-	  
-	  ["mythic dragon orb", 3],
-	  ["shiny dragon ears", 3],
-	  ["dragonite tail", 500],
-	  
-	  ["simple dragon orb", 5],
-	  ["shiny dragon ears", 5],
-	  
-	  ["arcane dragon orb", 3],
-	  ["shiny dragon ears", 10],
-	  ["dratini ear", 120],
-	  
-	  ["dratini ear", 50],
-	  
-	  ["dratini ear", 50],
+    slots: [
+      [["simple dragon orb", 5], ["shiny dragon ears", 5]],
+      [["arcane dragon orb", 3], ["shiny dragon ears", 10], ["dratini ear", 120]],
+      [["mythic dragon orb", 3], ["shiny dragon ears", 3], ["dragonite tail", 500]],
+      [["simple dragon orb", 5], ["shiny dragon ears", 5]],
+      [["arcane dragon orb", 3], ["shiny dragon ears", 10], ["dratini ear", 120]],
+      [["dratini ear", 50]],
+      [["dratini ear", 50]],
     ]
   },
-           {
+  {
     name: "Talent Dark 7/8",
-    items: [
-	  ["simple dark orb", 5],
-	  ["smoked bones", 3],
-	  
-	  ["yellow beak", 50],
-	  
-	  ["arcane dark orb", 3],
-	  ["dark beak", 3],
-	  ["yellow beak", 120],
-	  
-	  ["mythic dark orb", 3],
-	  ["cyan feather", 2],
-	  ["tyranitar tail", 500],
-	  
-	  ["simple dark orb", 5],
-	  ["smoked bones", 3],
-	  
-	  ["yellow beak", 50],
-	  
-	  ["arcane dark orb", 3],
-	  ["dark beak", 3],
-	  ["yellow beak", 120],
+    slots: [
+      [["simple dark orb", 5], ["smoked bones", 3]],
+      [["yellow beak", 50]],
+      [["arcane dark orb", 3], ["dark beak", 3], ["yellow beak", 120]],
+      [["mythic dark orb", 3], ["cyan feather", 2], ["tyranitar tail", 500]],
+      [["simple dark orb", 5], ["smoked bones", 3]],
+      [["yellow beak", 50]],
+      [["arcane dark orb", 3], ["dark beak", 3], ["yellow beak", 120]],
     ]
   },
-           {
+  {
     name: "Talent Bug 7/8",
-    items: [
-	  ["simple bug orb", 5],
-	  ["sparkle antenna", 3],
-	  
-	  ["piece of cocoon", 25],
-	  ["yellow cocoon", 25],
-	  
-	  ["arcane bug orb", 3],
-	  ["red piece of cocoon", 3],
-	  ["butterfree wing", 120],
-	  
-	  ["mythic bug orb", 3],
-	  ["pink bug orb", 1],
-	  ["moth wing", 500],
-	  
-	  ["simple bug orb", 5],
-	  ["yellow sting", 3],
-	  
-	  ["bee sting", 25],
-	  
-	  ["arcane bug orb", 3],
-	  ["red cocoon", 3],
-	  ["bee sting", 120],
+    slots: [
+      [["simple bug orb", 5], ["sparkle antenna", 3]],
+      [["piece of cocoon", 25], ["yellow cocoon", 25]],
+      [["arcane bug orb", 3], ["red piece of cocoon", 3], ["butterfree wing", 120]],
+      [["mythic bug orb", 3], ["pink bug orb", 1], ["moth wing", 500]],
+      [["simple bug orb", 5], ["yellow sting", 3]],
+      [["bee sting", 25]],
+      [["arcane bug orb", 3], ["red cocoon", 3], ["bee sting", 120]],
     ]
   },
-            {
+  {
     name: "Gym Viridian",
-    items: [
-	  ["snorlax paw", 1500],
-	  ["bear claw", 1500],
-	  ["cow tail", 1100],
-	  ["wigglytuff ear", 450],
-	  ["pink wings", 450],
-	  ["heart stone", 1000],
+    slots: [
+      [["snorlax paw", 1500], ["bear claw", 1500], ["cow tail", 1100], ["wigglytuff ear", 450], ["pink wings", 450], ["heart stone", 1000]],
     ]
   },
-            {
+  {
     name: "Gym Cinnabar",
-    items: [
-	  ["fire wing", 1500],
-	  ["magma foot", 1500],
-	  ["giant piece of fur", 1100],
-	  ["magma shell", 450],
-	  ["fire stone", 1000],
+    slots: [
+      [["fire wing", 1500], ["magma foot", 1500], ["giant piece of fur", 1100], ["magma shell", 450], ["fire stone", 1000]],
     ]
   },
-            {
+  {
     name: "Gym Pewter",
-    items: [
-	  ["stone rocks", 1500],
-	  ["horn drill", 1500],
-	  ["bone", 1100],
-	  ["steelix tail", 900],
-	  ["rock stone", 500],
-	  ["earth stone", 500],
+    slots: [
+      [["stone rocks", 1500], ["horn drill", 1500], ["bone", 1100], ["steelix tail", 900], ["rock stone", 500], ["earth stone", 500]],
     ]
   },
-            {
+  {
     name: "Gym Cerulean",
-    items: [
-	  ["lapras fin", 900],
-	  ["gyarados tail", 1100],
-	  ["aquatic tail", 1500],
-	  ["water cannon", 1500],
-	  ["water stone", 500],
-	  ["ice stone", 500],
+    slots: [
+      [["lapras fin", 900], ["gyarados tail", 1100], ["aquatic tail", 1500], ["water cannon", 1500], ["water stone", 500], ["ice stone", 500]],
     ]
   },
-            {
+  {
     name: "Gym Vermilion",
-    items: [
-	  ["electric sheep tail", 1100],
-	  ["electric tail", 1500],
-	  ["electric ear", 1500],
-	  ["electric collar", 900],
-	  ["thunder stone", 1000],
+    slots: [
+      [["electric sheep tail", 1100], ["electric tail", 1500], ["electric ear", 1500], ["electric collar", 900], ["thunder stone", 1000]],
     ]
   },
-            {
+  {
     name: "Gym Celadon",
-    items: [
-	  ["red petal", 1500],
-	  ["big petal", 1500],
-	  ["coconut leaves", 1100],
-	  ["vine hair", 900],
-	  ["leaf stone", 500],
-	  ["cocoon stone", 500],
+    slots: [
+      [["red petal", 1500], ["big petal", 1500], ["coconut leaves", 1100], ["vine hair", 900], ["leaf stone", 500], ["cocoon stone", 500]],
     ]
   },
-            {
+  {
     name: "Gym Fuchsia",
-    items: [
-	  ["queen ear", 1500],
-	  ["king ear", 1500],
-	  ["giant bat wing", 1100],
-	  ["stinky hand", 900],
-	  ["venom stone", 1000],
+    slots: [
+      [["queen ear", 1500], ["king ear", 1500], ["giant bat wing", 1100], ["stinky hand", 900], ["venom stone", 1000]],
     ]
   },
-            {
+  {
     name: "Gym Saffron",
-    items: [
-	  ["psychic moustache", 1500],
-	  ["two-eyed black tail", 1500],
-	  ["xatu wing", 1100],
-	  ["giraffe antenna", 900],
-	  ["enigma stone", 1000],
+    slots: [
+      [["psychic moustache", 1500], ["two-eyed black tail", 1500], ["xatu wing", 1100], ["giraffe antenna", 900], ["enigma stone", 1000]],
     ]
   },
-            {
+  {
     name: "Reduces Speed Water 6/6",
-    items: [
-      ["crystal stone", 25],
-      ["water stone", 50],
-      ["duck paw", 250],
-      ["aquatic tail", 300],
-	  ["big fist gloves", 300],
-	  ["gyarados tail", 500],
-	  ["giant ruby", 300],
-	  
-      ["crystal stone", 50],
-      ["water stone", 100],
-      ["duck paw", 300],
-      ["aquatic tail", 360],
-	  ["big fist gloves", 360],
-	  ["gyarados tail", 600],
-	  ["giant ruby", 360],
-	  ["simple water orb", 10],
-	  
-      ["crystal stone", 100],
-      ["water stone", 200],
-      ["duck paw", 375],
-      ["aquatic tail", 420],
-	  ["big fist gloves", 420],
-	  ["gyarados tail", 700],
-	  ["giant ruby", 420],
-	  ["simple water orb", 20],
-	  
-      ["crystal stone", 200],
-      ["water stone", 400],
-      ["duck paw", 375],
-      ["aquatic tail", 450],
-	  ["big fist gloves", 450],
-	  ["gyarados tail", 750],
-	  ["giant ruby", 450],
-	  ["arcane water orb", 5],
-	  
-      ["crystal stone", 400],
-      ["water stone", 800],
-      ["duck paw", 400],
-      ["aquatic tail", 525],
-	  ["big fist gloves", 525],
-	  ["gyarados tail", 875],
-	  ["giant ruby", 525],
-	  ["arcane water orb", 20],
-	  
-      ["crystal stone", 500],
-      ["water stone", 1000],
-      ["duck paw", 500],
-      ["aquatic tail", 600],
-	  ["big fist gloves", 600],
-	  ["gyarados tail", 1000],
-	  ["giant ruby", 600],
-	  ["mythic water orb", 3],
+    slots: [
+      [["crystal stone", 25], ["water stone", 50], ["duck paw", 250], ["aquatic tail", 300], ["big fist gloves", 300], ["gyarados tail", 500], ["giant ruby", 300]],
+      [["crystal stone", 50], ["water stone", 100], ["duck paw", 300], ["aquatic tail", 360], ["big fist gloves", 360], ["gyarados tail", 600], ["giant ruby", 360], ["simple water orb", 10]],
+      [["crystal stone", 100], ["water stone", 200], ["duck paw", 375], ["aquatic tail", 420], ["big fist gloves", 420], ["gyarados tail", 700], ["giant ruby", 420], ["simple water orb", 20]],
+      [["crystal stone", 200], ["water stone", 400], ["duck paw", 375], ["aquatic tail", 450], ["big fist gloves", 450], ["gyarados tail", 750], ["giant ruby", 450], ["arcane water orb", 5]],
+      [["crystal stone", 400], ["water stone", 800], ["duck paw", 400], ["aquatic tail", 525], ["big fist gloves", 525], ["gyarados tail", 875], ["giant ruby", 525], ["arcane water orb", 20]],
+      [["crystal stone", 500], ["water stone", 1000], ["duck paw", 500], ["aquatic tail", 600], ["big fist gloves", 600], ["gyarados tail", 1000], ["giant ruby", 600], ["mythic water orb", 3]],
     ]
   },
 ];
@@ -4421,103 +4515,287 @@ function switchTab(tab, btn) {
   if (tab === 'captura') renderCaptura();
 }
 
-// ===================== PACOTES =====================
+// ===================== PACOTES — LAYOUT RPG =====================
 let currentPkg = null;
 let currentPkgState = [];
+let activePkgIdx = null;
+// pkgCartCount já declarado globalmente acima
+
+// Ícones por tipo de pacote (heurística pelo nome)
+function getPkgIcon(name) {
+  const img = (url) => `<img src="${url}" style="width:40px;height:40px;object-fit:contain" />`;
+  const n = name.toLowerCase();
+  if (n.includes('speed'))                        return img('URL_SPEED');
+  if (n.includes('hp'))                           return img('URL_HP');
+  if (n.includes('water'))                        return img('https://i.imgur.com/zpRe43i.png');
+  if (n.includes('steel') || n.includes('metal')) return img('URL_STEEL');
+  if (n.includes('rock'))                         return img('URL_ROCK');
+  if (n.includes('psychic'))                      return img('URL_PSYCHIC');
+  if (n.includes('poison'))                       return img('URL_POISON');
+  if (n.includes('normal'))                       return img('URL_NORMAL');
+  if (n.includes('ice'))                          return img('URL_ICE');
+  if (n.includes('ground'))                       return img('URL_GROUND');
+  if (n.includes('fire'))                         return img('URL_FIRE');
+  if (n.includes('grass'))                        return img('URL_GRASS');
+  if (n.includes('electric'))                     return img('URL_ELECTRIC');
+  if (n.includes('dark'))                         return img('URL_DARK');
+  if (n.includes('dragon'))                       return img('URL_DRAGON');
+  if (n.includes('ghost'))                        return img('URL_GHOST');
+  if (n.includes('fairy'))                        return img('URL_FAIRY');
+  if (n.includes('flying'))                       return img('URL_FLYING');
+  if (n.includes('bug'))                          return img('URL_BUG');
+  if (n.includes('fighting'))                     return img('URL_FIGHTING');
+  return img('URL_DEFAULT');
+}
 
 function getPkgItemData(itemName) {
   return items.find(i => i.name.toLowerCase() === itemName.toLowerCase()) || null;
 }
 
-function getPkgTotal(pkg) {
-  return pkg.items.reduce((sum, [name, qty]) => {
+function getPkgAllItems(pkg) {
+  return (pkg.slots || []).flat();
+}
+function getPkgTotal(pkg, pi) {
+  const src = (pi !== undefined) ? getPkgActiveItems(pkg, pi) : getPkgAllItems(pkg);
+  return src.reduce((sum, [name, qty]) => {
     const item = getPkgItemData(name);
     return sum + (item && item.price ? item.price * qty : 0);
   }, 0);
 }
 
+// Categoria ativa na sidebar de pacotes
+let activePkgCat = 'all';
+
+function getPkgCategory(name) {
+  const n = name.toLowerCase();
+  if (n.startsWith('talent')) return 'talent';
+  if (n.startsWith('gym'))    return 'gym';
+  if (n.startsWith('full'))   return 'full';
+  if (n.startsWith('reduces') || n.startsWith('reduce')) return 'reduces';
+  return 'outros';
+}
+
+const PKG_CAT_META = {
+  all:     { label: 'Todos',    icon: '📦' },
+  talent:  { label: 'Talents',  icon: '✨' },
+  gym:     { label: 'Gym',      icon: '🏛️' },
+  full:    { label: 'Full',     icon: '⚡' },
+  reduces: { label: 'Reduces',  icon: '🔻' },
+  outros:  { label: 'Outros',   icon: '🎲' },
+};
+
+function renderPkgCatTabs() {
+  const el = document.getElementById('pkg-cat-tabs');
+  if (!el) return;
+  // Descobrir quais categorias existem
+  const cats = ['all', ...new Set(PACKAGES.map(p => getPkgCategory(p.name)))];
+  el.innerHTML = cats.map(cat => {
+    const count = cat === 'all' ? PACKAGES.length : PACKAGES.filter(p => getPkgCategory(p.name) === cat).length;
+    const meta = PKG_CAT_META[cat] || { label: cat, icon: '📌' };
+    return `<button class="pkg-cat-btn${activePkgCat === cat ? ' active' : ''}" onclick="selectPkgCat('${cat}')">
+      <span class="pkg-cat-icon">${meta.icon}</span>
+      ${meta.label}
+      <span class="pkg-cat-count">${count}</span>
+    </button>`;
+  }).join('');
+}
+
+function selectPkgCat(cat) {
+  activePkgCat = cat;
+  // Se pacote ativo não pertence à nova categoria, deseleciona
+  if (activePkgIdx !== null && cat !== 'all') {
+    if (getPkgCategory(PACKAGES[activePkgIdx].name) !== cat) {
+      activePkgIdx = null;
+      document.getElementById('pkg-detail').innerHTML = `
+        <div class="pkg-detail-empty" id="pkg-detail-empty">
+          <div class="pkg-detail-empty-icon">📋</div>
+          <div class="pkg-detail-empty-text">Selecione um pacote</div>
+        </div>`;
+    }
+  }
+  renderPackages();
+}
+
 function renderPackages() {
-  const grid = document.getElementById('packages-grid');
-  const q = (document.getElementById('pkg-search') ? document.getElementById('pkg-search').value : '').toLowerCase();
+  const sidebarList = document.getElementById('pkg-sidebar-list');
+  if (!sidebarList) return;
+
+  renderPkgCatTabs();
+
   if (!PACKAGES.length) {
-    grid.innerHTML = '<div class="no-results">Nenhum pacote cadastrado.</div>';
+    sidebarList.innerHTML = '<div style="padding:16px;font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:center">Nenhum pacote</div>';
     return;
   }
-  const filtered = PACKAGES.filter((pkg, pi) => !q || pkg.name.toLowerCase().includes(q));
-  const pkgCountEl = document.getElementById('pkg-count-label');
-  if (pkgCountEl) pkgCountEl.textContent = filtered.length + (filtered.length === 1 ? ' pacote' : ' pacotes');
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="no-results">Nenhum pacote encontrado.</div>';
-    return;
-  }
-  grid.innerHTML = filtered.map((pkg) => {
-    const pi = PACKAGES.indexOf(pkg);
-    const totalRaw = getPkgTotal(pkg);
-    const totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
-    const previewItems = pkg.items.slice(0, 6).map(([name, qty]) =>
-      `<div class="pkg-item-row">
-        <span class="pkg-item-name">${name}</span>
-        <span class="pkg-item-qty">×${qty.toLocaleString()}</span>
-      </div>`
-    ).join('');
-    return `<div class="pkg-card" onclick="openPkgModal(${pi})">
-      <div class="pkg-header">
-        <div class="pkg-name">${pkg.name}</div>
-        <div class="pkg-meta">
-          <span class="pkg-count">${pkg.items.length} ${pkg.items.length === 1 ? 'item' : 'itens'}</span>
-          ${totalData ? `<span class="pkg-total-price">${totalData.label} · ${totalData.brl}</span>` : ''}
-        </div>
+
+  const filtered = PACKAGES.map((pkg, pi) => ({ pkg, pi }))
+    .filter(({ pkg }) => activePkgCat === 'all' || getPkgCategory(pkg.name) === activePkgCat);
+
+  sidebarList.innerHTML = filtered.map(({ pkg, pi }) => {
+    const icon = getPkgIcon(pkg.name);
+    const isActive = activePkgIdx === pi;
+    const added = pkgCartCount && pkgCartCount[pi] ? pkgCartCount[pi] : 0;
+    const glowClass = added ? ' is-in-cart' : '';
+    return `<div class="pkg-sidebar-item${isActive ? ' active' : ''}${glowClass}" onclick="selectPkg(${pi})">
+      <div class="pkg-sidebar-item-icon">${icon}</div>
+      <div class="pkg-sidebar-item-info">
+        <div class="pkg-sidebar-item-name">${pkg.name}</div>
+        <div class="pkg-sidebar-item-sub">${getPkgAllItems(pkg).length} ${getPkgAllItems(pkg).length === 1 ? 'item' : 'itens'}${added ? ' · ✓ ×' + added : ''}</div>
       </div>
-      <div class="pkg-body">${previewItems}</div>
-      <div class="pkg-footer">
-        <div class="pkg-footer-row">
-          <button class="pkg-add-btn" id="pkgbtn-${pi}" onclick="event.stopPropagation(); addPackageToCartDirect(${pi})" style="flex:1">
-            <span id="pkgbtn-label-${pi}">+ Adicionar ao Carrinho</span>
-          </button>
-          <span id="pkgrem-${pi}"></span>
-        </div>
+      <span class="pkg-sidebar-item-arrow">▶</span>
+    </div>`;
+  }).join('');
+
+  if (activePkgIdx !== null) renderPkgDetail(activePkgIdx);
+}
+
+function selectPkg(pi) {
+  activePkgIdx = pi;
+  renderPackages();
+  renderPkgDetail(pi);
+}
+
+// Slot ativo por pacote
+const activeSlotByPkg = {};
+// disabledPkgItems[pi] = Set de chaves "si:itemName" desativados
+const disabledPkgItems = {};
+
+function pkgItemKey(si, name) { return si + ':' + name; }
+
+function isPkgItemDisabled(pi, si, name) {
+  return disabledPkgItems[pi] && disabledPkgItems[pi].has(pkgItemKey(si, name));
+}
+
+function togglePkgItem(pi, si, name) {
+  if (!disabledPkgItems[pi]) disabledPkgItems[pi] = new Set();
+  const key = pkgItemKey(si, name);
+  if (disabledPkgItems[pi].has(key)) disabledPkgItems[pi].delete(key);
+  else disabledPkgItems[pi].add(key);
+  renderPkgDetail(pi);
+}
+
+function getPkgActiveItems(pkg, pi) {
+  // Retorna apenas itens não desativados de todos os slots
+  return (pkg.slots || []).flatMap((slot, si) =>
+    slot.filter(([name]) => !isPkgItemDisabled(pi, si, name))
+  );
+}
+
+function getSlotLabel(pkg, si) {
+  const n = pkg.name.toLowerCase();
+  if (n.includes('talent')) return 'Talent ' + (si + 1);
+  if (n.includes('gym'))    return 'Slot ' + (si + 1);
+  if (n.includes('full'))   return 'Slot ' + (si + 1);
+  return 'Slot ' + (si + 1);
+}
+
+function renderPkgDetail(pi) {
+  const detail = document.getElementById('pkg-detail');
+  const pkg = PACKAGES[pi];
+  const totalRaw = getPkgTotal(pkg, pi);
+  const totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
+  const added = pkgCartCount && pkgCartCount[pi] ? pkgCartCount[pi] : 0;
+  const allItems = getPkgAllItems(pkg);
+  const slots = pkg.slots || [allItems];
+  const hasSlots = slots.length > 1;
+
+  if (activeSlotByPkg[pi] === undefined) activeSlotByPkg[pi] = 0;
+  const si = Math.min(activeSlotByPkg[pi], slots.length - 1);
+  const currentSlot = slots[si];
+
+  // Slot tabs — mostra preço só dos itens ativos do slot
+  const slotTabsHtml = hasSlots ? `
+    <div class="pkg-slot-tabs" id="pkg-slot-tabs-${pi}">
+      ${slots.map((slot, idx) => {
+        const slotTotal = slot.reduce((s, [n, q]) => {
+          if (isPkgItemDisabled(pi, idx, n)) return s;
+          const it = getPkgItemData(n);
+          return s + (it && it.price ? it.price * q : 0);
+        }, 0);
+        const slotData = slotTotal > 0 ? formatKK(slotTotal) : null;
+        const disabledCount = slot.filter(([n]) => isPkgItemDisabled(pi, idx, n)).length;
+        return `<button class="pkg-slot-btn${idx === si ? ' active' : ''}${disabledCount === slot.length ? ' all-disabled' : ''}" onclick="selectPkgSlot(${pi}, ${idx})">
+          <span class="pkg-slot-btn-label">${getSlotLabel(pkg, idx)}</span>
+          ${slotData ? `<span class="pkg-slot-btn-price">${slotData.label}</span>` : ''}
+          <span class="pkg-slot-btn-count">${slot.length - disabledCount}/${slot.length} itens</span>
+        </button>`;
+      }).join('')}
+    </div>` : '';
+
+  // Rows — clicáveis para ativar/desativar
+  const rowsHtml = currentSlot.map(([name, qty]) => {
+    const disabled = isPkgItemDisabled(pi, si, name);
+    const item = getPkgItemData(name);
+    const lineTotal = !disabled && item && item.price && qty > 0 ? item.price * qty : 0;
+    const priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
+    return `<div class="pkg-detail-row${disabled ? ' row-disabled' : ''}" onclick="togglePkgItem(${pi}, ${si}, '${name.replace(/'/g,"\'")}')">
+      <div class="pkg-detail-row-icon">${disabled ? '○' : '◆'}</div>
+      <span class="pkg-detail-row-name">${name}</span>
+      <div class="pkg-detail-row-right">
+        <span class="pkg-detail-row-price">${disabled ? '<span class="row-disabled-label">removido</span>' : (priceData ? priceData.label : '—')}</span>
+        <span class="pkg-detail-row-qty">×${qty.toLocaleString()}</span>
+        <span class="pkg-row-toggle-btn">${disabled ? '↩' : '✕'}</span>
       </div>
     </div>`;
   }).join('');
+
+  const addedClass = added ? ' added' : '';
+  const addedLabel = added ? `✓ Adicionado ×${added}` : '+ Adicionar ao Carrinho';
+  const activeCount = getPkgActiveItems(pkg, pi).length;
+  const totalCount = allItems.length;
+  const countLabel = activeCount < totalCount
+    ? `${activeCount}/${totalCount} itens ativos · ${slots.length} ${slots.length === 1 ? 'slot' : 'slots'}`
+    : `${totalCount} itens · ${slots.length} ${slots.length === 1 ? 'slot' : 'slots'}`;
+
+  detail.innerHTML = `
+    <div class="pkg-detail-header">
+      <div class="pkg-detail-title">${pkg.name}</div>
+      <div class="pkg-detail-meta">
+        <span class="pkg-detail-count">${countLabel}</span>
+        ${totalData ? `<span class="pkg-detail-price">${totalData.label} · ${totalData.brl}</span>` : ''}
+      </div>
+    </div>
+    ${slotTabsHtml}
+    <div class="pkg-detail-body" id="pkg-detail-body-${pi}">${rowsHtml}</div>
+    <div class="pkg-detail-footer">
+      <div class="pkg-detail-total-block">
+        ${totalData ? `
+          <span class="pkg-detail-total-label">Total ativo</span>
+          <span class="pkg-detail-total-kk">${totalData.label}</span>
+          <span class="pkg-detail-total-brl">${totalData.brl}</span>
+        ` : '<span class="pkg-detail-total-label" style="color:var(--muted)">preço não definido</span>'}
+      </div>
+      <div id="pkgrem-detail-${pi}"></div>
+      <button class="pkg-detail-add-btn${addedClass}" id="pkgbtn-detail-${pi}" onclick="addPackageToCartDirect(${pi})">
+        ${addedLabel}
+      </button>
+    </div>`;
+
+  if (added) {
+    const remSlot = document.getElementById('pkgrem-detail-' + pi);
+    if (remSlot) {
+      remSlot.innerHTML = `<button class="pkg-detail-rem-btn" onclick="removePackageFromCart(${pi})" title="Remover do carrinho">✕</button>`;
+    }
+  }
+}
+
+function selectPkgSlot(pi, si) {
+  activeSlotByPkg[pi] = si;
+  renderPkgDetail(pi);
 }
 
 function openPkgModal(pi) {
-  currentPkg = pi;
-  // copia os itens para estado editável (não modifica o PACKAGES original)
-  currentPkgState = PACKAGES[pi].items.map(([name, qty]) => ({ name, qty }));
-  document.getElementById('pkg-modal-title').textContent = PACKAGES[pi].name;
-  renderPkgModalRows();
-  document.getElementById('pkg-overlay').classList.add('open');
+  // Compatibilidade — agora abre inline
+  selectPkg(pi);
 }
 
 function renderPkgModalRows() {
-  const body = document.getElementById('pkg-modal-body');
-  body.innerHTML = currentPkgState.map((entry, idx) => {
-    const item = getPkgItemData(entry.name);
-    const lineTotal = item && item.price && entry.qty > 0 ? item.price * entry.qty : 0;
-    const priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
-    return `<div class="pkg-modal-row" id="pkg-row-${idx}">
-      <span class="pkg-modal-item-name">${entry.name}</span>
-      <div class="pkg-modal-item-right">
-        <span class="pkg-modal-price" id="pkg-price-${idx}">${priceData ? priceData.label : '—'}</span>
-        <input
-          class="pkg-modal-qty-input"
-          type="number" min="0" max="999999"
-          value="${entry.qty}"
-          oninput="if(this.value<0||this.value==='')this.value=0; updatePkgQty(${idx}, this.value)"
-          onkeydown="if(event.key==='-'||event.key==='e')event.preventDefault()"
-        />
-        <button class="pkg-modal-rem-btn" onclick="removePkgItem(${idx})" title="Remover">&#x2715;</button>
-      </div>
-    </div>`;
-  }).join('');
-  updatePkgTotal();
+  // Mantido para compatibilidade
+  if (activePkgIdx !== null) renderPkgDetail(activePkgIdx);
 }
 
 function updatePkgQty(idx, val) {
   const qty = Math.max(0, parseInt(val, 10) || 0);
   currentPkgState[idx].qty = qty;
-  // atualiza o preço da linha
   const item = getPkgItemData(currentPkgState[idx].name);
   const lineTotal = item && item.price && qty > 0 ? item.price * qty : 0;
   const priceEl = document.getElementById('pkg-price-' + idx);
@@ -4541,18 +4819,23 @@ function updatePkgTotal() {
     if (item && item.price && entry.qty > 0) totalRaw += item.price * entry.qty;
   });
   const totalBlock = document.getElementById('pkg-modal-total');
-  if (totalRaw > 0) {
-    const td = formatKK(totalRaw);
-    document.getElementById('pkg-modal-kk').textContent = td.label;
-    document.getElementById('pkg-modal-brl').textContent = td.brl;
-    totalBlock.style.display = 'flex';
-  } else {
-    totalBlock.style.display = 'none';
+  if (totalBlock) {
+    if (totalRaw > 0) {
+      const td = formatKK(totalRaw);
+      const kkEl = document.getElementById('pkg-modal-kk');
+      const brlEl = document.getElementById('pkg-modal-brl');
+      if (kkEl) kkEl.textContent = td.label;
+      if (brlEl) brlEl.textContent = td.brl;
+      totalBlock.style.display = 'flex';
+    } else {
+      totalBlock.style.display = 'none';
+    }
   }
 }
 
 function closePkgModal() {
-  document.getElementById('pkg-overlay').classList.remove('open');
+  const overlay = document.getElementById('pkg-overlay');
+  if (overlay) overlay.classList.remove('open');
   currentPkg = null;
   currentPkgState = [];
 }
@@ -4568,30 +4851,26 @@ function addPackageToCart() {
     const idx = items.findIndex(i => i.name.toLowerCase() === entry.name.toLowerCase());
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + entry.qty;
-    const btn = document.getElementById('addbtn-' + idx);
-    if (btn) { btn.innerHTML = '<span>✓ Adicionado</span>'; btn.classList.add('added'); }
   });
   updateCartBadge();
   closePkgModal();
 }
 
 function addPackageToCartDirect(pi) {
-  // Contabiliza quantas vezes esse pacote foi adicionado
   pkgCartCount = pkgCartCount || {};
   pkgCartCount[pi] = (pkgCartCount[pi] || 0) + 1;
 
   let noPriceNames = [];
-  PACKAGES[pi].items.forEach(([name, qty]) => {
+  getPkgActiveItems(PACKAGES[pi], pi).forEach(([name, qty]) => {
     if (!qty || qty <= 0) return;
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + qty;
     if (!items[idx].price) noPriceNames.push(name);
-    // Atualiza botão inline do card de item se estiver visível
     const btn = document.getElementById('addbtn-' + idx);
     const lbl = document.getElementById('addbtn-label-' + idx);
-    if (btn) { btn.classList.add('added'); }
-    if (lbl) { lbl.textContent = '\u2713 ' + cart[idx].toLocaleString(); }
+    if (btn) btn.classList.add('added');
+    if (lbl) lbl.textContent = '\u2713 ' + cart[idx].toLocaleString();
     const remSlot = document.getElementById('rembtn-' + idx);
     if (remSlot && remSlot.tagName === 'SPAN') {
       const remBtn = document.createElement('button');
@@ -4603,9 +4882,10 @@ function addPackageToCartDirect(pi) {
       remSlot.replaceWith(remBtn);
     }
   });
+
   if (noPriceNames.length > 0) {
     const toast = document.getElementById('no-price-toast');
-    const msg   = document.getElementById('no-price-toast-msg');
+    const msg = document.getElementById('no-price-toast-msg');
     if (toast && msg) {
       msg.textContent = 'O pacote contém ' + noPriceNames.length + ' item(ns) sem preço definido: ' + noPriceNames.join(', ') + '. O total será ajustado quando os preços forem estabelecidos.';
       toast.classList.add('show');
@@ -4615,32 +4895,14 @@ function addPackageToCartDirect(pi) {
   }
   updateCartBadge();
 
-  // Atualiza botão do card de pacote com contador de adições
-  const pkgBtn = document.getElementById('pkgbtn-' + pi);
-  const pkgLbl = document.getElementById('pkgbtn-label-' + pi);
-  if (pkgBtn) { pkgBtn.classList.add('added'); }
-  if (pkgLbl) { pkgLbl.textContent = '\u2713 Adicionado ' + pkgCartCount[pi] + '\u00d7'; }
-  // Exibe botão remover inline do pacote
-  const pkgRemSlot = document.getElementById('pkgrem-' + pi);
-  if (pkgRemSlot && pkgRemSlot.tagName === 'SPAN') {
-    const remBtn = document.createElement('button');
-    remBtn.className = 'pkg-inline-rem-btn';
-    remBtn.id = 'pkgrem-' + pi;
-    remBtn.title = 'Remover pacote do carrinho';
-    remBtn.innerHTML = '\u2715';
-    remBtn.onclick = (e) => { e.stopPropagation(); removePackageFromCart(pi); };
-    pkgRemSlot.replaceWith(remBtn);
-  }
-
-  // Atualiza o painel do carrinho caso esteja aberto
-  if (document.getElementById('cart-overlay').classList.contains('open')) {
-    renderCart();
-  }
+  // Atualiza detalhe inline
+  if (activePkgIdx === pi) renderPkgDetail(pi);
+  renderPackages();
 }
 
 function removePackageFromCart(pi) {
   pkgCartCount = pkgCartCount || {};
-  PACKAGES[pi].items.forEach(([name]) => {
+  getPkgAllItems(PACKAGES[pi]).forEach(([name]) => {
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     delete cart[idx];
@@ -4656,41 +4918,17 @@ function removePackageFromCart(pi) {
     }
   });
   delete pkgCartCount[pi];
-  // Reseta botão do card de pacote
-  const pkgBtn = document.getElementById('pkgbtn-' + pi);
-  const pkgLbl = document.getElementById('pkgbtn-label-' + pi);
-  if (pkgBtn) { pkgBtn.classList.remove('added'); }
-  if (pkgLbl) { pkgLbl.textContent = '+ Adicionar ao Carrinho'; }
-  const pkgRemBtn = document.getElementById('pkgrem-' + pi);
-  if (pkgRemBtn && pkgRemBtn.tagName === 'BUTTON') {
-    const span = document.createElement('span');
-    span.id = 'pkgrem-' + pi;
-    pkgRemBtn.replaceWith(span);
-  }
   updateCartBadge();
   if (document.getElementById('cart-overlay').classList.contains('open')) {
     renderCart();
   }
+  // Atualiza detalhe inline se estiver visível
+  if (activePkgIdx === pi) renderPkgDetail(pi);
+  renderPackages();
 }
 
 // ===================== VISUAL FX =====================
 
-// --- Cursor ---
-(function() {
-  const dot  = document.createElement('div'); dot.className  = 'cursor-dot';
-  const ring = document.createElement('div'); ring.className = 'cursor-ring';
-  document.body.appendChild(dot); document.body.appendChild(ring);
-  let mx = window.innerWidth/2, my = window.innerHeight/2;
-  let rx = mx, ry = my;
-  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-  function loop() {
-    dot.style.transform  = `translate(calc(${mx}px - 50%), calc(${my}px - 50%))`;
-    rx += (mx - rx) * 0.28; ry += (my - ry) * 0.28;
-    ring.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`;
-    requestAnimationFrame(loop);
-  }
-  loop();
-})();
 
 // --- Click Ripple + Sparks ---
 (function() {
@@ -4788,7 +5026,8 @@ function removePackageFromCart(pi) {
     });
   });
   obs.observe(document.getElementById('grid'), { childList: true, subtree: true });
-  obs.observe(document.getElementById('packages-grid'), { childList: true, subtree: true });
+  const pkgSidebar = document.getElementById('pkg-sidebar-list');
+  if (pkgSidebar) obs.observe(pkgSidebar, { childList: true, subtree: true });
   const capturaGrid = document.getElementById('captura-grid');
   if (capturaGrid) obs.observe(capturaGrid, { childList: true, subtree: true });
   document.addEventListener('mouseleave', () => {
@@ -4796,41 +5035,6 @@ function removePackageFromCart(pi) {
   });
 })();
 
-// --- Cursor trail canvas ---
-(function() {
-  const canvas = document.getElementById('cursor-canvas');
-  const ctx    = canvas.getContext('2d');
-  const W = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-  W(); window.addEventListener('resize', W);
-  const trail = [];
-  const MAX = 14; // reduzido de 22 para 14
-  let mx = -999, my = -999, lx = -999, ly = -999;
-  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-  function draw() {
-    // Só adiciona ponto se o mouse se moveu pelo menos 4px (evita pontos duplicados)
-    const moved = Math.abs(mx - lx) + Math.abs(my - ly);
-    if (moved > 4) {
-      trail.push({ x: mx, y: my });
-      if (trail.length > MAX) trail.shift();
-      lx = mx; ly = my;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let i = 1; i < trail.length; i++) {
-      const t   = trail[i];
-      const pt  = trail[i-1];
-      const age = i / trail.length;
-      ctx.beginPath();
-      ctx.moveTo(pt.x, pt.y);
-      ctx.lineTo(t.x, t.y);
-      ctx.strokeStyle = `rgba(58,140,255,${age * 0.25})`;
-      ctx.lineWidth   = age * 2.5;
-      ctx.lineCap     = 'round';
-      ctx.stroke();
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
 
 // --- WebGL plasma shader background ---
 (function() {
