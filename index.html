@@ -2328,6 +2328,45 @@ body:has(button:hover) .cursor-dot {
 }
 
 .captura-success-msg.show { display: flex; }
+
+/* ===================== CAPTURA TAG BADGES ===================== */
+.captura-tag {
+  display: inline-block;
+  font-family: var(--font-title);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+  position: relative;
+  overflow: hidden;
+}
+.captura-tag::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: rgba(255,255,255,0.18);
+  transform: skewX(-20deg);
+  animation: tagSweep 3s ease-in-out infinite;
+}
+.ctag-t1 { background: linear-gradient(90deg, rgba(160,60,255,0.3), rgba(120,30,220,0.18)); border: 1px solid rgba(180,80,255,0.65); color: #d580ff; box-shadow: 0 0 8px rgba(180,80,255,0.3); }
+.ctag-t2 { background: linear-gradient(90deg, rgba(41,120,255,0.28), rgba(20,80,200,0.16)); border: 1px solid rgba(58,140,255,0.65); color: #70b8ff; box-shadow: 0 0 8px rgba(58,140,255,0.3); }
+.ctag-t3 { background: linear-gradient(90deg, rgba(60,200,100,0.22), rgba(30,160,70,0.14)); border: 1px solid rgba(80,210,110,0.65); color: #60dd80; box-shadow: 0 0 8px rgba(60,200,100,0.25); }
+.ctag-t4 { background: linear-gradient(90deg, rgba(220,160,40,0.2), rgba(180,120,10,0.12)); border: 1px solid rgba(220,160,40,0.5); color: #d4a843; box-shadow: 0 0 6px rgba(220,160,40,0.2); }
+.ctag-t5 { background: linear-gradient(90deg, rgba(100,120,160,0.18), rgba(70,90,130,0.1)); border: 1px solid rgba(100,120,160,0.4); color: #7a90b0; }
+.ctag-t6 { background: linear-gradient(90deg, rgba(80,200,220,0.22), rgba(40,160,180,0.14)); border: 1px solid rgba(80,200,220,0.55); color: #50d0e0; box-shadow: 0 0 8px rgba(80,200,220,0.25); }
+.ctag-super-raro { background: linear-gradient(90deg, rgba(255,100,60,0.25), rgba(200,50,20,0.15)); border: 1px solid rgba(255,120,70,0.6); color: #ff9060; box-shadow: 0 0 8px rgba(255,100,60,0.25); }
+.ctag-ultra-raro { background: linear-gradient(90deg, rgba(255,40,120,0.25), rgba(180,10,80,0.15)); border: 1px solid rgba(255,60,130,0.65); color: #ff70b0; box-shadow: 0 0 10px rgba(255,40,120,0.3); animation: ultraRaroGlow 2s ease-in-out infinite; }
+@keyframes ultraRaroGlow { 0%,100% { box-shadow: 0 0 6px rgba(255,40,120,0.25); } 50% { box-shadow: 0 0 16px rgba(255,40,120,0.55); } }
+.ctag-raro { background: linear-gradient(90deg, rgba(240,180,41,0.22), rgba(200,130,10,0.14)); border: 1px solid rgba(240,180,41,0.6); color: #ffd166; box-shadow: 0 0 8px rgba(240,180,41,0.25); }
+.ctag-legendary { background: linear-gradient(90deg, rgba(240,150,0,0.3), rgba(200,80,0,0.18)); border: 1px solid rgba(255,170,20,0.75); color: #ffb830; box-shadow: 0 0 12px rgba(240,150,0,0.4); animation: legendaryGlow 2s ease-in-out infinite; }
+@keyframes legendaryGlow { 0%,100% { box-shadow: 0 0 8px rgba(240,150,0,0.3); } 50% { box-shadow: 0 0 20px rgba(240,150,0,0.65); } }
+.ctag-mythical { background: linear-gradient(90deg, rgba(200,40,255,0.3), rgba(130,0,200,0.18)); border: 1px solid rgba(220,60,255,0.75); color: #e060ff; box-shadow: 0 0 12px rgba(200,40,255,0.4); animation: mythicalGlow 2s ease-in-out infinite; }
+@keyframes mythicalGlow { 0%,100% { box-shadow: 0 0 8px rgba(200,40,255,0.35); } 50% { box-shadow: 0 0 22px rgba(200,40,255,0.7); } }
+
 .captura-card-price {
   display: flex;
   flex-direction: column;
@@ -2637,6 +2676,21 @@ body:has(button:hover) .cursor-dot {
       </svg>
       <input type="text" id="captura-search" placeholder="Buscar Pokémon..." oninput="renderCaptura()" />
     </div>
+    <select id="captura-filter" onchange="renderCaptura()">
+      <option value="all">Todos</option>
+      <option value="t1">T1</option>
+      <option value="t2">T2</option>
+      <option value="t3">T3</option>
+      <option value="t4">T4</option>
+      <option value="t5">T5</option>
+      <option value="t6">T6</option>
+      <option value="super-raro">Super Raro</option>
+      <option value="ultra-raro">Ultra Raro</option>
+      <option value="raro">Raro</option>
+      <option value="legendary">Legendary</option>
+      <option value="mythical">Mítico</option>
+      <option value="none">Sem tag</option>
+    </select>
     <span class="pkg-count-label" id="captura-count-label">— pokémons</span>
   </div>
   <div class="captura-wrap">
@@ -4669,25 +4723,26 @@ addToCart = function(i) {
 // Formato: { name: "Nome", price: <raw kk igual RAW>, image: "url" }
 // Exemplos de preço: 1000000 = 1kk | 5000000 = 5kk | 500000 = 500k | 0 = sem preço
 const POKEMONS = [
-  { name: "Shiny Venusaur",  price: 38000000, image: "https://i.imgur.com/gmZVZIS.gif" },
-  { name: "Shiny Blastoise",  price: 38000000, image: "https://i.imgur.com/9iQ7wNL.gif" },
-  { name: "Shiny Charizard",  price: 38000000, image: "https://i.imgur.com/SrQU5gi.gif" },
-  { name: "Shiny Feraligatr",  price: 38000000, image: "https://i.imgur.com/DP4YWT1.gif" },
-  { name: "Shiny Pidgeot",  price: 38000000, image: "https://i.imgur.com/pHY01e0.gif" },
-  { name: "Shiny Raichu",  price: 38000000, image: "https://i.imgur.com/EbsLav0.gif" },
-  { name: "Shiny Nidoqueen",  price: 38000000, image: "https://i.imgur.com/iIMkTqF.gif" },
-  { name: "Shiny Nidoking",  price: 38000000, image: "https://i.imgur.com/xeDriFy.gif" },
-  { name: "Shiny Ninetales",  price: 38000000, image: "https://i.imgur.com/u0sGCqg.gif" },
-  { name: "Shiny Tentacruel",  price: 38000000, image: "https://i.imgur.com/I9J30Si.gif" },
-  { name: "Shiny Golem",  price: 38000000, image: "https://i.imgur.com/6Wphle1.gif" },
-  { name: "Shiny Meganium",  price: 38000000, image: "https://i.imgur.com/eJvTQJ7.gif" },
-  { name: "Shiny Typhlosion",  price: 38000000, image: "https://i.imgur.com/2BtRLDx.gif" },
-  { name: "Shiny Crobat",  price: 7000000, image: "https://i.imgur.com/agzGxZH.gif" },
-  { name: "Shiny Steelix",  price: 38000000, image: "https://i.imgur.com/zY5AuG0.gif" },
-  { name: "Shiny Politoad",  price: 38000000, image: "https://i.imgur.com/yLbIDLz.gif" },
-  { name: "Shiny Ampharos",  price: 38000000, image: "https://i.imgur.com/DecvtNB.gif" },
-  { name: "Tangrowth",  price: 38000000, image: "https://i.imgur.com/EpEQ1Wx.gif" },
-  { name: "Shiny Luxray",  price: 170000000, image: "https://i.imgur.com/sWnyJd1.gif" },
+  { name: "Shiny Venusaur",   price: 38000000,  tag: "t1",       image: "https://i.imgur.com/gmZVZIS.gif" },
+  { name: "Shiny Blastoise",  price: 38000000,  tag: "t1",       image: "https://i.imgur.com/9iQ7wNL.gif" },
+  { name: "Shiny Charizard",  price: 38000000,  tag: "t1", image: "https://i.imgur.com/SrQU5gi.gif" },
+  { name: "Shiny Feraligatr", price: 38000000,  tag: "t1",       image: "https://i.imgur.com/DP4YWT1.gif" },
+  { name: "Shiny Pidgeot",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/pHY01e0.gif" },
+  { name: "Shiny Raichu",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/EbsLav0.gif" },
+  { name: "Shiny Nidoqueen",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/iIMkTqF.gif" },
+  { name: "Shiny Nidoking",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/xeDriFy.gif" },
+  { name: "Shiny Ninetales",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/u0sGCqg.gif" },
+  { name: "Shiny Tentacruel", price: 38000000,  tag: "t1",         image: "https://i.imgur.com/I9J30Si.gif" },
+  { name: "Shiny Golem",      price: 38000000,  tag: "t1",         image: "https://i.imgur.com/6Wphle1.gif" },
+  { name: "Shiny Meganium",   price: 38000000,  tag: "t1",       image: "https://i.imgur.com/eJvTQJ7.gif" },
+  { name: "Shiny Typhlosion", price: 38000000,  tag: "t1",       image: "https://i.imgur.com/2BtRLDx.gif" },
+  { name: "Shiny Crobat",     price: 7000000,   tag: "t2",         image: "https://i.imgur.com/agzGxZH.gif" },
+  { name: "Shiny Steelix",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zY5AuG0.gif" },
+  { name: "Shiny Politoad",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/yLbIDLz.gif" },
+  { name: "Shiny Ampharos",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/DecvtNB.gif" },
+  { name: "Tangrowth",        price: 38000000,  tag: "t1",         image: "https://i.imgur.com/EpEQ1Wx.gif" },
+  { name: "Shiny Luxray",     price: 170000000, tag: "super-raro", image: "https://i.imgur.com/sWnyJd1.gif" },
+  { name: "Shiny Fearow",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/wNR2Ija.gif" },
 ];
 
 const BALLS = [
@@ -4699,10 +4754,29 @@ const BALLS = [
 let currentCapturaIdx = null;
 let selectedBall = null;
 
+function getCapturaTagHtml(tag) {
+  if (!tag) return '';
+  const labels = {
+    't1': 'T1', 't2': 'T2', 't3': 'T3', 't4': 'T4', 't5': 'T5', 't6': 'T6',
+    'super-raro': 'Super Raro', 'ultra-raro': 'Ultra Raro', 'raro': 'Raro',
+    'legendary': 'Legendary', 'mythical': 'Mítico'
+  };
+  const label = labels[tag];
+  if (!label) return '';
+  return `<span class="captura-tag ctag-${tag}">${label}</span>`;
+}
+
 function renderCaptura() {
   const grid = document.getElementById('captura-grid');
   const q = (document.getElementById('captura-search')?.value || '').toLowerCase();
-  const filtered = POKEMONS.filter(p => !q || p.name.toLowerCase().includes(q));
+  const tagFilter = (document.getElementById('captura-filter')?.value || 'all');
+  const filtered = POKEMONS.filter(p => {
+    const matchSearch = !q || p.name.toLowerCase().includes(q);
+    const matchTag = tagFilter === 'all' ? true
+      : tagFilter === 'none' ? !p.tag
+      : p.tag === tagFilter;
+    return matchSearch && matchTag;
+  });
   document.getElementById('captura-count-label').textContent = filtered.length + (filtered.length === 1 ? ' pokémon' : ' pokémons');
   if (!filtered.length) {
     grid.innerHTML = '<div class="no-results">Nenhum Pokémon encontrado.</div>';
@@ -4721,6 +4795,7 @@ function renderCaptura() {
       <img class="captura-card-img" src="${poke.image}" alt="${poke.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
       <div class="captura-card-img-placeholder" style="display:none">🎮</div>
       <div class="captura-card-name">${poke.name}</div>
+      ${getCapturaTagHtml(poke.tag)}
       ${priceHtml}
       <button class="captura-catch-btn">⬟ Capturar</button>
     </div>`;
@@ -4740,6 +4815,7 @@ function openCapturaModal(idx) {
     </div>
     <div class="captura-modal-info">
       <div class="captura-modal-poke-name">${poke.name}</div>
+      ${poke.tag ? `<div style="margin-top:6px;display:flex;justify-content:center">${getCapturaTagHtml(poke.tag)}</div>` : ''}
       ${priceData ? `
       <div class="captura-modal-price-block">
         <span class="captura-modal-price-kk">${priceData.label}</span>
