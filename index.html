@@ -4525,6 +4525,17 @@ let activePkgIdx = null;
 function getPkgIcon(name) {
   const img = (url) => `<img src="${url}" style="width:40px;height:40px;object-fit:contain" />`;
   const n = name.toLowerCase();
+  // Gym e Reduces primeiro (mais especificos, evita conflito com water/speed)
+  if (n.startsWith('reduces') || n.startsWith('reduce')) return img('https://i.imgur.com/zpRe43i.png');
+  if (n.includes('viridian'))  return img('https://i.imgur.com/AvX9Hbj.png');
+  if (n.includes('cinnabar'))  return img('https://i.imgur.com/RsJe7OO.png');
+  if (n.includes('pewter'))    return img('https://i.imgur.com/ViA3uQO.png');
+  if (n.includes('cerulean'))  return img('https://i.imgur.com/uCRmZvq.png');
+  if (n.includes('vermilion')) return img('https://i.imgur.com/GEfwZ4B.png');
+  if (n.includes('celadon'))   return img('https://i.imgur.com/ocPJIHg.png');
+  if (n.includes('fuchsia'))   return img('https://i.imgur.com/i8U2tWd.png');
+  if (n.includes('saffron'))   return img('https://i.imgur.com/dzVfRLq.png');
+  if (n.startsWith('gym'))     return img('https://i.imgur.com/XyBY6d2.png');
   if (n.includes('speed'))                        return img('https://i.imgur.com/ODTCGEc.gif');
   if (n.includes('hp'))                           return img('https://i.imgur.com/QhZ8LL5.gif');
   if (n.includes('water'))                        return img('https://i.imgur.com/zpRe43i.png');
@@ -4545,19 +4556,7 @@ function getPkgIcon(name) {
   if (n.includes('flying'))                       return img('https://i.imgur.com/npGjQae.png');
   if (n.includes('bug'))                          return img('https://i.imgur.com/V4IXR51.png');
   if (n.includes('fighting') || n.includes('figthing')) return img('https://i.imgur.com/OKsJXh7.png');
-  // Gym - coloque a URL de cada gym abaixo
-  if (n.includes('viridian'))  return img('URL_GYM_VIRIDIAN');
-  if (n.includes('cinnabar'))  return img('URL_GYM_CINNABAR');
-  if (n.includes('pewter'))    return img('https://i.imgur.com/ViA3uQO.png');
-  if (n.includes('cerulean'))  return img('URL_GYM_CERULEAN');
-  if (n.includes('vermilion')) return img('URL_GYM_VERMILION');
-  if (n.includes('celadon'))   return img('URL_GYM_CELADON');
-  if (n.includes('fuchsia'))   return img('URL_GYM_FUCHSIA');
-  if (n.includes('saffron'))   return img('URL_GYM_SAFFRON');
-  if (n.startsWith('gym'))     return img('URL_GYM_DEFAULT');
-  // Reduces
-  if (n.startsWith('reduces') || n.startsWith('reduce')) return img('URL_REDUCES');
-  return img('https://i.imgur.com/ODTCGEc.gif');
+  return img('https://i.imgur.com/zpRe43i.png');
 }
 
 function getPkgItemData(itemName) {
@@ -4590,9 +4589,9 @@ function getPkgCategory(name) {
 const PKG_CAT_META = {
   all:     { label: 'Todos',    icon: '📦' },
   talent:  { label: 'Talents',  icon: '✨' },
-  gym:     { label: 'Gym',      icon: '<img src="URL_GYM_DEFAULT" style="width:20px;height:20px;object-fit:contain" />' },
+  gym:     { label: 'Gym',      icon: '<img src="https://i.imgur.com/XyBY6d2.png" style="width:20px;height:20px;object-fit:contain" />' },
   full:    { label: 'Full',     icon: '⚡' },
-  reduces: { label: 'Reduces',  icon: '<img src="URL_REDUCES" style="width:20px;height:20px;object-fit:contain" />' },
+  reduces: { label: 'Reduces',  icon: '<img src="https://i.imgur.com/KgwwD7D.png" style="width:20px;height:20px;object-fit:contain" />' },
   outros:  { label: 'Outros',   icon: '🎲' },
 };
 
