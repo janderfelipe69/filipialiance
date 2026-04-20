@@ -3689,12 +3689,26 @@ function sendToWhatsApp() {
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
   if (!keys.length) return;
 
-  const lines = keys.map(k => {
+  function toBRL(raw) {
+    return (raw / 1000000 * KK_TO_BRL).toFixed(2);
+  }
+  // Helper que já entrega o valor com vírgula decimal
+  function fmt(raw) {
+    return toBRL(raw).replace('.', ',');
+  }
+
+  const rows = ['PEDIDO DE SERVICO', 'Item;Quantidade;Valor Unitario;Valor Total'];
+  let grandTotalBRL = 0;
+
+  keys.forEach(k => {
     const item = items[k];
-    const qty = cart[k];
-    const priceData = item.price ? formatKK(item.price * qty) : null;
-    const priceStr = priceData ? ` — ${priceData.label} (${priceData.brl})` : '';
-    return `• ${item.name} x${qty.toLocaleString()}${priceStr}`;
+    const qty      = cart[k];
+    const unitRaw  = item.price || 0;
+    const totalRaw = unitRaw * qty;
+    const unitBRL  = unitRaw  > 0 ? fmt(unitRaw)  : '0,00';
+    const totalBRL = totalRaw > 0 ? fmt(totalRaw) : '0,00';
+    grandTotalBRL += totalRaw > 0 ? parseFloat(toBRL(totalRaw)) : 0;
+    rows.push(`${item.name};${qty};${unitBRL};${totalBRL}`);
   });
 
   const grandTotalRaw = keys.reduce((s, k) => {
@@ -3702,40 +3716,39 @@ function sendToWhatsApp() {
     return s + (item && item.price ? item.price * cart[k] : 0);
   }, 0);
 
-  let msg = '🛒 *Lista de Itens*\n\n' + lines.join('\n');
-  if (grandTotalRaw > 0) {
-    const TAXA_THRESHOLD = 10000000;
-    const TAXA_VALOR = 5000000;
-    const hasTaxa = grandTotalRaw < TAXA_THRESHOLD;
-    const grandTotalFinal = hasTaxa ? grandTotalRaw + TAXA_VALOR : grandTotalRaw;
-    const gt = formatKK(grandTotalRaw);
-    msg += `\n\n💰 *Subtotal: ${gt.label} (${gt.brl})*`;
-    if (hasTaxa) {
-      const gtFinal = formatKK(grandTotalFinal);
-      msg += `\n⚠️ *Taxa (compra < 10kk): +5kk*\n💳 *Total Final: ${gtFinal.label} (${gtFinal.brl})*`;
-    }
+  const TAXA_THRESHOLD = 10000000;
+  const TAXA_VALOR     = 5000000;
+  const hasTaxa = grandTotalRaw > 0 && grandTotalRaw < TAXA_THRESHOLD;
+  if (hasTaxa) {
+    const taxaNum = parseFloat(toBRL(TAXA_VALOR));
+    const taxaStr = taxaNum.toFixed(2).replace('.', ',');
+    grandTotalBRL += taxaNum;
+    rows.push(`Taxa de servico (pedido abaixo de 10kk);1;${taxaStr};${taxaStr}`);
   }
 
-  // Adiciona forma de pagamento à mensagem
+  // Grand total com vírgula
+  const grandTotalStr = grandTotalBRL.toFixed(2).replace('.', ',');
+  rows.push(`TOTAL GERAL;;;${grandTotalStr}`);
+
   const mode = _currentPayMode;
   if (mode === 'kk') {
     const kkD = formatKK(_payTotalKk);
-    msg += kkD ? `\n\n💎 *Pagamento: ${kkD.label} KK (moeda do jogo)*` : '';
+    if (kkD) rows.push(`\nPagamento: ${kkD.label} KK (moeda do jogo)`);
   } else if (mode === 'brl') {
-    const brlStr = _payTotalBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    msg += `\n\n💵 *Pagamento: ${brlStr} via PIX*`;
+    rows.push(`\nPagamento: R$ ${grandTotalStr} via PIX`);
   } else if (mode === 'mix') {
     const kkVal  = parseFloat(document.getElementById('mix-kk-input').value) || 0;
     const brlVal = parseFloat(document.getElementById('mix-brl-input').value) || 0;
     if (kkVal > 0 || brlVal > 0) {
-      const kkD   = formatKK(kkVal * 1000000);
-      const brlStr = brlVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      msg += `\n\n⚡ *Pagamento misto:*\n   💎 ${kkD ? kkD.label : '0'} KK + 💵 ${brlStr} via PIX`;
+      const kkD    = formatKK(kkVal * 1000000);
+      const brlStr = brlVal.toFixed(2).replace('.', ',');
+      rows.push(`\nPagamento misto: ${kkD ? kkD.label : '0'} KK + R$ ${brlStr} via PIX`);
     }
   }
 
+  const msg  = rows.join('\n');
   const phone = '5565999911832';
-  const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+  const url   = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
 }
 
