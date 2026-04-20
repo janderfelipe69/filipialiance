@@ -3005,8 +3005,8 @@ const RAW = [
   ["dragon essence","",0,"",""],
   ["dragon topknot","Bagon",0,"",""],
   ["dragonair tail","Dragonair",0,"",""],
-  ["dragonite tail","Dragonite",0,"",""],
-  ["dratini ear","Dratini",0,"",""],
+  ["dragonite tail","Dragonite",980,"mark",""],
+  ["dratini ear","Dratini",312,"mark",""],
   ["drowzee trunk","Drowzee",0,"",""],
   ["duck paw","Golduck",580,"mark",""],
   ["earth stone","https://i.imgur.com/qEsbPOw.png",6000,"",""],
@@ -3014,8 +3014,8 @@ const RAW = [
   ["electric collar","Jolteon",740,"mark",""],
   ["electric ear","Raichu",720,"mark",""],
   ["electric essence","",0,"",""],
-  ["electric rat tail","Pikachu",0,"",""],
-  ["electric rat tail","Shiny Pikachu",0,"",""],
+  ["electric rat tail","Pikachu",460,"mark",""],
+  ["electric rat tail (shiny)","Shiny Pikachu",600000,"t4","evo2"],
   ["electric screws","Magnemite",80,"mark",""],
   ["electric sheep tail","",740,"mark",""],
   ["electric soft wool","",0,"",""],
@@ -3145,7 +3145,7 @@ const RAW = [
   ["sea dragon fin","",0,"",""],
   ["seel tail","Seel",0,"",""],
   ["shiny bat wing","",0,"",""],
-  ["shiny dragon ears","",0,"",""],
+  ["shiny dragon ears","",350000,"t4","evo1"],
   ["short tail","Spheal",0,"",""],
   ["simple bug orb","",350000,"","evo1"],
   ["simple dark orb","",350000,"","evo1"],
@@ -3493,22 +3493,27 @@ const PACKAGES = [
            {
     name: "Talent Flying 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["mythic flying orb", 3],
+	  ["shiny bat wing", 1],
+	  ["dodrio feather", 500],
+	  
+	  ["bird crest", 50],
+	  
+	  ["simple flying orb", 5],
+	  ["yellow bird crest", 3],
+	  
+	  ["arcane flying orb", 3],
+	  ["two-colored tail", 3],
+	  ["bird tail", 120],
+	  
+	  ["bird wing", 50],
+	  
+	  ["simple flying orb", 5],
+	  ["carmine wing", 3],
+	  
+	  ["arcane flying orb", 3],
+	  ["two-colored tail", 3],
+	  ["bird tail", 120],
     ]
   },
            {
@@ -3542,134 +3547,159 @@ const PACKAGES = [
            {
     name: "Talent Figthing 7/8",
     items: [
-	  ["mythic fire orb", 3],
-	  ["black lizard tail", 3],
-	  ["magma shell", 500],
+	  ["mythic figthing orb", 3],
+	  ["metal bracelet", 2],
+	  ["punching machine", 500],
 	  
-	  ["simple fire orb", 5],
-	  ["blue canine tail", 3],
+	  ["simple figthing orb", 5],
+	  ["blond hawk", 3],
 	  
-	  ["arcane fire orb", 3],
-	  ["black lizard tail", 3],
-	  ["lizard tail", 120],
+	  ["mankey tail", 50],
 	  
-	  ["fire tail", 25],
-	  ["canine tail", 25],
+	  ["arcane figthing orb", 3],
+	  ["champion underwear", 3],
+	  ["fighther underwear", 120],
 	  
-	  ["simple fire orb", 5],
-	  ["black tail", 3],
+	  ["simple figthing orb", 5],
+	  ["white monkey tail", 3],
+	 
+	  ["arcane figthing orb", 3],
+	  ["champion underwear", 3],
+	  ["fighther underwear", 120],
 	  
-	  ["arcane fire orb", 3],
-	  ["blaze fur", 3],
-	  ["quilava fur", 120],
-	  
-	  ["fire hair", 25],
-	  ["dog fur", 25],
+	  ["fighther hawk", 50],
     ]
   },
            {
     name: "Talent Fairy 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["simple fairy orb", 5],
+	  ["punk ear", 3],
+	  
+	  ["snubull ear", 50],
+	  
+	  ["arcane fairy orb", 3],
+	  ["purple moon topknot", 3],
+	  ["moon topknot", 120],
+	  
+	  ["mythic fairy orb", 3],
+	  ["pink daint wing", 2],
+	  ["pink wings", 500],
+	  
+	  ["simple fairy orb", 5],
+	  ["punk ear", 3],
+	  
+	  ["snubull ear", 50],
+	  
+	  ["arcane fairy orb", 3],
+	  ["purple moon topknot", 3],
+	  ["moon topknot", 120],
     ]
   },
            {
     name: "Talent Electric 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["simple electric orb", 5],
+	  ["green remains", 3],
+	  
+	  ["arcane electric orb", 3],
+	  ["electric soft wool", 3],
+	  ["soft wool", 120],
+	  
+	  ["mythic electric orb", 3],
+	  ["big green piece", 1],
+	  ["electric sheep tail", 500],
+	  
+	  ["simple electric orb", 5],
+	  ["blue screws", 3],
+	  
+	  ["remains of voltorb", 25],
+	  ["electric screws", 25],
+	  
+	  ["arcane electric orb", 3],
+	  ["electric rat tail (shiny)", 3],
+	  ["electric ear", 120],
+	  
+	  ["electric rat tail", 50],
     ]
   },
            {
     name: "Talent Dragon 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["simple dragon orb", 5],
+	  ["shiny dragon ears", 5],
+	  
+	  ["arcane dragon orb", 3],
+	  ["shiny dragon ears", 10],
+	  ["dratini ear", 120],
+	  
+	  ["mythic dragon orb", 3],
+	  ["shiny dragon ears", 3],
+	  ["dragonite tail", 500],
+	  
+	  ["simple dragon orb", 5],
+	  ["shiny dragon ears", 5],
+	  
+	  ["arcane dragon orb", 3],
+	  ["shiny dragon ears", 10],
+	  ["dratini ear", 120],
+	  
+	  ["dratini ear", 50],
+	  
+	  ["dratini ear", 50],
     ]
   },
            {
     name: "Talent Dark 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["simple dark orb", 5],
+	  ["smoked bones", 3],
+	  
+	  ["yellow beak", 50],
+	  
+	  ["arcane dark orb", 3],
+	  ["dark beak", 3],
+	  ["yellow beak", 120],
+	  
+	  ["mythic dark orb", 3],
+	  ["cyan feather", 2],
+	  ["tyranitar tail", 500],
+	  
+	  ["simple dark orb", 5],
+	  ["smoked bones", 3],
+	  
+	  ["yellow beak", 50],
+	  
+	  ["arcane dark orb", 3],
+	  ["dark beak", 3],
+	  ["yellow beak", 120],
     ]
   },
            {
     name: "Talent Bug 7/8",
     items: [
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
-	  ["magnet", 120],
+	  ["simple bug orb", 5],
+	  ["sparkle antenna", 3],
+	  
+	  ["piece of cocoon", 25],
+	  ["yellow cocoon", 25],
+	  
+	  ["arcane bug orb", 3],
+	  ["red piece of cocoon", 3],
+	  ["butterfree wing", 120],
+	  
+	  ["mythic bug orb", 3],
+	  ["pink bug orb", 1],
+	  ["moth wing", 500],
+	  
+	  ["simple bug orb", 5],
+	  ["yellow sting", 3],
+	  
+	  ["bee sting", 25],
+	  
+	  ["arcane bug orb", 3],
+	  ["red cocoon", 3],
+	  ["bee sting", 120],
     ]
   },
             {
