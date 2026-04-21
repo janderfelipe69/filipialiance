@@ -30,6 +30,201 @@
   --font-mono: 'Space Mono', monospace;
 }
 
+/* ===================== WELCOME MODAL ===================== */
+#welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(4,6,14,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: welcomeFadeIn 0.5s ease;
+}
+
+@keyframes welcomeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.welcome-modal {
+  background: linear-gradient(145deg, #0d1628 0%, #080f1e 60%, #0a1220 100%);
+  border: 1px solid rgba(56,140,255,0.35);
+  border-radius: 20px;
+  padding: 44px 40px 36px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow:
+    0 0 60px rgba(58,140,255,0.18),
+    0 0 120px rgba(240,180,41,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+  animation: welcomeSlideUp 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes welcomeSlideUp {
+  from { transform: translateY(30px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.welcome-modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), var(--gold), var(--blue), transparent);
+  animation: scanLine 3s ease-in-out infinite;
+}
+
+.welcome-modal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(58,140,255,0.06) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.welcome-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.welcome-logo-wrap svg {
+  width: 64px;
+  height: 64px;
+  filter: drop-shadow(0 0 14px var(--glow-blue)) drop-shadow(0 0 28px rgba(58,140,255,0.2));
+  animation: emblemFloat 4s ease-in-out infinite;
+}
+
+.welcome-title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, var(--blue-bright) 40%, var(--gold) 70%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: shimmer 4s linear infinite;
+  margin-bottom: 6px;
+}
+
+.welcome-subtitle {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+.welcome-divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  margin: 0 auto 28px;
+}
+
+.welcome-info-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.welcome-info-card {
+  background: rgba(58,140,255,0.06);
+  border: 1px solid rgba(56,140,255,0.18);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  text-align: left;
+}
+
+.welcome-info-card.gold {
+  background: rgba(240,180,41,0.06);
+  border-color: rgba(240,180,41,0.22);
+}
+
+.welcome-info-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.welcome-info-text strong {
+  display: block;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--blue-bright);
+  margin-bottom: 3px;
+}
+
+.welcome-info-card.gold .welcome-info-text strong {
+  color: var(--gold);
+}
+
+.welcome-info-text p {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.welcome-enter-btn {
+  width: 100%;
+  padding: 15px 24px;
+  background: linear-gradient(135deg, var(--blue) 0%, #1a6fe8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 24px var(--glow-blue), inset 0 1px 0 rgba(255,255,255,0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-enter-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s;
+}
+
+.welcome-enter-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 32px var(--glow-blue); }
+.welcome-enter-btn:hover::before { transform: translateX(100%); }
+.welcome-enter-btn:active { transform: translateY(0); }
+
+@media (max-width: 540px) {
+  .welcome-modal { padding: 36px 22px 28px; }
+  .welcome-title { font-size: 18px; letter-spacing: 3px; }
+}
+
 /* ===================== SCROLLBAR ===================== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -5791,6 +5986,54 @@ function updateStickyOffsets() {
 updateStickyOffsets();
 window.addEventListener('resize', updateStickyOffsets);
 </script>
+
+<!-- ===================== WELCOME MODAL ===================== -->
+<div id="welcome-overlay">
+  <div class="welcome-modal">
+    <div class="welcome-logo-wrap">
+      <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="36,4 68,20 68,52 36,68 4,52 4,20" fill="none" stroke="rgba(58,140,255,0.7)" stroke-width="1.5"/>
+        <polygon points="36,10 62,24 62,48 36,62 10,48 10,24" fill="rgba(58,140,255,0.08)" stroke="rgba(240,180,41,0.5)" stroke-width="1"/>
+        <text x="36" y="44" font-family="Cinzel,serif" font-size="22" font-weight="900" fill="url(#wg)" text-anchor="middle">PA</text>
+        <defs>
+          <linearGradient id="wg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#60aaff"/>
+            <stop offset="100%" stop-color="#f0b429"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="welcome-title">Bem-vindo!</div>
+    <div class="welcome-subtitle">PokeAlliance Shop — Filipi</div>
+    <div class="welcome-divider"></div>
+    <div class="welcome-info-cards">
+      <div class="welcome-info-card">
+        <span class="welcome-info-icon">🛒</span>
+        <div class="welcome-info-text">
+          <strong>Serviços, não estoque</strong>
+          <p>Este site não possui estoque físico. Aqui você contrata serviços — cada pedido é tratado individualmente com total atenção.</p>
+        </div>
+      </div>
+      <div class="welcome-info-card">
+        <span class="welcome-info-icon">📦</span>
+        <div class="welcome-info-text">
+          <strong>Prazo de entrega</strong>
+          <p>Após a contratação, os serviços são entregues em <strong style="color:var(--blue-bright)">4 a 7 dias úteis</strong>.</p>
+        </div>
+      </div>
+      <div class="welcome-info-card gold">
+        <span class="welcome-info-icon">⭐</span>
+        <div class="welcome-info-text">
+          <strong>Super Raros</strong>
+          <p>Pokémons marcados como <strong style="color:var(--gold)">Super Raro</strong> têm prazo estendido de <strong style="color:var(--gold)">10 a 20 dias</strong> devido à dificuldade de obtenção.</p>
+        </div>
+      </div>
+    </div>
+    <button class="welcome-enter-btn" onclick="document.getElementById('welcome-overlay').style.display='none'">
+      ⬟ Entrar na Loja
+    </button>
+  </div>
+</div>
 
 <!-- Toast: item sem preço -->
 <div id="no-price-toast">
