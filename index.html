@@ -61,6 +61,7 @@ body {
   background: radial-gradient(circle, rgba(58,140,255,0.07) 0%, transparent 70%);
   top: -200px; left: -200px;
   animation: floatOrb1 18s ease-in-out infinite;
+  will-change: transform;
 }
 
 .bg-canvas::after {
@@ -70,6 +71,7 @@ body {
   background: radial-gradient(circle, rgba(240,180,41,0.05) 0%, transparent 70%);
   bottom: -100px; right: -100px;
   animation: floatOrb2 22s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes floatOrb1 {
@@ -107,13 +109,20 @@ body {
   100% { opacity: 1; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .bg-canvas::before, .bg-canvas::after, .stars { animation: none; }
+}
+
 /* ===================== HEADER ===================== */
 header {
-  position: relative;
-  z-index: 10;
-  background: linear-gradient(180deg, rgba(8,15,30,0.98) 0%, rgba(8,15,30,0.92) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: linear-gradient(180deg, rgba(8,15,30,0.98) 0%, rgba(8,15,30,0.95) 100%);
   border-bottom: 1px solid var(--border);
   overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 header::after {
@@ -161,8 +170,8 @@ header::after {
 }
 
 @keyframes emblemFloat {
-  0%,100% { transform: translateY(0); filter: drop-shadow(0 0 12px var(--glow-blue)); }
-  50% { transform: translateY(-3px); filter: drop-shadow(0 0 20px var(--glow-blue)) drop-shadow(0 0 8px var(--glow-gold)); }
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 /* SELLER INFO */
@@ -311,82 +320,13 @@ header::after {
 }
 
 /* ===================== FLOATING CART BUTTON ===================== */
-.cart-float {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, var(--blue) 0%, #1a6fe8 100%);
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  padding: 14px 24px;
-  font-family: var(--font-title);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  cursor: pointer;
-  white-space: nowrap;
-  text-transform: uppercase;
-  box-shadow: 0 6px 28px var(--glow-blue), 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
-  transition: transform 0.25s, box-shadow 0.25s, opacity 0.25s;
-  overflow: hidden;
-  animation: floatCartIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-}
-
-@keyframes floatCartIn {
-  from { opacity: 0; transform: translateY(30px) scale(0.85); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.cart-float::before {
-  content: '';
-  position: absolute;
-  top: -50%; left: -60%;
-  width: 40%; height: 200%;
-  background: rgba(255,255,255,0.15);
-  transform: skewX(-20deg);
-  transition: left 0.4s;
-}
-
-.cart-float:hover::before { left: 120%; }
-.cart-float:hover {
-  transform: translateY(-3px) scale(1.04);
-  box-shadow: 0 12px 40px var(--glow-blue), 0 4px 16px rgba(0,0,0,0.5);
-}
-.cart-float:active { transform: scale(0.97); }
-
-.cart-float .cart-count-float {
-  background: rgba(255,255,255,0.22);
-  color: #fff;
-  border-radius: 20px;
-  padding: 1px 9px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  min-width: 24px;
-  text-align: center;
-  transition: background 0.2s;
-}
-
-/* Badge pulse when item added */
-.cart-float.bump {
-  animation: cartBump 0.35s cubic-bezier(0.36,0.07,0.19,0.97) both;
-}
-@keyframes cartBump {
-  0%,100% { transform: scale(1); }
-  30% { transform: scale(1.12); }
-  60% { transform: scale(0.96); }
-  80% { transform: scale(1.04); }
-}
+/* botão flutuante removido — carrinho fixo no header */
 
 /* ===================== CONTROLS ===================== */
 .controls {
   position: sticky;
-  top: 0;
-  z-index: 9;
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px));
+  z-index: 180;
   background: rgba(4,6,14,0.9);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
@@ -477,9 +417,12 @@ select:focus { border-color: var(--blue); }
   flex-direction: column;
   gap: 8px;
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
-  animation: cardIn 0.3s ease both;
   position: relative;
   overflow: hidden;
+}
+
+.card.card-anim {
+  animation: cardIn 0.3s ease both;
 }
 
 .card::before {
@@ -1333,8 +1276,8 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 /* ===================== TABS ===================== */
 .tabs-nav {
   position: sticky;
-  top: 0;
-  z-index: 10;
+  top: var(--header-h, 0px);
+  z-index: 190;
   background: rgba(4,6,14,0.97);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
@@ -1911,6 +1854,39 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 .pkg-slot-btn.active .pkg-slot-btn-count {
   color: var(--text);
   opacity: 1;
+}
+
+/* Warning badge for slots with unpriced items */
+.pkg-slot-btn.has-no-price {
+  border-color: rgba(240,140,0,0.4);
+}
+.pkg-slot-btn.has-no-price:hover {
+  border-color: rgba(240,140,0,0.65);
+}
+.pkg-slot-btn.has-no-price.active {
+  border-color: rgba(240,140,0,0.7);
+  border-bottom: 1px solid var(--surface2);
+  box-shadow: 0 -2px 10px rgba(240,140,0,0.2);
+}
+.pkg-slot-no-price-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: #f59e0b;
+  letter-spacing: 0.5px;
+  background: rgba(240,140,0,0.12);
+  border: 1px solid rgba(240,140,0,0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-top: 1px;
+  animation: warnPulse 2.2s ease-in-out infinite;
+}
+@keyframes warnPulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .pkg-detail-footer {
@@ -2614,6 +2590,7 @@ body { cursor: defaut; }
   position: relative;
   overflow: hidden;
   text-align: center;
+  will-change: transform;
 }
 
 .captura-card::before {
@@ -2639,14 +2616,13 @@ body { cursor: defaut; }
   width: 96px;
   height: 96px;
   object-fit: contain;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 4px 12px rgba(160,80,255,0.3));
-  transition: transform 0.2s, filter 0.2s;
+  image-rendering: auto;
+  will-change: transform;
+  transition: transform 0.2s;
 }
 
 .captura-card:hover .captura-card-img {
   transform: scale(1.08) translateY(-2px);
-  filter: drop-shadow(0 6px 18px rgba(160,80,255,0.5));
 }
 
 .captura-card-img-placeholder {
@@ -3284,7 +3260,7 @@ body { cursor: defaut; }
       <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
       <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    <input type="text" id="search" placeholder="Buscar item..." oninput="render()" />
+    <input type="text" id="search" placeholder="Buscar item..." oninput="clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 150)" />
   </div>
   <select id="filter" onchange="render()">
     <option value="all">Todos</option>
@@ -3367,7 +3343,7 @@ body { cursor: defaut; }
         <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
         <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
-      <input type="text" id="captura-search" placeholder="Buscar Pokémon..." oninput="renderCaptura()" />
+      <input type="text" id="captura-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_capturaSearchTimer); _capturaSearchTimer = setTimeout(renderCaptura, 150)" />
     </div>
     <select id="captura-filter" onchange="renderCaptura()">
       <option value="all">Todos</option>
@@ -3572,49 +3548,49 @@ const RAW = [
   ["blue coconut leaves","",5000000,"t2","evo2"],
   ["blue hair","",350000,"t5","evo1"],
   ["blue mohawk","",600000,"t4","evo2"],
-  ["blue mouse tail","",0,"",""],
-  ["blue psychic vest","",0,"",""],
-  ["blue ray tail","",0,"",""],
+  ["blue mouse tail","",350000,"t6","evo1"],
+  ["blue psychic vest","",350000,"t5","evo1"],
+  ["blue ray tail","",940,"mark",""],
   ["blue screws","",350000,"t5","evo1"],
-  ["blue seel tail","",0,"",""],
-  ["blue shell","",0,"",""],
+  ["blue seel tail","",350000,"t5","evo 1"],
+  ["blue shell","",350000,"t5","evo1"],
   ["blue wings","",5000000,"t2","evo3"],
   ["bone","",460,"",""],
   ["bowl hair","",0,"",""],
   ["boxing gloves","",0,"",""],
-  ["brown bulb","",0,"",""],
+  ["brown bulb","",350000,"t5","evo1"],
   ["bug essence","",0,"",""],
-  ["bull tail","Tauros",0,"",""],
-  ["butterfree wing","Butterfree",0,"",""],
+  ["bull tail","Tauros",460,"mark",""],
+  ["butterfree wing","Butterfree",280,"mark",""],
   ["canine tail","Vulpix",180,"mark",""],
   ["carmine wing","Shiny Spearow",350000,"","evo1"],
-  ["champion underwear","Shiny Machoke",0,"",""],
-  ["cobra tail","Arbok",0,"",""],
+  ["champion underwear","Shiny Machoke",600000,"t4","evo2"],
+  ["cobra tail","Arbok",420,"mark",""],
   ["cocoon stone","https://i.imgur.com/uMyCnBn.png",6000,"",""],
   ["coconut leaves","Exeggutor",940,"mark",""],
-  ["contagious pore","Shiny Koffing",0,"",""],
+  ["contagious pore","Shiny Koffing",350000,"t5","evo1"],
   ["cow tail","",720,"mark",""],
   ["crocodile hair","Croconaw",400,"mark",""],
   ["crystal stone","https://i.imgur.com/Mq3MD9U.png",20000,"",""],
   ["cute ball","Whismur",0,"",""],
   ["cyan ear","Shiny Wartortle",600000,"t4","evo2"],
-  ["cyan feather","Shiny Sneasel",0,"",""],
-  ["dark beak","Shiny Murkrow",0,"",""],
-  ["dark claw","Shiny Haunter",0,"",""],
+  ["cyan feather","Shiny Sneasel",3500000,"t3","evo1"],
+  ["dark beak","Shiny Murkrow",3500000,"t3","evo1"],
+  ["dark claw","Shiny Haunter",600000,"t4","evo2"],
   ["dark essence","",0,"",""],
-  ["dewgong tail","Dewgong",0,"",""],
-  ["disgusting gosme","Shiny Grimer",0,"",""],
-  ["dodrio feather","Dodrio",0,"",""],
+  ["dewgong tail","Dewgong",480,"mark",""],
+  ["disgusting gosme","Shiny Grimer",350000,"t5","evo1"],
+  ["dodrio feather","Dodrio",460,"mark",""],
   ["dog fur","Growlithe",280,"mark",""],
   ["dragon essence","",0,"",""],
   ["dragon topknot","Bagon",0,"",""],
-  ["dragonair tail","Dragonair",0,"",""],
+  ["dragonair tail","Dragonair",480,"mark",""],
   ["dragonite tail","Dragonite",980,"mark",""],
   ["dratini ear","Dratini",312,"mark",""],
-  ["drowzee trunk","Drowzee",0,"",""],
+  ["drowzee trunk","Drowzee",312,"mark",""],
   ["duck paw","Golduck",580,"mark",""],
   ["earth stone","https://i.imgur.com/qEsbPOw.png",6000,"",""],
-  ["ectoplasm","Gengar",0,"",""],
+  ["ectoplasm","Gengar",980,"mark",""],
   ["electric collar","Jolteon",740,"mark",""],
   ["electric ear","Raichu",720,"mark",""],
   ["electric essence","",0,"",""],
@@ -3622,68 +3598,68 @@ const RAW = [
   ["electric rat tail (shiny)","Shiny Pikachu",600000,"t4","evo2"],
   ["electric screws","Magnemite",80,"mark",""],
   ["electric sheep tail","",740,"mark",""],
-  ["electric soft wool","",0,"",""],
+  ["electric soft wool","",600000,"t4","evo2"],
   ["electric tail","",980,"mark",""],
   ["elephant foot","",740,"mark",""],
-  ["enchanted spoon","",0,"",""],
+  ["enchanted spoon","",600000,"t4","evo2"],
   ["enigma stone","https://i.imgur.com/p1csjCu.png",6000,"",""],
-  ["fairy essence","",0,"",""],
+  ["fairy essence","",4,"mark",""],
   ["feather tail","",0,"",""],
   ["fighter essence","",0,"",""],
-  ["fighter hawk","",0,"",""],
-  ["fighter underwear","",0,"",""],
+  ["fighter hawk","",180,"mark",""],
+  ["fighter underwear","",420,"mark",""],
   ["fire hair","",160,"mark",""],
   ["fire hoof","",960,"mark",""],
   ["fire plume","",0,"",""],
   ["fire stone","https://i.imgur.com/C7fIrj4.png",6000,"",""],
   ["fire tail","",180,"mark",""],
   ["fire wing","",740,"mark",""],
-  ["flower stem","",0,"",""],
+  ["flower stem","",60,"mark",""],
   ["flying essence","",0,"",""],
   ["forretress shell","",940,"mark",""],
   ["frog tail","",60,"mark",""],
-  ["ghost bottle","",0,"",""],
-  ["ghost claw","",0,"",""],
-  ["ghost essence","",0,"",""],
+  ["ghost bottle","",80,"mark",""],
+  ["ghost claw","",400,"mark",""],
+  ["ghost essence","",4,"mark",""],
   ["giant bat wing","",740,"mark",""],
   ["giant piece of fur","",960,"mark",""],
   ["giant ruby","Tentacruel",720,"mark",""],
   ["giraffe antenna","Girafarig",740,"mark",""],
   ["gold tail","Shiny Onix",3500000,"t3","evo1"],
   ["golden drill","",5000000,"t2","evo2"],
-  ["golden shell","",0,"",""],
+  ["golden shell","",350000,"t4","evo1"],
   ["grass essence","",0,"",""],
   ["gray cloth","",0,"",""],
   ["gray frog tail","",350000,"t5","evo1"],
-  ["gray snake tail","",0,"",""],
+  ["gray snake tail","",350000,"t5","evo1"],
   ["green crest","",0,"",""],
-  ["green ghost bottle","",0,"",""],
-  ["green remains","",0,"",""],
+  ["green ghost bottle","",350000,"t5","evo1"],
+  ["green remains","",350000,"t3","evo1"],
   ["ground essence","",0,"",""],
   ["gyarados tail","",960,"mark",""],
   ["heart stone","https://i.imgur.com/s4daG8O.png",6000,"",""],
   ["horn drill","",720,"mark",""],
   ["horsea tail","",80,"mark",""],
-  ["hypnosis pendant","",0,"",""],
+  ["hypnosis pendant","",460,"mark",""],
   ["ice essence","",0,"",""],
   ["ice stone","https://i.imgur.com/KCxKLwO.png",6000,"",""],
   ["king ear","",720,"mark",""],
   ["lapras fin","",1000,"mark",""],
-  ["leaf","",0,"",""],
+  ["leaf","",60,"mark",""],
   ["leaf stone","https://i.imgur.com/5ZJAr9N.png",6000,"",""],
-  ["leaves","",0,"",""],
+  ["leaves","",60,"mark",""],
   ["lizard tail","",420,"mark",""],
-  ["locksmith of shell","",0,"",""],
-  ["loud microphone","",0,"",""],
+  ["locksmith of shell","",80,"mark",""],
+  ["loud microphone","",350000,"t5","evo1"],
   ["magikarp fin","",60,"mark",""],
   ["magma foot","",940,"mark",""],
   ["magma shell","",740,"mark",""],
   ["magnet","https://i.imgur.com/CBo9fUR.png",720,"mark",""],
   ["malfunctioning core","",5000000,"t2","evo2"],
-  ["mankey tail","",0,"",""],
-  ["metal bracelet","",0,"",""],
-  ["miss traces","",0,"",""],
-  ["moon topknot","",0,"",""],
+  ["mankey tail","",100,"mark",""],
+  ["metal bracelet","",3500000,"t3","evo2"],
+  ["miss traces","",940,"mark",""],
+  ["moon topknot","",400,"mark",""],
   ["moth wing","",460,"mark",""],
   ["mouse tail","",60,"mark",""],
   ["mud tail","",0,"",""],
@@ -3706,40 +3682,40 @@ const RAW = [
   ["mythic rock orb","",4000000,"hard","evo3"],
   ["mythic water orb","",4000000,"hard","evo3"],
   ["normal essence","",0,"",""],
-  ["orange trunk","Shiny Drowzee",0,"",""],
-  ["piece of cocoon","Metapod",0,"",""],
-  ["pieces of shell","Cloyster",0,"",""],
+  ["orange trunk","Shiny Drowzee",350000,"t5","evo1"],
+  ["piece of cocoon","Metapod",80,"mark",""],
+  ["pieces of shell","Cloyster",500,"mark",""],
   ["pink bug horn","Shiny Heracross",5000000,"t2","evo1"],
   ["bug horn","",980,"mark",""],
-  ["pink dainty wing","Shiny Togetic",0,"",""],
+  ["pink dainty wing","Shiny Togetic",3500000,"t3","evo2"],
   ["pink wings","",740,"mark",""],
   ["poison essence","",0,"",""],
-  ["poison pore","Koffing",0,"",""],
-  ["poisoned fish tail","Shiny Qwilfish",0,"",""],
+  ["poison pore","Koffing",80,"mark",""],
+  ["poisoned fish tail","Shiny Qwilfish",3500000,"t3","evo1"],
   ["pooch fur","Poochyena",0,"",""],
   ["psychic essence","",0,"",""],
   ["psychic moustache","Alakazam",940,"mark",""],
-  ["psychic spoon","Kadabra",0,"",""],
-  ["psychic vest","Abra",0,"",""],
-  ["psychic wig","Jynx",0,"",""],
-  ["psychic wings","Shiny Xatu",0,"",""],
-  ["punk ear","Shiny Snubbull",0,"",""],
-  ["punching machine","Hitmonchan",0,"",""],
-  ["purple big leaf","Shiny Bayleef",0,"",""],
-  ["purple chicory","Shiny Chikorita",0,"",""],
-  ["purple egg","Shiny Chansey",0,"",""],
+  ["psychic spoon","Kadabra",400,"mark",""],
+  ["psychic vest","Abra",80,"mark",""],
+  ["psychic wig","Jynx",740,"mark",""],
+  ["psychic wings","Shiny Xatu",5000000,"t2","evo2"],
+  ["punk ear","Shiny Snubbull",350000,"t5","evo1"],
+  ["punching machine","Hitmonchan",500,"mark",""],
+  ["purple big leaf","Shiny Bayleef",600000,"t4","evo2"],
+  ["purple chicory","Shiny Chikorita",350000,"t5","evo1"],
+  ["purple egg","Shiny Chansey",3500000,"t3","evo2"],
   ["purple fist","Shiny Geodude",350000,"t5","evo1"],
-  ["purple leaf","Shiny Ivysaur",0,"",""],
-  ["purple moon topknot","Shiny Clefairy",0,"",""],
+  ["purple leaf","Shiny Ivysaur",600000,"t4","evo2"],
+  ["purple moon topknot","Shiny Clefairy",600000,"t5","evo2"],
   ["purple stone forehead","",600000,"t4","evo2"],
   ["queen ear","Nidoqueen",740,"mark",""],
   ["quilava fur","Quilava",420,"mark",""],
-  ["rainbow gift tail","Shiny Delibird",0,"",""],
-  ["red cocoon","Shiny Kakuna",0,"",""],
-  ["red hair","Feraligatr",0,"",""],
+  ["rainbow gift tail","Shiny Delibird",3500000,"t3","evo1"],
+  ["red cocoon","Shiny Kakuna",600000,"t5","evo2"],
+  ["red hair","Feraligatr",720,"mark",""],
   ["red petal","Venusaur",720,"mark",""],
   ["red piece of cocoon","",600000,"t5","evo2"],
-  ["remains of voltorb","",0,"",""],
+  ["remains of voltorb","",80,"mark",""],
   ["reptilian tail","",0,"",""],
   ["rock essence","",0,"",""],
   ["rock forehead","",400,"mark",""],
@@ -3747,9 +3723,9 @@ const RAW = [
   ["rock nose","",0,"",""],
   ["rock plate","",500,"mark",""],
   ["rock stone","https://i.imgur.com/Zhxk2rh.png",6000,"",""],
-  ["sea dragon fin","",0,"",""],
-  ["seel tail","Seel",0,"",""],
-  ["shiny bat wing","",0,"",""],
+  ["sea dragon fin","",980,"mark",""],
+  ["seel tail","Seel",90,"mark",""],
+  ["shiny bat wing","",5000000,"t2","evo3"],
   ["shiny dragon ears","",350000,"t4","evo1"],
   ["short tail","Spheal",0,"",""],
   ["simple bug orb","",350000,"","evo1"],
@@ -3771,14 +3747,14 @@ const RAW = [
   ["simple rock orb","https://i.imgur.com/B7tt4xZ.png",350000,"","evo1"],
   ["simple water orb","",350000,"","evo1"],
   ["small blue fin","",100,"mark",""],
-  ["small handfull of stones","",0,"",""],
-  ["small yellow stones","",0,"",""],
-  ["smoked bones","",0,"",""],
-  ["snake tail","",0,"",""],
+  ["small handfull of stones","",80,"mark",""],
+  ["small yellow stones","",350000,"t5","evo1"],
+  ["smoked bones","",350000,"t5","evo1"],
+  ["snake tail","",80,"mark",""],
   ["snorlax paw","",980,"mark",""],
-  ["snubull ear","Snubbull",0,"",""],
-  ["soft wool","Flaaffy",0,"",""],
-  ["sparkle antenna","Shiny Caterpie",0,"",""],
+  ["snubull ear","Snubbull",280,"mark",""],
+  ["soft wool","Flaaffy",400,"mark",""],
+  ["sparkle antenna","Shiny Caterpie",350000,"t6","evo1"],
   ["star jewel","Starmie",720,"mark",""],
   ["steel essence","",0,"",""],
   ["steel wing","Skarmory",980,"mark",""],
@@ -3788,26 +3764,208 @@ const RAW = [
   ["strange ball","Trapinch",0,"",""],
   ["strong magnet","Shiny Magneton",5000000,"t2","evo2"],
   ["thunder stone","https://i.imgur.com/qk0I92Y.png",6000,"",""],
-  ["toxic scale","Weezing",0,"",""],
+  ["toxic scale","Weezing",460,"mark",""],
   ["toxic thing","Gulpin",0,"",""],
-  ["two-colored tail","Shiny Pidgeotto",0,"",""],
+  ["two-colored tail","Shiny Pidgeotto",600000,"t4","evo2"],
   ["two-eyed black tail","Wobbuffet",980,"mark",""],
-  ["tyranitar tail","Tyranitar",0,"",""],
+  ["tyranitar tail","Tyranitar",940,"mark",""],
   ["venom stone","https://i.imgur.com/4TltADd.png",6000,"",""],
   ["vine hair","Tangela",460,"mark",""],
   ["wartortle ear","Wartortle",400,"mark",""],
   ["water cannon","Blastoise",720,"mark",""],
   ["water essence","",0,"",""],
   ["water stone","https://i.imgur.com/F0oPvtP.png",6000,"",""],
-  ["white monkey tail","Shiny Mankey",0,"",""],
+  ["white monkey tail","Shiny Mankey",350000,"t5","evo1"],
   ["white tail","",350000,"t5","evo1"],
   ["wigglytuff ear","",740,"mark",""],
   ["worm horn","Wurmple",0,"",""],
   ["xatu wing","Xatu",720,"mark",""],
-  ["yellow beak","Murkrow",0,"",""],
+  ["yellow beak","Murkrow",460,"mark",""],
   ["yellow bird crest","Shiny Pidgey",350000,"","evo1"],
-  ["yellow cocoon","Kakuna",0,"",""],
-  ["yellow sting","Shiny Weedle",0,"",""],
+  ["yellow cocoon","Kakuna",100,"mark",""],
+  ["yellow sting","Shiny Weedle",350000,"t6","evo1"],
+  ["Aipom Paw","",420,"mark",""],
+  ["Alphabetic Eye","",80,"mark",""],
+  ["Amphibian Tail","",480,"mark",""],
+  ["Arachnid Legs","",420,"mark",""],
+  ["Armadillo Claw","",560,"mark",""],
+  ["Aurora Crown","",600000,"mark",""],
+  ["Baby Egg Shell","",60,"mark",""],
+  ["Baby Hair","",280,"mark",""],
+  ["Back Bone","",160,"mark",""],
+  ["Band Aid","",4,"mark",""],
+  ["Bat Claw","",420,"mark",""],
+  ["Bat Wing","",100,"mark",""],
+  ["Belt of Champion","",740,"mark",""],
+  ["Big Bug Gosme","",400,"mark",""],
+  ["Big Crest","",740,"mark",""],
+  ["Big Enchanted Gem","",400,"mark",""],
+  ["Big Mushroom","",460,"mark",""],
+  ["Big Poison Bottle","",400,"mark",""],
+  ["Big Stone","",400,"mark",""],
+  ["Big Tongue","",480,"mark",""],
+  ["Blaze Tail","",720,"mark",""],
+  ["Blue Nido Ear","",312,"mark",""],
+  ["Bottle of Poison","",4,"mark",""],
+  ["Branch of Stones","",980,"mark",""],
+  ["Bug Antenna","",160,"mark",""],
+  ["Bug Gosme","",4,"mark",""],
+  ["Bulb","",160,"mark",""],
+  ["Caterpie Antenna","",60,"mark",""],
+  ["Channeled Fairy Essence","",400,"mark",""],
+  ["Chicory","",60,"mark",""],
+  ["Compressed Fire","",400,"mark",""],
+  ["Compressed Ghost Essence","",400,"mark",""],
+  ["Compressed Steel","",400,"mark",""],
+  ["Compressed Straw","",400,"mark",""],
+  ["Crab Claw","",80,"mark",""],
+  ["Cubone Skull","",160,"mark",""],
+  ["Cute Ears","",720,"mark",""],
+  ["Cyndaquil Nose","",60,"mark",""],
+  ["Dainty Wing","",740,"mark",""],
+  ["Dandelion","",460,"mark",""],
+  ["Dark Canine Horns","",940,"mark",""],
+  ["Dark Ears","",720,"mark",""],
+  ["Dark Gem","",4,"mark",""],
+  ["Dimensional Cube","",720,"mark",""],
+  ["Doduo Fur","",80,"mark",""],
+  ["Dome Shell","",160,"mark",""],
+  ["Dragon Scale","",4,"mark",""],
+  ["Duck Beak","",160,"mark",""],
+  ["Dunsparce Wings","",312,"mark",""],
+  ["Earth Ball","",4,"mark",""],
+  ["Electric Feather","",600000,"mark",""],
+  ["Electric Fish Tail","",720,"mark",""],
+  ["Electric Sphere","",400,"mark",""],
+  ["Enchanted Gem","",4,"mark",""],
+  ["Essence of Fire","",4,"mark",""],
+  ["Exeggcute Seed","",80,"mark",""],
+  ["Farfetch'd Wing","",460,"mark",""],
+  ["Fist Bandages","",500,"mark",""],
+  ["Flame Feather","",600000,"mark",""],
+  ["Fox Tail","",720,"mark",""],
+  ["Frog Topknot","",560,"mark",""],
+  ["Furret Tail","",420,"mark",""],
+  ["Furry Hair","",80,"mark",""],
+  ["Furry Tail","",80,"mark",""],
+  ["Gaia Hands","",980,"mark",""],
+  ["Giant Dragon Scale","",400,"mark",""],
+  ["Gift Tail","",460,"mark",""],
+  ["Goldeen Tail","",80,"mark",""],
+  ["Granbull Ear","",640,"mark",""],
+  ["Gray Scythe","",740,"mark",""],
+  ["Handful of Stones","",420,"mark",""],
+  ["Hardened Horn","",2000,"mark",""],
+  ["Hardrock Shell","",280,"mark",""],
+  ["Helix Shell","",180,"mark",""],
+  ["Ice Feather","",600000,"mark",""],
+  ["Ice Tusks","",720,"mark",""],
+  ["Injection","",400,"mark",""],
+  ["Iron Bracelet","",460,"mark",""],
+  ["Kangaskhan Ear","",740,"mark",""],
+  ["Kick Machine","",480,"mark",""],
+  ["Ladybug Wings","",100,"mark",""],
+  ["Larvitar Tail","",280,"mark",""],
+  ["Leaf Tail","",980,"mark",""],
+  ["Ledian Wings","",400,"mark",""],
+  ["Luck Medallion","",180,"mark",""],
+  ["Lucky Egg","",500,"mark",""],
+  ["Luxray Ear","",980,"mark",""],
+  ["Macho Brace","",2600,"mark",""],
+  ["Magenta Gill","",160,"mark",""],
+  ["Magma Ears","",100,"mark",""],
+  ["Magma Topknot","",280,"mark",""],
+  ["Martial Arts Tail","",480,"mark",""],
+  ["Microphone","",420,"mark",""],
+  ["Mimic Clothes","",580,"mark",""],
+  ["Moon Pendant","",312,"mark",""],
+  ["Mosquito Tail","",460,"mark",""],
+  ["Mushroom","",60,"mark",""],
+  ["Mystic Flower","",420,"mark",""],
+  ["Mystic Petal","",980,"mark",""],
+  ["Natu Wing","",280,"mark",""],
+  ["Nurse's Fur","",940,"mark",""],
+  ["Onix Tail","",460,"mark",""],
+  ["Owl Antennas","",160,"mark",""],
+  ["Owl Crest","",480,"mark",""],
+  ["Pichu Ears","",180,"mark",""],
+  ["Piece of Corsola","",460,"mark",""],
+  ["Piece of Rock","",980,"mark",""],
+  ["Piece of Steel","",4,"mark",""],
+  ["Pile of Seeds","",400,"mark",""],
+  ["Pineco Shell","",80,"mark",""],
+  ["Pink Fairy Bow","",980,"mark",""],
+  ["Pinsir Horn","",960,"mark",""],
+  ["Plug Ears","",312,"mark",""],
+  ["Pointy Beak","",460,"mark",""],
+  ["Pointy Leaf","",60,"mark",""],
+  ["Poison Bladder","",980,"mark",""],
+  ["Poison Bulb","",312,"mark",""],
+  ["Poison Petal","",460,"mark",""],
+  ["Poison Sting","",60,"mark",""],
+  ["Power Belt","",2600,"mark",""],
+  ["Power Bracer","",2600,"mark",""],
+  ["Psychic Ears","",740,"mark",""],
+  ["Ptera Wing","",960,"mark",""],
+  ["Puffer Tail","",460,"mark",""],
+  ["Purple Nido Ear","",280,"mark",""],
+  ["Rat Ear","",280,"mark",""],
+  ["Red Guillotine","",440,"mark",""],
+  ["Red Tentacle","",560,"mark",""],
+  ["Reindeer Horns","",460,"mark",""],
+  ["Remains of Electrode","",400,"mark",""],
+  ["Rubber Ball","",4,"mark",""],
+  ["Scizor Claw","",940,"mark",""],
+  ["Screw","",4,"mark",""],
+  ["Scythe","",960,"mark",""],
+  ["Seadra Fin","",440,"mark",""],
+  ["Seaking Tail","",400,"mark",""],
+  ["Seed","",4,"mark",""],
+  ["Shadow Tail","",980,"mark",""],
+  ["Shuckle Shell","",400,"mark",""],
+  ["Slowbro Shell","",460,"mark",""],
+  ["Slowking Necklace","",980,"mark",""],
+  ["Slowpoke Tail","",80,"mark",""],
+  ["Small Blue Ear","",100,"mark",""],
+  ["Small Box Gloves","",312,"mark",""],
+  ["Small Elephant Ear","",180,"mark",""],
+  ["Small Pink Ears","",160,"mark",""],
+  ["Small Purple Ear","",80,"mark",""],
+  ["Small Red Flower","",460,"mark",""],
+  ["Small Stone","",4,"mark",""],
+  ["Small Topknot","",180,"mark",""],
+  ["Smeargle Tail","",740,"mark",""],
+  ["Sneasel Feather","",460,"mark",""],
+  ["Snowball","",4,"mark",""],
+  ["Solid Dark Gem","",400,"mark",""],
+  ["Solid Earth Piece","",400,"mark",""],
+  ["Solid Ice Cube","",400,"mark",""],
+  ["Solid Rubber Ball","",400,"mark",""],
+  ["Solid Water Gem","",400,"mark",""],
+  ["Spider Legs","",100,"mark",""],
+  ["Spike Shell","",740,"mark",""],
+  ["Squirtle Hull","",160,"mark",""],
+  ["Star Core","",180,"mark",""],
+  ["Stinky Gosme","",80,"mark",""],
+  ["Straw","",4,"mark",""],
+  ["Sun Leaves","",60,"mark",""],
+  ["Sunflower","",280,"mark",""],
+  ["Teardrop Orb","",80,"mark",""],
+  ["Tentacle","",80,"mark",""],
+  ["Thunder Tiger Emblem","",600000,"mark",""],
+  ["Totodile Tail","",60,"mark",""],
+  ["Typhlosion Fur","",740,"mark",""],
+  ["Vampire Wing","",400,"mark",""],
+  ["Victreebell Tail","",560,"mark",""],
+  ["Virtual Head","",440,"mark",""],
+  ["Volcano Lion Star","",600000,"mark",""],
+  ["Water Gem","",4,"mark",""],
+  ["Weepinbell Leaves","",280,"mark",""],
+  ["Wool Ball","",460,"mark",""],
+  ["Yellow Crown","",180,"mark",""],
+  ["Yellow Flower","",312,"mark",""],
+  ["Yellow Mimikyu Head","",980,"mark",""],
+  ["Yellow Sheep Wool","",160,"mark",""],
 ];
 
 // ============================================================
@@ -3924,7 +4082,7 @@ const PACKAGES = [
   {
     name: "Talent Ice 7/8",
     slots: [
-      [["mythic ice orb", 3], ["raibow gift tail", 1], ["psychic wig", 500]],
+      [["mythic ice orb", 3], ["rainbow gift tail", 1], ["psychic wig", 500]],
       [["seel tail", 50]],
       [["simple ice orb", 5], ["blue seel tail", 3]],
       [["arcane ice orb", 3], ["blue seel tail", 3], ["dewgong tail", 120]],
@@ -3950,7 +4108,7 @@ const PACKAGES = [
     slots: [
       [["leaves", 50]],
       [["simple grass orb", 5], ["purple chicory", 3]],
-      [["arcane grass orb", 3], ["purple bug leaf", 3], ["big leaf", 120]],
+      [["arcane grass orb", 3], ["purple big leaf", 3], ["big leaf", 120]],
       [["mythic grass orb", 3], ["blue coconut leaves", 1], ["big petal", 500]],
       [["flower stem", 50]],
       [["simple grass orb", 5], ["brown bulb", 3]],
@@ -3996,13 +4154,13 @@ const PACKAGES = [
   {
     name: "Talent Figthing 7/8",
     slots: [
-      [["mythic figthing orb", 3], ["metal bracelet", 2], ["punching machine", 500]],
-      [["simple figthing orb", 5], ["blond hawk", 3]],
+      [["mythic fighting orb", 3], ["metal bracelet", 2], ["punching machine", 500]],
+      [["simple fighting orb", 5], ["blond hawk", 3]],
       [["mankey tail", 50]],
-      [["arcane figthing orb", 3], ["champion underwear", 3], ["fighther underwear", 120]],
-      [["simple figthing orb", 5], ["white monkey tail", 3]],
-      [["arcane figthing orb", 3], ["champion underwear", 3], ["fighther underwear", 120]],
-      [["fighther hawk", 50]],
+      [["arcane fighting orb", 3], ["champion underwear", 3], ["fighter underwear", 120]],
+      [["simple fighting orb", 5], ["white monkey tail", 3]],
+      [["arcane fighting orb", 3], ["champion underwear", 3], ["fighter underwear", 120]],
+      [["fighter hawk", 50]],
     ]
   },
   {
@@ -4011,7 +4169,7 @@ const PACKAGES = [
       [["simple fairy orb", 5], ["punk ear", 3]],
       [["snubull ear", 50]],
       [["arcane fairy orb", 3], ["purple moon topknot", 3], ["moon topknot", 120]],
-      [["mythic fairy orb", 3], ["pink daint wing", 2], ["pink wings", 500]],
+      [["mythic fairy orb", 3], ["pink dainty wing", 2], ["pink wings", 500]],
       [["simple fairy orb", 5], ["punk ear", 3]],
       [["snubull ear", 50]],
       [["arcane fairy orb", 3], ["purple moon topknot", 3], ["moon topknot", 120]],
@@ -4059,7 +4217,7 @@ const PACKAGES = [
       [["simple bug orb", 5], ["sparkle antenna", 3]],
       [["piece of cocoon", 25], ["yellow cocoon", 25]],
       [["arcane bug orb", 3], ["red piece of cocoon", 3], ["butterfree wing", 120]],
-      [["mythic bug orb", 3], ["pink bug orb", 1], ["moth wing", 500]],
+      [["mythic bug orb", 3], ["pink bug horn", 1], ["moth wing", 500]],
       [["simple bug orb", 5], ["yellow sting", 3]],
       [["bee sting", 25]],
       [["arcane bug orb", 3], ["red cocoon", 3], ["bee sting", 120]],
@@ -4153,11 +4311,16 @@ RAW.forEach(([name, image, price, tier, evo]) => {
   const key = name + '|' + (image || '');
   if (!seen.has(key)) { seen.add(key); items.push({ name, image: image || '', price: price || 0, tier: tier || '', evo: evo || '' }); }
 });
+// Store original index on each item for O(1) lookup
+items.forEach((item, i) => { item._idx = i; });
 
 document.getElementById('total-count').textContent = items.length + ' itens no índice';
 
 const cart = {};
 let pkgCartCount = {};
+let _searchTimer;
+let _capturaSearchTimer;
+let _initialRender = true;
 
 function getTag(item) {
   const n = item.name.toLowerCase();
@@ -4226,7 +4389,7 @@ function render() {
   }
 
   grid.innerHTML = visible.map((item, vi) => {
-    const i = items.indexOf(item);
+    const i = item._idx;
     const tag = getTag(item);
     const inCart = cart[i] > 0;
     const src = '';
@@ -4252,7 +4415,8 @@ function render() {
       : '';
     const pack500Label = pack500Data ? `<span class="pack-btn-qty">+500</span><span class="pack-btn-price">${pack500Data.label}</span><span class="pack-btn-brl">${pack500Data.brl}</span>` : `<span class="pack-btn-qty">+500</span>`;
     const pack1000Label = pack1000Data ? `<span class="pack-btn-qty">+1000</span><span class="pack-btn-price">${pack1000Data.label}</span><span class="pack-btn-brl">${pack1000Data.brl}</span>` : `<span class="pack-btn-qty">+1000</span>`;
-    return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}">
+    const animClass = _initialRender ? ' card-anim' : '';
+    return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}${animClass}">
       ${imgHtml}
       <div class="item-name">${item.name}</div>
       ${getTierHtml(item.tier)}
@@ -4278,6 +4442,7 @@ function render() {
       </div>
     </div>`;
   }).join('');
+  _initialRender = false;
 }
 
 function updateTotalPrice(i, rawVal) {
@@ -4450,14 +4615,15 @@ function updateCartBadge() {
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
   const total = keys.reduce((s, k) => s + cart[k], 0);
   const text = total.toLocaleString();
-  document.getElementById('cart-count-badge').textContent = text;
-  const floatBadge = document.getElementById('cart-count-float');
-  if (floatBadge) floatBadge.textContent = text;
-  const floatBtn = document.getElementById('cart-float-btn');
-  if (floatBtn) {
-    floatBtn.classList.remove('bump');
-    void floatBtn.offsetWidth;
-    floatBtn.classList.add('bump');
+  const badge = document.getElementById('cart-count-badge');
+  if (badge) {
+    badge.textContent = text;
+    const headerBtn = badge.closest('button');
+    if (headerBtn) {
+      headerBtn.classList.remove('bump');
+      void headerBtn.offsetWidth;
+      headerBtn.classList.add('bump');
+    }
   }
 }
 
@@ -4939,10 +5105,20 @@ function renderPkgDetail(pi) {
         }, 0);
         const slotData = slotTotal > 0 ? formatKK(slotTotal) : null;
         const disabledCount = slot.filter(([n]) => isPkgItemDisabled(pi, idx, n)).length;
-        return `<button class="pkg-slot-btn${idx === si ? ' active' : ''}${disabledCount === slot.length ? ' all-disabled' : ''}" onclick="selectPkgSlot(${pi}, ${idx})">
+        const noPriceCount = slot.filter(([n]) => {
+          if (isPkgItemDisabled(pi, idx, n)) return false;
+          const it = getPkgItemData(n);
+          return !it || !it.price;
+        }).length;
+        const noPriceWarn = noPriceCount > 0
+          ? `<span class="pkg-slot-no-price-warn">⚠ ${noPriceCount} s/preço</span>`
+          : '';
+        const hasNoPriceCls = noPriceCount > 0 ? ' has-no-price' : '';
+        return `<button class="pkg-slot-btn${idx === si ? ' active' : ''}${disabledCount === slot.length ? ' all-disabled' : ''}${hasNoPriceCls}" onclick="selectPkgSlot(${pi}, ${idx})">
           <span class="pkg-slot-btn-label">${getSlotLabel(pkg, idx)}</span>
           ${slotData ? `<span class="pkg-slot-btn-price">${slotData.label}</span>` : ''}
           <span class="pkg-slot-btn-count">${slot.length - disabledCount}/${slot.length} itens</span>
+          ${noPriceWarn}
         </button>`;
       }).join('')}
     </div>` : '';
@@ -5378,7 +5554,32 @@ const POKEMONS = [
   { name: "Tangrowth",        price: 38000000,  tag: "t1",         image: "https://i.imgur.com/EpEQ1Wx.gif" },
   { name: "Shiny Luxray",     price: 170000000, tag: "super-raro", image: "https://i.imgur.com/sWnyJd1.gif" },
   { name: "Shiny Fearow",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/wNR2Ija.gif" },
+  { name: "Shiny Hitmonlee",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/uzewWkj.gif" },
+  { name: "Shiny Hitmontop",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/YWsKw3O.gif" },
+  { name: "Shiny Flareon",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/9UowZtR.gif" },
+  { name: "Shiny Vaporeon",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZiHkl9v.gif" },
+  { name: "Shiny Jolteon",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/3Jc5ZUX.gif" },
+  { name: "Shiny Espeon",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/Zws7DJo.gif" },
+  { name: "Shiny Umbreon",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/G5vLr8q.gif" },
+  { name: "Shiny Donphan",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/9xd9h6l.gif" },
+  { name: "Shiny Torterra",   price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/yp3SFUz.gif" },
+  { name: "Shiny Tangrowth",   price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/Ep4wVmN.gif" },
+  { name: "Shiny Florges",   price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/fynxTta.gif" },
+  { name: "Shiny Rhydon",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/N0xE5Jd.gif" },
+  { name: "Shiny Magneton",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/ZcDUckg.gif" },
+  { name: "Shiny Exeggutor",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/OpvTaP1.gif" },
+  { name: "Shiny Starmie",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/y0z0Tkt.gif" },
+  { name: "Shiny Dugtrio",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/F9jJz0e.gif" },
+  { name: "Shiny Sandslash",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/KXpdDgh.gif" },
+  { name: "Shiny Victreebel",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/Wz5rU8G.gif" },
+  { name: "Shiny Bellossom",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/vo0GY2X.gif" },
+  { name: "Shiny Jynx",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/VNGVJBo.gif" },
+  { name: "Shiny Ariados",   price: 3500000,  tag: "t3",         image: "https://i.imgur.com/4qVdNjM.gif" },
+  { name: "Shiny Xatu",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/I3KwmrR.gif" },
+  { name: "Shiny Grambull",   price: 7000000,  tag: "t2",         image: "https://i.imgur.com/lPlawhM.gif" },
 ];
+// Store original index for O(1) lookup
+POKEMONS.forEach((p, i) => { p._idx = i; });
 
 const BALLS = [
   { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
@@ -5418,7 +5619,7 @@ function renderCaptura() {
     return;
   }
   grid.innerHTML = filtered.map((poke) => {
-    const idx = POKEMONS.indexOf(poke);
+    const idx = poke._idx;
     const priceData = formatKK(poke.price);
     const priceHtml = priceData
       ? `<div class="captura-card-price">
@@ -5577,16 +5778,19 @@ function handleCapturaOverlayClick(e) {
 }
 
 render();
-</script>
 
-<!-- Floating Cart Button -->
-<button class="cart-float" id="cart-float-btn" onclick="openCart()">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-  </svg>
-  Carrinho <span class="cart-count-float" id="cart-count-float">0</span>
-</button>
+// Sticky offset — mede header e tabs e expõe como variáveis CSS
+function updateStickyOffsets() {
+  const header = document.querySelector('header');
+  const tabsNav = document.querySelector('.tabs-nav');
+  const hh = header ? header.getBoundingClientRect().height : 0;
+  const th = tabsNav ? tabsNav.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty('--header-h', hh + 'px');
+  document.documentElement.style.setProperty('--tabs-h', th + 'px');
+}
+updateStickyOffsets();
+window.addEventListener('resize', updateStickyOffsets);
+</script>
 
 <!-- Toast: item sem preço -->
 <div id="no-price-toast">
