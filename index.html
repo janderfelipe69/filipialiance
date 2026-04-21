@@ -2566,15 +2566,195 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
   letter-spacing: 0.5px;
 }
 
-/* ===================== RESPONSIVE ===================== */
+/* ===================== RESPONSIVE — MOBILE ===================== */
 @media (max-width: 700px) {
-  .header-grid { grid-template-columns: auto 1fr; padding: 14px 16px; gap: 14px; }
-  .cart-trigger { grid-column: 1 / -1; justify-content: center; }
-  .pa-emblem { width: 52px; height: 52px; }
-  .seller-name { font-size: 18px; letter-spacing: 4px; }
-  .controls { padding: 10px 16px; }
-  .grid-wrap { padding: 16px 12px 100px; }
-  .cart-panel { max-width: 100%; }
+
+  /* ── HEADER ── */
+  .header-grid {
+    grid-template-columns: auto 1fr auto;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .pa-emblem { width: 44px; height: 44px; }
+  .seller-name { font-size: 16px; letter-spacing: 3px; }
+  .seller-title { display: none; }
+  .divider-v { display: none; }
+  .item-count-badge { display: none; }
+  .cart-trigger {
+    padding: 10px 14px;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .cart-trigger .cart-label { display: none; }
+
+  /* ── TABS ── */
+  .tabs-nav { overflow-x: auto; scrollbar-width: none; }
+  .tabs-nav::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 12px 14px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    gap: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── CONTROLES / BUSCA ── */
+  .controls {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .search-wrap { min-width: 0; flex: 1 1 120px; }
+  input[type=text] { font-size: 13px; padding: 10px 12px 10px 36px; }
+  select { font-size: 13px; padding: 10px 10px; flex: 1 1 100px; }
+  .count-label { width: 100%; text-align: center; }
+
+  /* ── GRID DE CARDS ── */
+  .grid-wrap { padding: 10px 8px 110px; }
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .card { padding: 10px 10px 12px; gap: 6px; }
+  .item-img-wrap img { height: 70px; }
+  .item-name { font-size: 12px; }
+  .price-kk { font-size: 12px; }
+  .price-label { font-size: 8px; min-width: 28px; }
+
+  /* Botões de ação no card — maiores para toque */
+  .add-btn {
+    font-size: 10px;
+    padding: 9px 8px;
+    min-height: 36px;
+  }
+  .pack-btn {
+    padding: 9px 4px;
+    min-height: 38px;
+  }
+  .pack-btn-qty { font-size: 8px; }
+  .pack-btn-price { font-size: 10px; }
+  input[type=number] { width: 58px; font-size: 13px; padding: 7px 6px; }
+  .inline-rem-btn { width: 34px; height: 34px; font-size: 14px; }
+
+  /* ── CARRINHO PANEL ── */
+  .cart-panel { max-width: 100%; border-left: none; }
+  .cart-overlay.open { align-items: flex-end; }
+  .cart-panel { border-radius: 16px 16px 0 0; height: 92vh; }
+  .cart-list { padding: 12px 14px; }
+  .cart-footer { padding: 14px 16px; }
+
+  /* ── ABA PACOTES — empilhar vertical ── */
+  .packages-wrap {
+    height: auto;
+    min-height: calc(100vh - 130px);
+    overflow: visible;
+  }
+  .pkg-main-area {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  /* Sidebar vira grade horizontal scrollável */
+  .pkg-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 2px solid rgba(56,140,255,0.22);
+  }
+  .pkg-sidebar-list {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 8px;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .pkg-sidebar-item-icon { width: 36px; height: 36px; font-size: 18px; }
+  .pkg-sidebar-item-name { font-size: 10px; }
+  .pkg-sidebar-item-sub { font-size: 8px; }
+
+  /* Painel de detalhe do pacote */
+  .pkg-detail {
+    min-height: 300px;
+    border-top: 1px solid var(--border);
+  }
+  .pkg-detail-header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .pkg-detail-title { font-size: 13px; }
+  .pkg-detail-row { padding: 8px 14px; gap: 8px; }
+  .pkg-detail-row-name { font-size: 12px; }
+  .pkg-detail-footer { padding: 12px 16px; gap: 8px; flex-wrap: wrap; }
+  .pkg-detail-add-btn { padding: 10px 16px; font-size: 9px; }
+  .pkg-detail-total-kk { font-size: 14px; }
+
+  /* Tabs de slot do pacote */
+  .pkg-slot-tabs { padding: 8px 12px 0; gap: 4px; }
+  .pkg-slot-btn { padding: 6px 10px; }
+  .pkg-slot-btn-label { font-size: 9px; }
+
+  /* Tabs de categoria */
+  .pkg-cat-tabs { padding: 8px 12px 8px; gap: 5px; }
+  .pkg-cat-btn { padding: 6px 10px; font-size: 11px; }
+
+  /* Search de pacotes */
+  .packages-controls { padding: 8px 12px; }
+
+  /* ── ABA CAPTURA ── */
+  .captura-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 10px 8px !important;
+  }
+  .captura-card { padding: 10px 8px 12px !important; }
+  .captura-card-img { height: 70px !important; }
+  .captura-card-name { font-size: 12px !important; }
+  .captura-catch-btn {
+    font-size: 10px !important;
+    padding: 8px 6px !important;
+    min-height: 36px !important;
+  }
+
+  /* Modal de captura — tela cheia no mobile */
+  .captura-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .captura-modal {
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 90vh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-y: auto;
+  }
+  .captura-ball-options {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .captura-ball-btn {
+    padding: 10px 8px !important;
+    font-size: 11px !important;
+    min-height: 44px !important;
+  }
+
+  /* ── MODAL DE PACOTE ── */
+  .pkg-overlay { padding: 0; align-items: flex-end; }
+  .pkg-modal {
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    max-width: 100%;
+  }
+
+  /* ── TOAST ── */
+  #no-price-toast {
+    min-width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    bottom: 16px;
+    padding: 12px 16px;
+  }
+
+  /* ── WELCOME MODAL ── */
+  .welcome-modal { padding: 32px 18px 26px; }
+  .welcome-title { font-size: 17px; letter-spacing: 3px; }
+  .welcome-info-card { padding: 12px 14px; gap: 10px; }
+  .welcome-info-icon { font-size: 18px; }
+  .welcome-info-text p { font-size: 13px; }
 }
 
 /* ===================== CURSOR CUSTOM ===================== */
@@ -3423,7 +3603,7 @@ body { cursor: defaut; }
         <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
       </svg>
-      Carrinho <span class="cart-count" id="cart-count-badge">0</span>
+      <span class="cart-label">Carrinho</span> <span class="cart-count" id="cart-count-badge">0</span>
     </button>
 
   </div>
