@@ -3522,6 +3522,272 @@ body { cursor: defaut; }
   font-size: 13px;
   color: var(--gold);
 }
+
+/* ===================== ENTREGAS ===================== */
+.entregas-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 32px 0;
+  flex-wrap: wrap;
+}
+
+.entregas-header-info {
+  flex: 1;
+}
+
+.entregas-title {
+  font-family: var(--font-title);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+
+.entregas-subtitle {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+
+.entregas-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--gold) 0%, #c98a00 100%);
+  color: #0a0a0a;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px 22px;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 20px var(--glow-gold);
+  white-space: nowrap;
+}
+
+.entregas-upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--glow-gold);
+}
+
+.entregas-count-bar {
+  padding: 10px 32px 4px;
+}
+
+.entregas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 16px 32px 120px;
+  position: relative;
+  z-index: 1;
+}
+
+.entregas-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.entregas-empty-icon {
+  font-size: 52px;
+  opacity: 0.4;
+}
+
+.entregas-empty-text {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+}
+
+.entregas-empty-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.entrega-card {
+  position: relative;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  aspect-ratio: 1 / 1;
+}
+
+.entrega-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--gold);
+  box-shadow: 0 8px 28px var(--glow-gold);
+}
+
+.entrega-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.entrega-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(4,6,14,0.85) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+}
+
+.entrega-card:hover .entrega-card-overlay {
+  opacity: 1;
+}
+
+.entrega-card-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.entrega-card-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+.entrega-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(37,211,102,0.2);
+  border: 1px solid rgba(37,211,102,0.5);
+  border-radius: 20px;
+  padding: 2px 9px;
+  font-family: var(--font-title);
+  font-size: 9px;
+  font-weight: 700;
+  color: #25d366;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Lightbox */
+.entrega-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(4,6,14,0.95);
+  backdrop-filter: blur(16px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.entrega-lightbox.open {
+  display: flex;
+}
+
+.entrega-lightbox-inner {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.entrega-lightbox-img {
+  max-width: 80vw;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 14px;
+  border: 1px solid var(--border-hover);
+  box-shadow: 0 0 60px rgba(58,140,255,0.2);
+}
+
+.entrega-lightbox-close {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  z-index: 1;
+}
+
+.entrega-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(13,22,40,0.85);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.entrega-lightbox-prev { left: -56px; }
+.entrega-lightbox-next { right: -56px; }
+.entrega-lightbox-nav:hover { background: var(--surface3); border-color: var(--blue); }
+
+.entrega-lightbox-caption {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.entrega-lightbox-delete {
+  background: rgba(255,60,60,0.1);
+  border: 1px solid rgba(255,60,60,0.35);
+  color: #ff6b6b;
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.entrega-lightbox-delete:hover {
+  background: rgba(255,60,60,0.2);
+  border-color: rgba(255,60,60,0.6);
+}
+
+@media (max-width: 600px) {
+  .entregas-grid { grid-template-columns: repeat(2, 1fr); padding: 12px 16px 100px; }
+  .entregas-header { padding: 16px 16px 0; }
+  .entregas-count-bar { padding: 8px 16px 4px; }
+  .entrega-lightbox-prev { left: -8px; }
+  .entrega-lightbox-next { right: -8px; }
+}
 </style>
 </head>
 <body>
@@ -3622,6 +3888,10 @@ body { cursor: defaut; }
   <button class="tab-btn" onclick="switchTab('captura', this)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
     Captura
+  </button>
+  <button class="tab-btn" onclick="switchTab('entregas', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    Entregas
   </button>
 </div>
 
@@ -3750,6 +4020,37 @@ body { cursor: defaut; }
       <button class="close-btn" onclick="closeCapturaModal()">&#x2715;</button>
     </div>
     <div class="captura-modal-body" id="captura-modal-body"></div>
+  </div>
+</div>
+
+<!-- TAB: ENTREGAS -->
+<div class="tab-content" id="tab-entregas">
+  <div class="entregas-header">
+    <div class="entregas-header-info">
+      <div class="entregas-title">📦 Serviços Concluídos</div>
+      <div class="entregas-subtitle">Fotos das entregas realizadas</div>
+    </div>
+  </div>
+  <div class="entregas-count-bar">
+    <span class="count-label" id="entregas-count-label">0 entregas</span>
+  </div>
+  <div class="entregas-grid" id="entregas-grid">
+    <div class="entregas-empty" id="entregas-empty">
+      <div class="entregas-empty-icon">📷</div>
+      <div class="entregas-empty-text">Nenhuma entrega postada ainda</div>
+      <div class="entregas-empty-sub">Clique em "Postar Foto" para adicionar fotos das entregas</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE FOTO DE ENTREGA -->
+<div class="entrega-lightbox" id="entrega-lightbox" onclick="closeEntregaLightbox(event)">
+  <div class="entrega-lightbox-inner">
+    <button class="close-btn entrega-lightbox-close" onclick="closeEntregaLightbox()">&#x2715;</button>
+    <button class="entrega-lightbox-nav entrega-lightbox-prev" onclick="navEntregaLightbox(-1)">&#x2039;</button>
+    <img class="entrega-lightbox-img" id="entrega-lightbox-img" src="" alt="" />
+    <button class="entrega-lightbox-nav entrega-lightbox-next" onclick="navEntregaLightbox(1)">&#x203a;</button>
+    <div class="entrega-lightbox-caption" id="entrega-lightbox-caption"></div>
   </div>
 </div>
 
@@ -6153,6 +6454,103 @@ function handleCapturaOverlayClick(e) {
 }
 
 render();
+
+// ===================== ENTREGAS =====================
+// ============================================================
+//  ▼▼▼  ADICIONE SUAS FOTOS AQUI  ▼▼▼
+//
+//  Coloque as imagens em uma pasta chamada  "entregas"
+//  na mesma pasta do index.html, depois adicione cada
+//  foto no array abaixo seguindo o modelo:
+//
+//  { src: "entregas/nome-do-arquivo.jpg",
+//    name: "Descrição da entrega",
+//    date: "DD/MM/AAAA" },
+//
+//  Também aceita caminhos absolutos do Windows, ex:
+//  { src: "file:///C:/Users/Filipi/fotos/entrega1.jpg", ... }
+// ============================================================
+const ENTREGAS = [
+{ src: "https://i.imgur.com/tU7Djq7.jpeg",  name: "Itens de Talentos — Recall Stark",     date: "16/04/2026" },
+{ src: "https://i.imgur.com/nJyeTHn.jpeg",  name: "Shiny Charizard — Gambitt",   date: "21/04/2026" },
+{ src: "https://i.imgur.com/5ilqaVR.jpeg",  name: "Itens de Talentos — Saga",        date: "21/04/2026" },
+];
+// ============================================================
+
+let _lightboxIdx = 0;
+
+function renderEntregas() {
+  const grid = document.getElementById('entregas-grid');
+  const countLabel = document.getElementById('entregas-count-label');
+  if (!grid) return;
+
+  const n = ENTREGAS.length;
+  if (countLabel) countLabel.textContent = n + (n === 1 ? ' entrega' : ' entregas');
+
+  if (!n) {
+    grid.innerHTML = `<div class="entregas-empty">
+      <div class="entregas-empty-icon">📷</div>
+      <div class="entregas-empty-text">Nenhuma entrega ainda</div>
+      <div class="entregas-empty-sub">Adicione as fotos no array ENTREGAS[] dentro do script</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = ENTREGAS.map((item, idx) => `
+    <div class="entrega-card" onclick="openEntregaLightbox(${idx})">
+      <img src="${item.src}" alt="${item.name}" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+      <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:40px;background:var(--surface3)">📦</div>
+      <div class="entrega-card-overlay">
+        <div>
+          <div class="entrega-card-label">${item.name}</div>
+          <div class="entrega-card-date">${item.date}</div>
+        </div>
+      </div>
+      <div class="entrega-card-badge">✓ Entregue</div>
+    </div>`).join('');
+}
+
+function openEntregaLightbox(idx) {
+  _lightboxIdx = idx;
+  document.getElementById('entrega-lightbox').classList.add('open');
+  _updateLightboxContent();
+}
+
+function _updateLightboxContent() {
+  const item = ENTREGAS[_lightboxIdx];
+  if (!item) return;
+  document.getElementById('entrega-lightbox-img').src = item.src;
+  document.getElementById('entrega-lightbox-caption').textContent =
+    item.name + ' · ' + item.date + '  (' + (_lightboxIdx + 1) + '/' + ENTREGAS.length + ')';
+}
+
+function navEntregaLightbox(dir) {
+  _lightboxIdx = (_lightboxIdx + dir + ENTREGAS.length) % ENTREGAS.length;
+  _updateLightboxContent();
+}
+
+function closeEntregaLightbox(e) {
+  if (e && e.type === 'click') {
+    const inner = document.querySelector('.entrega-lightbox-inner');
+    if (inner && inner.contains(e.target) && !e.target.classList.contains('entrega-lightbox-close')) return;
+  }
+  document.getElementById('entrega-lightbox').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('entrega-lightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  if (e.key === 'ArrowLeft')  navEntregaLightbox(-1);
+  if (e.key === 'ArrowRight') navEntregaLightbox(1);
+  if (e.key === 'Escape')     lb.classList.remove('open');
+});
+
+const _origSwitchTab = switchTab;
+switchTab = function(tab, btn) {
+  _origSwitchTab(tab, btn);
+  if (tab === 'entregas') renderEntregas();
+};
 
 // Sticky offset — mede header e tabs e expõe como variáveis CSS
 function updateStickyOffsets() {
