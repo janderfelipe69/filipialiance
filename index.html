@@ -1438,6 +1438,37 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 }
 .whats-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,211,102,0.35); }
 
+.contact-btns-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.contact-btns-row .whats-btn,
+.contact-btns-row .discord-btn {
+  width: 50%;
+  margin-bottom: 0;
+}
+.discord-btn {
+  background: linear-gradient(135deg, #5865F2, #3b45c4);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(88,101,242,0.25);
+}
+.discord-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(88,101,242,0.4); }
+
 .clear-btn {
   width: 100%;
   background: transparent;
@@ -3056,7 +3087,7 @@ body { cursor: defaut; }
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.75);
-  z-index: 101;
+  z-index: 9999;
   backdrop-filter: blur(8px);
   align-items: center;
   justify-content: center;
@@ -3402,6 +3433,31 @@ body { cursor: defaut; }
 .ctag-legendary { background: linear-gradient(90deg, rgba(240,150,0,0.3), rgba(200,80,0,0.18)); border: 1px solid rgba(255,170,20,0.75); color: #ffb830; box-shadow: 0 0 12px rgba(240,150,0,0.4); animation: legendaryGlow 2s ease-in-out infinite; }
 @keyframes legendaryGlow { 0%,100% { box-shadow: 0 0 8px rgba(240,150,0,0.3); } 50% { box-shadow: 0 0 20px rgba(240,150,0,0.65); } }
 .ctag-mythical { background: linear-gradient(90deg, rgba(200,40,255,0.3), rgba(130,0,200,0.18)); border: 1px solid rgba(220,60,255,0.75); color: #e060ff; box-shadow: 0 0 12px rgba(200,40,255,0.4); animation: mythicalGlow 2s ease-in-out infinite; }
+.ctag-dive {
+  background: linear-gradient(90deg, rgba(0,140,220,0.32), rgba(0,80,160,0.22));
+  border: 1px solid rgba(0,200,255,0.7);
+  color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0,200,255,0.35);
+  animation: diveWave 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+.ctag-dive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,220,255,0.18) 40%, transparent 80%);
+  transform: translateX(-100%);
+  animation: diveShimmer 2.5s ease-in-out infinite;
+}
+@keyframes diveWave {
+  0%,100% { box-shadow: 0 0 8px rgba(0,200,255,0.35), 0 0 18px rgba(0,180,255,0.15); }
+  50% { box-shadow: 0 0 14px rgba(0,220,255,0.6), 0 0 28px rgba(0,200,255,0.25); }
+}
+@keyframes diveShimmer {
+  0% { transform: translateX(-100%); }
+  60%,100% { transform: translateX(200%); }
+}
 @keyframes mythicalGlow { 0%,100% { box-shadow: 0 0 8px rgba(200,40,255,0.35); } 50% { box-shadow: 0 0 22px rgba(200,40,255,0.7); } }
 
 .captura-card-price {
@@ -4003,6 +4059,7 @@ body { cursor: defaut; }
       <option value="raro">Raro</option>
       <option value="legendary">Legendary</option>
       <option value="mythical">Mítico</option>
+      <option value="dive">🌊 Dive</option>
       <option value="none">Sem tag</option>
     </select>
     <span class="pkg-count-label" id="captura-count-label">— pokémons</span>
@@ -4151,7 +4208,10 @@ body { cursor: defaut; }
         <input type="text" id="cart-nick-input" class="nick-input" placeholder="Seu nick no jogo..." oninput="onNickInput()" />
         <div class="nick-error" id="nick-error">⚠ Informe seu nick no jogo antes de enviar!</div>
       </div>
-      <button class="whats-btn" onclick="sendToWhatsApp()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Enviar para WhatsApp</button>
+      <div class="contact-btns-row">
+        <button class="whats-btn" onclick="sendToWhatsApp()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
+        <button class="discord-btn" onclick="sendToDiscord()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963a.075.075 0 0 0-.041-.104 13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z"/></svg> Discord</button>
+      </div>
       <button class="clear-btn" onclick="clearCart()">Limpar Carrinho</button>
     </div>
   </div>
@@ -4484,7 +4544,7 @@ const RAW = [
   ["thunder stone","https://i.imgur.com/qk0I92Y.png",10000,"",""],
   ["venom stone","https://i.imgur.com/4TltADd.png",10000,"",""],
   ["water stone","https://i.imgur.com/F0oPvtP.png",10000,"",""],
-  ["crystal stone","https://i.imgur.com/Mq3MD9U.png",50000,"",""],
+  ["crystal stone","https://i.imgur.com/Mq3MD9U.png",25000,"",""],
   ["armadillo red tail","",350000,"t5","evo1"],
   ["black tail","",350000,"t5","evo1"],
   ["blond hawk","",350000,"t5","evo1"],
@@ -5188,6 +5248,99 @@ function sendToWhatsApp() {
   const phone = '5565999911832';
   const url   = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
+}
+
+function sendToDiscord() {
+  const keys = Object.keys(cart).filter(k => cart[k] > 0);
+  if (!keys.length) return;
+
+  const nickInput = document.getElementById('cart-nick-input');
+  const nick = nickInput ? nickInput.value.trim() : '';
+  if (!nick) {
+    const wrap = document.getElementById('nick-field-wrap');
+    const err  = document.getElementById('nick-error');
+    if (wrap) { wrap.classList.remove('error'); void wrap.offsetWidth; wrap.classList.add('error'); }
+    if (err)  err.classList.add('visible');
+    if (nickInput) nickInput.focus();
+    return;
+  }
+
+  function toBRL(raw) { return (raw / 1000000 * KK_TO_BRL).toFixed(2); }
+  function fmt(raw)   { return toBRL(raw).replace('.', ','); }
+
+  const lines = ['**PEDIDO DE SERVIÇO**', `**Nick no jogo:** ${nick}`, '```'];
+  lines.push('Item                          | Qtd | Unit.   | Total');
+  lines.push('------------------------------|-----|---------|--------');
+
+  let grandTotalBRL = 0;
+  keys.forEach(k => {
+    const item = items[k];
+    const qty      = cart[k];
+    const unitRaw  = item.price || 0;
+    const totalRaw = unitRaw * qty;
+    const unitBRL  = unitRaw  > 0 ? 'R$' + fmt(unitRaw)  : 'R$0,00';
+    const totalBRL = totalRaw > 0 ? 'R$' + fmt(totalRaw) : 'R$0,00';
+    grandTotalBRL += totalRaw > 0 ? parseFloat(toBRL(totalRaw)) : 0;
+    lines.push(`${item.name.padEnd(30)}| ${String(qty).padEnd(3)} | ${unitBRL.padEnd(7)} | ${totalBRL}`);
+  });
+
+  const grandTotalRaw = keys.reduce((s, k) => {
+    const item = items[k];
+    return s + (item && item.price ? item.price * cart[k] : 0);
+  }, 0);
+
+  const TAXA_THRESHOLD = 10000000;
+  const TAXA_VALOR     = 5000000;
+  const hasTaxa = grandTotalRaw > 0 && grandTotalRaw < TAXA_THRESHOLD;
+  if (hasTaxa) {
+    const taxaNum = parseFloat(toBRL(TAXA_VALOR));
+    const taxaStr = 'R$' + taxaNum.toFixed(2).replace('.', ',');
+    grandTotalBRL += taxaNum;
+    lines.push(`Taxa de serviço (abaixo 10kk) |  1  | ${taxaStr.padEnd(7)} | ${taxaStr}`);
+  }
+
+  const grandTotalStr = 'R$' + grandTotalBRL.toFixed(2).replace('.', ',');
+  lines.push('');
+  lines.push(`TOTAL GERAL: ${grandTotalStr}`);
+  lines.push('```');
+
+  const mode = _currentPayMode;
+  if (mode === 'kk') {
+    const kkD = formatKK(_payTotalKk);
+    if (kkD) lines.push(`**Pagamento:** ${kkD.label} KK (moeda do jogo)`);
+  } else if (mode === 'brl') {
+    lines.push(`**Pagamento:** ${grandTotalStr} via PIX`);
+  } else if (mode === 'mix') {
+    const kkVal  = parseFloat(document.getElementById('mix-kk-input').value) || 0;
+    const brlVal = parseFloat(document.getElementById('mix-brl-input').value) || 0;
+    if (kkVal > 0 || brlVal > 0) {
+      const kkD    = formatKK(kkVal * 1000000);
+      const brlStr = 'R$' + brlVal.toFixed(2).replace('.', ',');
+      lines.push(`**Pagamento misto:** ${kkD ? kkD.label : '0'} KK + ${brlStr} via PIX`);
+    }
+  }
+
+  const msg = lines.join('\n');
+  navigator.clipboard.writeText(msg).then(() => {
+    const discordUrl = 'https://discord.com/users/304012234420518914';
+    window.open(discordUrl, '_blank');
+    // Toast de confirmação
+    const toast = document.getElementById('no-price-toast');
+    const toastMsg = document.getElementById('no-price-toast-msg');
+    const toastTitle = toast ? toast.querySelector('.toast-title') : null;
+    if (toast) {
+      if (toastTitle) toastTitle.textContent = '✅ Pedido copiado!';
+      if (toastMsg) toastMsg.textContent = 'O pedido foi copiado. Cole no chat do Discord com Ctrl+V!';
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+        if (toastTitle) toastTitle.textContent = 'Atenção — item sem preço!';
+      }, 4000);
+    }
+  }).catch(() => {
+    // Fallback: abre o Discord mesmo assim
+    window.open('https://discord.com/users/304012234420518914', '_blank');
+  });
 }
 
 // ===================== TOAST SEM PREÇO =====================
@@ -6223,7 +6376,7 @@ const POKEMONS = [
 { name: "Shiny Heracross",     price: 7000000,   tag: "t2",         image: "https://i.imgur.com/r1hdJz1.gif" },
 { name: "Shiny Onix",     price: 7000000,   tag: "t2",         image: "https://i.imgur.com/r1hdJz1.gif" },
 { name: "Shiny Tangrowth",   price: 170000000, tag: "super-raro", image: "https://i.imgur.com/Ep4wVmN.gif" },
-{ name: "Shiny Tentacruel",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/I9J30Si.gif" },
+{ name: "Shiny Tentacruel",  price: 38000000,  tag: "t1", dive: true, image: "https://i.imgur.com/I9J30Si.gif" },
 { name: "Shiny Torterra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/yp3SFUz.gif" },
 { name: "Shiny Machamp",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/rVgDyg7.gif" },
 { name: "Shiny Typhlosion",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/2BtRLDx.gif" },
@@ -6238,6 +6391,8 @@ const POKEMONS = [
 { name: "Tangrowth",         price: 32000000,  tag: "t1",         image: "https://i.imgur.com/EpEQ1Wx.gif" },
 { name: "Torterra",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/PBn3OXz.gif" },
 { name: "Shiny Dodrio",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/X5uC13u.gif" },
+{ name: "Shiny Kingdra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/ZPszNYT.gif" },
+{ name: "Shiny Kabutops",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/t7vEAaB.gif" },
 ];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
@@ -6256,7 +6411,7 @@ function getCapturaTagHtml(tag) {
   const labels = {
     't1': 'T1', 't2': 'T2', 't3': 'T3', 't4': 'T4', 't5': 'T5', 't6': 'T6',
     'super-raro': 'Super Raro', 'ultra-raro': 'Ultra Raro', 'raro': 'Raro',
-    'legendary': 'Legendary', 'mythical': 'Mítico'
+    'legendary': 'Legendary', 'mythical': 'Mítico', 'dive': '🌊 Dive'
   };
   const label = labels[tag];
   if (!label) return '';
@@ -6270,6 +6425,7 @@ function renderCaptura() {
   const filtered = POKEMONS.filter(p => {
     const matchSearch = !q || p.name.toLowerCase().includes(q);
     const matchTag = tagFilter === 'all' ? true
+      : tagFilter === 'dive' ? !!p.dive
       : tagFilter === 'none' ? !p.tag
       : p.tag === tagFilter;
     return matchSearch && matchTag;
@@ -6281,7 +6437,9 @@ function renderCaptura() {
   }
   grid.innerHTML = filtered.map((poke) => {
     const idx = poke._idx;
-    const priceData = formatKK(poke.price);
+    const diveMultiplier = poke.dive ? 1.10 : 1.0;
+    const effectivePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
+    const priceData = formatKK(effectivePrice);
     const priceHtml = priceData
       ? `<div class="captura-card-price">
            <span class="captura-price-kk">${priceData.label}</span>
@@ -6293,6 +6451,7 @@ function renderCaptura() {
       <div class="captura-card-img-placeholder" style="display:none">🎮</div>
       <div class="captura-card-name">${poke.name}</div>
       ${getCapturaTagHtml(poke.tag)}
+      ${poke.dive ? getCapturaTagHtml('dive') : ''}
       ${priceHtml}
       <button class="captura-catch-btn">⬟ Capturar</button>
     </div>`;
@@ -6303,7 +6462,9 @@ function openCapturaModal(idx) {
   currentCapturaIdx = idx;
   selectedBall = null;
   const poke = POKEMONS[idx];
-  const priceData = formatKK(poke.price);
+  const diveMultiplier = poke.dive ? 1.10 : 1.0;
+  const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
+  const priceData = formatKK(effectiveBasePrice);
   document.getElementById('captura-modal-title').textContent = poke.name;
   const body = document.getElementById('captura-modal-body');
   body.innerHTML = `
@@ -6312,7 +6473,11 @@ function openCapturaModal(idx) {
     </div>
     <div class="captura-modal-info">
       <div class="captura-modal-poke-name">${poke.name}</div>
-      ${poke.tag ? `<div style="margin-top:6px;display:flex;justify-content:center">${getCapturaTagHtml(poke.tag)}</div>` : ''}
+      <div style="margin-top:6px;display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+        ${poke.tag ? getCapturaTagHtml(poke.tag) : ''}
+        ${poke.dive ? getCapturaTagHtml('dive') : ''}
+      </div>
+      ${poke.dive ? `<div style="margin-top:6px;font-family:var(--font-body);font-size:11px;color:#00e5ff;opacity:0.8;letter-spacing:1px;text-align:center">🌊 Pokémon em Dive — +10% aplicado</div>` : ''}
       ${priceData ? `
       <div class="captura-modal-price-block">
         <span class="captura-modal-price-kk">${priceData.label}</span>
@@ -6324,7 +6489,7 @@ function openCapturaModal(idx) {
       <div class="captura-ball-label">Escolha a Poké Ball</div>
       <div class="captura-ball-options">
         ${BALLS.map(ball => {
-          const ballPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
+          const ballPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
           const ballPriceData = formatKK(ballPrice);
           const multLabel = ball.mult === 1.0 ? '' : `<span class="ball-mult">×${ball.mult}</span>`;
           return `
@@ -6371,7 +6536,9 @@ function selectBall(ballId) {
   if (currentCapturaIdx !== null) {
     const poke = POKEMONS[currentCapturaIdx];
     const ball = BALLS.find(b => b.id === ballId);
-    const finalPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
+    const diveMultiplier = poke.dive ? 1.10 : 1.0;
+    const effectiveBase = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
+    const finalPrice = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
     const priceData = formatKK(finalPrice);
     const selBlock = document.getElementById('captura-price-selected');
     const selKk    = document.getElementById('captura-price-sel-kk');
@@ -6388,7 +6555,9 @@ function confirmCaptura() {
   if (!selectedBall || currentCapturaIdx === null) return;
   const poke = POKEMONS[currentCapturaIdx];
   const ball = BALLS.find(b => b.id === selectedBall);
-  const finalPrice = poke.price ? Math.round(poke.price * ball.mult) : 0;
+  const diveMultiplier = poke.dive ? 1.10 : 1.0;
+  const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
+  const finalPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
   const priceData  = formatKK(finalPrice);
   const priceStr   = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
 
