@@ -6394,6 +6394,8 @@ const POKEMONS = [
 { name: "Shiny Kingdra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/ZPszNYT.gif" },
 { name: "Shiny Kabutops",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/t7vEAaB.gif" },
 { name: "Shiny Arcanine",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/BqakQU0.gif" },
+{ name: "Shiny Kangaskhan",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/wgjSoja.gif" },
+{ name: "Shiny Lapras",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/nVzbMx2.gif" },
 ];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
@@ -6438,7 +6440,7 @@ function renderCaptura() {
   }
   grid.innerHTML = filtered.map((poke) => {
     const idx = poke._idx;
-    const diveMultiplier = poke.dive ? 1.10 : 1.0;
+    const diveMultiplier = poke.dive ? 1.30 : 1.0;
     const effectivePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
     const priceData = formatKK(effectivePrice);
     const priceHtml = priceData
@@ -6463,7 +6465,7 @@ function openCapturaModal(idx) {
   currentCapturaIdx = idx;
   selectedBall = null;
   const poke = POKEMONS[idx];
-  const diveMultiplier = poke.dive ? 1.10 : 1.0;
+  const diveMultiplier = poke.dive ? 1.30 : 1.0;
   const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
   const priceData = formatKK(effectiveBasePrice);
   document.getElementById('captura-modal-title').textContent = poke.name;
@@ -6537,7 +6539,7 @@ function selectBall(ballId) {
   if (currentCapturaIdx !== null) {
     const poke = POKEMONS[currentCapturaIdx];
     const ball = BALLS.find(b => b.id === ballId);
-    const diveMultiplier = poke.dive ? 1.10 : 1.0;
+    const diveMultiplier = poke.dive ? 1.30 : 1.0;
     const effectiveBase = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
     const finalPrice = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
     const priceData = formatKK(finalPrice);
@@ -6556,7 +6558,7 @@ function confirmCaptura() {
   if (!selectedBall || currentCapturaIdx === null) return;
   const poke = POKEMONS[currentCapturaIdx];
   const ball = BALLS.find(b => b.id === selectedBall);
-  const diveMultiplier = poke.dive ? 1.10 : 1.0;
+  const diveMultiplier = poke.dive ? 1.30 : 1.0;
   const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
   const finalPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
   const priceData  = formatKK(finalPrice);
