@@ -4059,7 +4059,7 @@ body { cursor: defaut; }
       <option value="raro">Raro</option>
       <option value="legendary">Legendary</option>
       <option value="mythical">Mítico</option>
-      <option value="dive">🌊 Dive</option>
+      <option value="dive">🔵 Dive</option>
       <option value="none">Sem tag</option>
     </select>
     <span class="pkg-count-label" id="captura-count-label">— pokémons</span>
@@ -6398,6 +6398,9 @@ const POKEMONS = [
 { name: "Shiny Lapras",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/nVzbMx2.gif" },
 { name: "Shiny Qwilfish",     price: 3500000,   tag: "t3",         image: "https://i.imgur.com/FYlu9Rd.gif" },
 { name: "Shiny Slowking",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/koy11aG.gif" },
+{ name: "Shiny Skarmory",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/B2l8aVE.gif" },
+{ name: "Shiny Toxicroak",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/BUSWRd6.gif" },
+{ name: "Shiny Misdreavus",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/mgtoi05.gif" },
 ];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
@@ -6416,7 +6419,7 @@ function getCapturaTagHtml(tag) {
   const labels = {
     't1': 'T1', 't2': 'T2', 't3': 'T3', 't4': 'T4', 't5': 'T5', 't6': 'T6',
     'super-raro': 'Super Raro', 'ultra-raro': 'Ultra Raro', 'raro': 'Raro',
-    'legendary': 'Legendary', 'mythical': 'Mítico', 'dive': '🌊 Dive'
+    'legendary': 'Legendary', 'mythical': 'Mítico', 'dive': '<img src="https://i.imgur.com/zpRe43i.png" style="height:14px;vertical-align:middle;margin-right:4px;"> Dive'
   };
   const label = labels[tag];
   if (!label) return '';
@@ -6482,7 +6485,7 @@ function openCapturaModal(idx) {
         ${poke.tag ? getCapturaTagHtml(poke.tag) : ''}
         ${poke.dive ? getCapturaTagHtml('dive') : ''}
       </div>
-      ${poke.dive ? `<div style="margin-top:6px;font-family:var(--font-body);font-size:11px;color:#00e5ff;opacity:0.8;letter-spacing:1px;text-align:center">🌊 Pokémon em Dive — +10% aplicado</div>` : ''}
+      ${poke.dive ? `<div style="margin-top:6px;font-family:var(--font-body);font-size:11px;color:#00e5ff;opacity:0.8;letter-spacing:1px;text-align:center"><img src="https://i.imgur.com/zpRe43i.png" style="height:12px;vertical-align:middle;margin-right:4px;"> Pokémon em Dive — +10% aplicado</div>` : ''}
       ${priceData ? `
       <div class="captura-modal-price-block">
         <span class="captura-modal-price-kk">${priceData.label}</span>
@@ -6635,7 +6638,7 @@ const ENTREGAS = [
 { src: "https://i.imgur.com/5ilqaVR.jpeg",  name: "Itens de Talentos — Saga",        date: "21/04/2026" },
 { src: "https://i.imgur.com/Tu97b05.jpeg",  name: "Itens de Talentos — Jonaspedreiro",        date: "23/04/2026" },
 { src: "https://i.imgur.com/5BbSBo4.png",  name: "Itens de Talentos — K A M I",        date: "26/04/2026" },
-{ src: "https://i.imgur.com/EQopeNt.png",  name: "Itens de Talentos — Bihi",        date: "26/04/2026" },
+{ src: "https://i.imgur.com/EQopeNt.png",  name: "Itens de Talentos / Shiny Heracross — Bihi",        date: "26/04/2026" },
 ];
 // ============================================================
 
