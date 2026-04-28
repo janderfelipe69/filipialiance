@@ -4129,6 +4129,107 @@ span[id^="total-brl-"] {
   box-shadow: none !important;
   padding: 0 !important;
 }
+
+/* ===================== TYPE DROPDOWN ===================== */
+.type-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.type-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+.type-dropdown-btn:hover { border-color: var(--border-hover); }
+.type-dropdown.open .type-dropdown-btn { border-color: var(--blue); background: var(--surface3); }
+
+.type-dropdown-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.type-dropdown-icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.type-dropdown-all-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+  display: block;
+}
+.type-dropdown-arrow {
+  color: var(--muted);
+  transition: transform 0.2s;
+  margin-left: 2px;
+}
+.type-dropdown.open .type-dropdown-arrow { transform: rotate(180deg); }
+
+.type-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: var(--surface2);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(58,140,255,0.08);
+  padding: 6px;
+  min-width: 160px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.type-dropdown.open .type-dropdown-menu { display: flex; }
+
+.type-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  width: 100%;
+}
+.type-dropdown-item:hover { background: var(--surface3); }
+.type-dropdown-item.active { background: rgba(58,140,255,0.12); color: var(--blue-bright); }
+.type-dropdown-item img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.type-dropdown-menu::-webkit-scrollbar { width: 4px; }
+.type-dropdown-menu::-webkit-scrollbar-track { background: transparent; }
+.type-dropdown-menu::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -4347,6 +4448,91 @@ span[id^="total-brl-"] {
       <option value="dive">🔵 Dive</option>
       <option value="none">Sem tag</option>
     </select>
+    <div class="type-dropdown" id="type-dropdown">
+      <button class="type-dropdown-btn" id="type-dropdown-btn" onclick="toggleTypeDropdown(event)" type="button">
+        <span class="type-dropdown-icon" id="type-dropdown-icon"><span class="type-dropdown-all-dot"></span></span>
+        <span class="type-dropdown-label" id="type-dropdown-label">Tipo</span>
+        <svg class="type-dropdown-arrow" width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+      </button>
+      <div class="type-dropdown-menu" id="type-dropdown-menu">
+        <button class="type-dropdown-item active" data-type="all" onclick="selectTypeFilter('all', this)">
+          <span class="type-dropdown-all-dot"></span>
+          <span>Todos</span>
+        </button>
+        <button class="type-dropdown-item" data-type="fire" onclick="selectTypeFilter('fire', this)">
+          <img src="https://i.imgur.com/O8TONGE.png" alt="fire">
+          <span>Fogo</span>
+        </button>
+        <button class="type-dropdown-item" data-type="water" onclick="selectTypeFilter('water', this)">
+          <img src="https://i.imgur.com/zpRe43i.png" alt="water">
+          <span>Água</span>
+        </button>
+        <button class="type-dropdown-item" data-type="electric" onclick="selectTypeFilter('electric', this)">
+          <img src="https://i.imgur.com/Yv2WEYc.png" alt="electric">
+          <span>Elétrico</span>
+        </button>
+        <button class="type-dropdown-item" data-type="grass" onclick="selectTypeFilter('grass', this)">
+          <img src="https://i.imgur.com/YjKxtoE.png" alt="grass">
+          <span>Planta</span>
+        </button>
+        <button class="type-dropdown-item" data-type="ice" onclick="selectTypeFilter('ice', this)">
+          <img src="https://i.imgur.com/ssFz0sA.png" alt="ice">
+          <span>Gelo</span>
+        </button>
+        <button class="type-dropdown-item" data-type="psychic" onclick="selectTypeFilter('psychic', this)">
+          <img src="https://i.imgur.com/ASiZi1K.png" alt="psychic">
+          <span>Psíquico</span>
+        </button>
+        <button class="type-dropdown-item" data-type="ghost" onclick="selectTypeFilter('ghost', this)">
+          <img src="https://i.imgur.com/HuybbPn.png" alt="ghost">
+          <span>Fantasma</span>
+        </button>
+        <button class="type-dropdown-item" data-type="dragon" onclick="selectTypeFilter('dragon', this)">
+          <img src="https://i.imgur.com/o7JWbaN.png" alt="dragon">
+          <span>Dragão</span>
+        </button>
+        <button class="type-dropdown-item" data-type="dark" onclick="selectTypeFilter('dark', this)">
+          <img src="https://i.imgur.com/7Luj4az.png" alt="dark">
+          <span>Sombrio</span>
+        </button>
+        <button class="type-dropdown-item" data-type="fairy" onclick="selectTypeFilter('fairy', this)">
+          <img src="https://i.imgur.com/j3HaXTh.png" alt="fairy">
+          <span>Fada</span>
+        </button>
+        <button class="type-dropdown-item" data-type="poison" onclick="selectTypeFilter('poison', this)">
+          <img src="https://i.imgur.com/xfX0ReE.png" alt="poison">
+          <span>Veneno</span>
+        </button>
+        <button class="type-dropdown-item" data-type="ground" onclick="selectTypeFilter('ground', this)">
+          <img src="https://i.imgur.com/JPcD2l3.png" alt="ground">
+          <span>Terra</span>
+        </button>
+        <button class="type-dropdown-item" data-type="rock" onclick="selectTypeFilter('rock', this)">
+          <img src="https://i.imgur.com/GvD1Mtq.png" alt="rock">
+          <span>Pedra</span>
+        </button>
+        <button class="type-dropdown-item" data-type="bug" onclick="selectTypeFilter('bug', this)">
+          <img src="https://i.imgur.com/V4IXR51.png" alt="bug">
+          <span>Inseto</span>
+        </button>
+        <button class="type-dropdown-item" data-type="flying" onclick="selectTypeFilter('flying', this)">
+          <img src="https://i.imgur.com/npGjQae.png" alt="flying">
+          <span>Voador</span>
+        </button>
+        <button class="type-dropdown-item" data-type="steel" onclick="selectTypeFilter('steel', this)">
+          <img src="https://i.imgur.com/GleRjiM.png" alt="steel">
+          <span>Aço</span>
+        </button>
+        <button class="type-dropdown-item" data-type="normal" onclick="selectTypeFilter('normal', this)">
+          <img src="https://i.imgur.com/w2ChsIe.png" alt="normal">
+          <span>Normal</span>
+        </button>
+        <button class="type-dropdown-item" data-type="fighting" onclick="selectTypeFilter('fighting', this)">
+          <img src="https://i.imgur.com/OKsJXh7.png" alt="fighting">
+          <span>Lutador</span>
+        </button>
+      </div>
+    </div>
     <span class="pkg-count-label" id="captura-count-label">— pokémons</span>
   </div>
   <div class="captura-wrap">
@@ -6720,62 +6906,62 @@ const POKEMONS = [
 { name: "Shiny Ampharos",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/DecvtNB.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
 { name: "Shiny Arbok",       price: 5000000,   tag: "t3",         image: "https://i.imgur.com/Lx8tTwy.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
 { name: "Shiny Ariados",     price: 5000000,   tag: "t3",         image: "https://i.imgur.com/4qVdNjM.gif", bannerImage: "https://i.imgur.com/V4IXR51.png" },
-{ name: "Shiny Bellossom",   price: 5000000,   tag: "t3",         image: "https://i.imgur.com/vo0GY2X.gif" },
+{ name: "Shiny Bellossom",   price: 5000000,   tag: "t3",         image: "https://i.imgur.com/vo0GY2X.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
 { name: "Shiny Blastoise",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/9iQ7wNL.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
 { name: "Shiny Charizard", price: 38000000, tag: "t1", image: "https://i.imgur.com/SrQU5gi.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Crobat",      price: 10000000,   tag: "t2",         image: "https://i.imgur.com/agzGxZH.gif" },
-{ name: "Shiny Donphan",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/9xd9h6l.gif" },
-{ name: "Shiny Dugtrio",     price: 5000000,   tag: "t3",         image: "https://i.imgur.com/F9jJz0e.gif" },
-{ name: "Shiny Dusknoir",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/A0bWaq4.gif" },
-{ name: "Shiny Espeon",      price: 38000000,  tag: "t1",         image: "https://i.imgur.com/Zws7DJo.gif" },
-{ name: "Shiny Exeggutor",   price: 10000000,   tag: "t2",         image: "https://i.imgur.com/OpvTaP1.gif" },
-{ name: "Shiny Farfetch'd",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/Vo6volA.gif" },
-{ name: "Shiny Fearow",      price: 5000000,   tag: "t3",         image: "https://i.imgur.com/wNR2Ija.gif" },
+{ name: "Shiny Crobat",      price: 10000000,   tag: "t2",         image: "https://i.imgur.com/agzGxZH.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
+{ name: "Shiny Donphan",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/9xd9h6l.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
+{ name: "Shiny Dugtrio",     price: 5000000,   tag: "t3",         image: "https://i.imgur.com/F9jJz0e.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
+{ name: "Shiny Dusknoir",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/A0bWaq4.gif", bannerImage: "https://i.imgur.com/HuybbPn.png" },
+{ name: "Shiny Espeon",      price: 38000000,  tag: "t1",         image: "https://i.imgur.com/Zws7DJo.gif", bannerImage: "https://i.imgur.com/ASiZi1K.png" },
+{ name: "Shiny Exeggutor",   price: 10000000,   tag: "t2",         image: "https://i.imgur.com/OpvTaP1.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
+{ name: "Shiny Farfetch'd",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/Vo6volA.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
+{ name: "Shiny Fearow",      price: 5000000,   tag: "t3",         image: "https://i.imgur.com/wNR2Ija.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
 { name: "Shiny Feraligatr",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/DP4YWT1.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
 { name: "Shiny Flareon",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/9UowZtR.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
 { name: "Shiny Florges",     price: 170000000, tag: "super-raro", image: "https://i.imgur.com/fynxTta.gif", bannerImage: "https://i.imgur.com/j3HaXTh.png" },
-{ name: "Shiny Golem",       price: 38000000,  tag: "t1",         image: "https://i.imgur.com/6Wphle1.gif" },
-{ name: "Shiny Grambull",    price: 10000000,   tag: "t2",         image: "https://i.imgur.com/lPlawhM.gif" },
-{ name: "Shiny Hitmonchan",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/5XHDbmn.gif" },
-{ name: "Shiny Hitmonlee",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/uzewWkj.gif" },
-{ name: "Shiny Hitmontop",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/YWsKw3O.gif" },
+{ name: "Shiny Golem",       price: 38000000,  tag: "t1",         image: "https://i.imgur.com/6Wphle1.gif", bannerImage: "https://i.imgur.com/GvD1Mtq.png" },
+{ name: "Shiny Grambull",    price: 10000000,   tag: "t2",         image: "https://i.imgur.com/lPlawhM.gif", bannerImage: "https://i.imgur.com/j3HaXTh.png" },
+{ name: "Shiny Hitmonchan",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/5XHDbmn.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
+{ name: "Shiny Hitmonlee",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/uzewWkj.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
+{ name: "Shiny Hitmontop",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/YWsKw3O.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
 { name: "Shiny Jolteon",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/3Jc5ZUX.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
 { name: "Shiny Jynx",        price: 38000000,  tag: "t1",         image: "https://i.imgur.com/VNGVJBo.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },
 { name: "Shiny Luxray",      price: 170000000, tag: "super-raro", image: "https://i.imgur.com/sWnyJd1.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Magneton",    price: 10000000,   tag: "t2",         image: "https://i.imgur.com/ZcDUckg.gif" },
-{ name: "Shiny Meganium",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/eJvTQJ7.gif" },
+{ name: "Shiny Magneton",    price: 10000000,   tag: "t2",         image: "https://i.imgur.com/ZcDUckg.gif", bannerImage: "https://i.imgur.com/GleRjiM.png" },
+{ name: "Shiny Meganium",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/eJvTQJ7.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
 { name: "Shiny Nidoking",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/xeDriFy.gif" },
 { name: "Shiny Nidoqueen",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/iIMkTqF.gif" },
 { name: "Shiny Ninetales",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/u0sGCqg.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Pidgeot",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/pHY01e0.gif" },
-{ name: "Shiny Politoad",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/yLbIDLz.gif" },
-{ name: "Shiny Poliwrath",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/W6WAMQH.gif" },
-{ name: "Shiny Primeape",    price: 5000000,   tag: "t3",         image: "https://i.imgur.com/14eRtXp.gif" },
+{ name: "Shiny Pidgeot",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/pHY01e0.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
+{ name: "Shiny Politoad",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/yLbIDLz.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
+{ name: "Shiny Poliwrath",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/W6WAMQH.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
+{ name: "Shiny Primeape",    price: 5000000,   tag: "t3",         image: "https://i.imgur.com/14eRtXp.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
 { name: "Shiny Raichu",      price: 38000000,  tag: "t1",         image: "https://i.imgur.com/EbsLav0.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Rhydon",      price: 10000000,   tag: "t2",         image: "https://i.imgur.com/N0xE5Jd.gif" },
-{ name: "Shiny Sandslash",   price: 5000000,   tag: "t3",         image: "https://i.imgur.com/KXpdDgh.gif" },
+{ name: "Shiny Rhydon",      price: 10000000,   tag: "t2",         image: "https://i.imgur.com/N0xE5Jd.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
+{ name: "Shiny Sandslash",   price: 5000000,   tag: "t3",         image: "https://i.imgur.com/KXpdDgh.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
 { name: "Shiny Starmie",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/y0z0Tkt.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Steelix",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zY5AuG0.gif" },
+{ name: "Shiny Steelix",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zY5AuG0.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
 { name: "Shiny Magcargo",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/dGiBfxE.gif" },
 { name: "Shiny Tangela",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/CkrSdpJ.gif" },
 { name: "Shiny Heracross",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/r1hdJz1.gif" },
 { name: "Shiny Onix",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/VO2wrSz.gif" },
-{ name: "Shiny Tangrowth",   price: 170000000, tag: "super-raro", image: "https://i.imgur.com/Ep4wVmN.gif" },
+{ name: "Shiny Tangrowth",   price: 170000000, tag: "super-raro", image: "https://i.imgur.com/Ep4wVmN.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
 { name: "Shiny Tentacruel",  price: 38000000,  tag: "t1", dive: true, image: "https://i.imgur.com/I9J30Si.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Torterra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/yp3SFUz.gif" },
+{ name: "Shiny Torterra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/yp3SFUz.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
 { name: "Shiny Machamp",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/rVgDyg7.gif" },
 { name: "Shiny Typhlosion",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/2BtRLDx.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
 { name: "Shiny Umbreon",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/G5vLr8q.gif" },
 { name: "Shiny Vaporeon",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZiHkl9v.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Venusaur",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/gmZVZIS.gif" },
-{ name: "Shiny Victreebel",  price: 5000000,   tag: "t3",         image: "https://i.imgur.com/Wz5rU8G.gif" },
-{ name: "Shiny Vileplume",   price: 10000000,   tag: "t2",         image: "https://i.imgur.com/62jbqox.gif" },
+{ name: "Shiny Venusaur",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/gmZVZIS.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
+{ name: "Shiny Victreebel",  price: 5000000,   tag: "t3",         image: "https://i.imgur.com/Wz5rU8G.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
+{ name: "Shiny Vileplume",   price: 10000000,   tag: "t2",         image: "https://i.imgur.com/62jbqox.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
 { name: "Shiny Xatu",        price: 10000000,   tag: "t2",         image: "https://i.imgur.com/I3KwmrR.gif" },
 { name: "Dusknoir",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/yIyXLpT.gif" },
 { name: "Luxray",            price: 32000000,  tag: "t1",         image: "https://i.imgur.com/vLUBjp6.gif" },
 { name: "Tangrowth",         price: 32000000,  tag: "t1",         image: "https://i.imgur.com/EpEQ1Wx.gif" },
-{ name: "Torterra",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/PBn3OXz.gif" },
-{ name: "Shiny Dodrio",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/X5uC13u.gif" },
+{ name: "Torterra",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/PBn3OXz.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
+{ name: "Shiny Dodrio",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/X5uC13u.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
 { name: "Shiny Kingdra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/ZPszNYT.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
  <!-- { name: "Shiny Kabutops",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/t7vEAaB.gif" }, -->
 { name: "Shiny Arcanine",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/BqakQU0.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
@@ -6788,8 +6974,8 @@ const POKEMONS = [
 { name: "Shiny Misdreavus",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/mgtoi05.gif" },
 { name: "Shiny Rapidash",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/1dWZFHK.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
 { name: "Shiny Muk",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zWWBobI.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Marowak",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZzOu7hp.gif" },
-{ name: "Shiny Mantine",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/wfiogx3.gif" },
+{ name: "Shiny Marowak",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZzOu7hp.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
+{ name: "Shiny Mantine",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/wfiogx3.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
 ];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
@@ -6826,13 +7012,16 @@ function renderCaptura() {
   const grid = document.getElementById('captura-grid');
   const q = (document.getElementById('captura-search')?.value || '').toLowerCase();
   const tagFilter = (document.getElementById('captura-filter')?.value || 'all');
+  const typeFilter = window._capturaTypeFilter || 'all';
   const filtered = POKEMONS.filter(p => {
     const matchSearch = !q || p.name.toLowerCase().includes(q);
     const matchTag = tagFilter === 'all' ? true
       : tagFilter === 'dive' ? !!p.dive
       : tagFilter === 'none' ? !p.tag
       : p.tag === tagFilter;
-    return matchSearch && matchTag;
+    const pokeType = getTypeFromBanner(p.bannerImage);
+    const matchType = typeFilter === 'all' ? true : pokeType === typeFilter;
+    return matchSearch && matchTag && matchType;
   });
   document.getElementById('captura-count-label').textContent = filtered.length + (filtered.length === 1 ? ' pokémon' : ' pokémons');
   if (!filtered.length) {
@@ -7222,6 +7411,48 @@ function updateStickyOffsets() {
 }
 updateStickyOffsets();
 window.addEventListener('resize', updateStickyOffsets);
+
+// ===================== TYPE DROPDOWN =====================
+window._capturaTypeFilter = 'all';
+
+function toggleTypeDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('type-dropdown');
+  dd.classList.toggle('open');
+}
+
+function selectTypeFilter(type, btn) {
+  window._capturaTypeFilter = type;
+
+  // Update active state on items
+  document.querySelectorAll('.type-dropdown-item').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Update button display
+  const icon = document.getElementById('type-dropdown-icon');
+  const label = document.getElementById('type-dropdown-label');
+  if (type === 'all') {
+    icon.innerHTML = '<span class="type-dropdown-all-dot"></span>';
+    label.textContent = 'Tipo';
+  } else {
+    const img = btn.querySelector('img');
+    const name = btn.querySelector('span:last-child').textContent;
+    icon.innerHTML = `<img src="${img.src}" alt="${type}">`;
+    label.textContent = name;
+  }
+
+  // Close dropdown
+  document.getElementById('type-dropdown').classList.remove('open');
+
+  // Re-render
+  renderCaptura();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('type-dropdown');
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
 </script>
 
 <!-- ===================== WELCOME MODAL ===================== -->
