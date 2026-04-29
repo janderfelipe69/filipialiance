@@ -301,10 +301,6 @@ body {
   will-change: auto;
 }
 
-@keyframes twinkle {
-  0% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .bg-canvas::before, .bg-canvas::after, .stars { animation: none; }
@@ -367,10 +363,6 @@ header::after {
   animation: none;
 }
 
-@keyframes emblemFloat {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
 
 /* SELLER INFO */
 .seller-info {
@@ -516,9 +508,6 @@ header::after {
   min-width: 24px;
   text-align: center;
 }
-
-/* ===================== FLOATING CART BUTTON ===================== */
-/* botão flutuante removido — carrinho fixo no header */
 
 /* ===================== CONTROLS ===================== */
 .controls {
@@ -2896,7 +2885,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 }
 
 /* ===================== CURSOR CUSTOM ===================== */
-body { cursor: defaut; }
+/* cursor padrão já definido no body principal */
 
 /* ===================== RIPPLE CLICK ===================== */
 .click-ripple {
@@ -2940,7 +2929,7 @@ body { cursor: defaut; }
 
 /* ===================== BUTTON PRESS EFFECT ===================== */
 .add-btn, .cart-trigger, .whats-btn, .pkg-add-btn, .pay-mode-btn {
-  transition: transform 0.1s, box-shadow 0.1s, all 0.2s;
+  transition: all 0.2s;
 }
 .add-btn:active, .cart-trigger:active, .whats-btn:active, .pkg-add-btn:active, .pay-mode-btn:active {
   transform: scale(0.94) !important;
@@ -3303,10 +3292,6 @@ body { cursor: defaut; }
   animation: none;
 }
 
-@keyframes captureGlow {
-  0%,100% { transform: scale(1); opacity: 0.7; }
-  50% { transform: scale(1.15); opacity: 1; }
-}
 
 .captura-modal-pokemon-img {
   width: 140px;
@@ -3320,10 +3305,6 @@ body { cursor: defaut; }
   animation: none;
 }
 
-@keyframes pokemonFloat {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
 
 .captura-modal-info {
   text-align: center;
@@ -5106,15 +5087,15 @@ const RAW = [
   ["thunder tiger emblem","",600000,"mark",""],
   ["two-colored tail","Shiny Pidgeotto",600000,"t4","evo2"],
   ["volcano lion star","",600000,"mark",""],
-  ["big green piece","",4500000,"t3","evo2"],
-  ["cyan feather","Shiny Sneasel",4500000,"t3","evo1"],
-  ["dark beak","Shiny Murkrow",4500000,"t3","evo1"],
-  ["gold tail","Shiny Onix",4500000,"t3","evo1"],
-  ["metal bracelet","",4500000,"t3","evo2"],
-  ["pink dainty wing","Shiny Togetic",4500000,"t3","evo2"],
-  ["poisoned fish tail","Shiny Qwilfish",4500000,"t3","evo1"],
-  ["purple egg","Shiny Chansey",4500000,"t3","evo2"],
-  ["rainbow gift tail","Shiny Delibird",4500000,"t3","evo1"],
+  ["big green piece","",10000000,"t3","evo2"],
+  ["cyan feather","Shiny Sneasel",10000000,"t3","evo1"],
+  ["dark beak","Shiny Murkrow",10000000,"t3","evo1"],
+  ["gold tail","Shiny Onix",10000000,"t3","evo1"],
+  ["metal bracelet","",10000000,"t3","evo2"],
+  ["pink dainty wing","Shiny Togetic",10000000,"t3","evo2"],
+  ["poisoned fish tail","Shiny Qwilfish",10000000,"t3","evo1"],
+  ["purple egg","Shiny Chansey",10000000,"t3","evo2"],
+  ["rainbow gift tail","Shiny Delibird",10000000,"t3","evo1"],
   ["mythic bug orb","",4000000,"hard","evo3"],
   ["mythic dark orb","",4000000,"hard","evo3"],
   ["mythic electric orb","",4000000,"hard","evo3"],
@@ -5130,15 +5111,15 @@ const RAW = [
   ["mythic psychic orb","",4000000,"hard","evo3"],
   ["mythic rock orb","",4000000,"hard","evo3"],
   ["mythic water orb","",4000000,"hard","evo3"],
-  ["big cute ear","",4500000,"t2","evo3"],
-  ["blue coconut leaves","",4500000,"t2","evo2"],
-  ["blue wings","",4500000,"t2","evo3"],
-  ["golden drill","",4500000,"t2","evo2"],
-  ["malfunctioning core","",4500000,"t2","evo2"],
-  ["pink bug horn","Shiny Heracross",4500000,"t2","evo1"],
-  ["psychic wings","Shiny Xatu",4500000,"t2","evo2"],
-  ["shiny bat wing","",4500000,"t2","evo3"],
-  ["strong magnet","Shiny Magneton",4500000,"t2","evo2"],
+  ["big cute ear","",10000000,"t2","evo3"],
+  ["blue coconut leaves","",10000000,"t2","evo2"],
+  ["blue wings","",10000000,"t2","evo3"],
+  ["golden drill","",10000000,"t2","evo2"],
+  ["malfunctioning core","",10000000,"t2","evo2"],
+  ["pink bug horn","Shiny Heracross",10000000,"t2","evo1"],
+  ["psychic wings","Shiny Xatu",10000000,"t2","evo2"],
+  ["shiny bat wing","",10000000,"t2","evo3"],
+  ["strong magnet","Shiny Magneton",10000000,"t2","evo2"],
   ["mythic dragon orb","",9000000,"hard","evo3"],
   ["mythic fairy orb","",9000000,"hard","evo3"],
   ["mythic metal orb","",9000000,"hard","evo3"],
@@ -5506,9 +5487,6 @@ function getTag(item) {
   return 'normal';
 }
 
-function tagLabel(t) {
-  return { shiny:'Shiny', orb:'Orb', essence:'Essência', normal:'Normal' }[t];
-}
 
 const TIER_CONFIG = {
   t1:   { label: 'T1',   cls: 'tier-t1' },
