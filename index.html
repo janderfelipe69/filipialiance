@@ -742,6 +742,132 @@ select:focus { border-color: var(--blue); }
   background-clip: text;
 }
 
+/* ===================== WIKI LOOKUP BUTTON ===================== */
+.wiki-lookup-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(56,140,255,0.35);
+  background: rgba(58,140,255,0.08);
+  color: var(--blue-bright);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+.wiki-lookup-btn svg { width: 10px; height: 10px; }
+.wiki-lookup-btn:hover {
+  background: rgba(58,140,255,0.22);
+  border-color: var(--blue);
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(58,140,255,0.4);
+}
+
+/* ===================== WIKI POPUP ===================== */
+#wiki-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(4,6,14,0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#wiki-popup-overlay.open { display: flex; }
+
+#wiki-popup {
+  background: linear-gradient(145deg, #0d1628 0%, #080f1e 100%);
+  border: 1px solid rgba(56,140,255,0.35);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 0 60px rgba(58,140,255,0.2), 0 20px 60px rgba(0,0,0,0.6);
+  position: relative;
+  animation: wikiPopupIn 0.22s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes wikiPopupIn {
+  from { transform: scale(0.93) translateY(16px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+#wiki-popup-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(56,140,255,0.25);
+  background: rgba(58,140,255,0.08);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+#wiki-popup-close:hover { background: rgba(255,80,80,0.15); border-color: rgba(255,80,80,0.4); color: #ff6b6b; }
+#wiki-popup-title {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: capitalize;
+  color: var(--blue-bright);
+  margin-bottom: 4px;
+}
+#wiki-popup-sub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+#wiki-popup-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.wiki-popup-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: rgba(58,140,255,0.05);
+  border: 1px solid rgba(56,140,255,0.15);
+  border-radius: 10px;
+  padding: 10px 10px 8px;
+  min-width: 80px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.wiki-popup-card:hover { border-color: rgba(56,140,255,0.35); background: rgba(58,140,255,0.1); }
+.wiki-popup-card img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; }
+.wiki-popup-card-name {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  text-transform: capitalize;
+  opacity: 0.85;
+}
+#wiki-popup-empty {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 0;
+}
+
 /* ===================== PRICE BLOCK ===================== */
 .price-block {
   display: flex;
@@ -5485,7 +5611,7 @@ const RAW_WIKI = [
   ["chicory"],
   ["cyndaquil nose"],
   ["flower stem"],
-  ["frog tail"],
+  ["frog tail", "Poliwag"],
   ["leaf"],
   ["leaves"],
   ["magikarp fin"],
@@ -5851,7 +5977,7 @@ const RAW_WIKI = [
   ["simple poison orb"],
   ["simple psychic orb"],
   ["simple rock orb"],
-  ["simple water orb"],
+  ["simple water orb", "Shiny Goldeen", "Shiny Horsea", "Shiny Krabby", "Shiny Magikarp", "Shiny Poliwag", "Shiny Psyduck", "Shiny Remoraid", "Shiny Staryu", "shiny Squirtle", "Shiny Tentacool", "Shiny Totodile", "Shiny Seel", "Shiny Shellder"],
 
   // --- T4/T5 EVO2 ---
   ["aurora crown"],
@@ -6484,7 +6610,7 @@ function render() {
     return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}${animClass}"${dataType}>
       ${getBannerHtml(item)}
       ${imgHtml}
-      <div class="item-name">${item.name}</div>
+      <div class="item-name">${item.name}<button class="wiki-lookup-btn" onclick="openWikiLookup('${item.name.replace(/'/g,"\\'")}', event)" title="Ver drops na Wiki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></div>
       ${getTierHtml(item.tier)}
       ${getEvoHtml(item.evo)}
       ${src}
@@ -7391,7 +7517,7 @@ function renderPkgDetail(pi) {
     const priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
     return `<div class="pkg-detail-row${disabled ? ' row-disabled' : ''}" onclick="togglePkgItem(${pi}, ${si}, '${name.replace(/'/g,"\'")}')">
       <div class="pkg-detail-row-icon">${disabled ? '○' : '◆'}</div>
-      <span class="pkg-detail-row-name">${name}</span>
+      <span class="pkg-detail-row-name">${name}<button class="wiki-lookup-btn" onclick="openWikiLookup('${name.replace(/'/g,"\\'")}', event)" title="Ver drops na Wiki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></span>
       <div class="pkg-detail-row-right">
         <span class="pkg-detail-row-price">${disabled ? '<span class="row-disabled-label">removido</span>' : (priceData ? priceData.label : '—')}</span>
         <span class="pkg-detail-row-qty">×${qty.toLocaleString()}</span>
@@ -8825,6 +8951,60 @@ document.addEventListener('click', function(e) {
 
 })();
 
+// ===================== WIKI LOOKUP POPUP =====================
+function openWikiLookup(itemName, e) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
+  var overlay = document.getElementById('wiki-popup-overlay');
+  var title = document.getElementById('wiki-popup-title');
+  var sub = document.getElementById('wiki-popup-sub');
+  var grid = document.getElementById('wiki-popup-grid');
+  var empty = document.getElementById('wiki-popup-empty');
+
+  title.textContent = itemName;
+
+  // Busca na RAW_WIKI
+  var entry = RAW_WIKI.find(function(e) {
+    return e[0].toLowerCase() === itemName.toLowerCase();
+  });
+  var sources = entry ? entry.slice(1).filter(function(s) { return s && s.trim(); }) : [];
+
+  if (!sources.length) {
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    sub.textContent = 'Nenhum drop registrado';
+    empty.style.display = 'block';
+    empty.textContent = 'Nenhum Pokémon registrado para este item.';
+  } else {
+    sub.textContent = sources.length + ' Pokémon' + (sources.length > 1 ? ' dropam' : ' dropa') + ' este item';
+    empty.style.display = 'none';
+    grid.style.display = 'flex';
+    grid.innerHTML = sources.map(function(pokeName) {
+      var sprite = getShowdownSprite(pokeName);
+      var fallback = 'https://play.pokemonshowdown.com/sprites/gen5/' + toShowdownName(pokeName) + '.png';
+      return '<div class="wiki-popup-card">' +
+        '<img src="' + sprite + '" alt="' + pokeName + '" onerror="this.src=\'' + fallback + '\'" />' +
+        '<div class="wiki-popup-card-name">' + pokeName + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  overlay.classList.add('open');
+}
+
+function closeWikiPopup() {
+  document.getElementById('wiki-popup-overlay').classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var overlay = document.getElementById('wiki-popup-overlay');
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeWikiPopup();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeWikiPopup();
+  });
+});
+
 // ===================== WELCOME → TUTORIAL PROMPT =====================
 function closeWelcomeAndAskTutorial() {
   document.getElementById('welcome-overlay').style.display = 'none';
@@ -8839,6 +9019,17 @@ function closeWelcomeAndAskTutorial() {
   }
 }
 </script>
+
+<!-- WIKI LOOKUP POPUP -->
+<div id="wiki-popup-overlay">
+  <div id="wiki-popup">
+    <button id="wiki-popup-close" onclick="closeWikiPopup()">✕</button>
+    <div id="wiki-popup-title"></div>
+    <div id="wiki-popup-sub"></div>
+    <div id="wiki-popup-grid"></div>
+    <div id="wiki-popup-empty" style="display:none"></div>
+  </div>
+</div>
 
 </body>
 </html>
