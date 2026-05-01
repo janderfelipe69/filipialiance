@@ -8704,6 +8704,9 @@ document.addEventListener('click', function(e) {
       tab: 'itens',
       title: '🔎 Busca e Filtros',
       text: 'De volta na aba <strong>Itens</strong>: use a <strong>barra de busca</strong> para achar um item pelo nome e o <strong>filtro de categoria</strong> (T1, T2, Hard, Shiny…) para refinar os resultados.',
+      onEnter: function() {
+        if (typeof closeCapturaModal === 'function') closeCapturaModal();
+      }
     },
 
     // ── 10 ── Aba Captura
@@ -8713,10 +8716,6 @@ document.addEventListener('click', function(e) {
       tab: 'captura',
       title: '🎯 Aba de Captura',
       text: 'Aqui ficam os <strong>Pokémons disponíveis para captura</strong>. Clique em qualquer card para ver os detalhes e escolher a ball!',
-      onEnter: function() {
-        var firstCaptura = document.querySelector('.captura-card');
-        if (firstCaptura) firstCaptura.click();
-      }
     },
 
     // ── 11 ── Seleção de Ball
@@ -8739,6 +8738,9 @@ document.addEventListener('click', function(e) {
       tab: 'entregas',
       title: '📸 Aba de Entregas',
       text: 'Nessa aba ficam as <strong>fotos dos pedidos já entregues</strong>. É a prova de que os serviços foram realizados com sucesso — transparência total!',
+      onEnter: function() {
+        if (typeof closeCapturaModal === 'function') closeCapturaModal();
+      }
     },
 
     // ── 13 ── Aba Wiki
@@ -8748,6 +8750,9 @@ document.addEventListener('click', function(e) {
       tab: 'wiki',
       title: '📖 Aba Wiki',
       text: 'A <strong>Wiki</strong> é sua enciclopédia da loja! Aqui você encontra todos os itens listados e <strong>quais Pokémons os dropam</strong> — ótimo para planejar sua compra.',
+      onEnter: function() {
+        if (typeof closeCapturaModal === 'function') closeCapturaModal();
+      }
     },
 
     // ── 14 ── Fim
@@ -8890,7 +8895,11 @@ document.addEventListener('click', function(e) {
 
     // Callback de entrada do passo (ex: abrir pacote, selecionar pokémon)
     if (typeof step.onEnter === 'function') {
-      setTimeout(function() { step.onEnter(); }, 80);
+      setTimeout(function() {
+        step.onEnter();
+        // Re-posiciona após o onEnter renderizar o conteúdo (aguarda animações)
+        setTimeout(function() { positionStep(step); }, 300);
+      }, 80);
     }
 
     positionStep(step);
