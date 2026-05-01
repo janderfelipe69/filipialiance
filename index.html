@@ -7993,6 +7993,7 @@ const POKEMONS = [
 { name: "Shiny Muk",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zWWBobI.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
 { name: "Shiny Marowak",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZzOu7hp.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
 { name: "Shiny Mantine",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/wfiogx3.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
+{ name: "Shiny Delibird",     price: 10000000,   tag: "t3",         image: "https://i.imgur.com/HC4VMvm.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },
 ];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
@@ -8576,7 +8577,7 @@ document.addEventListener('click', function(e) {
       " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
         ✓ Sim, quero!
       </button>
-      <button onclick="document.getElementById('tutorial-ask-overlay').style.display='none'; try{localStorage.setItem('tut_skipped','1')}catch(e){}" style="
+      <button onclick="document.getElementById('tutorial-ask-overlay').style.display='none'; try{localStorage.setItem('tut_seen','1')}catch(e){}" style="
         flex:1;max-width:160px;
         padding:13px 20px;
         background:rgba(255,255,255,0.05);
@@ -8606,67 +8607,155 @@ document.addEventListener('click', function(e) {
   'use strict';
 
   var STEPS = [
+    // ── 0 ── Boas vindas
     {
       target: null,
       position: 'center',
       title: '👋 Bem-vindo ao Tutorial!',
-      text: 'Este guia rápido vai te mostrar como usar a loja do Filipi. São apenas <strong>10 passos</strong> — vamos lá!',
+      text: 'Vou te mostrar tudo que a loja tem a oferecer em <strong>poucos passos</strong>. Começamos pela aba de <strong>Itens</strong> — vamos lá!',
     },
+
+    // ── 1 ── Preço em KK
     {
-      target: 'header',
-      position: 'bottom',
-      title: '🏠 Cabeçalho da Loja',
-      text: 'Aqui ficam o nome do vendedor, o servidor (<strong>MOON</strong>) e o botão do <strong>Carrinho</strong>. O número ao lado mostra quantos itens você adicionou.',
-    },
-    {
-      target: '.tabs-nav',
-      position: 'bottom',
-      title: '📂 Abas de Navegação',
-      text: 'A loja tem <strong>4 seções</strong>:<br><br>• <strong>Itens</strong> — loot e equipamentos<br>• <strong>Pacotes</strong> — combos prontos<br>• <strong>Captura</strong> — Pokémons disponíveis<br>• <strong>Entregas</strong> — fotos de pedidos concluídos',
-    },
-    {
-      target: '.tabs-nav',
-      position: 'bottom',
-      tab: 'pacotes',
-      title: '📦 Aba de Pacotes',
-      text: 'Na aba <strong>Pacotes</strong> você encontra combos prontos de itens. Escolha uma categoria no topo e selecione um pacote na lista da esquerda para ver o conteúdo.',
-    },
-    {
-      target: '.pkg-detail',
-      position: 'left',
-      tab: 'pacotes',
-      title: '\u274c Removendo Itens do Pacote',
-      text: 'Dentro de cada pacote, clique no <strong>\u274c vermelho</strong> ao lado de qualquer item para retirá-lo do pedido.<br><br>O preço total é <strong>atualizado na hora</strong> — ideal pra quando você já tem algum item e quer comprar só o que falta!',
-    },
-    {
-      target: '.controls',
-      position: 'bottom',
-      title: '🔍 Busca e Filtros',
-      text: 'Use a <strong>barra de busca</strong> para encontrar um item pelo nome. O <strong>filtro de categoria</strong> (T1, T2, Hard, Shiny…) ajuda a filtrar os resultados.',
-    },
-    {
-      target: '#grid .card:first-child',
+      target: '#grid .card:first-child .price-kk',
       position: 'right',
-      title: '🃏 Cards de Itens',
-      text: 'Cada card mostra o nome, tag de raridade e preço do item.',
+      tab: 'itens',
+      title: '💰 Preço em KK',
+      text: 'Esse é o <strong>preço em KK</strong> (moeda do jogo). Todos os itens têm o valor exibido aqui de forma clara, em destaque.',
     },
+
+    // ── 2 ── Preço em Real
+    {
+      target: '#grid .card:first-child .price-brl',
+      position: 'right',
+      tab: 'itens',
+      title: '🇧🇷 Preço em Real',
+      text: 'Logo ao lado do KK, você vê a <strong>conversão em reais (R$)</strong> — assim fica fácil saber exatamente quanto vai pagar.',
+    },
+
+    // ── 3 ── Botão Adicionar
     {
       target: '#grid .card:first-child .add-btn',
       position: 'top',
-      title: '➕ Adicionando ao Carrinho',
-      text: 'Clique em <strong>"+ Adicionar"</strong> para colocar o item no carrinho. Você também pode ajustar a <strong>quantidade</strong> antes de adicionar!',
+      tab: 'itens',
+      title: '➕ Adicionar ao Carrinho',
+      text: 'Clique em <strong>Adicionar</strong> para colocar o item no carrinho. Você pode ajustar a <strong>quantidade</strong> no campo acima do botão antes de adicionar!',
     },
+
+    // ── 4 ── Botão Remover
     {
-      target: '.cart-trigger',
-      position: 'bottom',
-      title: '🛒 Carrinho',
-      text: 'Clique aqui para abrir o carrinho. Lá você define seu <strong>nick no jogo</strong>, escolhe o pagamento (<strong>KK</strong>, <strong>PIX</strong> ou <strong>Misto</strong>) e envia o pedido pelo <strong>WhatsApp</strong> ou <strong>Discord</strong>.',
+      target: '#grid .card:first-child .card-footer-added',
+      position: 'top',
+      tab: 'itens',
+      title: '✕ Remover do Carrinho',
+      text: 'Depois de adicionar, o botão <strong>✕</strong> aparece ao lado. Clique nele para <strong>remover</strong> o item do carrinho na hora — sem precisar abrir o carrinho.',
     },
+
+    // ── 5 ── Lupa / Wiki Lookup
+    {
+      target: '#grid .card:first-child .wiki-lookup-btn',
+      position: 'right',
+      tab: 'itens',
+      title: '🔍 De qual Pokémon dropa?',
+      text: 'Viu essa <strong>lupinha</strong> ao lado do nome? Clique nela para ver exatamente <strong>quais Pokémons dropam esse item</strong> — com sprites e tudo!',
+    },
+
+    // ── 6 ── Aba Pacotes (intro)
+    {
+      target: '.tab-btn[onclick*="pacotes"]',
+      position: 'bottom',
+      tab: 'pacotes',
+      title: '📦 Aba de Pacotes',
+      text: 'Agora vamos para a aba de <strong>Pacotes</strong>! Aqui você encontra combos prontos de itens, com preço fechado e desconto especial.',
+      onEnter: function() {
+        // Abre o Talent Water 7/8 como exemplo
+        if (typeof selectPkg === 'function') selectPkg(2);
+      }
+    },
+
+    // ── 7 ── Remover item do pacote
+    {
+      target: '.pkg-detail-body',
+      position: 'left',
+      tab: 'pacotes',
+      title: '✕ Já tem algum item?',
+      text: 'Se você <strong>já possui</strong> algum item do pacote, clique no <strong>✕ vermelho</strong> ao lado dele para removê-lo. O preço total é <strong>descontado automaticamente</strong> — você paga só o que realmente precisa!',
+      onEnter: function() {
+        if (typeof selectPkg === 'function') selectPkg(2);
+      }
+    },
+
+    // ── 8 ── Lupa no pacote
+    {
+      target: '.pkg-detail-body .wiki-lookup-btn',
+      position: 'left',
+      tab: 'pacotes',
+      title: '🔍 Lupa também nos Pacotes',
+      text: 'A <strong>lupa</strong> também aparece nos itens do pacote! Clique para ver de quais Pokémons cada item é dropado.',
+      onEnter: function() {
+        if (typeof selectPkg === 'function') selectPkg(2);
+      }
+    },
+
+    // ── 9 ── Filtro / busca
+    {
+      target: '.controls',
+      position: 'bottom',
+      tab: 'itens',
+      title: '🔎 Busca e Filtros',
+      text: 'De volta na aba <strong>Itens</strong>: use a <strong>barra de busca</strong> para achar um item pelo nome e o <strong>filtro de categoria</strong> (T1, T2, Hard, Shiny…) para refinar os resultados.',
+    },
+
+    // ── 10 ── Aba Captura
+    {
+      target: '.tab-btn[onclick*="captura"]',
+      position: 'bottom',
+      tab: 'captura',
+      title: '🎯 Aba de Captura',
+      text: 'Aqui ficam os <strong>Pokémons disponíveis para captura</strong>. Clique em qualquer card para ver os detalhes e escolher a ball!',
+      onEnter: function() {
+        var firstCaptura = document.querySelector('.captura-card');
+        if (firstCaptura) firstCaptura.click();
+      }
+    },
+
+    // ── 11 ── Seleção de Ball
+    {
+      target: '.captura-ball-options',
+      position: 'top',
+      tab: 'captura',
+      title: '⚪ Escolha a Ball',
+      text: 'Após selecionar um Pokémon, escolha a <strong>Poké Ball</strong> desejada — <strong>Ultra Ball</strong>, <strong>Premier Ball</strong> ou <strong>Alliance Ball</strong>. Cada uma tem um valor diferente!',
+      onEnter: function() {
+        var firstCaptura = document.querySelector('.captura-card');
+        if (firstCaptura) firstCaptura.click();
+      }
+    },
+
+    // ── 12 ── Aba Entregas
+    {
+      target: '.tab-btn[onclick*="entregas"]',
+      position: 'bottom',
+      tab: 'entregas',
+      title: '📸 Aba de Entregas',
+      text: 'Nessa aba ficam as <strong>fotos dos pedidos já entregues</strong>. É a prova de que os serviços foram realizados com sucesso — transparência total!',
+    },
+
+    // ── 13 ── Aba Wiki
+    {
+      target: '.tab-btn--wiki',
+      position: 'bottom',
+      tab: 'wiki',
+      title: '📖 Aba Wiki',
+      text: 'A <strong>Wiki</strong> é sua enciclopédia da loja! Aqui você encontra todos os itens listados e <strong>quais Pokémons os dropam</strong> — ótimo para planejar sua compra.',
+    },
+
+    // ── 14 ── Fim
     {
       target: null,
       position: 'center',
       title: '✅ Tutorial Concluído!',
-      text: 'Agora você já sabe usar a loja! Qualquer dúvida, fale com o Filipi. Boas compras! 🎮',
+      text: 'Agora você domina a loja do Filipi! 🎮<br><br>Qualquer dúvida, chame o Filipi. <strong>Boas compras!</strong>',
     },
   ];
 
@@ -8747,7 +8836,7 @@ document.addEventListener('click', function(e) {
     document.getElementById('tut-prev').onclick = function(e) { e.stopPropagation(); doPrev(); };
     document.getElementById('tut-skip').onclick = function(e) {
       e.stopPropagation();
-      try { localStorage.setItem('tut_skipped', '1'); } catch(ex) {}
+      try { localStorage.setItem('tut_seen', '1'); } catch(ex) {}
       closeTutorial();
     };
     document.getElementById('tut-fab').onclick  = function(e) { e.stopPropagation(); startTutorial(); };
@@ -8797,6 +8886,11 @@ document.addEventListener('click', function(e) {
       if (itensBtn && !itensBtn.classList.contains('active')) {
         switchTab('itens', itensBtn);
       }
+    }
+
+    // Callback de entrada do passo (ex: abrir pacote, selecionar pokémon)
+    if (typeof step.onEnter === 'function') {
+      setTimeout(function() { step.onEnter(); }, 80);
     }
 
     positionStep(step);
@@ -8921,6 +9015,7 @@ document.addEventListener('click', function(e) {
     document.getElementById('tut-spotlight-ring').style.opacity = '0';
     var hr = document.getElementById('tut-hole-rect'); if (hr) { hr.setAttribute('width','0'); hr.setAttribute('height','0'); }
     document.getElementById('tut-fab').classList.remove('hidden');
+    try { localStorage.setItem('tut_seen', '1'); } catch(ex) {}
     if (completed === true) showToast();
   }
 
@@ -9008,10 +9103,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===================== WELCOME → TUTORIAL PROMPT =====================
 function closeWelcomeAndAskTutorial() {
   document.getElementById('welcome-overlay').style.display = 'none';
-  // Se já pulou antes, não pergunta de novo
-  var skipped = false;
-  try { skipped = !!localStorage.getItem('tut_skipped'); } catch(e) {}
-  if (skipped) return;
+  // Se já viu antes (pulou ou concluiu), não pergunta de novo
+  var seen = false;
+  try { seen = !!localStorage.getItem('tut_seen'); } catch(e) {}
+  if (seen) return;
   // Mostra o modal de confirmação do tutorial
   var askOverlay = document.getElementById('tutorial-ask-overlay');
   if (askOverlay) {
