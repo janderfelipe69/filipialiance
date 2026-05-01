@@ -4609,6 +4609,343 @@ span[id^="total-brl-"] {
   .wiki-banner-title { letter-spacing: 10px; }
   .wiki-row-panel { padding-left: 16px; }
 }
+
+/* ===================== WIKI SUB-TABS ===================== */
+.wiki-subtabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 32px 0;
+  background: transparent;
+  position: relative;
+  z-index: 2;
+}
+
+.wiki-subtab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 28px;
+  background: rgba(13,22,40,0.6);
+  border: 1px solid rgba(240,180,41,0.2);
+  border-radius: 40px;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(240,180,41,0.55);
+  cursor: pointer;
+  transition: all 0.22s;
+  position: relative;
+  overflow: hidden;
+}
+
+.wiki-subtab-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(240,180,41,0.06), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s;
+}
+
+.wiki-subtab-btn:hover {
+  color: var(--gold);
+  border-color: rgba(240,180,41,0.45);
+  background: rgba(240,180,41,0.07);
+}
+
+.wiki-subtab-btn:hover::before { transform: translateX(100%); }
+
+.wiki-subtab-btn.active {
+  color: var(--gold-bright);
+  background: rgba(240,180,41,0.12);
+  border-color: rgba(240,180,41,0.55);
+  box-shadow: 0 0 18px rgba(240,180,41,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.wiki-subtab-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ===================== WIKI RESPAWN TAB ===================== */
+.wiki-respawn-wrap {
+  padding: 16px 32px 100px;
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  display: none;
+}
+.wiki-respawn-wrap.active { display: block; }
+
+.respawn-row {
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.respawn-row:first-child { border-top: 1px solid var(--border); }
+
+.respawn-row-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+.respawn-row-header:hover { background: rgba(240,180,41,0.05); }
+.respawn-row.open .respawn-row-header { background: rgba(240,180,41,0.07); }
+
+.respawn-row-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.respawn-row-sprite {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.respawn-row-name {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+  flex: 1;
+  min-width: 0;
+}
+.respawn-row.open .respawn-row-name { color: var(--gold-bright); }
+
+.respawn-row-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.25s;
+}
+.respawn-row.open .respawn-row-chevron {
+  transform: rotate(180deg);
+  color: var(--gold);
+}
+
+.respawn-row-panel {
+  display: none;
+  padding: 16px 16px 20px 58px;
+  gap: 16px;
+  flex-direction: column;
+}
+.respawn-row.open .respawn-row-panel { display: flex; }
+
+.respawn-panel-inner {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.respawn-sprite-big {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid rgba(240,180,41,0.2);
+  border-radius: 12px;
+  background: rgba(13,22,40,0.7);
+  padding: 8px;
+  flex-shrink: 0;
+}
+
+.respawn-map-img {
+  flex: 1;
+  min-width: 200px;
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(240,180,41,0.25);
+  object-fit: cover;
+  max-height: 240px;
+}
+
+.respawn-map-placeholder {
+  flex: 1;
+  min-width: 200px;
+  min-height: 160px;
+  border-radius: 12px;
+  border: 1px dashed rgba(240,180,41,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: rgba(13,22,40,0.4);
+}
+
+.respawn-map-placeholder .placeholder-icon { font-size: 28px; opacity: 0.4; }
+
+.respawn-location-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(240,180,41,0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 1px;
+  align-self: flex-start;
+}
+
+/* ===================== WIKI QUESTS TAB ===================== */
+.wiki-quests-wrap {
+  padding: 16px 32px 100px;
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  display: none;
+}
+.wiki-quests-wrap.active { display: block; }
+
+.quest-row {
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.quest-row:first-child { border-top: 1px solid var(--border); }
+
+.quest-row-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+.quest-row-header:hover { background: rgba(58,140,255,0.05); }
+.quest-row.open .quest-row-header { background: rgba(58,140,255,0.07); }
+
+.quest-row-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.quest-row-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.quest-row-name {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+.quest-row.open .quest-row-name { color: var(--blue-bright); }
+
+.quest-row-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.25s;
+}
+.quest-row.open .quest-row-chevron {
+  transform: rotate(180deg);
+  color: var(--blue-bright);
+}
+
+.quest-row-panel {
+  display: none;
+  padding: 16px 16px 20px 58px;
+  flex-direction: column;
+  gap: 14px;
+}
+.quest-row.open .quest-row-panel { display: flex; }
+
+.quest-description {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  opacity: 0.85;
+  line-height: 1.6;
+  max-width: 680px;
+}
+
+.quest-image {
+  width: 100%;
+  max-width: 580px;
+  border-radius: 12px;
+  border: 1px solid rgba(58,140,255,0.25);
+  object-fit: cover;
+}
+
+.quest-image-placeholder {
+  width: 100%;
+  max-width: 580px;
+  min-height: 160px;
+  border-radius: 12px;
+  border: 1px dashed rgba(58,140,255,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: rgba(8,15,30,0.5);
+}
+.quest-image-placeholder .placeholder-icon { font-size: 28px; opacity: 0.4; }
+
+.wiki-empty-state {
+  text-align: center;
+  padding: 70px 20px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.wiki-empty-state .empty-icon { font-size: 40px; opacity: 0.35; }
+.wiki-empty-state .empty-label { font-size: 14px; letter-spacing: 1px; }
+
+@media (max-width: 600px) {
+  .wiki-subtabs { padding: 14px 16px 0; gap: 4px; }
+  .wiki-subtab-btn { padding: 8px 16px; font-size: 10px; letter-spacing: 1px; }
+  .wiki-respawn-wrap, .wiki-quests-wrap { padding: 10px 12px 80px; }
+  .respawn-panel-inner { flex-direction: column; }
+  .respawn-sprite-big { align-self: center; }
+}
 </style>
 </head>
 <body>
@@ -4977,20 +5314,71 @@ span[id^="total-brl-"] {
       <div class="wiki-banner-line"></div>
     </div>
   </div>
-  <!-- Controls -->
-  <div class="wiki-controls">
-    <div class="wiki-search-wrap">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
-        <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      <input type="text" id="wiki-search" placeholder="Buscar item ou Pokémon..." oninput="clearTimeout(_wikiSearchTimer); _wikiSearchTimer = setTimeout(renderWiki, 150)" />
-    </div>
-    <span class="wiki-count-label" id="wiki-count-label">— itens</span>
+
+  <!-- Sub-abas da Wiki -->
+  <div class="wiki-subtabs">
+    <button class="wiki-subtab-btn active" onclick="switchWikiTab('itens', this)">
+      <span class="wiki-subtab-icon">📦</span> Itens
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('respawn', this)">
+      <span class="wiki-subtab-icon">🗺️</span> Local de Respawn
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('quests', this)">
+      <span class="wiki-subtab-icon">📜</span> Quests
+    </button>
   </div>
-  <!-- Grid -->
-  <div class="wiki-wrap">
-    <div id="wiki-grid"></div>
+
+  <!-- ===== SUB-ABA: ITENS ===== -->
+  <div id="wiki-tab-itens" class="wiki-subtab-content">
+    <!-- Controls -->
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="wiki-search" placeholder="Buscar item ou Pokémon..." oninput="clearTimeout(_wikiSearchTimer); _wikiSearchTimer = setTimeout(renderWiki, 150)" />
+      </div>
+      <span class="wiki-count-label" id="wiki-count-label">— itens</span>
+    </div>
+    <!-- Grid -->
+    <div class="wiki-wrap">
+      <div id="wiki-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== SUB-ABA: RESPAWN ===== -->
+  <div id="wiki-tab-respawn" class="wiki-subtab-content" style="display:none">
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="respawn-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_respawnSearchTimer); _respawnSearchTimer = setTimeout(renderRespawn, 150)" />
+      </div>
+      <span class="wiki-count-label" id="respawn-count-label">— Pokémon</span>
+    </div>
+    <div class="wiki-respawn-wrap active" id="respawn-grid-wrap">
+      <div id="respawn-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== SUB-ABA: QUESTS ===== -->
+  <div id="wiki-tab-quests" class="wiki-subtab-content" style="display:none">
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="quests-search" placeholder="Buscar quest..." oninput="clearTimeout(_questsSearchTimer); _questsSearchTimer = setTimeout(renderQuests, 150)" />
+      </div>
+      <span class="wiki-count-label" id="quests-count-label">— quests</span>
+    </div>
+    <div class="wiki-quests-wrap active" id="quests-grid-wrap">
+      <div id="quests-grid"></div>
+    </div>
   </div>
 </div>
 
@@ -5633,7 +6021,7 @@ const RAW_WIKI = [
   ["furry tail"],
   ["ghost bottle"],
   ["goldeen tail"],
-  ["horsea tail"],
+  ["horsea tail", "Horsea"],
   ["locksmith of shell"],
   ["piece of cocoon"],
   ["pineco shell"],
@@ -5656,7 +6044,7 @@ const RAW_WIKI = [
   ["mankey tail"],
   ["rock fist"],
   ["small blue ear"],
-  ["small blue fin"],
+  ["small blue fin", "Remoraid"],
   ["spider legs"],
   ["yellow cocoon"],
 
@@ -5725,7 +6113,7 @@ const RAW_WIKI = [
   ["compressed ghost essence"],
   ["compressed steel"],
   ["compressed straw"],
-  ["crocodile hair"],
+  ["crocodile hair", "Croconaw"],
   ["electric sphere"],
   ["ghost claw"],
   ["giant dragon scale"],
@@ -5745,7 +6133,7 @@ const RAW_WIKI = [
   ["solid rubber ball"],
   ["solid water gem"],
   ["vampire wing"],
-  ["wartortle ear"],
+  ["wartortle ear", "Wartortle"],
 
   // --- MARK (1260) ---
   ["aipom paw"],
@@ -5835,7 +6223,7 @@ const RAW_WIKI = [
   ["king ear"],
   ["red hair"],
   ["red petal"],
-  ["star jewel"],
+  ["star jewel", "Starmie"],
   ["water cannon"],
   ["xatu wing"],
 
@@ -5941,7 +6329,7 @@ const RAW_WIKI = [
   ["contagious pore"],
   ["disgusting gosme"],
   ["golden shell"],
-  ["gray frog tail"],
+  ["gray frog tail", "Shiny Poliwag"],
   ["gray snake tail"],
   ["green ghost bottle"],
   ["green remains"],
@@ -5955,7 +6343,7 @@ const RAW_WIKI = [
   ["smoked bones"],
   ["sparkle antenna"],
   ["white monkey tail"],
-  ["white tail"],
+  ["white tail", "Shiny Horsea"],
   ["yellow bird crest"],
   ["yellow sting"],
 
@@ -5983,9 +6371,9 @@ const RAW_WIKI = [
   ["aurora crown"],
   ["black lizard tail"],
   ["blaze fur"],
-  ["blue mohawk"],
+  ["blue mohawk", "Shiny Croconaw"],
   ["champion underwear"],
-  ["cyan ear"],
+  ["cyan ear", "Shiny Wartortle"],
   ["dark claw"],
   ["electric feather"],
   ["electric rat tail (shiny)"],
@@ -6021,7 +6409,7 @@ const RAW_WIKI = [
   ["arcane poison orb"],
   ["arcane psychic orb"],
   ["arcane rock orb"],
-  ["arcane water orb"],
+  ["arcane water orb", "Shiny Wartortle", "Shiny Kingler", "Shiny Croconaw", "Shiny Seadra", "Shiny Qwilfish", "Shiny Golduck", "Shiny Octillery", "Shiny Seaking", "Shiny Poliwhirl"],
 
   // --- T2/T3 EVO1/EVO2 ---
   ["big green piece"],
@@ -6037,7 +6425,7 @@ const RAW_WIKI = [
   ["blue coconut leaves"],
   ["blue wings"],
   ["golden drill"],
-  ["malfunctioning core"],
+  ["malfunctioning core", "Shiny Starmie"],
   ["pink bug horn"],
   ["psychic wings"],
   ["shiny bat wing"],
@@ -6061,7 +6449,7 @@ const RAW_WIKI = [
   ["mythic poison orb"],
   ["mythic psychic orb"],
   ["mythic rock orb"],
-  ["mythic water orb"],
+  ["mythic water orb", "Shiny Blastoise", "Shiny Feraligatr", "Shiny Gyarados", "Shiny Barboach", "Shiny Carvanha", "Shiny Corphish", "Shiny Feebas", "Shiny Lombre", "Shiny Lotad", "Shiny Mudkip", "Shiny Marshtomp", "Shiny Politoed", "Shiny Wailmer", "Shiny Spheal", "Shiny Sealeo", "Shiny Mantine", "Shiny Staryu", "Shiny Surskit", "Shiny Tentacruel", "Shiny Vaporeon", "Shiny Wingull", "Shiny Luvdisc" ],
 ];
 
 
@@ -7250,6 +7638,139 @@ function toggleWikiRow(idx) {
   // fecha todos
   document.querySelectorAll('.wiki-row.open').forEach(function(r) { r.classList.remove('open'); });
   // abre o clicado se estava fechado
+  if (!isOpen) row.classList.add('open');
+}
+
+// ===================== WIKI SUB-TABS =====================
+var _currentWikiTab = 'itens';
+var _respawnSearchTimer, _questsSearchTimer;
+
+function switchWikiTab(tab, btn) {
+  _currentWikiTab = tab;
+  // botões
+  document.querySelectorAll('.wiki-subtab-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  // painéis
+  document.querySelectorAll('.wiki-subtab-content').forEach(function(el) { el.style.display = 'none'; });
+  var panel = document.getElementById('wiki-tab-' + tab);
+  if (panel) panel.style.display = 'block';
+  // renderiza a sub-aba
+  if (tab === 'itens') renderWiki();
+  if (tab === 'respawn') renderRespawn();
+  if (tab === 'quests') renderQuests();
+}
+
+// ===================== DADOS DE RESPAWN =====================
+// Estrutura: { name: 'NomePokemon', mapImg: 'URL ou null', location: 'Nome do Local' }
+// Para adicionar um pokémon, adicione um objeto aqui:
+var RAW_RESPAWN = [
+  // Exemplo — remova ou edite conforme necessário:
+  // { name: 'Bulbasaur', mapImg: null, location: 'Viridian Forest' },
+  // { name: 'Charmander', mapImg: null, location: 'Mt. Ember' },
+];
+
+function renderRespawn() {
+  var grid = document.getElementById('respawn-grid');
+  if (!grid) return;
+  var q = (document.getElementById('respawn-search') ? document.getElementById('respawn-search').value : '').toLowerCase().trim();
+
+  var filtered = RAW_RESPAWN.filter(function(p) {
+    if (!q) return true;
+    return p.name.toLowerCase().includes(q) || (p.location && p.location.toLowerCase().includes(q));
+  });
+
+  document.getElementById('respawn-count-label').textContent = filtered.length + ' Pokémon';
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="wiki-empty-state"><span class="empty-icon">🗺️</span><span class="empty-label">Nenhum Pokémon de respawn cadastrado ainda.</span></div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(function(poke, idx) {
+    var sprite = getShowdownSprite(poke.name);
+    var fallback = 'https://play.pokemonshowdown.com/sprites/gen5/' + toShowdownName(poke.name) + '.png';
+    var mapContent = poke.mapImg
+      ? '<img class="respawn-map-img" src="' + poke.mapImg + '" alt="Mapa ' + poke.name + '" />'
+      : '<div class="respawn-map-placeholder"><span class="placeholder-icon">🗺️</span><span>Mapa em breve</span></div>';
+    var locationTag = poke.location
+      ? '<div class="respawn-location-tag">📍 ' + poke.location + '</div>'
+      : '';
+    return '<div class="respawn-row" id="respawn-row-' + idx + '">' +
+      '<div class="respawn-row-header" onclick="toggleRespawnRow(' + idx + ')">' +
+        '<span class="respawn-row-num">' + (idx + 1) + '</span>' +
+        '<img class="respawn-row-sprite" src="' + sprite + '" alt="' + poke.name + '" onerror="this.src=\'' + fallback + '\'" />' +
+        '<span class="respawn-row-name">' + poke.name + '</span>' +
+        '<svg class="respawn-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+      '</div>' +
+      '<div class="respawn-row-panel">' +
+        '<div class="respawn-panel-inner">' +
+          '<img class="respawn-sprite-big" src="' + sprite + '" alt="' + poke.name + '" onerror="this.src=\'' + fallback + '\'" />' +
+          mapContent +
+        '</div>' +
+        locationTag +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleRespawnRow(idx) {
+  var row = document.getElementById('respawn-row-' + idx);
+  if (!row) return;
+  var isOpen = row.classList.contains('open');
+  document.querySelectorAll('.respawn-row.open').forEach(function(r) { r.classList.remove('open'); });
+  if (!isOpen) row.classList.add('open');
+}
+
+// ===================== DADOS DE QUESTS =====================
+// Estrutura: { name: 'Nome da Quest', icon: '⚔️', description: 'Texto descritivo', img: 'URL ou null' }
+// Para adicionar uma quest, adicione um objeto aqui:
+var RAW_QUESTS = [
+  // Exemplo — remova ou edite conforme necessário:
+  // { name: 'A Grande Caçada', icon: '⚔️', description: 'Derrote 10 Pokémons selvagens na Viridian Forest.', img: null },
+  // { name: 'Coletor de Itens', icon: '📦', description: 'Colete 5 Potions e leve ao NPC do Centro Pokémon.', img: null },
+];
+
+function renderQuests() {
+  var grid = document.getElementById('quests-grid');
+  if (!grid) return;
+  var q = (document.getElementById('quests-search') ? document.getElementById('quests-search').value : '').toLowerCase().trim();
+
+  var filtered = RAW_QUESTS.filter(function(quest) {
+    if (!q) return true;
+    return quest.name.toLowerCase().includes(q) || (quest.description && quest.description.toLowerCase().includes(q));
+  });
+
+  document.getElementById('quests-count-label').textContent = filtered.length + ' quests';
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="wiki-empty-state"><span class="empty-icon">📜</span><span class="empty-label">Nenhuma quest cadastrada ainda.</span></div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(function(quest, idx) {
+    var imgContent = quest.img
+      ? '<img class="quest-image" src="' + quest.img + '" alt="Como fazer: ' + quest.name + '" />'
+      : '<div class="quest-image-placeholder"><span class="placeholder-icon">🖼️</span><span>Imagem em breve</span></div>';
+    return '<div class="quest-row" id="quest-row-' + idx + '">' +
+      '<div class="quest-row-header" onclick="toggleQuestRow(' + idx + ')">' +
+        '<span class="quest-row-num">' + (idx + 1) + '</span>' +
+        '<span class="quest-row-icon">' + (quest.icon || '📜') + '</span>' +
+        '<span class="quest-row-name">' + quest.name + '</span>' +
+        '<svg class="quest-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+      '</div>' +
+      '<div class="quest-row-panel">' +
+        '<p class="quest-description">' + (quest.description || '') + '</p>' +
+        imgContent +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleQuestRow(idx) {
+  var row = document.getElementById('quest-row-' + idx);
+  if (!row) return;
+  var isOpen = row.classList.contains('open');
+  document.querySelectorAll('.quest-row.open').forEach(function(r) { r.classList.remove('open'); });
   if (!isOpen) row.classList.add('open');
 }
 
