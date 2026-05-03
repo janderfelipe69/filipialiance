@@ -391,6 +391,12 @@
     <button class="wiki-subtab-btn" onclick="switchWikiTab('npcs', this)">
       <span class="wiki-subtab-icon">🧑‍💼</span> NPC's
     </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('brokes', this)">
+      <span class="wiki-subtab-icon">💥</span> Brokes
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('hazard', this)">
+      <span class="wiki-subtab-icon">⚠️</span> Hazard Tasks
+    </button>
   </div>
 
   <!-- ===== SUB-ABA: ITENS ===== -->
@@ -489,6 +495,27 @@
       <div id="officers-grid"></div>
     </div>
   </div>
+
+  <!-- ===== SUB-ABA: BROKES ===== -->
+  <div id="wiki-tab-brokes" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-brokes-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: HAZARD TASKS ===== -->
+  <div id="wiki-tab-hazard" class="wiki-subtab-content" style="display:none">
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="hazard-search" placeholder="Buscar NPC ou Pokémon..." oninput="clearTimeout(_hazardSearchTimer); _hazardSearchTimer = setTimeout(renderHazard, 150)" />
+      </div>
+      <span class="wiki-count-label" id="hazard-count-label">— NPCs</span>
+    </div>
+    <div id="hazard-grid"></div>
+  </div>
+
 </div>
 
 <div class="cart-overlay" id="cart-overlay" onclick="handleOverlayClick(event)">
@@ -730,6 +757,285 @@
 </div>
 
 <!-- ===================== TUTORIAL INTERATIVO ===================== -->
+
+<style>
+/* ── Captura List: Broke Badge ── */
+.captura-list-broke {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px 2px 5px;
+  background: rgba(255, 90, 50, 0.10);
+  border: 1px solid rgba(255, 90, 50, 0.28);
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.captura-list-broke .broke-icon { font-size: 10px; }
+.captura-list-broke .broke-label {
+  color: rgba(255,150,110,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 9px;
+}
+.captura-list-broke .broke-val {
+  color: #ff9060;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── Brokes Wiki Page ── */
+.brokes-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.brokes-hero {
+  text-align: center;
+  padding: 36px 20px 28px;
+  margin-bottom: 28px;
+  background: linear-gradient(145deg, rgba(255,90,50,0.08) 0%, rgba(255,60,30,0.04) 100%);
+  border: 1px solid rgba(255,90,50,0.2);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.brokes-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,90,50,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.brokes-hero-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 16px rgba(255,90,50,0.5));
+}
+.brokes-hero-title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, #ff9060 60%, #ff4a20 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.brokes-hero-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+.brokes-section {
+  margin-bottom: 28px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.brokes-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.brokes-section-icon { font-size: 15px; }
+.brokes-section-note {
+  padding: 8px 20px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,150,80,0.8);
+  background: rgba(255,100,30,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  letter-spacing: 0.3px;
+}
+
+/* Table */
+.brokes-table-wrap { overflow-x: auto; padding: 0; }
+.brokes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.brokes-table thead tr {
+  background: rgba(255,255,255,0.04);
+}
+.brokes-table th {
+  padding: 10px 20px;
+  text-align: left;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.brokes-table td {
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+.brokes-table tbody tr:last-child td { border-bottom: none; }
+.brokes-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+
+.broke-val-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.broke-number {
+  font-family: var(--font-mono, monospace);
+  font-size: 15px;
+  font-weight: 700;
+  color: #ff9060;
+}
+.broke-unit {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: rgba(255,150,100,0.6);
+  letter-spacing: 1px;
+}
+.broke-approx {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  color: rgba(255,150,100,0.5);
+  margin-right: 1px;
+}
+.broke-question {
+  font-family: var(--font-mono, monospace);
+  font-size: 18px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.3);
+}
+.broke-tbd {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-left: 4px;
+}
+.broke-equiv {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+.tier-mythical-row td { opacity: 0.6; }
+
+/* Balls grid */
+.brokes-balls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+}
+.brokes-ball-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 16px 14px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+.brokes-ball-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+}
+.brokes-ball-card--elemental { border-color: rgba(150,100,255,0.2); }
+.brokes-ball-emoji {
+  font-size: 36px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 48px;
+}
+.brokes-ball-name {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.brokes-ball-rate {
+  display: inline-block;
+  font-family: var(--font-mono, monospace);
+  font-size: 20px;
+  font-weight: 900;
+  padding: 4px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.rate-ub { color: var(--gold); background: rgba(255,209,102,0.1); }
+.rate-pb { color: #fff; background: rgba(255,255,255,0.08); }
+.rate-ab { color: #60d0ff; background: rgba(96,208,255,0.08); }
+.rate-el { color: #b060ff; background: rgba(176,96,255,0.1); }
+.brokes-ball-desc {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+}
+
+/* Obs list */
+.brokes-obs-list { padding: 8px 20px 16px; }
+.brokes-obs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.brokes-obs-item:last-child { border-bottom: none; }
+.brokes-obs-item--highlight {
+  color: #fff;
+  background: rgba(255,90,50,0.07);
+  margin: 4px -8px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border-bottom: none;
+}
+.brokes-obs-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: rgba(255,90,50,0.15);
+  border: 1px solid rgba(255,90,50,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff9060;
+  margin-top: 1px;
+}
+.brokes-obs-text strong { color: #fff; }
+</style>
 
 <script src="tutorial.js"></script>
 
