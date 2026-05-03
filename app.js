@@ -1705,33 +1705,53 @@ function renderCaptura() {
     grid.innerHTML = '<div class="no-results">Nenhum Pokémon encontrado.</div>';
     return;
   }
-  grid.innerHTML = filtered.map((poke) => {
+
+  // ── Modo Lista ─────────────────────────────────────────────────────────────
+  // Thumbnail estática pequena ao lado do nome.
+  // Clique na linha abre o modal (com GIF animado) — igual ao comportamento anterior.
+  // Muito mais leve: zero GIFs simultâneos rodando na tela.
+  grid.innerHTML = '<div class="captura-list">' + filtered.map((poke) => {
     const idx = poke._idx;
     const pokeType = getTypeFromBanner(poke.bannerImage);
+    const typeColor = pokeType && TYPE_COLORS[pokeType] ? TYPE_COLORS[pokeType] : 'var(--accent)';
     const typeClass = pokeType ? ` type-${pokeType}` : '';
-    const particlesHtml = buildParticlesHtml(pokeType);
+
+    // Thumbnail: sempre usa sprite estático (PNG) — sem GIF na lista
+    const thumbSrc = getShowdownStaticSprite(poke.name);
+    const fallbackSrc = poke.image && !/\.gif$/i.test(poke.image) ? poke.image : '';
+
     const diveMultiplier = poke.dive ? 1.30 : 1.0;
     const effectivePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
     const priceData = formatKK(effectivePrice);
     const priceHtml = priceData
-      ? `<div class="captura-card-price">
-           <span class="captura-price-kk">${priceData.label}</span>
-           <span class="captura-price-brl">${priceData.brl}</span>
-         </div>`
-      : `<div class="captura-card-price"><span class="price-none">sem preço</span></div>`;
-    const typeColor = pokeType && TYPE_COLORS[pokeType] ? TYPE_COLORS[pokeType] : '';
-    const typeStyle = typeColor ? ` style="--type-color:${typeColor}"` : '';
-    return `<div class="captura-card${typeClass}"${typeStyle} onclick="openCapturaModal(${idx})">
-      ${particlesHtml}
-      ${getBannerHtml(poke)}
-      ${(()=>{ const g=/\.gif$/i.test(poke.image); const src=g?getShowdownStaticSprite(poke.name):poke.image; const gif=g?getShowdownSprite(poke.name):''; return `<img class="captura-card-img${g?' captura-img--gif':''}" src="${src}" ${g?`data-gif="${gif}"`:'loading="lazy"'} alt="${poke.name}" onerror="this.parentElement.style.minHeight='96px'">`; })()}
-      <div class="captura-card-name">${poke.name}</div>
-      ${getCapturaTagHtml(poke.tag)}
-      ${poke.dive ? getCapturaTagHtml('dive') : ''}
-      ${priceHtml}
-      <button class="captura-catch-btn">⬟ Capturar</button>
+      ? `<span class="captura-list-price-kk" style="color:${typeColor}">${priceData.label}</span>
+         <span class="captura-list-price-brl">${priceData.brl}</span>`
+      : `<span class="price-none">sem preço</span>`;
+
+    const tagsHtml = [
+      poke.tag ? getCapturaTagHtml(poke.tag) : '',
+      poke.dive ? getCapturaTagHtml('dive') : '',
+    ].join('');
+
+    // Banner de tipo (ícone pequeno)
+    const typeIconHtml = poke.bannerImage
+      ? `<img class="captura-list-type-icon" src="${poke.bannerImage}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+      : '';
+
+    return `<div class="captura-list-row" style="--type-color:${typeColor}" onclick="openCapturaModal(${idx})">
+      <img class="captura-list-thumb"
+           src="${thumbSrc}"
+           ${fallbackSrc ? `onerror="this.src='${fallbackSrc}'"` : `onerror="this.style.opacity='0'"`}
+           alt="${poke.name}"
+           loading="lazy" />
+      <div class="captura-list-info">
+        <span class="captura-list-name">${poke.name}</span>
+        <div class="captura-list-tags">${tagsHtml}${typeIconHtml}</div>
+      </div>
+      <div class="captura-list-price">${priceHtml}</div>
+      <button class="captura-list-catch-btn" onclick="event.stopPropagation();openCapturaModal(${idx})">⬟</button>
     </div>`;
-  }).join('');
+  }).join('') + '</div>';
 }
 
 function openCapturaModal(idx) {
@@ -2163,3 +2183,149 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Escape') closeWikiPopup();
   });
 });
+// ===================== CAPTURA LIST MODE CSS =====================
+(function injectCapturaListStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Garante que o container do grid vire bloco ao exibir a lista */
+    #captura-grid:has(.captura-list) {
+      display: block !important;
+      grid-template-columns: unset !important;
+    }
+    .captura-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 4px 0;
+      width: 100%;
+      box-sizing: border-box;
+      grid-column: 1 / -1;
+    }
+    /* Neutraliza qualquer classe de tipo global que pinte o fundo */
+    .captura-list-row[class],
+    .captura-list-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 10px 14px !important;
+      background: rgba(255,255,255,0.04) !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-left: 3px solid var(--type-color, #60aaff) !important;
+      border-radius: 10px !important;
+      cursor: pointer !important;
+      transition: background 0.15s, border-color 0.15s, transform 0.12s !important;
+      position: relative !important;
+      overflow: hidden !important;
+      color: #ffffff !important;
+      box-shadow: none !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    /* Glow sutil no fundo vindo da esquerda com a cor do tipo */
+    .captura-list-row::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 120px;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--type-color, #60aaff) 12%, transparent), transparent);
+      pointer-events: none;
+    }
+    .captura-list-row:hover {
+      background: rgba(255,255,255,0.07) !important;
+      border-left-color: var(--type-color, #60aaff) !important;
+      border-color: color-mix(in srgb, var(--type-color, #60aaff) 40%, rgba(255,255,255,0.1)) !important;
+      transform: translateX(3px) !important;
+      box-shadow: 0 2px 16px color-mix(in srgb, var(--type-color, #60aaff) 15%, transparent) !important;
+    }
+    .captura-list-row:active {
+      transform: translateX(1px) scale(0.995) !important;
+    }
+    .captura-list-thumb {
+      width: 48px !important;
+      height: 48px !important;
+      object-fit: contain !important;
+      flex-shrink: 0 !important;
+      image-rendering: pixelated !important;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)) !important;
+      z-index: 1;
+    }
+    .captura-list-info {
+      flex: 1 !important;
+      min-width: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 4px !important;
+      z-index: 1;
+    }
+    .captura-list-name {
+      font-family: var(--font-display, inherit) !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      letter-spacing: 0.4px !important;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important;
+    }
+    .captura-list-tags {
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      flex-wrap: wrap !important;
+    }
+    .captura-list-type-icon {
+      width: 16px !important;
+      height: 16px !important;
+      object-fit: contain !important;
+      opacity: 0.85 !important;
+      vertical-align: middle !important;
+    }
+    .captura-list-price {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      gap: 2px !important;
+      flex-shrink: 0 !important;
+      z-index: 1;
+    }
+    .captura-list-price-kk {
+      font-family: var(--font-mono, monospace) !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.5px !important;
+    }
+    .captura-list-price-brl {
+      font-family: var(--font-body, inherit) !important;
+      font-size: 10px !important;
+      color: rgba(255,255,255,0.45) !important;
+    }
+    .captura-list-catch-btn {
+      flex-shrink: 0 !important;
+      background: color-mix(in srgb, var(--type-color, #60aaff) 15%, transparent) !important;
+      border: 1px solid color-mix(in srgb, var(--type-color, #60aaff) 60%, transparent) !important;
+      color: var(--type-color, #60aaff) !important;
+      border-radius: 8px !important;
+      width: 34px !important;
+      height: 34px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 15px !important;
+      cursor: pointer !important;
+      transition: background 0.15s, box-shadow 0.15s !important;
+      z-index: 1;
+    }
+    .captura-list-catch-btn:hover {
+      background: var(--type-color, #60aaff) !important;
+      color: #000 !important;
+      box-shadow: 0 0 12px color-mix(in srgb, var(--type-color, #60aaff) 70%, transparent) !important;
+    }
+    @media (max-width: 480px) {
+      .captura-list-thumb { width: 38px !important; height: 38px !important; }
+      .captura-list-name  { font-size: 13px !important; }
+      .captura-list-price-kk { font-size: 12px !important; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
