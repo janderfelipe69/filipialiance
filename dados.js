@@ -1035,7 +1035,7 @@ const RAW_WIKI = [
   ["mythic poison orb"],
   ["mythic psychic orb"],
   ["mythic rock orb"],
-  ["mythic water orb", "Shiny Blastoise", "Shiny Feraligatr", "Shiny Gyarados", "Shiny Barboach", "Shiny Carvanha", "Shiny Corphish", "Shiny Feebas", "Shiny Lombre", "Shiny Lotad", "Shiny Mudkip", "Shiny Marshtomp", "Shiny Politoed", "Shiny Wailmer", "Shiny Spheal", "Shiny Sealeo", "Shiny Mantine", "Shiny Staryu", "Shiny Surskit", "Shiny Tentacruel", "Shiny Vaporeon", "Shiny Wingull", "Shiny Luvdisc" ],
+  ["mythic water orb", "Shiny Blastoise", "Shiny Feraligatr", "Shiny Gyarados", "Shiny Barboach", "Shiny Carvanha", "Shiny Corphish", "Shiny Feebas", "Shiny Lombre", "Shiny Lotad", "Shiny Mudkip", "Shiny Marshtomp", "Shiny Politoed", "Shiny Wailmer", "Shiny Spheal", "Shiny Sealeo", "Shiny Mantine", "Shiny Starmie", "Shiny Surskit", "Shiny Tentacruel", "Shiny Vaporeon", "Shiny Wingull", "Shiny Luvdisc" ],
 ];
 
 // ============================================================
