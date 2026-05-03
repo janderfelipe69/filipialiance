@@ -879,7 +879,7 @@ function toggleWikiRow(idx) {
 
 // ===================== WIKI SUB-TABS =====================
 var _currentWikiTab = 'itens';
-var _respawnSearchTimer, _questsSearchTimer, _rocketsSearchTimer;
+var _respawnSearchTimer, _questsSearchTimer, _rocketsSearchTimer, _officersSearchTimer, _hazardSearchTimer;
 
 function switchWikiTab(tab, btn) {
   _currentWikiTab = tab;
@@ -894,12 +894,170 @@ function switchWikiTab(tab, btn) {
   if (tab === 'itens') renderWiki();
   if (tab === 'respawn') renderRespawn();
   if (tab === 'quests') renderQuests();
+  if (tab === 'brokes') renderBrokes();
+  if (tab === 'hazard') renderHazard();
   if (tab === 'npcs') {
     // Abre a sub-aba de NPC's e renderiza a categoria ativa (padrão: rockets)
     var activeNpcBtn = document.querySelector('.npc-subcat-btn.active');
     var activeSubcat = activeNpcBtn ? activeNpcBtn.getAttribute('data-subcat') || 'rockets' : 'rockets';
     switchNpcSubcat(activeSubcat, activeNpcBtn);
   }
+}
+
+// ===================== WIKI: BROKES =====================
+function renderBrokes() {
+  var el = document.getElementById('wiki-brokes-content');
+  if (!el) return;
+  el.innerHTML = `
+  <div class="brokes-page">
+    <!-- Hero -->
+    <div class="brokes-hero">
+      <div class="brokes-hero-icon">💥</div>
+      <div class="brokes-hero-title">Sistema de Brokes</div>
+      <div class="brokes-hero-sub">Entenda o sistema de brokes e aumente suas chances de captura</div>
+    </div>
+
+    <!-- Tabela de Max Brokes por Tier -->
+    <div class="brokes-section">
+      <div class="brokes-section-title">
+        <span class="brokes-section-icon">📊</span>
+        Max Brokes por Tier
+      </div>
+      <div class="brokes-section-note">Válido apenas para Shinys — Pokémon normal não tem max.</div>
+      <div class="brokes-table-wrap">
+        <table class="brokes-table">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Max Broke</th>
+              <th>Equivale a</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="tier-mythical-row">
+              <td><span class="ctag-mythical captura-tag">Mítico</span></td>
+              <td class="broke-val-cell"><span class="broke-question">?</span><span class="broke-tbd">A ser confirmado</span></td>
+              <td class="broke-equiv">—</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-legendary captura-tag">Legendary</span></td>
+              <td class="broke-val-cell"><span class="broke-number">22.535</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~29.295 · Alliance: ~33.802</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-ultra-raro captura-tag">Ultra Raro</span></td>
+              <td class="broke-val-cell"><span class="broke-number">9.100</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~11.830 · Alliance: ~13.650</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-super-raro captura-tag">Super Raro</span></td>
+              <td class="broke-val-cell"><span class="broke-number">3.512</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~4.565 · Alliance: ~5.268</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-t1 captura-tag">T1</span></td>
+              <td class="broke-val-cell"><span class="broke-number">1.280</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~1.664 · Alliance: ~1.920</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-t2 captura-tag">T2</span></td>
+              <td class="broke-val-cell"><span class="broke-approx">~</span><span class="broke-number">900</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~1.170 · Alliance: ~1.350</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-t3 captura-tag">T3</span></td>
+              <td class="broke-val-cell"><span class="broke-approx">~</span><span class="broke-number">700</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~910 · Alliance: ~1.050</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-t4 captura-tag">T4</span></td>
+              <td class="broke-val-cell"><span class="broke-approx">~</span><span class="broke-number">600</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~780 · Alliance: ~900</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-t5 captura-tag">T5</span></td>
+              <td class="broke-val-cell"><span class="broke-approx">~</span><span class="broke-number">400</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~520 · Alliance: ~600</td>
+            </tr>
+            <tr>
+              <td><span class="ctag-t6 captura-tag">T6</span></td>
+              <td class="broke-val-cell"><span class="broke-approx">~</span><span class="broke-number">200</span><span class="broke-unit">UB</span></td>
+              <td class="broke-equiv">Premier Ball: ~260 · Alliance: ~300</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Rates das bolas -->
+    <div class="brokes-section">
+      <div class="brokes-section-title">
+        <span class="brokes-section-icon">⚾</span>
+        Rates das Poké Balls
+      </div>
+      <div class="brokes-balls-grid">
+        <div class="brokes-ball-card">
+          <div class="brokes-ball-emoji"><img src="https://i.imgur.com/D5T6Dgw.png" style="width:48px;height:48px;object-fit:contain" /></div>
+          <div class="brokes-ball-name">Ultra Ball</div>
+          <div class="brokes-ball-rate rate-ub">4x</div>
+          <div class="brokes-ball-desc">Rate base para captura</div>
+        </div>
+        <div class="brokes-ball-card">
+          <div class="brokes-ball-emoji"><img src="https://i.imgur.com/sIwvw2L.png" style="width:48px;height:48px;object-fit:contain" /></div>
+          <div class="brokes-ball-name">Premier Ball</div>
+          <div class="brokes-ball-rate rate-pb">4x</div>
+          <div class="brokes-ball-desc">Conta como 1ª bola jogada. Contabiliza para brokes totais.</div>
+        </div>
+        <div class="brokes-ball-card">
+          <div class="brokes-ball-emoji"><img src="https://i.imgur.com/QFXUD5f.png" style="width:48px;height:48px;object-fit:contain" /></div>
+          <div class="brokes-ball-name">Alliance Ball</div>
+          <div class="brokes-ball-rate rate-ab">5x</div>
+          <div class="brokes-ball-desc">Conta como 1ª bola jogada. Contabiliza para brokes totais.</div>
+        </div>
+        <div class="brokes-ball-card brokes-ball-card--elemental">
+          <div class="brokes-ball-emoji">🌀</div>
+          <div class="brokes-ball-name">Elemental Ball</div>
+          <div class="brokes-ball-rate rate-el">5x</div>
+          <div class="brokes-ball-desc">Rate aumentado com vantagem elemental</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Observações importantes -->
+    <div class="brokes-section">
+      <div class="brokes-section-title">
+        <span class="brokes-section-icon">📋</span>
+        Regras & Observações
+      </div>
+      <div class="brokes-obs-list">
+        <div class="brokes-obs-item">
+          <span class="brokes-obs-num">1</span>
+          <span class="brokes-obs-text">Premier Ball e Alliance Ball contam sempre como a <strong>primeira bola jogada</strong>.</span>
+        </div>
+        <div class="brokes-obs-item">
+          <span class="brokes-obs-num">2</span>
+          <span class="brokes-obs-text">Premier Ball e Alliance Ball contam para a <strong>contagem de brokes totais</strong>.</span>
+        </div>
+        <div class="brokes-obs-item">
+          <span class="brokes-obs-num">3</span>
+          <span class="brokes-obs-text">O max é um valor <strong>não oficial</strong> descoberto pela comunidade, e <strong>pode mudar a qualquer momento</strong>.</span>
+        </div>
+        <div class="brokes-obs-item brokes-obs-item--highlight">
+          <span class="brokes-obs-num">4</span>
+          <span class="brokes-obs-text"><strong>As brokes são pra shinys.</strong> Pokémon normal não tem max.</span>
+        </div>
+        <div class="brokes-obs-item">
+          <span class="brokes-obs-num">5</span>
+          <span class="brokes-obs-text">Chegar na <strong>máxima não garante o catch</strong>. A chance só fica muito mais alta.</span>
+        </div>
+        <div class="brokes-obs-item">
+          <span class="brokes-obs-num">6</span>
+          <span class="brokes-obs-text">O <strong>sistema de mérito</strong> considera o total de brokes. Os rates não têm nada a ver com ele.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
 }
 
 // ===================== DADOS DE RESPAWN =====================
@@ -1581,6 +1739,26 @@ addToCart = function(i) {
   if (card) { card.classList.remove('burst'); void card.offsetWidth; card.classList.add('burst'); }
 };
 
+// ===================== BROKE DATA =====================
+// Tabela de max brokes por tier (para shinys)
+const BROKE_DATA = {
+  't1':         { max: 1280,    label: '1.280 UB' },
+  't2':         { max: 900,     label: '~900 UB',  approx: true },
+  't3':         { max: 700,     label: '~700 UB',  approx: true },
+  't4':         { max: 600,     label: '~600 UB',  approx: true },
+  't5':         { max: 400,     label: '~400 UB',  approx: true },
+  't6':         { max: 200,     label: '~200 UB',  approx: true },
+  'super-raro': { max: 3512,   label: '3.512 UB' },
+  'ultra-raro': { max: 9100,   label: '9.100 UB' },
+  'legendary':  { max: 22535,  label: '22.535 UB' },
+  'mythical':   { max: null,   label: '? UB' },
+};
+
+function getBrokeForTag(tag) {
+  if (!tag) return null;
+  return BROKE_DATA[tag] || null;
+}
+
 // ===================== CAPTURA =====================
 // Formato: { name: "Nome", price: <raw kk igual RAW>, image: "url" }
 // Exemplos de preço: 1000000 = 1kk | 5000000 = 5kk | 500000 = 500k | 0 = sem preço
@@ -1744,6 +1922,11 @@ function renderCaptura() {
       ? `<img class="captura-list-type-icon" src="${poke.bannerImage}" alt="" loading="lazy" onerror="this.style.display='none'" />`
       : '';
 
+    const brokeInfo = getBrokeForTag(poke.tag);
+    const brokeHtml = brokeInfo
+      ? `<div class="captura-list-broke"><span class="broke-icon">💥</span><span class="broke-label">Max Broke</span><span class="broke-val">${brokeInfo.label}</span></div>`
+      : '';
+
     return `<div class="captura-list-row" style="--type-color:${typeColor}" onclick="openCapturaModal(${idx})">
       <img class="captura-list-thumb"
            src="${thumbSrc}"
@@ -1753,6 +1936,7 @@ function renderCaptura() {
       <div class="captura-list-info">
         <span class="captura-list-name">${poke.name}</span>
         <div class="captura-list-tags">${tagsHtml}${typeIconHtml}</div>
+        ${brokeHtml}
       </div>
       <div class="captura-list-price">${priceHtml}</div>
       <button class="captura-list-catch-btn" onclick="event.stopPropagation();openCapturaModal(${idx})">⬟</button>
@@ -3306,4 +3490,334 @@ function openOfficerPokeInfo(rawName) {
     '</div>';
 
   document.body.appendChild(modal);
+}
+// ===================== HAZARD TASKS =====================
+
+var RAW_HAZARD = [
+  { npc: 'Nerida',  imgId: 'eIoGIEv.png', task: '6 Sh Wailord, 6 Sh Whiscash, 6 Sh Crawdaunt, 6 Sh Luvdisk, 6 Sh Clamperl' },
+  { npc: 'Verdra',  imgId: 'sCT8XeS.png', task: '15 Sh Roselia, 15 Sh Cradily' },
+  { npc: 'Rohgar',  imgId: '0c8mJ4B.png', task: '6 Sh Mightyena, 6 Sh Zangoose, 6 Sh Seviper, 6 Sh Absol, 6 Sh Sharpedo' },
+  { npc: 'Draven',  imgId: 'HTMFh6N.png', task: '15 Sh Flygon, 15 Sh Salamalence' },
+  { npc: 'Ferris',  imgId: 'b6dRGyY.png', task: '10 Sh Aggron, 10 Sh Mawile, 10 Sh Metagross' },
+  { npc: 'Talia',   imgId: 'Ue7V6kw.png', task: '8 Sh Breloom, 8 Sh Shiftry, 7 Sh Cacturne, 7 Sh Tropius' },
+  { npc: 'Nyxen',   imgId: 'wJ8hCPS.png', task: '10 Sh Sableye, 10 Sh Banette, 10 Sh Dusclops' },
+  { npc: 'Voltrix', imgId: 'M1VkDef.png', task: '30 Sh Manectric' },
+  { npc: 'Glacis',  imgId: 'T3EKiyY.png', task: '15 Sh Glalie, 15 Sh Walrein' },
+  { npc: 'Hadriel', imgId: 'I5wubJc.png', task: '10 Sh Hariyama, 10 Sh Medicham, 10 Sh Slaking' },
+  { npc: 'Lucine',  imgId: 'w8p1cJw.png', task: '8 Sh Linoone, 8 Sh Delcatty, 7 Sh Swellow, 7 Sh Kecleon' },
+  { npc: 'Veska',   imgId: 'c78R578.png', task: '5 Sh Beautifly, 5 Sh Dustox, 4 Sh Masquerain, 4 Sh Ninjask, 4 Sh Volbeat, 4 Sh Ilumise, 4 Sh Shedinja' },
+  { npc: 'Calder',  imgId: 'kgjNPJa.png', task: '15 Sh Camerupt, 15 Sh Torkoal' },
+  { npc: 'Kaela',   imgId: 'daf6Nxk.png', task: '10 Sh Sceptile, 10 Sh Blaziken, 10 Sh Swampert' },
+  { npc: 'Orlan',   imgId: '7E6igom.png', task: '15 Sh Pelipper, 15 Sh Altaria' },
+  { npc: 'Selene',  imgId: '7E6igom.png', task: '5 Sh Gardevoir, 5 Sh Grumpig, 5 Sh Chimecho, 5 Sh Claydol, 5 Sh Lunatone, 5 Sh Solrock' },
+  { npc: 'Maera',   imgId: 'NhzLpkd.png', task: '8 Sh Milotic, 8 Sh Huntail, 7 Sh Gorebyss, 7 Sh Relicanth' },
+];
+
+function getImgurDirectUrl(imgId) {
+  return 'https://i.imgur.com/' + imgId + '.jpg';
+}
+
+function parseHazardTask(taskStr) {
+  return taskStr.split(',').map(function(part) {
+    part = part.trim();
+    var m = part.match(/^(\d+)\s+Sh\s+(.+)$/i);
+    if (m) return { qty: parseInt(m[1]), name: m[2].trim() };
+    return { qty: 0, name: part };
+  });
+}
+
+function getShowdownSpriteHazard(name) {
+  var key = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  var fixes = { 'salamalence': 'salamence', 'ilumise': 'illumise' };
+  if (fixes[key]) key = fixes[key];
+  return 'https://play.pokemonshowdown.com/sprites/ani-shiny/' + key + '.gif';
+}
+
+function openHazardMapModal(npcName, imgId) {
+  var existing = document.getElementById('hazard-map-modal');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'hazard-map-modal';
+  modal.innerHTML =
+    '<div class="hzmap-backdrop" onclick="document.getElementById(\'hazard-map-modal\').remove()"></div>' +
+    '<div class="hzmap-panel">' +
+      '<div class="hzmap-header">' +
+        '<div class="hzmap-title">' +
+          '<span class="hzmap-title-icon">📍</span>' +
+          '<span>Localização — ' + npcName + '</span>' +
+        '</div>' +
+        '<button class="hzmap-close" onclick="document.getElementById(\'hazard-map-modal\').remove()">✕</button>' +
+      '</div>' +
+      '<div class="hzmap-body">' +
+        '<div class="hzmap-loading" id="hzmap-loading">Carregando imagem...</div>' +
+        '<img ' +
+          'class="hzmap-img" ' +
+          'src="' + getImgurDirectUrl(imgId) + '" ' +
+          'alt="Localização ' + npcName + '" ' +
+          'onload="document.getElementById(\'hzmap-loading\').style.display=\'none\';this.style.opacity=\'1\'" ' +
+          'onerror="document.getElementById(\'hzmap-loading\').textContent=\'Não foi possível carregar a imagem.\'" ' +
+          'style="opacity:0;transition:opacity 0.3s"' +
+        '/>' +
+      '</div>' +
+      '<div class="hzmap-footer">' +
+        '<a class="hzmap-ext-link" href="' + getImgurDirectUrl(imgId) + '" target="_blank" rel="noopener">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+          'Abrir no Imgur' +
+        '</a>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+
+  // Close on Escape
+  function onKey(e) {
+    if (e.key === 'Escape') {
+      var m = document.getElementById('hazard-map-modal');
+      if (m) m.remove();
+      document.removeEventListener('keydown', onKey);
+    }
+  }
+  document.addEventListener('keydown', onKey);
+}
+
+function renderHazard() {
+  var grid = document.getElementById('hazard-grid');
+  if (!grid) return;
+
+  var q = (document.getElementById('hazard-search') ? document.getElementById('hazard-search').value : '').toLowerCase().trim();
+
+  var filtered = RAW_HAZARD.filter(function(h) {
+    return !q || h.npc.toLowerCase().includes(q) || h.task.toLowerCase().includes(q);
+  });
+
+  document.getElementById('hazard-count-label').textContent = filtered.length + ' NPCs';
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="wiki-empty-state"><span class="empty-icon">⚠️</span><span class="empty-label">Nenhum NPC encontrado.</span></div>';
+    return;
+  }
+
+  if (!document.getElementById('hazard-css')) {
+    var s = document.createElement('style');
+    s.id = 'hazard-css';
+    s.textContent = `
+      /* ── Hazard Page ── */
+      .hazard-page { max-width: 960px; margin: 0 auto; padding: 8px 0 40px; }
+      .hazard-hero { text-align: center; padding: 28px 20px 20px; margin-bottom: 8px; }
+      .hazard-hero-icon { font-size: 40px; margin-bottom: 8px; }
+      .hazard-hero-title {
+        font-family: var(--font-title);
+        font-size: 22px; font-weight: 900; letter-spacing: 3px;
+        text-transform: uppercase; color: #fff; margin-bottom: 4px;
+      }
+      .hazard-hero-sub { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+
+      /* ── Grid of cards ── */
+      .hazard-grid-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+        gap: 14px; padding: 0 8px;
+      }
+      .hazard-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,200,50,0.12);
+        border-radius: 14px; overflow: hidden;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      }
+      .hazard-card:hover {
+        background: rgba(255,200,50,0.04);
+        border-color: rgba(255,200,50,0.28);
+        transform: translateY(-2px);
+      }
+      .hazard-card-header {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid rgba(255,200,50,0.08);
+      }
+      .hazard-npc-icon {
+        width: 34px; height: 34px; border-radius: 50%;
+        background: rgba(255,200,50,0.12);
+        border: 1.5px solid rgba(255,200,50,0.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; flex-shrink: 0;
+      }
+      .hazard-npc-name {
+        font-family: var(--font-title);
+        font-size: 15px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase; color: #ffe066; flex: 1;
+      }
+      .hazard-map-btn {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-family: var(--font-mono, monospace);
+        font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+        text-transform: uppercase; color: #60c0ff;
+        background: rgba(96,192,255,0.1);
+        border: 1px solid rgba(96,192,255,0.25);
+        border-radius: 6px; padding: 5px 9px;
+        cursor: pointer; white-space: nowrap;
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      }
+      .hazard-map-btn:hover {
+        background: rgba(96,192,255,0.2);
+        border-color: rgba(96,192,255,0.5);
+        transform: scale(1.04);
+      }
+      .hazard-poke-list {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        padding: 12px 14px 14px;
+      }
+      .hazard-poke-chip {
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 10px; padding: 8px 10px 6px; min-width: 64px;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .hazard-poke-chip:hover { background: rgba(255,220,80,0.07); border-color: rgba(255,220,80,0.2); }
+      .hazard-poke-sprite { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+      .hazard-poke-name {
+        font-size: 10px; font-weight: 700; color: #ffe066;
+        text-align: center; letter-spacing: 0.3px; line-height: 1.2;
+      }
+      .hazard-poke-qty {
+        font-family: var(--font-mono, monospace);
+        font-size: 11px; font-weight: 900;
+        color: rgba(255,255,255,0.5);
+        background: rgba(255,255,255,0.06);
+        border-radius: 5px; padding: 1px 6px;
+      }
+
+      /* ── Map Modal ── */
+      #hazard-map-modal {
+        position: fixed; inset: 0; z-index: 9000;
+        display: flex; align-items: center; justify-content: center;
+        animation: hzFadeIn 0.2s ease;
+      }
+      @keyframes hzFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .hzmap-backdrop {
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+      .hzmap-panel {
+        position: relative; z-index: 1;
+        width: min(1100px, 96vw);
+        max-height: 92vh;
+        display: flex; flex-direction: column;
+        background: #0c1424;
+        border: 1px solid rgba(255,200,50,0.25);
+        border-radius: 16px; overflow: hidden;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,200,50,0.08);
+        animation: hzSlideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+      }
+      @keyframes hzSlideUp {
+        from { transform: translateY(28px) scale(0.97); opacity: 0; }
+        to   { transform: translateY(0)    scale(1);    opacity: 1; }
+      }
+      .hzmap-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255,200,50,0.12);
+        background: rgba(255,200,50,0.04);
+      }
+      .hzmap-title {
+        display: flex; align-items: center; gap: 8px;
+        font-family: var(--font-title);
+        font-size: 14px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase; color: #ffe066;
+      }
+      .hzmap-title-icon { font-size: 18px; }
+      .hzmap-close {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #fff; border-radius: 8px;
+        width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; cursor: pointer;
+        transition: background 0.15s;
+      }
+      .hzmap-close:hover { background: rgba(255,80,80,0.2); border-color: rgba(255,80,80,0.4); }
+      .hzmap-body {
+        position: relative;
+        flex: 1;
+        min-height: 65vh;
+        background: #070d1a;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+      }
+      .hzmap-loading {
+        position: absolute;
+        font-family: var(--font-mono, monospace);
+        font-size: 12px; color: var(--muted); letter-spacing: 1px;
+      }
+      .hzmap-img {
+        width: 100%; height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      .hzmap-iframe {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        border: none;
+      }
+      }
+      .hzmap-footer {
+        padding: 10px 18px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        display: flex; justify-content: flex-end;
+      }
+      .hzmap-ext-link {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-family: var(--font-mono, monospace);
+        font-size: 10px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.5px;
+        color: rgba(255,255,255,0.35);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      .hzmap-ext-link:hover { color: rgba(255,255,255,0.7); }
+    `;
+    document.head.appendChild(s);
+  }
+
+  grid.innerHTML =
+    '<div class="hazard-page">' +
+      '<div class="hazard-hero">' +
+        '<div class="hazard-hero-icon">⚠️</div>' +
+        '<div class="hazard-hero-title">Hazard Tasks</div>' +
+        '<div class="hazard-hero-sub">NPCs que entregam tasks de Shinys — clique em "Ver Mapa" para ver a localização do NPC</div>' +
+      '</div>' +
+      '<div class="hazard-grid-list">' +
+        filtered.map(function(h) {
+          var entries = parseHazardTask(h.task);
+          var chips = entries.map(function(e) {
+            var sprite = getShowdownSpriteHazard(e.name);
+            var fallback = 'https://play.pokemonshowdown.com/sprites/gen5/substitute.png';
+            return '<div class="hazard-poke-chip">' +
+              '<img class="hazard-poke-sprite" src="' + sprite + '" alt="' + e.name + '" loading="lazy" ' +
+                'onerror="this.src=\'' + fallback + '\';this.onerror=null;" />' +
+              '<div class="hazard-poke-name">' + e.name + '</div>' +
+              '<div class="hazard-poke-qty">×' + e.qty + '</div>' +
+            '</div>';
+          }).join('');
+
+          return '<div class="hazard-card">' +
+            '<div class="hazard-card-header">' +
+              '<div class="hazard-npc-icon">🧑</div>' +
+              '<div class="hazard-npc-name">' + h.npc + '</div>' +
+              '<button class="hazard-map-btn" onclick="openHazardMapModal(\'' + h.npc + '\',\'' + h.imgId + '\')">' +
+                '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
+                  '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>' +
+                  '<circle cx="12" cy="10" r="3"/>' +
+                '</svg>' +
+                'Ver Mapa' +
+              '</button>' +
+            '</div>' +
+            '<div class="hazard-poke-list">' + chips + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
 }
