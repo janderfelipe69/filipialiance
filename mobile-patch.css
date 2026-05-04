@@ -1,0 +1,906 @@
+/* ============================================================
+ * mobile-patch.css — PokeAlliance Shop · Mobile-First Overhaul
+ * Aplicar APÓS style.css
+ * ============================================================ */
+
+/* ══════════════════════════════════════════════════════════════
+   TOKENS MOBILE
+══════════════════════════════════════════════════════════════ */
+:root {
+  --tap-min: 44px;          /* mínimo touch target */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --mobile-pad: 14px;
+  --radius-mobile: 14px;
+  --transition-fast: 0.15s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GLOBAL — overflow e scroll horizontal eliminados
+══════════════════════════════════════════════════════════════ */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  touch-action: pan-y;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PERFORMANCE — desabilita animações pesadas globalmente
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .bg-canvas::before,
+  .bg-canvas::after,
+  .stars,
+  .card-aurora,
+  .seller-name,
+  header::after,
+  .welcome-modal::before,
+  .moon-icon,
+  .server-tag::before,
+  .tier-hard,
+  .evo-3,
+  .pkg-card.featured,
+  .shiny-toggle-btn {
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  /* Partículas — custo alto, removidas no mobile */
+  .type-particles { display: none !important; }
+
+  /* GIF placeholder: sem background pesado */
+  .card-img--gif {
+    background-image: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CABEÇALHO — compacto, limpo, funcional no mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+
+  .header-grid {
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    padding: 10px var(--mobile-pad);
+  }
+
+  .pa-emblem {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .seller-name {
+    font-size: 16px;
+    letter-spacing: 3px;
+    /* Sem animação de shimmer no mobile */
+    background-position: 0% center;
+    -webkit-text-fill-color: #b8d4ff;
+    background: none;
+    color: #b8d4ff;
+  }
+
+  .seller-meta {
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .seller-title {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+  }
+
+  .divider-v { display: none; }
+
+  .server-tag {
+    font-size: 9px;
+    padding: 2px 8px 2px 5px;
+    flex-shrink: 0;
+  }
+
+  .item-count-badge {
+    display: none; /* Não essencial no mobile */
+  }
+
+  /* Cart button — touch-friendly */
+  .cart-trigger {
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    padding: 10px 14px;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .cart-label {
+    display: none; /* Só ícone + contagem no mobile */
+  }
+
+  .cart-count {
+    font-size: 12px;
+    min-width: 22px;
+    padding: 1px 6px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TABS NAV — scroll horizontal suave, touch-optimized
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .tabs-nav {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+    padding: 0;
+  }
+
+  .tabs-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    padding: 12px 16px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    gap: 5px;
+    white-space: nowrap;
+    /* Área de toque aumentada */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tab-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CONTROLES DE BUSCA — layout vertical no mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .controls {
+    padding: 10px var(--mobile-pad);
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  input[type=text] {
+    font-size: 16px; /* Previne zoom automático no iOS */
+    padding: 11px 14px 11px 38px;
+    height: var(--tap-min);
+    border-radius: 10px;
+  }
+
+  select {
+    font-size: 16px; /* Previne zoom automático no iOS */
+    padding: 10px 10px;
+    height: var(--tap-min);
+    border-radius: 10px;
+    flex-shrink: 0;
+    max-width: 110px;
+  }
+
+  .count-label {
+    display: none; /* Removido para economizar espaço */
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GRID DE ITENS — adaptativo e eficiente
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .grid-wrap {
+    padding: 12px var(--mobile-pad) calc(100px + var(--safe-bottom));
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CARDS — touch-first, sem hover de mouse
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .card {
+    padding: 10px 10px 12px;
+    border-radius: var(--radius-mobile);
+    gap: 6px;
+    /* Remover hover transform — causa jank no scroll mobile */
+    transform: none !important;
+    /* Toque responsivo */
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
+
+  /* Estado ativo no toque (substitui hover) */
+  .card:active {
+    background: var(--surface2);
+    border-color: rgba(58,140,255,0.45);
+    transform: scale(0.97) !important;
+    transition: transform 0.1s ease, border-color 0.1s ease;
+  }
+
+  .card.is-shiny:active {
+    border-color: rgba(240,180,41,0.55);
+  }
+
+  /* Imagem do Pokémon — sem animação de hover */
+  .card:hover .item-img-wrap img { transform: none; }
+  .item-img-wrap img {
+    height: 90px;
+    transition: none;
+  }
+
+  .item-img-wrap {
+    min-height: 90px;
+    border-radius: 8px;
+  }
+
+  .item-name {
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+
+  /* Preços compactos */
+  .price-kk {
+    font-size: 14px;
+  }
+
+  .price-label { font-size: 7px; min-width: 22px; }
+  .price-brl { font-size: 8px; }
+  .price-total-kk { font-size: 10px; }
+
+  /* Footer dos cards — botões touch-friendly */
+  .card-footer {
+    gap: 6px;
+  }
+
+  .add-btn {
+    min-height: 36px;
+    font-size: 8px;
+    padding: 6px 6px;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Pack buttons */
+  .pack-footer { gap: 5px; }
+  .pack-btn {
+    min-height: 38px;
+    padding: 6px 4px;
+    border-radius: 7px;
+  }
+  .pack-btn-qty { font-size: 8px; }
+  .pack-btn-price { font-size: 10px; }
+  .pack-btn-brl { font-size: 8px; }
+
+  /* Remove button */
+  .inline-rem-btn {
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 8px;
+  }
+
+  /* Input quantidade */
+  input[type=number] {
+    width: 56px;
+    font-size: 14px;
+    height: 36px;
+  }
+
+  /* Wiki lookup button — maior para toque */
+  .wiki-lookup-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+  .wiki-lookup-btn svg { width: 12px; height: 12px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CARRINHO — bottom sheet no mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .cart-overlay.open {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+
+  .cart-panel {
+    max-width: 100%;
+    width: 100%;
+    height: 92vh;
+    max-height: 92vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    animation: cartSlideUp 0.35s cubic-bezier(0.16,1,0.3,1);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  @keyframes cartSlideUp {
+    from { transform: translateY(100%); opacity: 0.8; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* Drag handle visual */
+  .cart-panel::after {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.15);
+  }
+
+  .cart-header {
+    padding: 20px 18px 16px;
+  }
+
+  .cart-list {
+    padding: 10px 14px;
+    gap: 6px;
+  }
+
+  .cart-row {
+    padding: 10px 12px;
+  }
+
+  .cart-footer {
+    padding: 12px 14px calc(10px + var(--safe-bottom));
+  }
+
+  /* Touch targets nos botões do carrinho */
+  .rem-btn {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .whats-btn,
+  .discord-btn {
+    min-height: var(--tap-min);
+    font-size: 11px;
+  }
+
+  .clear-btn {
+    min-height: var(--tap-min);
+  }
+
+  .close-btn {
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    border-radius: 10px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WELCOME MODAL — mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 540px) {
+  .welcome-modal {
+    padding: 28px 18px 22px;
+    border-radius: 18px;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+
+  .welcome-logo-wrap svg { width: 52px; height: 52px; }
+  .welcome-title { font-size: 17px; letter-spacing: 2.5px; }
+  .welcome-subtitle { font-size: 10px; letter-spacing: 2px; margin-bottom: 20px; }
+  .welcome-info-card { padding: 12px 14px; gap: 10px; }
+  .welcome-info-icon { font-size: 18px; }
+  .welcome-info-text p { font-size: 13px; }
+  .welcome-enter-btn {
+    min-height: var(--tap-min);
+    font-size: 12px;
+    letter-spacing: 1.5px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PACOTES — mobile: layout vertical, sem sidebar
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .packages-wrap {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* Categoria pills — scroll horizontal */
+  .pkg-cat-tabs {
+    padding: 10px var(--mobile-pad) 10px;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pkg-cat-btn {
+    padding: 8px 14px;
+    min-height: var(--tap-min);
+    font-size: 12px;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Área principal — vertical no mobile */
+  .pkg-main-area {
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+  }
+
+  /* Sidebar se torna grid horizontal scrollável */
+  .pkg-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(56,140,255,0.18);
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pkg-sidebar-header {
+    padding: 10px var(--mobile-pad) 8px;
+  }
+
+  .pkg-sidebar-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px var(--mobile-pad) 12px;
+    scrollbar-width: none;
+  }
+
+  .pkg-sidebar-list::-webkit-scrollbar { display: none; }
+
+  .pkg-sidebar-item {
+    flex: 0 0 80px;
+    min-width: 80px;
+    padding: 10px 6px 10px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pkg-sidebar-item-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+
+  .pkg-sidebar-item-name {
+    font-size: 10px;
+  }
+
+  /* Painel de detalhe vira full-width */
+  .pkg-detail {
+    min-height: 300px;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pkg-detail-header {
+    padding: 14px var(--mobile-pad) 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pkg-detail-body {
+    overflow: visible;
+    max-height: none;
+  }
+
+  .pkg-detail-row {
+    padding: 10px var(--mobile-pad);
+    min-height: var(--tap-min);
+  }
+
+  /* Modal de pacote — bottom sheet */
+  .pkg-overlay {
+    align-items: flex-end !important;
+  }
+
+  .pkg-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90vh;
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .pkg-modal-header {
+    padding: 16px 18px 14px;
+  }
+
+  .pkg-modal-body {
+    padding: 12px var(--mobile-pad) !important;
+  }
+
+  .pkg-modal-footer {
+    padding: 12px var(--mobile-pad) !important;
+  }
+
+  .pkg-modal-add-btn {
+    min-height: var(--tap-min) !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CAPTURA — mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .captura-controls {
+    padding: 10px var(--mobile-pad);
+    gap: 8px;
+  }
+
+  .captura-filters {
+    gap: 6px;
+    padding: 6px var(--mobile-pad) 8px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .captura-grid {
+    padding: 10px var(--mobile-pad) calc(80px + var(--safe-bottom));
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+
+  .captura-card {
+    border-radius: var(--radius-mobile);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .captura-card:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+
+  /* Shiny toggle button */
+  .shiny-toggle-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+
+  /* Tags de captura */
+  .captura-tag-filter {
+    flex-shrink: 0;
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 11px;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ENTREGAS — mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .entregas-wrap {
+    padding: 12px var(--mobile-pad) calc(80px + var(--safe-bottom));
+  }
+
+  .entrega-card {
+    border-radius: var(--radius-mobile);
+    padding: 14px var(--mobile-pad);
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WIKI — mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .wiki-banner {
+    padding: 28px var(--mobile-pad) 20px !important;
+    min-height: auto !important;
+  }
+
+  .wiki-banner-title {
+    font-size: 22px !important;
+    letter-spacing: 3px !important;
+  }
+
+  .wiki-subtabs {
+    padding: 10px var(--mobile-pad) 0 !important;
+    gap: 4px !important;
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wiki-subtabs::-webkit-scrollbar { display: none; }
+
+  .wiki-subtab-btn {
+    flex-shrink: 0;
+    min-height: var(--tap-min);
+    padding: 8px 14px !important;
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .wiki-respawn-wrap,
+  .wiki-quests-wrap {
+    padding: 10px var(--mobile-pad) calc(80px + var(--safe-bottom)) !important;
+  }
+
+  /* Respawn cards accordion */
+  .rsp-head {
+    padding: 16px var(--mobile-pad);
+    min-height: var(--tap-min);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .rsp-badge {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .rsp-nome { font-size: 15px; }
+  .rsp-subtitulo { font-size: 12px; }
+
+  .rsp-expanded {
+    grid-template-columns: 1fr !important;
+    padding: 0 var(--mobile-pad) 20px !important;
+    gap: 16px !important;
+  }
+
+  /* Quest rows */
+  .quest-row-header,
+  .respawn-row-header {
+    padding: 12px var(--mobile-pad);
+    min-height: var(--tap-min);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .quest-row-panel,
+  .respawn-row-panel {
+    padding: 12px var(--mobile-pad) 16px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WIKI POPUP — mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  #wiki-popup-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  #wiki-popup {
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 85vh !important;
+    padding: 20px 16px calc(16px + var(--safe-bottom)) !important;
+    max-width: 100% !important;
+  }
+
+  #wiki-popup-close {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  #wiki-popup-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .wiki-popup-card {
+    min-width: 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPAWN MODAL — mobile (usado via JS)
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .hzmap-panel,
+  .rsp2-map-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90vh !important;
+  }
+
+  .hzmap-body,
+  .rsp2-map-body {
+    min-height: 50vh !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RSP2 (Roupas de Speed) — mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .rsp2-grid {
+    grid-template-columns: 1fr !important;
+    padding: 0 var(--mobile-pad) calc(80px + var(--safe-bottom)) !important;
+  }
+
+  .rsp2-card {
+    border-radius: var(--radius-mobile) !important;
+  }
+
+  .rsp2-map-btn {
+    min-height: var(--tap-min) !important;
+    padding: 8px 14px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TOAST — mobile centered at bottom
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  #no-price-toast {
+    min-width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    left: 16px;
+    right: 16px;
+    transform: translateX(0) translateY(120px);
+    bottom: calc(20px + var(--safe-bottom));
+    border-radius: 14px;
+  }
+
+  #no-price-toast.show {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAGS — legíveis no mobile
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .tier-tag {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+  }
+
+  .evo-tag {
+    font-size: 7px;
+    letter-spacing: 1px;
+    padding: 2px 5px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TUTORIAL — mobile (if exists)
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .tutorial-overlay {
+    padding: 0 !important;
+  }
+
+  .tutorial-box,
+  .tutorial-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    align-self: flex-end !important;
+    padding-bottom: calc(16px + var(--safe-bottom)) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TABLET (480–768px) — grid 3 colunas
+══════════════════════════════════════════════════════════════ */
+@media (min-width: 481px) and (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .captura-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .pkg-sidebar-item {
+    flex: 0 0 90px;
+    min-width: 90px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLL FIX — modais bloqueam scroll do body
+══════════════════════════════════════════════════════════════ */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ACESSIBILIDADE E TOQUE — remover outline azul padrão
+   e adicionar indicador próprio
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  button, select, input, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Focus visível para acessibilidade */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LANDSCAPE MOBILE — ajustes específicos
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) and (orientation: landscape) {
+  .cart-panel {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .pkg-modal {
+    max-height: 95vh !important;
+  }
+
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REDUCED MOTION — respeito à preferência do usuário
+══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
