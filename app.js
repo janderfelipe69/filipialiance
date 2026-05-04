@@ -903,6 +903,8 @@ function switchWikiTab(tab, btn) {
     switchNpcSubcat(activeSubcat, activeNpcBtn);
   }
   if (tab === 'starcalc') renderStarCalc();
+  if (tab === 'punchingbag') renderPunchingBag();
+  if (tab === 'roupasspeed') renderRoupasSpeed();
 }
 
 // ===================== WIKI: BROKES =====================
@@ -1179,6 +1181,8 @@ function toggleQuestRow(idx) {
 var SHOWDOWN_NAME_FIXES = {
   'grambull': 'granbull',
   'politoad': 'politoed',
+  'mr. mime': 'mrmime',
+  'mr.mime':  'mrmime',
 };
 
 function toShowdownName(name) {
@@ -2751,7 +2755,6 @@ var POKE_TYPES = {
   // Psychic
   'alakazam':['psychic'],'hypno':['psychic'],'espeon':['psychic'],'shiny espeon':['psychic'],
   'xatu':['psychic','flying'],'shiny xatu':['psychic','flying'],'slowking':['water','psychic'],
-  'mr. mime':['psychic'],'shiny mime':['psychic'],
   // Ghost/Dark
   'gengar':['ghost','poison'],'shiny gengar':['ghost','poison'],'misdreavus':['ghost'],'shiny misdreavus':['ghost'],
   'haunter':['ghost','poison'],'shiny haunter':['ghost','poison'],'dusknoir':['ghost'],'shiny dusknoir':['ghost'],
@@ -2785,6 +2788,46 @@ var POKE_TYPES = {
   'gligar':['ground','flying'],'arcanine':['fire'],'shiny arcanine':['fire'],
   'blastoise':['water'],'shiny blastoise':['water'],'pupitar':['rock','ground'],'shiny pupitar':['rock','ground'],
   'murkrow':['dark','flying'],'shiny murkrow':['dark','flying'],'ninetales':['fire'],'shiny ninetales':['fire'],
+  // Officer pokemons previously missing
+  'forretress':['bug','steel'],'shiny forretress':['bug','steel'],
+  'sudowoodo':['rock'],'shiny sudowoodo':['rock'],
+  'sandslash':['ground'],'shiny sandslash':['ground'],
+  'donphan':['ground'],'shiny donphan':['ground'],
+  'scyther':['bug','flying'],'shiny scyther':['bug','flying'],
+  'lanturn':['water','electric'],'shiny lanturn':['water','electric'],
+  'shiny electabuzz':['electric'],
+  'jumpluff':['grass','flying'],'shiny jumpluff':['grass','flying'],
+  'piloswine':['ice','ground'],'shiny piloswine':['ice','ground'],
+  'cloyster':['water','ice'],'shiny cloyster':['water','ice'],
+  'dewgong':['water','ice'],'shiny dewgong':['water','ice'],
+  'sneasel':['dark','ice'],'shiny sneasel':['dark','ice'],
+  'shiny alakazam':['psychic'],
+  'mr. mime':['psychic'],'shiny mr. mime':['psychic'],
+  'shiny houndoom':['dark','fire'],
+  'tyranitar':['rock','dark'],'shiny tyranitar':['rock','dark'],
+  'weezing':['poison'],'shiny weezing':['poison'],
+
+  // Pokémons dos Rockets faltando (adicionados para corrigir fraquezas/counters no card)
+  // Thorn
+  'golbat':['poison','flying'],'shiny golbat':['poison','flying'],
+  'hypno':['psychic'],'shiny hypno':['psychic'],
+  // Tempest
+  'mr. mime':['psychic'],'shiny mr. mime':['psychic'],'shiny mime':['psychic'],
+  'snorlax':['normal'],'shiny snorlax':['normal'],
+  'shiny magmar':['fire'],
+  'pupitar':['rock','ground'],'shiny pupitar':['rock','ground'],
+  // Vortex
+  'omastar':['rock','water'],'shiny omastar':['rock','water'],
+  'kabutops':['rock','water'],'shiny kabutops':['rock','water'],
+  // Pokémons normais (sem shiny) usados pelos Rockets
+  'venusaur':['grass','poison'],'blastoise':['water'],'meganium':['grass'],
+  'charizard':['fire','flying'],'feraligatr':['water'],'typhlosion':['fire'],
+  'alakazam':['psychic'],'electabuzz':['electric'],'arcanine':['fire'],
+  'scyther':['bug','flying'],'nidoqueen':['poison','ground'],'nidoking':['poison','ground'],
+  'misdreavus':['ghost'],'magcargo':['fire','rock'],'hypno':['psychic'],
+  'gligar':['ground','flying'],'murkrow':['dark','flying'],'houndour':['dark','fire'],
+  'houndoom':['dark','fire'],'muk':['poison'],'gengar':['ghost','poison'],
+  'scizor':['bug','steel'],'gyarados':['water','flying'],
 };
 
 // Tabela completa de multiplicadores de dano por tipo atacante vs tipo defensor
@@ -2812,7 +2855,8 @@ var TYPE_CHART = {
 
 // Calcula as fraquezas reais considerando duplo tipo (resistências cancelam fraquezas)
 function getPokeWeaknesses(pokeName) {
-  var types = POKE_TYPES[pokeName.toLowerCase()] || [];
+  var key = pokeName.replace(/^sh\s+/i,'shiny ').toLowerCase().trim();
+  var types = POKE_TYPES[key] || [];
   if (!types.length) return [];
 
   var allAttackTypes = ['normal','fire','water','electric','grass','ice','fighting','poison',
@@ -2873,6 +2917,7 @@ var POKE_TYPE_MAIN = {
   'shiny dusknoir':'ghost','shiny espeon':'psychic','shiny luxray':'electric','shiny dragonair':'dragon',
   'shiny pinsir':'bug','shiny tauros':'normal','shiny electrode':'electric',
   'dusknoir':'ghost','luxray':'electric','tangrowth':'grass','torterra':'grass','shiny machamp':'fighting',
+  'shiny forretress':'bug','shiny sudowoodo':'rock','shiny scyther':'bug',
 };
 
 
@@ -2913,10 +2958,11 @@ function openRocketPokeInfo(pokeName) {
   var existing = document.getElementById('rocket-poke-modal');
   if (existing) existing.remove();
 
-  var counters = getCountersFromPOKEMONS(pokeName);
+  var rocketLookupKey = pokeName.replace(/^sh\s+/i,'shiny ').toLowerCase().trim();
+  var counters = getCountersFromPOKEMONS(rocketLookupKey);
   var usedBy   = getRocketsUsingPokemon(pokeName);
-  var weaknesses = getPokeWeaknesses(pokeName);
-  var types = (POKE_TYPES[pokeName.toLowerCase()] || []);
+  var weaknesses = getPokeWeaknesses(rocketLookupKey);
+  var types = (POKE_TYPES[rocketLookupKey] || []);
   var spriteUrl = getShowdownSpriteRocket(pokeName);
 
   var TCFG = {
@@ -2953,7 +2999,7 @@ function openRocketPokeInfo(pokeName) {
         var gif = p.image || '';
         var mainSrc = gif || spr;
         var isShinyCounter = /^sh\s+/i.test(p.name) || /^shiny\s+/i.test(p.name);
-        var counterLookup = p.name.replace(/^sh\s+/i,'').replace(/^shiny\s+/i,'').trim().toLowerCase().replace(/\s+/g,'-');
+        var counterLookup = p.name.replace(/^sh\s+/i,'shiny ').replace(/^shiny\s+/i,'shiny ').trim().toLowerCase();
         var counterTypes = POKE_TYPES[counterLookup] || [];
         var counterTypeChips = counterTypes.map(function(t) {
           var bm = BANNER_TYPE_MAP.find(function(m) { return m.type === t; });
@@ -3051,7 +3097,7 @@ function renderRockets() {
       var displayPokeName = isShinyPoke
         ? '<span style="color:#ffd166;font-weight:700">✨ '+pokeName+'</span>'
         : '<span style="color:var(--text-muted,#aab)">'+pokeName+'</span>';
-      var lookupKeyRocket = pokeName.replace(/^sh\s+/i,'').replace(/^shiny\s+/i,'').trim().toLowerCase().replace(/\s+/g,'-');
+      var lookupKeyRocket = pokeName.replace(/^sh\s+/i,'shiny ').toLowerCase().trim();
       var typesRocket = POKE_TYPES[lookupKeyRocket] || [];
       var typeChipsRocket = typesRocket.map(function(t) {
         var bm = BANNER_TYPE_MAP.find(function(m) { return m.type === t; });
@@ -3448,7 +3494,7 @@ function openOfficerPokeInfo(rawName) {
         var spr = getShowdownSpriteRocket(p.name);
         var mainSrc = p.image || spr;
         var isShinyCounter = /^sh\s+/i.test(p.name) || /^shiny\s+/i.test(p.name);
-        var counterLookup = p.name.replace(/^sh\s+/i,'').replace(/^shiny\s+/i,'').trim().toLowerCase().replace(/\s+/g,'-');
+        var counterLookup = p.name.replace(/^sh\s+/i,'shiny ').replace(/^shiny\s+/i,'shiny ').trim().toLowerCase();
         var counterTypes = POKE_TYPES[counterLookup] || [];
         var counterTypeChips = counterTypes.map(function(t) {
           var bm = BANNER_TYPE_MAP.find(function(m) { return m.type === t; });
@@ -4283,4 +4329,550 @@ function updateStarToOpts() {
     opts += '<option value="' + n + '"' + (isSelected ? ' selected' : '') + '>' + (n === 0 ? '☆ 0' : STAR_ICONS[n] + ' ' + n) + ' ★</option>';
   }
   toSel.innerHTML = opts;
+}
+
+// ===================== WIKI: PUNCHING BAG =====================
+function renderPunchingBag() {
+  var el = document.getElementById('wiki-punchingbag-content');
+  if (!el || el._pbRendered) return;
+  el._pbRendered = true;
+
+  var STATS = [
+    { icon: '⚔️', name: 'Attack',        key: 'atk',   perLvl: 0.1  },
+    { icon: '🛡️', name: 'Defense',       key: 'def',   perLvl: 0.05 },
+    { icon: '❤️', name: 'HP',            key: 'hp',    perLvl: 0.1  },
+    { icon: '🎯', name: 'Precisão',      key: 'prec',  perLvl: 0.2  },
+    { icon: '💨', name: 'Evasão',        key: 'eva',   perLvl: 0.2  },
+    { icon: '💥', name: 'Critical DMG',  key: 'cdmg',  perLvl: 0.1  },
+    { icon: '🍀', name: 'Critical Chance',key: 'cchance',perLvl: 0.1  },
+    { icon: '🔰', name: 'Critical Res',  key: 'cres',  perLvl: 0.1  },
+  ];
+
+  var BAGS = [
+    { icon: '🥊', name: 'Punching Bag (Solo)',   pokeMin: 1, pokeMax: 1, desc: 'Versão básica. Comporta apenas 1 Pokémon por vez. Mais lento.' },
+    { icon: '👊', name: 'Punching Bag (2 Pokes)', pokeMin: 2, pokeMax: 2, desc: 'Treina 2 Pokémons simultaneamente. Consome cargas 2× mais rápido.' },
+    { icon: '💪', name: 'Punching Bag (3 Pokes)', pokeMin: 3, pokeMax: 3, desc: 'Treina 3 Pokémons simultaneamente. Consome cargas 3× mais rápido.' },
+    { icon: '🏋️', name: 'Punching Bag (4 Pokes)', pokeMin: 4, pokeMax: 4, desc: 'Capacidade máxima. Treina 4 Pokémons ao mesmo tempo. Treino máximo!' },
+  ];
+
+  el.innerHTML = `
+  <div class="pb-page">
+
+    <!-- Hero -->
+    <div class="pb-hero">
+      <div class="pb-hero-icon">🥊</div>
+      <div class="pb-hero-title">Punching Bag</div>
+      <div class="pb-hero-sub">Sistema de treinamento de atributos para seus Pokémons</div>
+    </div>
+
+    <!-- Como funciona -->
+    <div class="pb-howto">
+      <div class="pb-howto-title">📖 Como treinar um Pokémon</div>
+      <div class="pb-steps-list">
+        <div class="pb-step">
+          <div class="pb-step-num">1</div>
+          <div>Compre o <strong>dummy (Punching Bag)</strong> e as <strong>cargas</strong> na store (por <span class="pb-tag-dd">DDs</span>), ou com a NPC <strong>July</strong> no TC (por <span class="pb-tag-kk">KKs</span>).</div>
+        </div>
+        <div class="pb-step">
+          <div class="pb-step-num">2</div>
+          <div>Coloque o <strong>dummy na sua house</strong> — ele precisa de bastante espaço!</div>
+        </div>
+        <div class="pb-step">
+          <div class="pb-step-num">3</div>
+          <div>Adicione as <strong>cargas</strong> ao dummy e coloque o <strong>Pokémon</strong> nele para iniciar o treino.</div>
+        </div>
+        <div class="pb-step">
+          <div class="pb-step-num">4</div>
+          <div>Para ver os stats treinados: <strong>Ctrl + clique</strong> na Pokéball → <strong>Customize</strong>.</div>
+        </div>
+      </div>
+      <div class="pb-tip-box">
+        💡 <span>Cada punching bag comporta entre <strong>1 e 4 Pokémons</strong> por vez. Quanto mais Pokémons, mais rápido as cargas são consumidas — mas o treino é simultâneo!</span>
+      </div>
+    </div>
+
+    <!-- Bônus por nível -->
+    <div class="pb-section">
+      <div class="pb-section-title">📊 Bônus por nível de treinamento</div>
+      <div class="pb-stats-grid">
+        ${STATS.map(function(s) {
+          return '<div class="pb-stat-card">' +
+            '<div class="pb-stat-icon">' + s.icon + '</div>' +
+            '<div class="pb-stat-name">' + s.name + '</div>' +
+            '<div class="pb-stat-bonus">+' + s.perLvl + '%</div>' +
+            '<div class="pb-stat-per-lvl">por nível</div>' +
+          '</div>';
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Calculadora -->
+    <div class="pb-section">
+      <div class="pb-section-title">🧮 Calculadora de Bônus Acumulado</div>
+      <div class="pb-calc-card">
+        <div class="pb-calc-header">
+          <div class="pb-calc-header-icon">⚡</div>
+          <div class="pb-calc-header-text">Insira o nível de treinamento do seu Pokémon</div>
+        </div>
+        <div class="pb-calc-body">
+          <div class="pb-calc-row">
+            <div class="pb-calc-label">Nível atual</div>
+            <div class="pb-level-input-wrap">
+              <input type="number" id="pb-level-input" class="pb-level-input" min="0" max="1000" value="0"
+                oninput="pbSyncSlider(this.value); pbCalc()" />
+              <input type="range" id="pb-level-slider" class="pb-level-slider" min="0" max="500" value="0"
+                oninput="pbSyncInput(this.value); pbCalc()" />
+              <span class="pb-level-max">máx livre</span>
+            </div>
+          </div>
+          <div class="pb-results-grid" id="pb-results">
+            ${STATS.map(function(s) {
+              return '<div class="pb-result-cell" id="pb-cell-' + s.key + '">' +
+                '<div class="pb-result-icon">' + s.icon + '</div>' +
+                '<div class="pb-result-name">' + s.name + '</div>' +
+                '<div class="pb-result-val" id="pb-val-' + s.key + '">+0%</div>' +
+                '<div class="pb-result-sub" id="pb-sub-' + s.key + '">nível 0</div>' +
+              '</div>';
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bags variants -->
+    <div class="pb-section">
+      <div class="pb-section-title">🥊 Tipos de Punching Bag</div>
+      <div class="pb-bags-grid">
+        ${BAGS.map(function(b) {
+          return '<div class="pb-bag-card">' +
+            '<div class="pb-bag-icon">' + b.icon + '</div>' +
+            '<div class="pb-bag-name">' + b.name + '</div>' +
+            '<div class="pb-bag-poke">' + (b.pokeMin === b.pokeMax ? b.pokeMin : b.pokeMin + '–' + b.pokeMax) + ' Pokémon' + (b.pokeMax > 1 ? 's' : '') + '</div>' +
+            '<div class="pb-bag-desc">' + b.desc + '</div>' +
+          '</div>';
+        }).join('')}
+      </div>
+    </div>
+
+  </div>
+  `;
+
+  // Store stats data for calculator
+  el._pbStats = STATS;
+  pbCalc();
+}
+
+function pbSyncSlider(val) {
+  var slider = document.getElementById('pb-level-slider');
+  if (slider) slider.value = Math.min(val, 500);
+}
+
+function pbSyncInput(val) {
+  var input = document.getElementById('pb-level-input');
+  if (input) input.value = val;
+}
+
+function pbCalc() {
+  var el = document.getElementById('wiki-punchingbag-content');
+  if (!el || !el._pbStats) return;
+  var input = document.getElementById('pb-level-input');
+  if (!input) return;
+  var level = Math.max(0, parseInt(input.value) || 0);
+
+  el._pbStats.forEach(function(s) {
+    var bonus = (level * s.perLvl).toFixed(level * s.perLvl % 1 === 0 ? 0 : 2);
+    var valEl  = document.getElementById('pb-val-' + s.key);
+    var subEl  = document.getElementById('pb-sub-' + s.key);
+    var cellEl = document.getElementById('pb-cell-' + s.key);
+    if (valEl)  valEl.textContent  = '+' + bonus + '%';
+    if (subEl)  subEl.textContent  = 'nível ' + level;
+    if (cellEl) {
+      if (level > 0) cellEl.classList.add('has-bonus');
+      else cellEl.classList.remove('has-bonus');
+    }
+  });
+}
+
+// ===================== WIKI: ROUPAS DE SPEED =====================
+function renderRoupasSpeed() {
+  var el = document.getElementById('wiki-roupasspeed-content');
+  if (!el) return;
+
+  var roupas = [
+    {
+      id: 'ski',
+      nome: 'Roupa de Ski',
+      terreno: 'Neve',
+      pergunta: 'Como ando mais rápido na neve?',
+      pedra: 'Ice Stone',
+      qtd: 3,
+      cor: '#5bc8f5',
+      corRgb: '91,200,245',
+      emoji: '❄️',
+      img: 'https://i.imgur.com/DjU6sM4.png',
+      dica: 'Equipar esta roupa permite se mover mais rápido em terrenos cobertos de neve.',
+      mapImg: null
+    },
+    {
+      id: 'sandboard',
+      nome: 'Sandboard',
+      terreno: 'Areia',
+      pergunta: 'Como ando mais rápido na areia?',
+      pedra: 'Enigma Stone',
+      qtd: 3,
+      cor: '#e8b840',
+      corRgb: '232,184,64',
+      emoji: '🏜️',
+      img: 'https://i.imgur.com/YUCTD6p.jpeg',
+      dica: 'Equipar esta roupa permite deslizar rapidamente sobre terrenos arenosos.',
+      mapImg: null
+    },
+    {
+      id: 'mergulho',
+      nome: 'Roupa de Mergulho',
+      terreno: 'Água',
+      pergunta: 'Como ando mais rápido na água?',
+      pedra: 'Water Stone',
+      qtd: 3,
+      cor: '#4a9eff',
+      corRgb: '74,158,255',
+      emoji: '🌊',
+      img: 'https://i.imgur.com/LbDx18X.png',
+      dica: 'Equipar esta roupa permite nadar com velocidade elevada em rios, lagos e oceanos.',
+      mapImg: null
+    }
+  ];
+
+  // Inject CSS once
+  if (!document.getElementById('rsp2-css')) {
+    var s = document.createElement('style');
+    s.id = 'rsp2-css';
+    s.textContent = `
+      /* ── Roupas Speed v2 — card style ── */
+      .rsp2-page { max-width: 960px; margin: 0 auto; padding: 8px 0 60px; }
+
+      .rsp2-hero { text-align: center; padding: 32px 20px 28px; }
+      .rsp2-hero-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+      .rsp2-hero-title {
+        font-family: var(--font-title);
+        font-size: 22px; font-weight: 900; letter-spacing: 3px;
+        text-transform: uppercase; color: #fff; margin-bottom: 6px;
+      }
+      .rsp2-hero-sub { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+
+      /* Grid of 3 cards */
+      .rsp2-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+        gap: 16px;
+        padding: 0 8px;
+      }
+
+      /* Individual card */
+      .rsp2-card {
+        background: rgba(255,255,255,0.025);
+        border: 1.5px solid rgba(var(--rsp2-rgb), 0.15);
+        border-radius: 16px; overflow: hidden;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s, transform 0.18s, box-shadow 0.2s;
+        position: relative;
+      }
+      .rsp2-card::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse at 50% -10%, rgba(var(--rsp2-rgb), 0.07), transparent 70%);
+        pointer-events: none;
+      }
+      .rsp2-card:hover {
+        border-color: rgba(var(--rsp2-rgb), 0.45);
+        background: rgba(var(--rsp2-rgb), 0.04);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(var(--rsp2-rgb), 0.12), 0 0 0 1px rgba(var(--rsp2-rgb), 0.08);
+      }
+
+      /* Card header */
+      .rsp2-card-header {
+        display: flex; align-items: center; gap: 10px;
+        padding: 13px 15px 11px;
+        border-bottom: 1px solid rgba(var(--rsp2-rgb), 0.1);
+      }
+      .rsp2-npc-icon {
+        width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+        background: rgba(var(--rsp2-rgb), 0.15);
+        border: 1.5px solid rgba(var(--rsp2-rgb), 0.35);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+      }
+      .rsp2-card-name {
+        font-family: var(--font-title);
+        font-size: 14px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase; color: var(--rsp2-cor); flex: 1;
+      }
+      .rsp2-map-btn {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-family: var(--font-mono, monospace);
+        font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+        text-transform: uppercase; color: #60c0ff;
+        background: rgba(96,192,255,0.1);
+        border: 1px solid rgba(96,192,255,0.25);
+        border-radius: 6px; padding: 5px 9px;
+        cursor: pointer; white-space: nowrap;
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      }
+      .rsp2-map-btn:hover {
+        background: rgba(96,192,255,0.22);
+        border-color: rgba(96,192,255,0.55);
+        transform: scale(1.04);
+      }
+
+      /* Card image area */
+      .rsp2-img-area {
+        padding: 18px 18px 10px;
+        display: flex; justify-content: center; align-items: center;
+        background: rgba(0,0,0,0.15);
+        min-height: 160px; position: relative; overflow: hidden;
+      }
+      .rsp2-img-glow {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse at 50% 60%, rgba(var(--rsp2-rgb), 0.12), transparent 70%);
+        pointer-events: none;
+      }
+      .rsp2-item-img {
+        width: 120px; height: 120px; object-fit: contain;
+        image-rendering: auto;
+        position: relative; z-index: 1;
+        filter: drop-shadow(0 0 12px rgba(var(--rsp2-rgb), 0.4));
+        transition: transform 0.3s, filter 0.3s;
+      }
+      .rsp2-card:hover .rsp2-item-img {
+        transform: scale(1.07) translateY(-4px);
+        filter: drop-shadow(0 4px 18px rgba(var(--rsp2-rgb), 0.6));
+      }
+
+      /* Card info footer */
+      .rsp2-card-info {
+        padding: 12px 15px 16px;
+        display: flex; flex-direction: column; gap: 10px;
+      }
+      .rsp2-terreno-row {
+        display: flex; align-items: center; gap: 8px;
+      }
+      .rsp2-terreno-emoji { font-size: 22px; }
+      .rsp2-terreno-label {
+        font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase; color: rgba(255,255,255,0.3);
+      }
+      .rsp2-terreno-name {
+        font-family: var(--font-title);
+        font-size: 15px; font-weight: 700; color: var(--rsp2-cor);
+        margin-left: auto;
+      }
+      .rsp2-req-row {
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(var(--rsp2-rgb), 0.07);
+        border: 1px solid rgba(var(--rsp2-rgb), 0.18);
+        border-radius: 10px; padding: 8px 12px;
+      }
+      .rsp2-req-num {
+        font-family: var(--font-mono, monospace);
+        font-size: 22px; font-weight: 900; color: var(--rsp2-cor); line-height: 1;
+      }
+      .rsp2-req-sep { width: 1px; height: 28px; background: rgba(var(--rsp2-rgb), 0.2); }
+      .rsp2-req-text { flex: 1; }
+      .rsp2-req-pedra {
+        font-family: var(--font-title);
+        font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 2px;
+      }
+      .rsp2-req-hint {
+        font-size: 10px; color: rgba(255,255,255,0.35); letter-spacing: 0.3px;
+      }
+      .rsp2-dica {
+        font-size: 11px; color: rgba(255,255,255,0.38);
+        font-style: italic; line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.06);
+        padding-top: 10px;
+      }
+
+      /* ── Map Modal (reuse hzmap style with rsp2 theme) ── */
+      #rsp2-map-modal {
+        position: fixed; inset: 0; z-index: 9000;
+        display: flex; align-items: center; justify-content: center;
+        animation: rsp2FadeIn 0.2s ease;
+      }
+      @keyframes rsp2FadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .rsp2-map-backdrop {
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0.78);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      }
+      .rsp2-map-panel {
+        position: relative; z-index: 1;
+        width: min(1100px, 96vw); max-height: 92vh;
+        display: flex; flex-direction: column;
+        background: #0c1424;
+        border: 1px solid rgba(var(--rsp2-modal-rgb, 255,220,80), 0.25);
+        border-radius: 16px; overflow: hidden;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(var(--rsp2-modal-rgb, 255,220,80), 0.08);
+        animation: rsp2SlideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+      }
+      @keyframes rsp2SlideUp {
+        from { transform: translateY(28px) scale(0.97); opacity: 0; }
+        to   { transform: translateY(0)    scale(1);    opacity: 1; }
+      }
+      .rsp2-map-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(var(--rsp2-modal-rgb, 255,220,80), 0.12);
+        background: rgba(var(--rsp2-modal-rgb, 255,220,80), 0.04);
+      }
+      .rsp2-map-title {
+        display: flex; align-items: center; gap: 8px;
+        font-family: var(--font-title);
+        font-size: 14px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase; color: var(--rsp2-modal-cor, #ffe066);
+      }
+      .rsp2-map-close {
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+        color: #fff; border-radius: 8px; width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; cursor: pointer; transition: background 0.15s;
+      }
+      .rsp2-map-close:hover { background: rgba(255,80,80,0.2); border-color: rgba(255,80,80,0.4); }
+      .rsp2-map-body {
+        position: relative; flex: 1; min-height: 65vh;
+        background: #070d1a;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+      }
+      .rsp2-map-loading {
+        position: absolute;
+        font-family: var(--font-mono, monospace);
+        font-size: 12px; color: var(--muted); letter-spacing: 1px;
+        pointer-events: none;
+      }
+      .rsp2-map-iframe {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        border: none; opacity: 0; transition: opacity 0.4s;
+      }
+      .rsp2-map-iframe.loaded { opacity: 1; }
+      .rsp2-map-img {
+        position: absolute; inset: 0; margin: auto;
+        max-width: 100%; max-height: 100%;
+        width: auto; height: auto;
+        object-fit: contain;
+        opacity: 0; transition: opacity 0.4s;
+      }
+      .rsp2-map-img.loaded { opacity: 1; }
+      .rsp2-map-bg {
+        position: absolute; inset: 0;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+      .rsp2-map-footer {
+        padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.06);
+        display: flex; align-items: center; gap: 10px;
+        font-size: 11px; color: rgba(255,255,255,0.3);
+        background: rgba(0,0,0,0.25);
+      }
+
+      @media(max-width:640px) { .rsp2-grid { grid-template-columns: 1fr; } }
+    `;
+    document.head.appendChild(s);
+  }
+
+  var html = '<div class="rsp2-page">';
+  html += '<div class="rsp2-hero">';
+  html += '  <div class="rsp2-hero-icon">🎽</div>';
+  html += '  <div class="rsp2-hero-title">Roupas de Speed</div>';
+  html += '  <div class="rsp2-hero-sub">Clique em "Ver Mapa" para localizar o NPC responsável</div>';
+  html += '</div>';
+  html += '<div class="rsp2-grid">';
+
+  roupas.forEach(function(r) {
+    html += '<div class="rsp2-card" style="--rsp2-rgb:' + r.corRgb + ';--rsp2-cor:' + r.cor + '">';
+
+    // Header
+    html += '<div class="rsp2-card-header">';
+    html += '  <div class="rsp2-npc-icon">' + r.emoji + '</div>';
+    html += '  <div class="rsp2-card-name">' + r.nome + '</div>';
+    html += '  <button class="rsp2-map-btn" onclick="event.stopPropagation();openRsp2Map(\'' + r.id + '\')">';
+    html += '    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+    html += '    VER MAPA';
+    html += '  </button>';
+    html += '</div>';
+
+    // Image
+    html += '<div class="rsp2-img-area">';
+    html += '  <div class="rsp2-img-glow"></div>';
+    html += '  <img class="rsp2-item-img" src="' + r.img + '" alt="' + r.nome + '" loading="lazy" onerror="this.style.display=\'none\'" />';
+    html += '</div>';
+
+    // Info
+    html += '<div class="rsp2-card-info">';
+    html += '  <div class="rsp2-terreno-row">';
+    html += '    <span class="rsp2-terreno-emoji">' + r.emoji + '</span>';
+    html += '    <span class="rsp2-terreno-label">Terreno</span>';
+    html += '    <span class="rsp2-terreno-name">' + r.terreno + '</span>';
+    html += '  </div>';
+    html += '  <div class="rsp2-req-row">';
+    html += '    <div class="rsp2-req-num">×' + r.qtd + '</div>';
+    html += '    <div class="rsp2-req-sep"></div>';
+    html += '    <div class="rsp2-req-text">';
+    html += '      <div class="rsp2-req-pedra">' + r.pedra + '</div>';
+    html += '      <div class="rsp2-req-hint">Entregar ao NPC responsável</div>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '  <div class="rsp2-dica">' + r.dica + '</div>';
+    html += '</div>';
+
+    html += '</div>'; // .rsp2-card
+  });
+
+  html += '</div>'; // .rsp2-grid
+  html += '</div>'; // .rsp2-page
+  el.innerHTML = html;
+}
+
+// Map data for each roupa (reuse hazard map system)
+var RSP2_MAP_DATA = {
+  ski:       { npc: 'NPC Neve',  img: 'https://i.imgur.com/DjU6sM4.png',  emoji: '❄️', cor: '#5bc8f5', rgb: '91,200,245',  label: 'Roupa de Ski' },
+  sandboard: { npc: 'NPC Areia', img: 'https://i.imgur.com/YUCTD6p.jpeg', emoji: '🏜️', cor: '#e8b840', rgb: '232,184,64', label: 'Sandboard' },
+  mergulho:  { npc: 'NPC Água',  img: 'https://i.imgur.com/LbDx18X.png',  emoji: '🌊', cor: '#4a9eff', rgb: '74,158,255',  label: 'Roupa de Mergulho' }
+};
+
+function openRsp2Map(id) {
+  var existing = document.getElementById('rsp2-map-modal');
+  if (existing) existing.remove();
+  var data = RSP2_MAP_DATA[id] || { npc: id, img: null, emoji: '🗺️', cor: '#ffe066', rgb: '255,224,102', label: id };
+  document.documentElement.style.setProperty('--rsp2-modal-rgb', data.rgb);
+  document.documentElement.style.setProperty('--rsp2-modal-cor', data.cor);
+
+  var bodyContent = data.img
+    ? '<div class="rsp2-map-bg" style="background-image:url(\'' + data.img + '\')"></div>'
+    : '<div style="font-family:var(--font-mono,monospace);font-size:13px;color:rgba(255,255,255,0.35);text-align:center;padding:40px;line-height:2">🗺️<br>Mapa ainda não cadastrado para este NPC.<br>Em breve!</div>';
+
+  var modal = document.createElement('div');
+  modal.id = 'rsp2-map-modal';
+  modal.innerHTML =
+    '<div class="rsp2-map-backdrop" onclick="document.getElementById(\'rsp2-map-modal\').remove()"></div>' +
+    '<div class="rsp2-map-panel">' +
+      '<div class="rsp2-map-header">' +
+        '<div class="rsp2-map-title"><span>' + data.emoji + '</span><span>' + data.npc + '</span></div>' +
+        '<button class="rsp2-map-close" onclick="document.getElementById(\'rsp2-map-modal\').remove()">✕</button>' +
+      '</div>' +
+      '<div class="rsp2-map-body">' + bodyContent + '</div>' +
+      '<div class="rsp2-map-footer">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>' +
+        'Localização do NPC responsável pela ' + data.label +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+}
+
+function toggleRspCard(id) {
+  var card = document.getElementById('rsp-card-' + id);
+  if (!card) return;
+  var isOpen = card.classList.contains('open');
+  document.querySelectorAll('.rsp-card.open').forEach(function(c) { c.classList.remove('open'); });
+  if (!isOpen) card.classList.add('open');
 }
