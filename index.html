@@ -6,6 +6,7 @@
 <title>F I L I P I • PokeAlliance Shop [v4]</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="mobile-patch.css" />
 </head>
 <body>
 
@@ -429,20 +430,143 @@
 
   <!-- ===== SUB-ABA: RESPAWN ===== -->
   <div id="wiki-tab-respawn" class="wiki-subtab-content" style="display:none">
-    <div class="wiki-controls">
-      <div class="wiki-search-wrap">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
-          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+
+    <!-- Topbar de controles do Respawn -->
+    <div class="rsp-topbar">
+      <!-- Search -->
+      <div class="rsp-topbar-search">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <input type="text" id="respawn-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_respawnSearchTimer); _respawnSearchTimer = setTimeout(renderRespawn, 150)" />
       </div>
-      <span class="wiki-count-label" id="respawn-count-label">— Pokémon</span>
+
+      <!-- Contador -->
+      <span class="rsp-topbar-count" id="respawn-count-label">— Pokémon</span>
+
+      <!-- Spacer -->
+      <div style="flex:1"></div>
+
+      <!-- Toggle Grid / Lista -->
+      <div class="rsp-topbar-views">
+        <button class="rsp-topbar-view-btn active" id="rsp-btn-grid" title="Grade" onclick="setRespawnView('grid')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="1" y="1" width="6" height="6" rx="1.5"/>
+            <rect x="9" y="1" width="6" height="6" rx="1.5"/>
+            <rect x="1" y="9" width="6" height="6" rx="1.5"/>
+            <rect x="9" y="9" width="6" height="6" rx="1.5"/>
+          </svg>
+          <span>Grade</span>
+        </button>
+        <button class="rsp-topbar-view-btn" id="rsp-btn-list" title="Lista" onclick="setRespawnView('list')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="1" y="2" width="14" height="2.5" rx="1"/>
+            <rect x="1" y="6.75" width="14" height="2.5" rx="1"/>
+            <rect x="1" y="11.5" width="14" height="2.5" rx="1"/>
+          </svg>
+          <span>Lista</span>
+        </button>
+      </div>
     </div>
+
     <div class="wiki-respawn-wrap active" id="respawn-grid-wrap">
       <div id="respawn-grid"></div>
     </div>
   </div>
+
+  <style>
+  /* ── Respawn Topbar ── */
+  .rsp-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 14px;
+    flex-wrap: wrap;
+  }
+
+  .rsp-topbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px;
+    padding: 0 12px;
+    height: 38px;
+    color: rgba(255,255,255,0.35);
+    transition: border-color .2s, background .2s;
+    min-width: 200px;
+    max-width: 320px;
+    flex: 1;
+  }
+  .rsp-topbar-search:focus-within {
+    border-color: rgba(96,170,255,0.45);
+    background: rgba(96,170,255,0.06);
+    color: rgba(96,170,255,0.8);
+  }
+  .rsp-topbar-search input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: var(--font-body, sans-serif);
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+  .rsp-topbar-search input::placeholder {
+    color: rgba(255,255,255,0.28);
+  }
+
+  .rsp-topbar-count {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+
+  .rsp-topbar-views {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .rsp-topbar-view-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.38);
+    font-family: var(--font-body, sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+  }
+  .rsp-topbar-view-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.7);
+  }
+  .rsp-topbar-view-btn.active {
+    background: rgba(96,170,255,0.15);
+    color: #60aaff;
+    border: 1px solid rgba(96,170,255,0.25);
+  }
+
+  @media (max-width: 480px) {
+    .rsp-topbar-view-btn span { display: none; }
+    .rsp-topbar-view-btn { padding: 6px 10px; }
+  }
+  </style>
 
   <!-- ===== SUB-ABA: QUESTS ===== -->
   <div id="wiki-tab-quests" class="wiki-subtab-content" style="display:none">
@@ -649,6 +773,7 @@
 </div>
 
 <script src="dados.js"></script>
+<script src="respawn_patch_modal.js"></script>
 <script src="app.js"></script>
 
 
@@ -1686,5 +1811,6 @@
   </div>
 </div>
 
+  <script src="mobile-ux.js"></script>
 </body>
 </html>
