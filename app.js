@@ -902,6 +902,7 @@ function switchWikiTab(tab, btn) {
     var activeSubcat = activeNpcBtn ? activeNpcBtn.getAttribute('data-subcat') || 'rockets' : 'rockets';
     switchNpcSubcat(activeSubcat, activeNpcBtn);
   }
+  if (tab === 'starcalc') renderStarCalc();
 }
 
 // ===================== WIKI: BROKES =====================
@@ -3820,4 +3821,466 @@ function renderHazard() {
         }).join('') +
       '</div>' +
     '</div>';
+}
+
+// ===================== WIKI: STAR CALCULATION =====================
+function renderStarCalc() {
+  var el = document.getElementById('wiki-starcalc-content');
+  if (!el) return;
+
+  // ── Dados por tier ─────────────────────────────────────────────
+  var TIERS = [
+    {
+      id: 't3', label: 'Tier 3', icon: '🔵', color: '#3a8cff',
+      dmgBonus: '2% por nível de estrela',
+      steps: [
+        { from: 0, to: 1, dd: 4,   kk: 1,    pokes: 1  },
+        { from: 1, to: 2, dd: 12,  kk: 3,    pokes: 2  },
+        { from: 2, to: 3, dd: 28,  kk: 7,    pokes: 4  },
+        { from: 3, to: 4, dd: 60,  kk: 15,   pokes: 8  },
+        { from: 4, to: 5, dd: 124, kk: 31,   pokes: 16 },
+      ],
+      total: { dd: 228, kk: 57, pokes: 31 }
+    },
+    {
+      id: 't2', label: 'Tier 2', icon: '🟢', color: '#22c55e',
+      dmgBonus: '4% por nível de estrela',
+      steps: [
+        { from: 0, to: 1, dd: 6,   kk: 1.5,  pokes: 1  },
+        { from: 1, to: 2, dd: 18,  kk: 4.5,  pokes: 2  },
+        { from: 2, to: 3, dd: 42,  kk: 10.5, pokes: 4  },
+        { from: 3, to: 4, dd: 90,  kk: 22.5, pokes: 8  },
+        { from: 4, to: 5, dd: 186, kk: 46.5, pokes: 16 },
+      ],
+      total: { dd: 342, kk: 85.5, pokes: 31 }
+    },
+    {
+      id: 't1', label: 'Tier 1', icon: '🟡', color: '#fbbf24',
+      dmgBonus: '6% por nível de estrela',
+      steps: [
+        { from: 0, to: 1, dd: 12,  kk: 3,    pokes: 1  },
+        { from: 1, to: 2, dd: 36,  kk: 9,    pokes: 2  },
+        { from: 2, to: 3, dd: 84,  kk: 21,   pokes: 4  },
+        { from: 3, to: 4, dd: 180, kk: 45,   pokes: 8  },
+        { from: 4, to: 5, dd: 372, kk: 93,   pokes: 16 },
+      ],
+      total: { dd: 684, kk: 171, pokes: 31 }
+    },
+    {
+      id: 'sr', label: 'Super Raro', icon: '🟣', color: '#a855f7',
+      dmgBonus: '8% por nível de estrela',
+      steps: [
+        { from: 0, to: 1, dd: 16,  kk: 4,    pokes: 1  },
+        { from: 1, to: 2, dd: 48,  kk: 12,   pokes: 2  },
+        { from: 2, to: 3, dd: 112, kk: 28,   pokes: 4  },
+        { from: 3, to: 4, dd: 240, kk: 60,   pokes: 8  },
+        { from: 4, to: 5, dd: 496, kk: 124,  pokes: 16 },
+      ],
+      total: { dd: 912, kk: 228, pokes: 31 }
+    },
+    {
+      id: 'ur', label: 'Ultra Raro', icon: '🔴', color: '#ef4444',
+      dmgBonus: '10% por nível de estrela',
+      steps: [
+        { from: 0, to: 1, dd: 24,  kk: 6,    pokes: 1  },
+        { from: 1, to: 2, dd: 72,  kk: 18,   pokes: 2  },
+        { from: 2, to: 3, dd: 168, kk: 42,   pokes: 4  },
+        { from: 3, to: 4, dd: 360, kk: 90,   pokes: 8  },
+        { from: 4, to: 5, dd: 744, kk: 186,  pokes: 16 },
+      ],
+      total: { dd: 1368, kk: 342, pokes: 31 }
+    },
+    {
+      id: 'lg', label: 'Legendary', icon: '🌟', color: '#f59e0b',
+      dmgBonus: '15% por nível de estrela',
+      steps: [
+        { from: 0, to: 1, dd: 48,  kk: 12,   pokes: 1  },
+        { from: 1, to: 2, dd: 144, kk: 36,   pokes: 2  },
+        { from: 2, to: 3, dd: 336, kk: 84,   pokes: 4  },
+        { from: 3, to: 4, dd: 720, kk: 180,  pokes: 8  },
+        { from: 4, to: 5, dd: 1488,kk: 372,  pokes: 16 },
+      ],
+      total: { dd: 2736, kk: 684, pokes: 31 }
+    },
+  ];
+
+  var STAR_ICONS = ['☆','★','★★','★★★','★★★★','★★★★★'];
+
+  // ── Calculadora interativa ──────────────────────────────────────
+  function calcCost(tier, fromStar, toStar) {
+    var dd = 0, kk = 0, pokes = 0;
+    for (var i = fromStar; i < toStar; i++) {
+      var step = tier.steps[i];
+      dd += step.dd; kk += step.kk; pokes += step.pokes;
+    }
+    return { dd: dd, kk: kk, pokes: pokes };
+  }
+
+  // ── Build HTML ──────────────────────────────────────────────────
+  var tiersHtml = TIERS.map(function(tier) {
+    var stepsHtml = tier.steps.map(function(s) {
+      return '<tr>' +
+        '<td><span class="sc-star-from">' + STAR_ICONS[s.from] + ' ' + s.from + '</span></td>' +
+        '<td><span class="sc-arrow">→</span></td>' +
+        '<td><span class="sc-star-to">' + STAR_ICONS[s.to] + ' ' + s.to + '</span></td>' +
+        '<td><span class="sc-dd">💎 ' + s.dd + ' DD</span></td>' +
+        '<td><span class="sc-kk">🍀 ' + s.kk + ' KK</span></td>' +
+        '<td><span class="sc-pokes">🐾 ' + s.pokes + ' Poke' + (s.pokes > 1 ? 's' : '') + '</span></td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div class="sc-tier-card" id="sc-card-' + tier.id + '">' +
+      '<div class="sc-tier-header" style="border-left:4px solid ' + tier.color + '">' +
+        '<div class="sc-tier-title">' +
+          '<span class="sc-tier-icon">' + tier.icon + '</span>' +
+          '<span class="sc-tier-name" style="color:' + tier.color + '">' + tier.label + '</span>' +
+        '</div>' +
+        '<div class="sc-tier-dmg">+' + tier.dmgBonus + '</div>' +
+      '</div>' +
+      '<div class="sc-tier-body">' +
+        '<table class="sc-steps-table">' +
+          '<thead><tr>' +
+            '<th colspan="3">Evolução</th>' +
+            '<th>💎 DD</th>' +
+            '<th>🍀 KK</th>' +
+            '<th>🐾 Pokémons</th>' +
+          '</tr></thead>' +
+          '<tbody>' + stepsHtml + '</tbody>' +
+          '<tfoot><tr class="sc-total-row">' +
+            '<td colspan="3"><strong>Total 0 → 5 ★</strong></td>' +
+            '<td><strong>💎 ' + tier.total.dd + '</strong></td>' +
+            '<td><strong>🍀 ' + tier.total.kk + '</strong></td>' +
+            '<td><strong>🐾 ' + tier.total.pokes + ' Pokémons</strong></td>' +
+          '</tr></tfoot>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // Options for dropdowns
+  var tierOpts = TIERS.map(function(t) {
+    return '<option value="' + t.id + '">' + t.icon + ' ' + t.label + '</option>';
+  }).join('');
+
+  var starOpts = function(selected, minVal) {
+    minVal = minVal || 0;
+    return [0,1,2,3,4,5].filter(function(n){ return n >= minVal; }).map(function(n) {
+      var icon = n === 0 ? '☆ 0' : STAR_ICONS[n] + ' ' + n;
+      return '<option value="' + n + '"' + (n === selected ? ' selected' : '') + '>' + icon + ' \u2605</option>';
+    }).join('');
+  };
+
+  el.innerHTML = `
+  <style>
+  .sc-page { padding: 20px 24px 40px; max-width: 900px; margin: 0 auto; }
+
+  /* Hero */
+  .sc-hero { text-align:center; padding: 28px 20px 20px; margin-bottom: 28px; }
+  .sc-hero-icon { font-size: 42px; margin-bottom: 10px; }
+  .sc-hero-title { font-family: var(--font-title); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 1.5px; margin-bottom: 6px; }
+  .sc-hero-sub { font-size: 13px; color: var(--muted); }
+
+  /* Calculator */
+  .sc-calculator {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,209,102,0.2);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .sc-calc-title {
+    font-family: var(--font-title);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sc-calc-fields {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px;
+  }
+  .sc-calc-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 120px; }
+  .sc-calc-field label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+  .sc-calc-field select {
+    background: #1a2340;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 8px 10px;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+  .sc-calc-field select option {
+    background: #1a2340;
+    color: #fff;
+  }
+  .sc-calc-field select:focus { border-color: var(--gold); background-color: #1a2340; }
+  .sc-calc-btn {
+    background: linear-gradient(135deg, rgba(255,209,102,0.2), rgba(255,209,102,0.08));
+    border: 1px solid rgba(255,209,102,0.4);
+    border-radius: 8px;
+    color: var(--gold);
+    font-family: var(--font-title);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .sc-calc-btn:hover { background: rgba(255,209,102,0.18); border-color: var(--gold); }
+  .sc-calc-result {
+    display: none;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 4px;
+  }
+  .sc-calc-result.visible { display: flex; gap: 20px; flex-wrap: wrap; }
+  .sc-calc-result-label {
+    width: 100%;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-family: var(--font-mono, monospace);
+  }
+  .sc-calc-result-item {
+    display: flex; flex-direction: column; gap: 2px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 10px 16px;
+    flex: 1; min-width: 80px; text-align: center;
+  }
+  .sc-calc-result-val { font-size: 20px; font-weight: 900; font-family: var(--font-mono, monospace); color: #fff; }
+  .sc-calc-result-sub { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  .sc-calc-result-val.dd { color: #60d0ff; }
+  .sc-calc-result-val.kk { color: #4ade80; }
+  .sc-calc-result-val.poke { color: #f472b6; }
+
+  /* Notes */
+  .sc-notes {
+    background: rgba(58,140,255,0.07);
+    border: 1px solid rgba(58,140,255,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 28px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.7;
+  }
+  .sc-notes strong { color: #fff; }
+
+  /* Tier cards */
+  .sc-tier-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .sc-tier-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .sc-tier-title { display: flex; align-items: center; gap: 10px; }
+  .sc-tier-icon { font-size: 20px; }
+  .sc-tier-name { font-family: var(--font-title); font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+  .sc-tier-dmg { font-size: 11px; color: var(--muted); font-family: var(--font-mono, monospace); }
+  .sc-tier-body { padding: 0; overflow-x: auto; }
+
+  /* Table */
+  .sc-steps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .sc-steps-table th {
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-family: var(--font-title);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .sc-steps-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .sc-steps-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+  .sc-steps-table tfoot tr { background: rgba(255,255,255,0.04); }
+  .sc-steps-table tfoot td { border-top: 1px solid rgba(255,255,255,0.1); border-bottom: none; padding: 12px; }
+  .sc-star-from { color: var(--muted); font-family: var(--font-mono, monospace); font-size: 12px; }
+  .sc-star-to { color: #fff; font-family: var(--font-mono, monospace); font-size: 12px; }
+  .sc-arrow { color: rgba(255,255,255,0.3); font-size: 12px; }
+  .sc-dd { color: #60d0ff; font-family: var(--font-mono, monospace); font-size: 12px; white-space: nowrap; }
+  .sc-kk { color: #4ade80; font-family: var(--font-mono, monospace); font-size: 12px; white-space: nowrap; }
+  .sc-pokes { color: #f472b6; font-family: var(--font-mono, monospace); font-size: 12px; white-space: nowrap; }
+  .sc-total-row td { font-size: 12px; }
+  .sc-total-row strong { color: #fff; }
+
+  /* Pattern note */
+  .sc-pattern {
+    background: rgba(168,85,247,0.07);
+    border: 1px solid rgba(168,85,247,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-top: 28px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.7;
+  }
+  .sc-pattern-title { font-family: var(--font-title); font-size: 12px; font-weight: 700; color: #c084fc; letter-spacing: 1px; margin-bottom: 8px; }
+
+  @media (max-width: 600px) {
+    .sc-page { padding: 14px 12px 40px; }
+    .sc-steps-table th, .sc-steps-table td { padding: 8px 8px; }
+  }
+  </style>
+  <div class="sc-page">
+
+    <!-- Hero -->
+    <div class="sc-hero">
+      <div class="sc-hero-icon">⭐</div>
+      <div class="sc-hero-title">Star Calculation</div>
+      <div class="sc-hero-sub">Calculadora de custos para evolução de estrelas — 100% de sucesso</div>
+    </div>
+
+    <!-- Calculadora -->
+    <div class="sc-calculator">
+      <div class="sc-calc-title">⚡ Calculadora Rápida</div>
+      <div class="sc-calc-fields">
+        <div class="sc-calc-field">
+          <label>Tier</label>
+          <select id="sc-sel-tier">${tierOpts}</select>
+        </div>
+        <div class="sc-calc-field">
+          <label>Star Atual</label>
+          <select id="sc-sel-from" onchange="updateStarToOpts()">${starOpts(0)}</select>
+        </div>
+        <div class="sc-calc-field">
+          <label>Star Objetivo</label>
+          <select id="sc-sel-to">${starOpts(5, 1)}</select>
+        </div>
+        <button class="sc-calc-btn" onclick="runStarCalc()">Calcular</button>
+      </div>
+      <div class="sc-calc-result" id="sc-result">
+        <div class="sc-calc-result-label" id="sc-result-label"></div>
+        <div class="sc-calc-result-item">
+          <span class="sc-calc-result-val dd" id="sc-res-dd">—</span>
+          <span class="sc-calc-result-sub">💎 Diamond Dust</span>
+        </div>
+        <div class="sc-calc-result-item">
+          <span class="sc-calc-result-val kk" id="sc-res-kk">—</span>
+          <span class="sc-calc-result-sub">🍀 KK</span>
+        </div>
+        <div class="sc-calc-result-item">
+          <span class="sc-calc-result-val poke" id="sc-res-pokes">—</span>
+          <span class="sc-calc-result-sub">🐾 Pokémons Iguais</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notas -->
+    <div class="sc-notes">
+      ⚠️ <strong>Valores considerando 100% de sucesso.</strong> &nbsp;•&nbsp;
+      A <strong>proporção DD → KK</strong> é sempre 4:1. &nbsp;•&nbsp;
+      Os <strong>Pokémons necessários</strong> (0→5★) são sempre <strong>31</strong> independente do tier. &nbsp;•&nbsp;
+      Cada step custa o dobro do anterior + o custo base do tier. &nbsp;•&nbsp;
+      <strong>Legendary</strong> aumenta 15% de dano por estrela.
+    </div>
+
+    <!-- Cards por tier -->
+    ${tiersHtml}
+
+    <!-- Padrão explicado -->
+    <div class="sc-pattern">
+      <div class="sc-pattern-title">🔍 O padrão dos custos</div>
+      Sim, existe um padrão! O custo base de DD por step é fixo para cada tier:<br><br>
+      <strong>T3</strong> = base 4 DD &nbsp;|&nbsp; <strong>T2</strong> = base 6 DD &nbsp;|&nbsp; <strong>T1</strong> = base 12 DD &nbsp;|&nbsp; <strong>SR</strong> = base 16 DD &nbsp;|&nbsp; <strong>UR</strong> = base 24 DD &nbsp;|&nbsp; <strong>Legendary</strong> = base 48 DD<br><br>
+      Dentro de cada tier, os steps seguem a fórmula: <strong>custo_step(n) = base × (2ⁿ⁻¹ × 4 - custo_step_anterior_acumulado... simplificando: 4, 12, 28, 60, 124</strong> — cada valor é ~2× o anterior + base.<br><br>
+      A proporção <strong>DD ÷ KK = 4:1</strong> é constante em todos os tiers e steps.
+    </div>
+
+  </div>
+  `;
+}
+
+function runStarCalc() {
+  var tierSel = document.getElementById('sc-sel-tier');
+  var fromSel = document.getElementById('sc-sel-from');
+  var toSel   = document.getElementById('sc-sel-to');
+  if (!tierSel || !fromSel || !toSel) return;
+
+  var tierId  = tierSel.value;
+  var fromStar = parseInt(fromSel.value);
+  var toStar   = parseInt(toSel.value);
+
+  var TIERS_MAP = {
+    t3:  { label:'Tier 3',    steps: [{dd:4,kk:1,pokes:1},{dd:12,kk:3,pokes:2},{dd:28,kk:7,pokes:4},{dd:60,kk:15,pokes:8},{dd:124,kk:31,pokes:16}] },
+    t2:  { label:'Tier 2',    steps: [{dd:6,kk:1.5,pokes:1},{dd:18,kk:4.5,pokes:2},{dd:42,kk:10.5,pokes:4},{dd:90,kk:22.5,pokes:8},{dd:186,kk:46.5,pokes:16}] },
+    t1:  { label:'Tier 1',    steps: [{dd:12,kk:3,pokes:1},{dd:36,kk:9,pokes:2},{dd:84,kk:21,pokes:4},{dd:180,kk:45,pokes:8},{dd:372,kk:93,pokes:16}] },
+    sr:  { label:'Super Raro',steps: [{dd:16,kk:4,pokes:1},{dd:48,kk:12,pokes:2},{dd:112,kk:28,pokes:4},{dd:240,kk:60,pokes:8},{dd:496,kk:124,pokes:16}] },
+    ur:  { label:'Ultra Raro', steps: [{dd:24,kk:6,pokes:1},{dd:72,kk:18,pokes:2},{dd:168,kk:42,pokes:4},{dd:360,kk:90,pokes:8},{dd:744,kk:186,pokes:16}] },
+    lg:  { label:'Legendary',  steps: [{dd:48,kk:12,pokes:1},{dd:144,kk:36,pokes:2},{dd:336,kk:84,pokes:4},{dd:720,kk:180,pokes:8},{dd:1488,kk:372,pokes:16}] },
+  };
+
+  var tier = TIERS_MAP[tierId];
+  var res = document.getElementById('sc-result');
+  var resLabel = document.getElementById('sc-result-label');
+
+  if (!tier || fromStar >= toStar) {
+    res.classList.remove('visible');
+    res.classList.add('visible');
+    res.style.background = 'rgba(255,80,80,0.08)';
+    res.style.border = '1px solid rgba(255,80,80,0.25)';
+    resLabel.textContent = fromStar >= toStar
+      ? '⚠️ Star Objetivo deve ser maior que Star Atual!'
+      : '⚠️ Tier inválido.';
+    document.getElementById('sc-res-dd').textContent    = '—';
+    document.getElementById('sc-res-kk').textContent    = '—';
+    document.getElementById('sc-res-pokes').textContent = '—';
+    return;
+  }
+
+  res.style.background = '';
+  res.style.border = '';
+
+  var dd = 0, kk = 0, pokes = 0;
+  for (var i = fromStar; i < toStar; i++) {
+    var s = tier.steps[i];
+    dd += s.dd; kk += s.kk; pokes += s.pokes;
+  }
+
+  var STAR_ICONS = ['☆','★','★★','★★★','★★★★','★★★★★'];
+  resLabel.textContent =
+    tier.label + ' — ' + fromStar + '★ → ' + toStar + '★';
+  document.getElementById('sc-res-dd').textContent = dd + ' DD';
+  document.getElementById('sc-res-kk').textContent = kk + ' KK';
+  document.getElementById('sc-res-pokes').textContent = pokes + ' Pokémon' + (pokes > 1 ? 's' : '');
+  res.classList.add('visible');
+}
+// Atualiza as opções do select "Star Objetivo" para sempre ser > Star Atual
+function updateStarToOpts() {
+  var fromSel = document.getElementById('sc-sel-from');
+  var toSel   = document.getElementById('sc-sel-to');
+  if (!fromSel || !toSel) return;
+  var fromVal = parseInt(fromSel.value);
+  var currentTo = parseInt(toSel.value);
+  var STAR_ICONS = ['☆','★','★★','★★★','★★★★','★★★★★'];
+  var opts = '';
+  for (var n = fromVal + 1; n <= 5; n++) {
+    var isSelected = (currentTo > fromVal && n === currentTo) || (currentTo <= fromVal && n === fromVal + 1);
+    opts += '<option value="' + n + '"' + (isSelected ? ' selected' : '') + '>' + (n === 0 ? '☆ 0' : STAR_ICONS[n] + ' ' + n) + ' ★</option>';
+  }
+  toSel.innerHTML = opts;
 }
