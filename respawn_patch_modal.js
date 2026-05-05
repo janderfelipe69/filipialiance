@@ -108,7 +108,7 @@ var RAW_RESPAWN = [
   {
     name:      'Beedrill',
     wildscape: null,
-    mapImg:    'https://i.imgur.com/jwJznHD.png',
+    mapImg:    'https://i.imgur.com/0oYC8Jr.png',
     mapHoenn:  '',
   },
 
@@ -164,7 +164,7 @@ var RAW_RESPAWN = [
   {
     name:      'Ekans',
     wildscape: null,
-    mapImg:    'hhttps://i.imgur.com/bDprezr.png',
+    mapImg:    'https://i.imgur.com/bDprezr.png',
     mapHoenn:  '',
   },
 
@@ -304,7 +304,7 @@ var RAW_RESPAWN = [
   {
     name:      'Oddish',
     wildscape: null,
-    mapImg:    'https://i.imgur.com/486smt3.png',
+    mapImg:    'https://i.imgur.com/Qd2dEtT.png',
     mapHoenn:  '',
   },
 
@@ -408,7 +408,7 @@ var RAW_RESPAWN = [
 
   {
     name:      'Arcanine',
-    wildscape: ['https://i.imgur.com/0eShDZu.png', 'https://i.imgur.com/xS1DZIb.png'],
+    wildscape: 'https://i.imgur.com/0eShDZu.png',
     mapImg:    'https://i.imgur.com/4QSUNUa.png',
     mapHoenn:  '',
   },
@@ -444,34 +444,34 @@ var RAW_RESPAWN = [
   {
     name:      'Kadabra',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/G7qjSsO',
+    mapImg:    'https://i.imgur.com/nW6q61O.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Alakazam',
-    wildscape: 'https://imgur.com/a/OEmv8zV',
-    mapImg:    'https://imgur.com/a/n2TiM6f',
+    wildscape: 'https://i.imgur.com/pXzjPu4.png',
+    mapImg:    'https://i.imgur.com/dhXxnM0.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Machop',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/C6BDrQk',
+    mapImg:    'https://i.imgur.com/dMKstPd.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Machoke',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/C6BDrQk',
+    mapImg:    'https://i.imgur.com/dMKstPd.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Machamp',
-    wildscape: 'https://imgur.com/a/yB63tms',
+    wildscape: 'https://i.imgur.com/Tp2kcuH.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -479,70 +479,70 @@ var RAW_RESPAWN = [
   {
     name:      'Bellsprout',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/MnFL6no',
+    mapImg:    'https://i.imgur.com/0DouHFK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Weepinbell',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Xw7aLDs',
+    mapImg:    'https://i.imgur.com/o7HeKpq.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Victreebel',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/aL0tt9a',
+    mapImg:    'https://i.imgur.com/NhqqXCK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Tentacool',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/UadRpGw',
+    mapImg:    'https://i.imgur.com/Q0zcM52.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Tentacruel',
-    wildscape: 'https://imgur.com/a/1MIh0TT',
-    mapImg:    'https://imgur.com/a/1MIh0TT',
+    wildscape: 'https://i.imgur.com/mBytDNi.png',
+    mapImg:    'https://i.imgur.com/mBytDNi.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Geodude',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/lhJ17iJ',
+    mapImg:    'https://i.imgur.com/d7J89SL.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Graveler',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/SHzJxH4',
+    mapImg:    'https://i.imgur.com/BuHXQVL.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Golem',
-    wildscape: 'https://imgur.com/a/rg5qYI4',
-    mapImg:    'https://imgur.com/a/1JOCaQq',
+    wildscape: 'https://i.imgur.com/OQHyJP2.png',
+    mapImg:    'https://i.imgur.com/F5uS2ac.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Ponyta',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Wj6MnzA',
+    mapImg:    'https://i.imgur.com/eg9o3F8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Rapidash',
-    wildscape: 'https://imgur.com/a/lwqRvJB',
-    mapImg:    'https://imgur.com/a/wtXPt06',
+    wildscape: 'https://i.imgur.com/b8tAt30.png',
+    mapImg:    'https://i.imgur.com/cKOeWbV.png',
     mapHoenn:  '',
   },
 
@@ -563,20 +563,20 @@ var RAW_RESPAWN = [
   {
     name:      'Magnemite',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ZNQjOvj',
+    mapImg:    'https://i.imgur.com/vyr21yi.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Magneton',
-    wildscape: 'https://imgur.com/a/magneton-wildscape-fbJrvin',
-    mapImg:    'https://imgur.com/a/ZNQjOvj',
+    wildscape: 'https://i.imgur.com/XqMmegQ.png',
+    mapImg:    'https://i.imgur.com/vyr21yi.png',
     mapHoenn:  '',
   },
 
   {
-    name:      '',
-    wildscape: 'https://imgur.com/a/mZdWvFw',
+    name:      "Farfetch'd",
+    wildscape: 'https://i.imgur.com/L0NNeJj.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -590,7 +590,7 @@ var RAW_RESPAWN = [
 
   {
     name:      'Dodrio',
-    wildscape: 'https://imgur.com/a/mZdWvFw',
+    wildscape: 'https://i.imgur.com/L0NNeJj.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -598,41 +598,41 @@ var RAW_RESPAWN = [
   {
     name:      'Seel',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/0FU7pxA',
+    mapImg:    'https://i.imgur.com/MLvJxQN.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Dewgong',
-    wildscape: 'https://imgur.com/a/AWD6nTs',
-    mapImg:    'https://imgur.com/a/6S3V66E',
+    wildscape: 'https://i.imgur.com/0Zn8s3E.png',
+    mapImg:    'https://i.imgur.com/p2tQP91.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Grimer',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/vgGrrfT',
+    mapImg:    'https://i.imgur.com/wOs40j2.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Muk',
-    wildscape: 'https://imgur.com/a/vgGrrfT',
-    mapImg:    'https://imgur.com/a/vgGrrfT',
+    wildscape: 'https://i.imgur.com/wOs40j2.png',
+    mapImg:    'https://i.imgur.com/wOs40j2.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Shellder',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/mHLB6sh',
+    mapImg:    'https://i.imgur.com/WFjDQHR.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Cloyster',
-    wildscape: 'https://imgur.com/a/JxKX8lv',
+    wildscape: 'https://i.imgur.com/rzgfzKL.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -640,20 +640,20 @@ var RAW_RESPAWN = [
   {
     name:      'Gastly',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/9zmYETV',
+    mapImg:    'https://i.imgur.com/B2gFc5E.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Haunter',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/WeJwwK9',
+    mapImg:    'https://i.imgur.com/ZkvFQZe.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Gengar',
-    wildscape: 'https://imgur.com/a/8auiFkj',
+    wildscape: 'https://i.imgur.com/obXJAfs.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -661,21 +661,21 @@ var RAW_RESPAWN = [
   {
     name:      'Onix',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/XRtE7Ns',
+    mapImg:    'https://i.imgur.com/clgFi2C.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Drowzee',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/H8LgV6N',
+    mapImg:    'https://i.imgur.com/XO8i9Kd.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Hypno',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/c500gBU',
+    mapImg:    'https://i.imgur.com/Lz6oguU.png',
     mapHoenn:  '',
   },
 
@@ -689,21 +689,21 @@ var RAW_RESPAWN = [
   {
     name:      'Kingler',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/RJTIGC2',
+    mapImg:    'https://i.imgur.com/vS19eOr.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Voltorb',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ZNQjOvj',
+    mapImg:    'https://i.imgur.com/vyr21yi.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Electrode',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ZNQjOvj',
+    mapImg:    'https://i.imgur.com/vyr21yi.png',
     mapHoenn:  '',
   },
 
@@ -716,35 +716,35 @@ var RAW_RESPAWN = [
 
   {
     name:      'Exeggutor',
-    wildscape: 'https://imgur.com/a/Jh715JE',
-    mapImg:    'https://imgur.com/a/exeggutor-oelxrIL',
+    wildscape: 'https://i.imgur.com/3aNWaoz.png',
+    mapImg:    'https://i.imgur.com/ovwwGKJ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Cubone',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Q6i4UqM',
+    mapImg:    'https://i.imgur.com/n7PwjRM.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Marowak',
-    wildscape: 'https://imgur.com/a/AYaHOY2',
-    mapImg:    'https://imgur.com/a/VrqZwDG',
+    wildscape: 'https://i.imgur.com/EK9em4B.png',
+    mapImg:    'https://i.imgur.com/kkiwcad.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Hitmonlee',
-    wildscape: 'https://imgur.com/a/pjIUv00',
+    wildscape: 'https://i.imgur.com/jVO5Fcj.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Hitmonchan',
-    wildscape: 'https://imgur.com/a/pjIUv00',
+    wildscape: 'https://i.imgur.com/jVO5Fcj.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -759,48 +759,48 @@ var RAW_RESPAWN = [
   {
     name:      'Koffing',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/vgGrrfT',
+    mapImg:    'https://i.imgur.com/wOs40j2.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Weezing',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/vgGrrfT',
+    mapImg:    'https://i.imgur.com/wOs40j2.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Rhyhorn',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/cPbYaoO',
+    mapImg:    'https://i.imgur.com/khcnkF5.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Rhydon',
-    wildscape: 'https://imgur.com/a/rhydon-wildscape-P6cK6PD',
-    mapImg:    'https://imgur.com/a/sROG59a',
+    wildscape: 'https://i.imgur.com/vZ7uFtK.png',
+    mapImg:    'https://i.imgur.com/d0PFQsH.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Chansey',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/njzmTdU',
+    mapImg:    'https://i.imgur.com/UGGHUHa.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Tangela',
-    wildscape: 'https://imgur.com/a/dtwFHj6',
-    mapImg:    'https://imgur.com/a/lZyOqys',
+    wildscape: 'https://i.imgur.com/RpWGRiq.png',
+    mapImg:    'https://i.imgur.com/RpWGRiq.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Kangaskhan',
-    wildscape: 'https://imgur.com/a/j21SPSA',
+    wildscape: 'https://i.imgur.com/ivmx2oc.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -808,90 +808,90 @@ var RAW_RESPAWN = [
   {
     name:      'Horsea',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/vl4bFGw',
+    mapImg:    'https://i.imgur.com/5jS8tVT.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Seadra',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/SBsknJ7',
+    mapImg:    'https://i.imgur.com/vm3Kv73.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Goldeen',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/0ZHbtgY',
+    mapImg:    'https://i.imgur.com/aGqCNVb.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Seaking',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/kd1pFE9',
+    mapImg:    'https://i.imgur.com/8hxAB6u.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Staryu',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/mNdE7Lo',
+    mapImg:    'https://i.imgur.com/ZjaWkCr.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Starmie',
-    wildscape: 'https://imgur.com/a/ZaL8AAc',
-    mapImg:    'https://imgur.com/a/YOVObyR',
+    wildscape: 'https://i.imgur.com/yaFtIlN.png',
+    mapImg:    'https://i.imgur.com/iXYN4rD.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Mr. Mime',
-    wildscape: 'https://imgur.com/a/bluz6Tm',
-    mapImg:    'https://imgur.com/a/lyn32FNm',
+    wildscape: 'https://i.imgur.com/mttircQ.png',
+    mapImg:    'https://i.imgur.com/BL7EibG.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Scyther',
-    wildscape: 'https://imgur.com/a/df36NrE',
-    mapImg:    'https://imgur.com/a/j21SPSA',
+    wildscape: 'https://i.imgur.com/zeOrYWE.png',
+    mapImg:    'https://i.imgur.com/ivmx2oc.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Jynx',
-    wildscape: 'https://imgur.com/a/3LppiO7',
+    wildscape: 'https://i.imgur.com/aap8VSg.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Electabuzz',
-    wildscape: 'https://imgur.com/a/cIP3jSD',
-    mapImg:    'https://imgur.com/a/lx2xnEu',
+    wildscape: 'https://i.imgur.com/wEe4dQB.png',
+    mapImg:    'https://i.imgur.com/MdNjruZ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Magmar',
-    wildscape: 'https://imgur.com/a/TykewxH',
+    wildscape: 'https://i.imgur.com/ouLwhKY.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Pinsir',
-    wildscape: 'https://imgur.com/a/T3rOBjE',
-    mapImg:    'https://imgur.com/a/Q0Pn5Tv',
+    wildscape: 'https://i.imgur.com/Jz3Bj6k.png',
+    mapImg:    'https://i.imgur.com/Dqjxjap.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Tauros',
-    wildscape: 'https://imgur.com/a/j21SPSA',
+    wildscape: 'https://i.imgur.com/ivmx2oc.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -899,48 +899,48 @@ var RAW_RESPAWN = [
   {
     name:      'Magikarp',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/kMnqXdd',
+    mapImg:    'https://i.imgur.com/G7bRTjg.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Gyarados',
-    wildscape: 'https://imgur.com/a/mfds9di',
+    wildscape: 'https://i.imgur.com/M6cch0Y.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Lapras',
-    wildscape: 'https://imgur.com/a/ca4NIMA',
-    mapImg:    'https://imgur.com/a/gB97GTZ',
+    wildscape: 'https://i.imgur.com/AeHR1Nl.png',
+    mapImg:    'https://i.imgur.com/7BYwaGX.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Eevee',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/dJnqJtS',
+    mapImg:    'https://i.imgur.com/Zf1EeWW.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Vaporeon',
-    wildscape: 'https://imgur.com/a/RI7U1mv',
-    mapImg:    'https://imgur.com/a/rzkzhzF',
+    wildscape: 'https://i.imgur.com/xywmHa6.png',
+    mapImg:    'https://i.imgur.com/Xnapd54.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Jolteon',
-    wildscape: 'https://imgur.com/a/cIP3jSD',
+    wildscape: 'https://i.imgur.com/wEe4dQB.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Flareon',
-    wildscape: 'https://imgur.com/a/0QTUhoj',
+    wildscape: 'https://i.imgur.com/YKL0vpX.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -948,35 +948,35 @@ var RAW_RESPAWN = [
   {
     name:      'Omanyte',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/lrEa6jJ',
+    mapImg:    'https://i.imgur.com/aGkUqoK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Omastar',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/lrEa6jJ',
+    mapImg:    'https://i.imgur.com/aGkUqoK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Kabuto',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/hGRDfmM',
+    mapImg:    'https://i.imgur.com/wwSSmEa.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Kabutops',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/hGRDfmM',
+    mapImg:    'https://i.imgur.com/wwSSmEa.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Snorlax',
-    wildscape: 'https://imgur.com/a/j21SPSA',
-    mapImg:    'https://imgur.com/a/gFsPWgx',
+    wildscape: 'https://i.imgur.com/ivmx2oc.png',
+    mapImg:    'https://i.imgur.com/gjQunKT.png',
     mapHoenn:  '',
   },
 
@@ -989,15 +989,15 @@ var RAW_RESPAWN = [
 
   {
     name:      'Dragonair',
-    wildscape: 'https://imgur.com/a/P4wh1Pv',
+    wildscape: 'https://i.imgur.com/tObEnoL.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Dragonite',
-    wildscape: 'https://imgur.com/a/eJHK8SE',
-    mapImg:    'https://imgur.com/a/U3QIuQB',
+    wildscape: 'https://i.imgur.com/csaMdf2.png',
+    mapImg:    'https://i.imgur.com/gOdWXko.png',
     mapHoenn:  '',
   },
 
@@ -1005,98 +1005,98 @@ var RAW_RESPAWN = [
   {
     name:      'Chikorita',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/lNejCDG',
+    mapImg:    'https://i.imgur.com/iuwcuId.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Bayleef',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/FQ8roQ4',
+    mapImg:    'https://i.imgur.com/HHi0hT2.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Meganium',
-    wildscape: 'https://imgur.com/a/uw0XICj',
-    mapImg:    'https://imgur.com/a/iHrZsw8',
+    wildscape: 'https://i.imgur.com/uw0XICj.png',
+    mapImg:    'https://i.imgur.com/WFhAGzs.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Cyndaquil',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/PjJgh5m',
+    mapImg:    'https://i.imgur.com/AOoSnb6.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Quilava',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/PjJgh5m',
+    mapImg:    'https://i.imgur.com/AOoSnb6.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Typhlosion',
-    wildscape: 'https://imgur.com/a/nmnNuO5',
-    mapImg:    'https://imgur.com/a/yhVaW4Z',
+    wildscape: 'https://i.imgur.com/hwCX4J3.png',
+    mapImg:    'https://i.imgur.com/eFH75Ja.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Totodile',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Oaet1M6',
+    mapImg:    'https://i.imgur.com/mTQHdKK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Croconaw',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Pc6sqFF',
+    mapImg:    'https://i.imgur.com/73RxJdU.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Feraligatr',
-    wildscape: 'https://imgur.com/a/H98mIzg',
-    mapImg:    'https://imgur.com/a/wpVvk3n',
+    wildscape: 'https://i.imgur.com/Jvj4TIY.png',
+    mapImg:    'https://i.imgur.com/F6uKKMA.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Sentret',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ScBW2W0',
+    mapImg:    'https://i.imgur.com/t7G6WDZ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Furret',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/9Tbj4NB',
+    mapImg:    'https://i.imgur.com/r89BniA.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Hoothoot',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/xxiIVMq',
+    mapImg:    'https://i.imgur.com/bMz6dmJ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Noctowl',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/k0zFzjl',
+    mapImg:    'https://i.imgur.com/uwoWVeP.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Ledyba',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/h0IZeRQ',
+    mapImg:    'https://i.imgur.com/cDl7Cvf.png',
     mapHoenn:  '',
   },
 
@@ -1123,36 +1123,36 @@ var RAW_RESPAWN = [
 
   {
     name:      'Crobat',
-    wildscape: 'https://imgur.com/a/DgtNeZR',
-    mapImg:    'https://imgur.com/a/kAVI10S',
+    wildscape: 'https://i.imgur.com/2ElPBYJ.png',
+    mapImg:    'https://i.imgur.com/Xo5gTVy.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Chinchou',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/h2WnRle',
+    mapImg:    'https://i.imgur.com/MGSGZ5d.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Lanturn',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/h2WnRle',
+    mapImg:    'https://i.imgur.com/MGSGZ5d.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Pichu',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/owJDq0n',
+    mapImg:    'https://i.imgur.com/81CA5KY.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Cleffa',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/wFWndAk',
+    mapImg:    'https://i.imgur.com/Lj1SHOz.png',
     mapHoenn:  '',
   },
 
@@ -1166,14 +1166,14 @@ var RAW_RESPAWN = [
   {
     name:      'Togepi',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/4Gfcwjm',
+    mapImg:    'https://i.imgur.com/ESKTXNf.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Togetic',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/4Gfcwjm',
+    mapImg:    'https://i.imgur.com/ESKTXNf.png',
     mapHoenn:  '',
   },
 
@@ -1186,8 +1186,8 @@ var RAW_RESPAWN = [
 
   {
     name:      'Xatu',
-    wildscape: 'https://imgur.com/a/46mYVO7',
-    mapImg:    'https://imgur.com/a/yVLhMR7',
+    wildscape: 'https://i.imgur.com/C5eGLMe.png',
+    mapImg:    'https://i.imgur.com/Jj8zXLS.png',
     mapHoenn:  '',
   },
 
@@ -1207,7 +1207,7 @@ var RAW_RESPAWN = [
 
   {
     name:      'Ampharos',
-    wildscape: 'https://imgur.com/a/O7GKc00',
+    wildscape: 'https://i.imgur.com/XaDTsZ8.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1222,42 +1222,42 @@ var RAW_RESPAWN = [
   {
     name:      'Marill',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/3YGU4BO',
+    mapImg:    'https://i.imgur.com/cAHnnnb.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Azumarill',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/3YGU4BO',
+    mapImg:    'https://i.imgur.com/cAHnnnb.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Politoed',
-    wildscape: 'https://imgur.com/a/zMl0ekj',
-    mapImg:    'https://imgur.com/a/zMl0ekj',
+    wildscape: 'https://i.imgur.com/eJqljOO.png',
+    mapImg:    'https://i.imgur.com/eJqljOO.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Hoppip',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/xTyMEaj',
+    mapImg:    'https://i.imgur.com/kIsfd8T.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Skiploom',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ourpstD',
+    mapImg:    'https://i.imgur.com/e7VcznJ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Jumpluff',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/zyv2Y81',
+    mapImg:    'https://i.imgur.com/xSAOnVQ.png',
     mapHoenn:  '',
   },
 
@@ -1278,41 +1278,41 @@ var RAW_RESPAWN = [
   {
     name:      'Sunflora',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/EpRy5tT',
+    mapImg:    'https://i.imgur.com/PA5SXXc.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Yanma',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/0GZB0Pc',
+    mapImg:    'https://i.imgur.com/HEvkYCC.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Wooper',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/zU19ndv',
+    mapImg:    'https://i.imgur.com/8Gey3ne.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Quagsire',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/RYNQ8I0',
+    mapImg:    'https://i.imgur.com/HZ9ZB0w.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Espeon',
-    wildscape: 'https://imgur.com/a/CkBSqXN',
+    wildscape: 'https://i.imgur.com/pgsglgg.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Umbreon',
-    wildscape: 'https://imgur.com/a/CkBSqXN',
+    wildscape: 'https://i.imgur.com/pgsglgg.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1320,49 +1320,49 @@ var RAW_RESPAWN = [
   {
     name:      'Murkrow',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/jYvUp9I',
+    mapImg:    'https://i.imgur.com/JLf8mg8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Slowking',
-    wildscape: 'https://imgur.com/a/XUZFbv9',
-    mapImg:    'https://imgur.com/a/XUZFbv9',
+    wildscape: 'https://i.imgur.com/zHZ8GUe.png',
+    mapImg:    'https://i.imgur.com/zHZ8GUe.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Misdreavus',
-    wildscape: 'https://imgur.com/a/xfYPzTw',
+    wildscape: 'https://i.imgur.com/IGTob4U.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Wobbuffet',
-    wildscape: 'https://imgur.com/a/ZlGOsvk',
-    mapImg:    'https://imgur.com/a/l7MbVV5',
+    wildscape: 'https://i.imgur.com/I0Wt5oQ.png',
+    mapImg:    'https://i.imgur.com/GD7sOKS.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Girafarig',
-    wildscape: 'https://imgur.com/a/6m4rkdL',
-    mapImg:    'https://imgur.com/a/ZlGOsvk',
+    wildscape: 'https://i.imgur.com/mkHmYXV.png',
+    mapImg:    'https://i.imgur.com/I0Wt5oQ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Pineco',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/AgaCXsX',
+    mapImg:    'https://i.imgur.com/38NZiWE.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Forretress',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/X4CH3uc',
+    mapImg:    'https://i.imgur.com/OcKEkkM.png',
     mapHoenn:  '',
   },
 
@@ -1376,41 +1376,41 @@ var RAW_RESPAWN = [
   {
     name:      'Gligar',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/wljXV9h',
+    mapImg:    'https://i.imgur.com/dP43RNR.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Steelix',
-    wildscape: 'https://imgur.com/a/GWp5vC7',
-    mapImg:    'https://imgur.com/a/HDUZnBJ',
+    wildscape: 'https://i.imgur.com/Ee5Lb2y.png',
+    mapImg:    'https://i.imgur.com/p4iHuHU.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Snubbull',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/i2zVgop',
+    mapImg:    'https://i.imgur.com/6TD4mNV.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Granbull',
-    wildscape: 'https://imgur.com/a/ubd3F1A',
-    mapImg:    'https://imgur.com/a/6k6J7No',
+    wildscape: 'https://i.imgur.com/oHFrtwC.png',
+    mapImg:    'https://i.imgur.com/khRyNou.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Qwilfish',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/fmnPze7',
+    mapImg:    'https://i.imgur.com/hwNYiN1.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Scizor',
-    wildscape: 'https://imgur.com/a/TXJL5sM',
+    wildscape: 'https://i.imgur.com/meJjnkr.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1418,14 +1418,14 @@ var RAW_RESPAWN = [
   {
     name:      'Shuckle',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/jom11IM',
+    mapImg:    'https://i.imgur.com/Ibo04IR.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Heracross',
-    wildscape: 'https://imgur.com/a/Cpi5yCV',
-    mapImg:    'https://imgur.com/a/zRWr3Ry',
+    wildscape: 'https://i.imgur.com/jKsB4LP.png',
+    mapImg:    'https://i.imgur.com/un3iPRj.png',
     mapHoenn:  '',
   },
 
@@ -1439,28 +1439,28 @@ var RAW_RESPAWN = [
   {
     name:      'Teddiursa',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/K1wNTv6',
+    mapImg:    'https://i.imgur.com/MjMDatf.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Ursaring',
-    wildscape: 'https://imgur.com/a/nBXkwSw',
-    mapImg:    'https://imgur.com/a/K1wNTv6',
+    wildscape: 'https://i.imgur.com/c4gKvRj.png',
+    mapImg:    'https://i.imgur.com/MjMDatf.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Slugma',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/PjJgh5m',
+    mapImg:    'https://i.imgur.com/AOoSnb6.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Magcargo',
-    wildscape: 'https://imgur.com/a/PjJgh5m',
-    mapImg:    'https://imgur.com/a/FSCg92Z',
+    wildscape: 'https://i.imgur.com/AOoSnb6.png',
+    mapImg:    'https://i.imgur.com/cWP6egL.png',
     mapHoenn:  '',
   },
 
@@ -1473,49 +1473,49 @@ var RAW_RESPAWN = [
 
   {
     name:      'Piloswine',
-    wildscape: 'https://imgur.com/a/IGWY0Xf',
-    mapImg:    'https://imgur.com/a/VfulNAF',
+    wildscape: 'https://i.imgur.com/BQASEdf.png',
+    mapImg:    'https://i.imgur.com/EkokGJZ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Corsola',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/SBsknJ7',
+    mapImg:    'https://i.imgur.com/vm3Kv73.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Remoraid',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/SBsknJ7',
+    mapImg:    'https://i.imgur.com/vm3Kv73.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Octillery',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/SBsknJ7',
+    mapImg:    'https://i.imgur.com/vm3Kv73.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Delibird',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/EDtI5vP',
+    mapImg:    'https://i.imgur.com/XVa09vd.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Mantine',
-    wildscape: 'https://imgur.com/a/H98mIzg',
-    mapImg:    'https://imgur.com/a/SBsknJ7',
+    wildscape: 'https://i.imgur.com/Jvj4TIY.png',
+    mapImg:    'https://i.imgur.com/vm3Kv73.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Skarmory',
-    wildscape: 'https://imgur.com/a/otQbKEE',
+    wildscape: 'https://i.imgur.com/GJgmkkd.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1523,20 +1523,20 @@ var RAW_RESPAWN = [
   {
     name:      'Houndour',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/PjJgh5m',
+    mapImg:    'https://i.imgur.com/AOoSnb6.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Houndoom',
-    wildscape: 'https://imgur.com/a/kUQvKbL',
-    mapImg:    'https://imgur.com/a/MjvZQ35',
+    wildscape: 'https://i.imgur.com/NTdNuy6.png',
+    mapImg:    'https://i.imgur.com/fZbDUwS.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Kingdra',
-    wildscape: 'https://imgur.com/a/W6HZI3X',
+    wildscape: 'https://i.imgur.com/6N5T37g.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1564,7 +1564,7 @@ var RAW_RESPAWN = [
 
   {
     name:      'Smeargle',
-    wildscape: 'https://imgur.com/a/vlWgMyH',
+    wildscape: 'https://i.imgur.com/qY9Yhel.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1578,7 +1578,7 @@ var RAW_RESPAWN = [
 
   {
     name:      'Hitmontop',
-    wildscape: 'https://imgur.com/a/30cn4iq',
+    wildscape: 'https://i.imgur.com/iArrZwp.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1600,34 +1600,34 @@ var RAW_RESPAWN = [
   {
     name:      'Magby',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/kShgmOK',
+    mapImg:    'https://i.imgur.com/uSVIRVa.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Miltank',
-    wildscape: 'https://imgur.com/a/doQnA6i',
-    mapImg:    'https://imgur.com/a/xxiIVMq',
+    wildscape: 'https://i.imgur.com/N7V1d88.png',
+    mapImg:    'https://i.imgur.com/bMz6dmJ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Larvitar',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/SJntAUa',
+    mapImg:    'https://i.imgur.com/zHkamMt.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Pupitar',
-    wildscape: 'https://imgur.com/a/SJntAUa',
-    mapImg:    'https://imgur.com/a/SJntAUa',
+    wildscape: 'https://i.imgur.com/zHkamMt.png',
+    mapImg:    'https://i.imgur.com/zHkamMt.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Tyranitar',
-    wildscape: 'https://imgur.com/a/oEyaCY3',
+    wildscape: 'https://i.imgur.com/kb4agTa.png',
     mapImg:    null,
     mapHoenn:  '',
   },
@@ -1636,462 +1636,462 @@ var RAW_RESPAWN = [
   {
     name:      'Treecko',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/QwRNjsJ',
+    mapImg:    'https://i.imgur.com/geaMP9l.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Grovyle',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/plu4yw9',
+    mapImg:    'https://i.imgur.com/7qVakrt.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Sceptile',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/0NfZ1UB',
+    mapImg:    'https://i.imgur.com/p3IXfpY.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Torchic',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/H8ebHUD',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/Z2DVwYg.png',
   },
 
   {
     name:      'Combusken',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/WaCvBxT',
+    mapImg:    'https://i.imgur.com/HUFFwuT.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Blaziken',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Z1bIUfu',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/9eIn8Qe.png',
   },
 
   {
     name:      'Mudkip',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/sZjLUro',
+    mapImg:    'https://i.imgur.com/Cy9H5OO.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Marshtomp',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/7NmIjrk',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/TOaxmO1.png',
   },
 
   {
     name:      'Swampert',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ZZR9q3t',
+    mapImg:    'https://i.imgur.com/CBpWuUW.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Poochyena',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/AV1brbq',
+    mapImg:    'https://i.imgur.com/pXHETK3.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Mightyena',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/TtFAFI8',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/iyd1uOE.png',
   },
 
   {
     name:      'Zigzagoon',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/WBUCnKo',
+    mapImg:    'https://i.imgur.com/NSW8JGZ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Linoone',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/OZ3NIfX',
+    mapImg:    'https://i.imgur.com/tLrKwKB.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Wurmple',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/EPQWSoP',
+    mapImg:    'https://i.imgur.com/YQrHrNK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Silcoon',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/EPQWSoP',
+    mapImg:    'https://i.imgur.com/YQrHrNK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Beautifly',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/vePSZZs',
+    mapImg:    'https://i.imgur.com/oBLAdb8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Cascoon',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/EPQWSoP',
+    mapImg:    'https://i.imgur.com/YQrHrNK.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Dustox',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/aa8JVeg',
+    mapImg:    'https://i.imgur.com/UMIAme7.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Taillow',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/PywbkCI',
+    mapImg:    'https://i.imgur.com/01ygEvQ.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Swellow',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/zWjp1is',
+    mapImg:    'https://i.imgur.com/GuWPn4b.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Ralts',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/HeG92xQ',
+    mapImg:    'https://i.imgur.com/gmyZ7FI.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Kirlia',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Duh5van',
+    mapImg:    'https://i.imgur.com/GoD2Dn8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Gardevoir',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/Duh5van',
+    mapImg:    'https://i.imgur.com/GoD2Dn8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Masquerain',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/A6mD163',
+    mapImg:    'https://i.imgur.com/EwJOuvM.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Breloom',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/xkbltkt',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/2FOgNWP.png',
   },
 
   {
     name:      'Slakoth',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/ISjWYSS',
+    mapImg:    'https://i.imgur.com/dki7ItY.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Vigoroth',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/zBv5poV',
+    mapImg:    'https://i.imgur.com/BkzqdKe.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Slaking',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/JFAXd2m',
+    mapImg:    'https://i.imgur.com/TCOZaM0.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Nincada',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/lbHpkKV',
+    mapImg:    'https://i.imgur.com/0V3Mjn4.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Ninjask',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/J42Cek5',
+    mapImg:    'https://i.imgur.com/nYiUAXB.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Shedinja',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/LUgy00h',
+    mapImg:    'https://i.imgur.com/XWOLNpg.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Whismur',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/UOLx5iS',
+    mapImg:    'https://i.imgur.com/UcLNrbf.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Loudred',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/9hx1oWG',
+    mapImg:    'https://i.imgur.com/xwRs7yH.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Exploud',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/WTFRBwz',
+    mapImg:    'https://i.imgur.com/de1SA8u.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Makuhita',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/aTDa0zK',
+    mapImg:    'https://i.imgur.com/EluIUgv.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Hariyama',
     wildscape: null,
-    mapImg:    '',
+    mapImg:    'https://i.imgur.com/NWOf0iE.png',
     mapHoenn:  'https://i.imgur.com/NWOf0iE.png',
   },
 
   {
     name:      'Azurill',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/GKSI8P8',
+    mapImg:    'https://i.imgur.com/mLd9R8b.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Nosepass',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/idVWM4R',
+    mapImg:    'https://i.imgur.com/u4yhhIu.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Skitty',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/HXpaVFd',
+    mapImg:    'https://i.imgur.com/oAjRY55.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Delcatty',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/PC3fNSZ',
+    mapImg:    'https://i.imgur.com/pesG6Oh.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Sableye',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/cI3PbPr',
+    mapImg:    'https://i.imgur.com/p552AIe.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Mawile',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/odlnvRR',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/U4MtfAz.png',
   },
 
   {
     name:      'Aron',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/dsmbUWE',
+    mapImg:    'https://i.imgur.com/uoAOQYn.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Lairon',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/6drUal7',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/EeUjp3S.png',
   },
 
   {
     name:      'Aggron',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/cJndpSb',
+    mapImg:    'https://i.imgur.com/7Ktyeq8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Meditite',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/0irrv1r',
+    mapImg:    'https://i.imgur.com/pgewtm3.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Medicham',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/0irrv1r',
+    mapImg:    'https://i.imgur.com/pgewtm3.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Volbeat',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/WCp8TTD',
+    mapImg:    'https://i.imgur.com/Ouvdk3I.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Illumise',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/WCp8TTD',
+    mapImg:    'https://i.imgur.com/Ouvdk3I.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Carvanha',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/waSih15',
+    mapImg:    'https://i.imgur.com/qbBndEP.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Numel',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/oweq0Ji',
+    mapImg:    'https://i.imgur.com/QyucArI.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Camerupt',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/a8pfzjH',
+    mapImg:    'https://i.imgur.com/W8kixQ8.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Torkoal',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/KBxrXSg',
+    mapImg:    'https://i.imgur.com/Ee2vNS4.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Spoink',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/TGgvFue',
+    mapImg:    'https://i.imgur.com/qpSTaqI.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Grumpig',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/sL7iPRj',
+    mapImg:    'https://i.imgur.com/x5guSN4.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Trapinch',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/jDK1dA0',
+    mapImg:    'https://i.imgur.com/QwciAQ4.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Seviper',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/l3lliRe',
+    mapImg:    'https://i.imgur.com/r6dKYKz.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Altaria',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/4BU3DIw',
+    mapImg:    'https://i.imgur.com/i7qrQJW.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Glalie',
     wildscape: null,
-    mapImg:    'https://imgur.com/a/zeleMhU',
-    mapHoenn:  '',
+    mapImg:    '',
+    mapHoenn:  'https://i.imgur.com/sHFcZtn.png',
   },
 
   // ── Wildscape Especiais ───────────────────────────────────────────
   {
     name:      'Florges',
-    wildscape: 'https://imgur.com/a/dHnsWqn',
+    wildscape: 'https://i.imgur.com/lbX6o36.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Mimikyu',
-    wildscape: 'https://imgur.com/a/tBNDQGq',
+    wildscape: 'https://i.imgur.com/FnFMpgS.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Toxicroak',
-    wildscape: 'https://imgur.com/a/voSoRee',
+    wildscape: 'https://i.imgur.com/9ESpquJ.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Torterra',
-    wildscape: 'https://imgur.com/a/OSpmhX3',
+    wildscape: 'https://i.imgur.com/2XsXmXT.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Luxray',
-    wildscape: 'https://imgur.com/a/L0bj8Vd',
+    wildscape: 'https://i.imgur.com/RHrMVwH.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Tangrowth',
-    wildscape: 'https://imgur.com/a/6PD5gEv',
+    wildscape: 'https://i.imgur.com/o3AeTyV.png',
     mapImg:    null,
     mapHoenn:  '',
   },
 
   {
     name:      'Dusknoir',
-    wildscape: 'https://imgur.com/a/DMCBxm0',
+    wildscape: 'https://i.imgur.com/dT75F62.png',
     mapImg:    null,
     mapHoenn:  '',
   },
