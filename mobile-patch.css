@@ -19,7 +19,7 @@
    GLOBAL — overflow e scroll horizontal eliminados
 ══════════════════════════════════════════════════════════════ */
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip; /* clip não quebra position:sticky, diferente de hidden */
   -webkit-text-size-adjust: 100%;
   touch-action: pan-y;
 }
