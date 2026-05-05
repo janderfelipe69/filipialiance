@@ -1064,65 +1064,264 @@ function renderBrokes() {
 }
 
 // ===================== DADOS DE RESPAWN =====================
-// Estrutura: { name: 'NomePokemon', mapImg: 'URL ou null', location: 'Nome do Local' }
-// Para adicionar um pokémon, adicione um objeto aqui:
-var RAW_RESPAWN = [
-  // Exemplo — remova ou edite conforme necessário:
-  // { name: 'Bulbasaur', mapImg: null, location: 'Viridian Forest' },
-  // { name: 'Charmander', mapImg: null, location: 'Mt. Ember' },
-];
+// RAW_RESPAWN é definido em respawn_patch_modal.js
+// Certifique-se de que respawn_patch_modal.js é carregado ANTES de app.js no index.html
 
-function renderRespawn() {
-  var grid = document.getElementById('respawn-grid');
-  if (!grid) return;
-  var q = (document.getElementById('respawn-search') ? document.getElementById('respawn-search').value : '').toLowerCase().trim();
 
-  var filtered = RAW_RESPAWN.filter(function(p) {
-    if (!q) return true;
-    return p.name.toLowerCase().includes(q) || (p.location && p.location.toLowerCase().includes(q));
-  });
-
-  document.getElementById('respawn-count-label').textContent = filtered.length + ' Pokémon';
-
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="wiki-empty-state"><span class="empty-icon">🗺️</span><span class="empty-label">Nenhum Pokémon de respawn cadastrado ainda.</span></div>';
-    return;
-  }
-
-  grid.innerHTML = filtered.map(function(poke, idx) {
-    var sprite = getShowdownSprite(poke.name);
-    var fallback = 'https://play.pokemonshowdown.com/sprites/gen5/' + toShowdownName(poke.name) + '.png';
-    var mapContent = poke.mapImg
-      ? '<img class="respawn-map-img" src="' + poke.mapImg + '" alt="Mapa ' + poke.name + '" />'
-      : '<div class="respawn-map-placeholder"><span class="placeholder-icon">🗺️</span><span>Mapa em breve</span></div>';
-    var locationTag = poke.location
-      ? '<div class="respawn-location-tag">📍 ' + poke.location + '</div>'
-      : '';
-    return '<div class="respawn-row" id="respawn-row-' + idx + '">' +
-      '<div class="respawn-row-header" onclick="toggleRespawnRow(' + idx + ')">' +
-        '<span class="respawn-row-num">' + (idx + 1) + '</span>' +
-        '<img class="respawn-row-sprite" src="' + sprite + '" alt="' + poke.name + '" onerror="this.src=\'' + fallback + '\'" />' +
-        '<span class="respawn-row-name">' + poke.name + '</span>' +
-        '<svg class="respawn-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
-      '</div>' +
-      '<div class="respawn-row-panel">' +
-        '<div class="respawn-panel-inner">' +
-          '<img class="respawn-sprite-big" src="' + sprite + '" alt="' + poke.name + '" onerror="this.src=\'' + fallback + '\'" />' +
-          mapContent +
-        '</div>' +
-        locationTag +
-      '</div>' +
-    '</div>';
-  }).join('');
+// ── CSS para os novos cards ──────────────────────────────────────────
+(function injectRespawnCSS() {
+  if (document.getElementById('respawn-v2-css')) return;
+  var s = document.createElement('style');
+  s.id = 'respawn-v2-css';
+  s.textContent = `
+/* ── Layout geral ── */
+#respawn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  padding: 4px 0 20px;
 }
 
-function toggleRespawnRow(idx) {
-  var row = document.getElementById('respawn-row-' + idx);
-  if (!row) return;
-  var isOpen = row.classList.contains('open');
-  document.querySelectorAll('.respawn-row.open').forEach(function(r) { r.classList.remove('open'); });
-  if (!isOpen) row.classList.add('open');
+/* ── Card base ── */
+.rsp-card-v2 {
+  position: relative;
+  border-radius: 18px;
+  border: 1.5px solid var(--rsp-card-border, rgba(255,255,255,0.10));
+  background: var(--rsp-card-bg, rgba(255,255,255,0.03));
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .22s, border-color .22s, box-shadow .22s, background .22s;
+  user-select: none;
 }
+.rsp-card-v2::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% -5%, var(--rsp-glow-c, rgba(100,180,255,0.08)), transparent 70%);
+  pointer-events: none;
+}
+.rsp-card-v2:hover {
+  transform: translateY(-3px);
+  border-color: var(--rsp-accent, rgba(100,180,255,0.4));
+  box-shadow: 0 8px 32px var(--rsp-shadow, rgba(100,180,255,0.15));
+}
+.rsp-card-v2.open {
+  border-color: var(--rsp-accent, rgba(100,180,255,0.5));
+  box-shadow: 0 0 40px var(--rsp-shadow, rgba(100,180,255,0.2)), 0 6px 30px rgba(0,0,0,0.5);
+  background: var(--rsp-card-bg-open, rgba(255,255,255,0.05));
+}
+
+/* ── Sprite wrapper ── */
+.rsp-sprite-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  padding: 10px 8px 4px;
+  position: relative;
+}
+.rsp-sprite-static, .rsp-sprite-anim {
+  max-width: 96px;
+  max-height: 96px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 10px var(--rsp-shadow, rgba(100,180,255,0.25)));
+  transition: opacity .25s;
+}
+.rsp-sprite-anim {
+  position: absolute;
+  opacity: 0;
+  transition: opacity .25s;
+}
+.rsp-card-v2.open .rsp-sprite-static { opacity: 0; }
+.rsp-card-v2.open .rsp-sprite-anim   { opacity: 1; }
+
+/* ── Info area ── */
+.rsp-card-foot {
+  padding: 6px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.rsp-card-name {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rsp-accent, #fff);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rsp-type-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.rsp-type-badge {
+  font-family: var(--font-body, sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  border: 1px solid;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.rsp-wildscape-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  font-family: var(--font-mono, monospace);
+}
+.rsp-wildscape-dot::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #ffcc44;
+  box-shadow: 0 0 5px #ffcc44aa;
+  flex-shrink: 0;
+}
+
+/* ── Expanded panel ── */
+.rsp-expanded-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .45s cubic-bezier(.4,0,.2,1), opacity .3s;
+  opacity: 0;
+}
+.rsp-card-v2.open .rsp-expanded-panel {
+  max-height: 520px;
+  opacity: 1;
+}
+.rsp-panel-inner {
+  padding: 0 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rsp-sep-line {
+  height: 1px;
+  background: linear-gradient(90deg, var(--rsp-accent, rgba(100,180,255,0.3)), transparent);
+  margin-bottom: 2px;
+}
+.rsp-loc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  font-family: var(--font-body, sans-serif);
+  line-height: 1.4;
+}
+.rsp-loc-icon { flex-shrink: 0; font-size: 13px; }
+.rsp-map-frame {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--rsp-accent, rgba(100,180,255,0.2));
+  line-height: 0;
+  background: rgba(0,0,0,0.25);
+}
+.rsp-map-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 280px;
+  object-fit: cover;
+}
+.rsp-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--font-body, sans-serif);
+  color: var(--rsp-accent, #60aaff);
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity .15s;
+  padding: 4px 0;
+}
+.rsp-map-link:hover { opacity: 1; }
+.rsp-wildscape-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--font-body, sans-serif);
+  color: #ffcc44;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity .15s;
+}
+.rsp-wildscape-link:hover { opacity: 1; }
+.rsp-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px;
+  color: rgba(255,255,255,0.2);
+  font-size: 11px;
+  font-family: var(--font-body, sans-serif);
+  border-radius: 10px;
+  border: 1px dashed rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.15);
+}
+.rsp-map-placeholder-icon { font-size: 20px; }
+
+/* ── List mode override ── */
+.respawn-list-mode #respawn-grid {
+  grid-template-columns: 1fr;
+}
+.respawn-list-mode .rsp-card-v2 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-radius: 14px;
+}
+.respawn-list-mode .rsp-sprite-wrap {
+  width: 70px;
+  height: 56px;
+  flex-shrink: 0;
+  padding: 6px;
+}
+.respawn-list-mode .rsp-card-foot {
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+  gap: 10px;
+  padding: 10px 14px 10px 0;
+}
+.respawn-list-mode .rsp-card-name { min-width: 120px; font-size: 14px; }
+.respawn-list-mode .rsp-expanded-panel { display: none !important; }
+
+/* ── View toggle ── */
+.rsp-view-toggle {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.rsp-view-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.rsp-view-btn.active, .rsp-view-btn:hover {
+  border-color: rgba(100,180,255,0.4);
+  color: #fff;
+  background: rgba(100,180,255,0.08);
+}
+`;
+  document.head.appendChild(s);
+})();
 
 // ===================== DADOS DE QUESTS =====================
 // Estrutura: { name: 'Nome da Quest', icon: '⚔️', description: 'Texto descritivo', img: 'URL ou null' }
@@ -1179,6 +1378,12 @@ function toggleQuestRow(idx) {
 
 // Correções de nome: chave = como está no dado, valor = nome correto do Showdown
 var SHOWDOWN_NAME_FIXES = {
+  'charmelion': 'charmeleon',
+  'nidoran-f':  'nidoranf',
+  'nidoran-m':  'nidoranm',
+  'ho-oh':      'hooh',
+  'porygon-z':  'porygonz',
+  'mime jr.':   'mimejr',
   'grambull': 'granbull',
   'politoad': 'politoed',
   'mr. mime': 'mrmime',
@@ -2201,6 +2406,8 @@ const ENTREGAS = [
 { src: "https://i.imgur.com/NhV6uXy.jpeg",  name: "Shiny Tentacruel — Qzarny",        date: "03/05/2026" },
 { src: "https://i.imgur.com/QnneBym.jpeg",  name: "Shiny Qwilfish — Akahitaka",        date: "03/05/2026" },
 { src: "https://i.imgur.com/SwibeCC.jpeg",  name: "Shiny Qwilfish — Akahitaka",        date: "03/05/2026" },
+{ src: "https://i.imgur.com/0mAPijC.png",  name: "Shiny Crobat - Itens de Talento — Zripper",        date: "04/05/2026" },
+{ src: "https://i.imgur.com/tCKCggp.png",  name: "Shiny Persian — Bihi, quem pegou foi o amigo",        date: "04/05/2026" },
 ];
 // ============================================================
 
@@ -3575,7 +3782,7 @@ function parseHazardTask(taskStr) {
 
 function getShowdownSpriteHazard(name) {
   var key = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  var fixes = { 'salamalence': 'salamence', 'ilumise': 'illumise' };
+  var fixes = { 'salamalence': 'salamence', 'ilumise': 'illumise', 'luvdisk': 'luvdisc' };
   if (fixes[key]) key = fixes[key];
   return 'https://play.pokemonshowdown.com/sprites/ani-shiny/' + key + '.gif';
 }
