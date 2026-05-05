@@ -228,14 +228,15 @@
 ::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 3px; }
 
 /* ===================== BODY ===================== */
+/* overflow-x:hidden quebra position:sticky — usar clip que não cria scroll container */
+html { overflow-x: clip; }
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   min-height: 100vh;
-  overflow-x: hidden;
   cursor: default;
-  /* Evita que o body crie stacking context desnecessário */
   isolation: isolate;
 }
 
@@ -3195,8 +3196,8 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
 /* ===================== CAPTURA ===================== */
 .captura-controls {
   position: sticky;
-  top: 0;
-  z-index: 9;
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px));
+  z-index: 180;
   background: rgba(4,6,14,0.95);
   border-bottom: 1px solid var(--border);
   padding: 14px 32px;
@@ -4462,7 +4463,7 @@ span[id^="total-brl-"] {
   align-items: center;
   flex-wrap: wrap;
   position: sticky;
-  top: var(--tabs-h, 48px);
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px) + var(--wiki-subtabs-h, 52px));
   z-index: 170;
 }
 .wiki-search-wrap {
@@ -4640,8 +4641,6 @@ span[id^="total-brl-"] {
   gap: 6px;
   padding: 18px 32px 0;
   background: transparent;
-  position: relative;
-  z-index: 2;
 }
 
 .wiki-subtab-btn {
