@@ -1189,35 +1189,26 @@
 <script src="tutorial.js"></script>
 
 <style>
-/* ── Wiki Subtabs Sentinel ── */
-#wiki-subtabs-sentinel { height: 0; pointer-events: none; }
+/* ── Wiki Subtabs — sticky nativo, sem JS de placeholder ── */
+#wiki-subtabs-sentinel { display: none; }
+#wiki-subtabs-placeholder { display: none !important; }
 
-/* ── Wiki Subtabs Normal ── */
-#wiki-subtabs { position: relative; z-index: 50; }
-
-/* ── Wiki Subtabs Fixo ── */
-#wiki-subtabs.wiki-subtabs--sticky {
-  position: fixed;
+#wiki-subtabs {
+  position: sticky;
   top: calc(var(--header-h, 0px) + var(--tabs-h, 0px));
-  left: 0; right: 0;
   z-index: 200;
   background: rgba(6, 10, 22, 0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(58, 140, 255, 0.25);
-  box-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 1px 0 rgba(58,140,255,0.1);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.6);
   padding: 10px 24px;
-  animation: wikiSubSlide 0.2s cubic-bezier(0.16,1,0.3,1);
 }
 
-@keyframes wikiSubSlide {
-  from { transform: translateY(-100%); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
+/* wiki-controls gruda abaixo das subtabs (ambas são sticky em cadeia) */
+.wiki-controls {
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px) + var(--wiki-subtabs-h, 52px)) !important;
 }
-
-/* Placeholder que segura o espaço quando subtabs sai do fluxo */
-#wiki-subtabs-placeholder { display: none; }
-#wiki-subtabs-placeholder.active { display: block; }
 
 /* ══════════════════════════════════════════════
    PUNCHING BAG WIKI STYLES
@@ -1717,88 +1708,6 @@
 }
 </style>
 
-<script>
-(function() {
-  var _sticky = false;
-  var _ph = null;
-  var _wikiOpen = false;
-  var _scrollBound = false;
-
-  function getSubtabs()  { return document.getElementById('wiki-subtabs'); }
-  function getBanner()   { return document.querySelector('#tab-wiki .wiki-banner'); }
-
-  function ensurePlaceholder() {
-    if (_ph) return;
-    var subtabs = getSubtabs();
-    if (!subtabs) return;
-    _ph = document.createElement('div');
-    _ph.id = 'wiki-subtabs-placeholder';
-    subtabs.parentNode.insertBefore(_ph, subtabs);
-  }
-
-  function getFixedOffset() {
-    // Lê as variáveis CSS calculadas pelo app.js (updateStickyOffsets)
-    var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 0;
-    var th = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tabs-h'))  || 0;
-    return hh + th;
-  }
-
-  function checkSticky() {
-    if (!_wikiOpen) return;
-    var banner  = getBanner();
-    var subtabs = getSubtabs();
-    if (!banner || !subtabs) return;
-
-    var offset       = getFixedOffset();
-    var bannerBottom = banner.getBoundingClientRect().bottom;
-    var shouldStick  = bannerBottom <= offset;
-
-    if (shouldStick === _sticky) return;
-    _sticky = shouldStick;
-
-    ensurePlaceholder();
-
-    if (shouldStick) {
-      _ph.style.height = subtabs.getBoundingClientRect().height + 'px';
-      _ph.classList.add('active');
-      subtabs.classList.add('wiki-subtabs--sticky');
-    } else {
-      _ph.classList.remove('active');
-      subtabs.classList.remove('wiki-subtabs--sticky');
-    }
-  }
-
-  function enableSticky() {
-    _wikiOpen = true;
-    if (!_scrollBound) {
-      window.addEventListener('scroll', checkSticky, { passive: true });
-      _scrollBound = true;
-    }
-    // Checa imediatamente (caso já esteja scrollado)
-    setTimeout(checkSticky, 60);
-  }
-
-  function disableSticky() {
-    _wikiOpen = false;
-    _sticky   = false;
-    var subtabs = getSubtabs();
-    if (subtabs) subtabs.classList.remove('wiki-subtabs--sticky');
-    if (_ph) _ph.classList.remove('active');
-  }
-
-  function hookSwitchTab() {
-    if (typeof switchTab !== 'function') { setTimeout(hookSwitchTab, 100); return; }
-    var orig = switchTab;
-    window.switchTab = function(tab, btn) {
-      orig(tab, btn);
-      if (tab === 'wiki') { enableSticky(); }
-      else               { disableSticky(); }
-    };
-  }
-
-  document.addEventListener('DOMContentLoaded', hookSwitchTab);
-})();
-</script>
 
 <!-- WIKI LOOKUP POPUP -->
 <div id="wiki-popup-overlay">
