@@ -90,7 +90,7 @@
   /* ── Atualiza o hash na URL sem adicionar ao histórico ── */
   function setHash(hash) {
     if (window.location.hash === hash) return;
-    history.replaceState(null, '', hash || window.location.pathname + window.location.search);
+    history.replaceState(null, '', window.location.pathname + (hash || ''));
   }
 
   /* ── Patches: intercepta switchTab e switchWikiTab para manter a URL sincronizada ── */
