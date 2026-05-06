@@ -2037,7 +2037,7 @@ const POKEMONS = [
 { name: "Shiny Arcanine",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/BqakQU0.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
 { name: "Shiny Kangaskhan",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/wgjSoja.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
 { name: "Shiny Lapras",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/nVzbMx2.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },
-{ name: "Shiny Qwilfish",     price: 10000000,   tag: "t3",         image: "https://i.imgur.com/FYlu9Rd.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
+{ name: "Shiny Qwilfish",     price: 10000000,   tag: "t3", dive: true,  image: "https://i.imgur.com/FYlu9Rd.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
 { name: "Shiny Slowking",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/koy11aG.gif", bannerImage: "https://i.imgur.com/ASiZi1K.png" },
 { name: "Shiny Skarmory",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/B2l8aVE.gif", bannerImage: "https://i.imgur.com/GleRjiM.png" },
 { name: "Shiny Toxicroak",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/BUSWRd6.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
@@ -2060,8 +2060,8 @@ POKEMONS.forEach(p => {
 
 const BALLS = [
   { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
-  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.3 },
-  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.5 },
+  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 0.8, minPrice: 1000 },
+  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 0.8, minPrice: 1000 },
 ];
 
 let currentCapturaIdx = null;
@@ -2185,7 +2185,8 @@ function openCapturaModal(idx) {
       <div class="captura-ball-label">Escolha a Poké Ball</div>
       <div class="captura-ball-options">
         ${BALLS.map(ball => {
-          const ballPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
+          const rawBallPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
+          const ballPrice = (ball.minPrice && rawBallPrice > 0) ? Math.max(rawBallPrice, ball.minPrice) : rawBallPrice;
           const ballPriceData = formatKK(ballPrice);
           const multLabel = '';
           return `
@@ -2198,6 +2199,48 @@ function openCapturaModal(idx) {
             <span class="ball-price-brl">${ballPriceData.brl}</span>` : ''}
           </button>`;
         }).join('')}
+      </div>
+    </div>
+    <div id="captura-ball-aviso" style="
+      margin: 10px 0 6px;
+      background: linear-gradient(135deg, rgba(255,180,0,0.10) 0%, rgba(255,100,0,0.08) 100%);
+      border: 1.5px solid rgba(255,180,0,0.40);
+      border-left: 4px solid #ffb300;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 0 18px rgba(255,160,0,0.12), inset 0 1px 0 rgba(255,200,80,0.08);
+    ">
+      <span style="font-size:20px;line-height:1;flex-shrink:0;margin-top:1px;">⚠️</span>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <span style="
+          font-family:var(--font-title,inherit);
+          font-size:13px;
+          font-weight:700;
+          color:#ffcc44;
+          letter-spacing:0.6px;
+          text-transform:uppercase;
+          text-shadow:0 0 10px rgba(255,180,0,0.5);
+        ">As Poké Balls são por sua conta!</span>
+        <span style="
+          font-size:11.5px;
+          color:rgba(255,255,255,0.72);
+          line-height:1.55;
+          font-family:var(--font-body,inherit);
+        ">
+          Premier Ball e Alliance Ball exigem <span style="
+            background:rgba(255,180,0,0.18);
+            border:1px solid rgba(255,180,0,0.45);
+            border-radius:5px;
+            padding:1px 6px;
+            color:#ffcc44;
+            font-weight:700;
+            font-size:11px;
+          ">mínimo 1k por captura</span>.
+          Se acabar as balls, você precisa repor para continuar capturando.
+        </span>
       </div>
     </div>
     ${(function() {
@@ -2232,6 +2275,8 @@ function selectBall(ballId) {
   if (confirmBtn) confirmBtn.disabled = false;
   const msg = document.getElementById('captura-success-msg');
   if (msg) msg.classList.remove('show');
+  const aviso = document.getElementById('captura-ball-aviso');
+  if (aviso) aviso.style.display = (ballId === 'premier' || ballId === 'alliance') ? 'flex' : 'none';
 
   // Atualiza bloco de preço final
   if (currentCapturaIdx !== null) {
@@ -2239,7 +2284,8 @@ function selectBall(ballId) {
     const ball = BALLS.find(b => b.id === ballId);
     const diveMultiplier = poke.dive ? 1.30 : 1.0;
     const effectiveBase = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
-    const finalPrice = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
+    const rawFinalPrice = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
+    const finalPrice = (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
     const priceData = formatKK(finalPrice);
     const selBlock = document.getElementById('captura-price-selected');
     const selKk    = document.getElementById('captura-price-sel-kk');
@@ -2258,7 +2304,8 @@ function confirmCaptura() {
   const ball = BALLS.find(b => b.id === selectedBall);
   const diveMultiplier = poke.dive ? 1.30 : 1.0;
   const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
-  const finalPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
+  const rawFinalPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
+  const finalPrice = (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
   const priceData  = formatKK(finalPrice);
   const priceStr   = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
 
@@ -2408,6 +2455,9 @@ const ENTREGAS = [
 { src: "https://i.imgur.com/SwibeCC.jpeg",  name: "Shiny Qwilfish — Akahitaka",        date: "03/05/2026" },
 { src: "https://i.imgur.com/0mAPijC.png",  name: "Shiny Crobat - Itens de Talento — Zripper",        date: "04/05/2026" },
 { src: "https://i.imgur.com/tCKCggp.png",  name: "Shiny Persian — Bihi, quem pegou foi o amigo",        date: "04/05/2026" },
+{ src: "https://i.imgur.com/8c7IkrQ.png",  name: "Itens de talento — Saga",        date: "05/05/2026" },
+{ src: "https://i.imgur.com/tCKCggp.png",  name: "Shiny Qwilfish — Saga",        date: "05/05/2026" },
+{ src: "https://i.imgur.com/tCKCggp.png",  name: "Shiny Qwilfish — Saga, ultimo de uma encomenda de 4 shinys",        date: "05/05/2026" },
 ];
 // ============================================================
 
@@ -2430,19 +2480,72 @@ function renderEntregas() {
     return;
   }
 
-  grid.innerHTML = ENTREGAS.map((item, idx) => `
-    <div class="entrega-card" onclick="openEntregaLightbox(${idx})">
-      <img src="${item.src}" alt="${item.name}" loading="lazy"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-      <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:40px;background:var(--surface3)">📦</div>
-      <div class="entrega-card-overlay">
-        <div>
-          <div class="entrega-card-label">${item.name}</div>
-          <div class="entrega-card-date">${item.date}</div>
+  // Parse date DD/MM/YYYY → sortable number YYYYMMDD
+  function parseDateVal(d) {
+    if (!d) return 0;
+    const parts = d.split('/');
+    if (parts.length !== 3) return 0;
+    return parseInt(parts[2] + parts[1] + parts[0], 10);
+  }
+
+  // Format date for display: DD/MM/YYYY → "DD de Mês de YYYY"
+  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  function formatDateLabel(d) {
+    if (!d) return d;
+    const parts = d.split('/');
+    if (parts.length !== 3) return d;
+    const mes = MESES[parseInt(parts[1], 10) - 1] || parts[1];
+    return `${parseInt(parts[0], 10)} de ${mes} de ${parts[2]}`;
+  }
+
+  // Group by date, most recent first
+  const groups = {};
+  const groupOrder = [];
+  ENTREGAS.forEach((item, idx) => {
+    const key = item.date || 'Sem data';
+    if (!groups[key]) {
+      groups[key] = [];
+      groupOrder.push(key);
+    }
+    groups[key].push({ item, idx });
+  });
+
+  // Sort groups: most recent first
+  groupOrder.sort((a, b) => parseDateVal(b) - parseDateVal(a));
+
+  let html = '';
+  groupOrder.forEach(dateKey => {
+    const entries = groups[dateKey];
+    html += `
+    <div class="entregas-date-group">
+      <div class="entregas-date-header">
+        <div class="entregas-date-line"></div>
+        <div class="entregas-date-pill">
+          <span class="entregas-date-icon">📅</span>
+          <span class="entregas-date-text">${formatDateLabel(dateKey)}</span>
+          <span class="entregas-date-count">${entries.length} ${entries.length === 1 ? 'entrega' : 'entregas'}</span>
         </div>
+        <div class="entregas-date-line"></div>
       </div>
-      <div class="entrega-card-badge">✓ Entregue</div>
-    </div>`).join('');
+      <div class="entregas-date-grid">
+        ${entries.map(({ item, idx }) => `
+        <div class="entrega-card" onclick="openEntregaLightbox(${idx})">
+          <img src="${item.src}" alt="${item.name}" loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+          <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:40px;background:var(--surface3)">📦</div>
+          <div class="entrega-card-overlay">
+            <div>
+              <div class="entrega-card-label">${item.name}</div>
+              <div class="entrega-card-date">${item.date}</div>
+            </div>
+          </div>
+          <div class="entrega-card-badge">✓ Entregue</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  grid.innerHTML = html;
 }
 
 function openEntregaLightbox(idx) {
