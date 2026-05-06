@@ -10,42 +10,51 @@ var RAW_RESPAWN = [
   {
     name:      'Bulbasaur',
     wildscape: null,
-    mapImg:    'https://i.imgur.com/Om7SLbv.png',
+    mapImg:    'https://i.imgur.com/mmUzWFR.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Ivysaur',
     wildscape: null,
-    mapImg:    'https://i.imgur.com/lTmSlTx.png',
+    mapImg:    'https://i.imgur.com/52kTB1Z.png',
     mapHoenn:  '',
   },
 
-  {
-    name:      'Venusaur',
-    wildscape: ['https://i.imgur.com/yzUdC73.png', 'https://i.imgur.com/76MDx0t.png'],
-    mapImg:    'https://i.imgur.com/pdEHpQE.png',
-    mapHoenn:  '',
+{
+  name:      'Venusaur',
+  wildscape: {
+    resp:  'https://i.imgur.com/phsFHqX.png',   // Wildscape 1 — resp direto
+    resp2: 'https://i.imgur.com/Pu2OMCN.png',   // Wildscape 2 — destino final
+    path: [       	// Passo a passo para chegar no Wildscape 2
+	  'https://i.imgur.com/vfbK7uX.png', 
+      'https://i.imgur.com/i2czjMQ.png',
+      'https://i.imgur.com/0jtGmGD.png',
+    ],
+
   },
+  mapImg:   'https://i.imgur.com/pdEHpQE.png',
+  mapHoenn:  '',
+},
 
   {
     name:      'Charmander',
     wildscape: null,
-    mapImg:    null,
+    mapImg:    'https://i.imgur.com/vMcSMz5.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Charmeleon',
     wildscape: null,
-    mapImg:    'https://i.imgur.com/FJYXQAr.png',
+    mapImg:    'https://i.imgur.com/M8wMGxC.png',
     mapHoenn:  '',
   },
 
   {
     name:      'Charizard',
-    wildscape: 'https://i.imgur.com/MgVse3l.png',
-    mapImg:    'https://i.imgur.com/MgVse3l.png',
+    wildscape: ['https://i.imgur.com/aRvOID9.png', 'https://i.imgur.com/fjJPfr2.png'],
+    mapImg:    'https://i.imgur.com/4mYIm4b.png',
     mapHoenn:  '',
   },
 
@@ -2704,8 +2713,297 @@ function getPrimaryTypeColor(types) {
   transition: color 0.15s;
 }
 .rsp-imgmap-open-link:hover { color: rgba(255,255,255,0.7); }
+
+/* ── Slot wildscape com caminho (path) ── */
+.rsp-map-slot.has-path {
+  flex-direction: column;
+  padding: 0 !important;
+  cursor: default;
+  gap: 0;
+}
+.rsp-map-slot.has-path .rsp-ws-path-btn {
+  padding: 12px 16px;
+}
+/* Slot-botão: o próprio <button> É o card */
+button.rsp-map-slot.rsp-path-slot-btn {
+  width: 100%;
+  cursor: pointer;
+  border: 1.5px solid;
+  font-family: var(--font-body, sans-serif);
+  text-align: left;
+  box-sizing: border-box;
+}
+.rsp-ws-slot-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: background 0.15s;
+}
+.rsp-ws-slot-top:hover { background: rgba(255,255,255,0.06); }
+.rsp-ws-slot-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 0 10px;
+}
+.rsp-ws-path-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+  text-align: left;
+  color: inherit;
+  box-sizing: border-box;
+}
+.rsp-ws-path-btn:hover { background: rgba(100,200,255,0.08); }
+.rsp-ws-path-icon { font-size: 18px; flex-shrink: 0; }
+.rsp-ws-path-text { flex: 1; min-width: 0; }
+.rsp-ws-path-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); }
+.rsp-ws-path-sub { font-size: 11px; opacity: 0.55; margin-top: 2px; }
+.rsp-ws-path-arrow { font-size: 14px; opacity: 0.45; flex-shrink: 0; transition: opacity .18s; }
+.rsp-ws-path-btn:hover .rsp-ws-path-arrow { opacity: 1; }
+
+/* ── Modal passo a passo ── */
+#rsp-path-modal {
+  position: fixed; inset: 0; z-index: 10100;
+  display: flex; align-items: center; justify-content: center;
+}
+.rsp-path-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(4px);
+}
+.rsp-path-panel {
+  position: relative; z-index: 1;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  width: min(94vw, 700px);
+  max-height: 92vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+}
+.rsp-path-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.rsp-path-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: 0.04em; }
+.rsp-path-close {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7); border-radius: 50%; width: 30px; height: 30px;
+  cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.rsp-path-close:hover { background: rgba(255,80,80,0.25); color: #fff; }
+.rsp-path-main-wrap {
+  position: relative;
+  flex: 1; min-height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  background: #0d0d1a;
+  overflow: hidden;
+}
+.rsp-path-main-img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.2s;
+}
+.rsp-path-nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.15);
+  color: #fff; border-radius: 50%; width: 38px; height: 38px;
+  cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s; z-index: 2;
+}
+.rsp-path-nav-btn:hover { background: rgba(255,255,255,0.2); }
+.rsp-path-nav-prev { left: 10px; }
+.rsp-path-nav-next { right: 10px; }
+.rsp-path-counter {
+  position: absolute; bottom: 10px; right: 12px;
+  background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.7);
+  font-size: 11px; padding: 3px 8px; border-radius: 20px;
+  pointer-events: none;
+}
+.rsp-path-destino-badge {
+  position: absolute; top: 10px; left: 12px;
+  background: rgba(80,200,120,0.25); color: #6effa0;
+  border: 1px solid rgba(80,200,120,0.4);
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  pointer-events: none; font-weight: 600;
+}
+.rsp-path-thumbs {
+  display: flex; gap: 6px; padding: 10px 14px;
+  overflow-x: auto; flex-shrink: 0;
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  scrollbar-width: thin;
+}
+.rsp-path-thumb {
+  flex-shrink: 0;
+  width: 72px; height: 54px;
+  border-radius: 6px; overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.12);
+  cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+  position: relative;
+}
+.rsp-path-thumb:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.4); }
+.rsp-path-thumb.active { border-color: #6ecbff; }
+.rsp-path-thumb.is-destino { border-color: rgba(80,200,120,0.6); }
+.rsp-path-thumb.is-destino.active { border-color: #6effa0; }
+.rsp-path-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rsp-path-thumb-num {
+  position: absolute; bottom: 2px; right: 4px;
+  font-size: 9px; color: rgba(255,255,255,0.7);
+  text-shadow: 0 1px 2px #000;
+  font-weight: 700;
+}
+.rsp-path-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  gap: 8px;
+}
+.rsp-path-open-link {
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  text-decoration: none; letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+.rsp-path-open-link:hover { color: rgba(255,255,255,0.7); }
+.rsp-path-step-label {
+  font-size: 12px; color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
   `;
   document.head.appendChild(s);
+})();
+
+/* ── openPathModalGlobal — modal passo a passo ───────────────────────── */
+(function() {
+  var _currentStep = 0;
+  var _steps = [];
+
+  function _close() {
+    var m = document.getElementById('rsp-path-modal');
+    if (m) m.remove();
+    document.removeEventListener('keydown', _keyHandler);
+  }
+
+  function _goTo(idx) {
+    _currentStep = Math.max(0, Math.min(_steps.length - 1, idx));
+    var step = _steps[_currentStep];
+
+    var img       = document.getElementById('rsp-path-main-img');
+    var counter   = document.getElementById('rsp-path-counter');
+    var badge     = document.getElementById('rsp-path-destino-badge');
+    var link      = document.getElementById('rsp-path-open-link');
+    var stepLabel = document.getElementById('rsp-path-step-label');
+
+    if (img)  { img.style.opacity = '0'; img.src = step.url; img.onload = function() { img.style.opacity = '1'; }; }
+    if (counter)   counter.textContent  = (_currentStep + 1) + ' / ' + _steps.length;
+    if (badge)     badge.style.display  = step.isDestino ? '' : 'none';
+    if (link)      link.href            = step.url;
+    if (stepLabel) stepLabel.textContent = step.isDestino ? '📍 Destino final' : 'Passo ' + (_currentStep + 1);
+
+    var rail   = document.querySelector('.rsp-path-thumbs');
+    var thumbs = rail ? rail.querySelectorAll('.rsp-path-thumb') : [];
+    thumbs.forEach(function(t, i) {
+      t.classList.toggle('active', i === _currentStep);
+      if (i === _currentStep) {
+        rail.scrollTo({ left: t.offsetLeft - rail.offsetWidth / 2 + t.offsetWidth / 2, behavior: 'smooth' });
+      }
+    });
+  }
+
+  function _keyHandler(e) {
+    if (e.key === 'Escape')                            _close();
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') _goTo(_currentStep + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   _goTo(_currentStep - 1);
+  }
+
+  window.openPathModalGlobal = function(stepsJsonRaw, pokeName, label) {
+    var steps;
+    try {
+      var decoded = (typeof stepsJsonRaw === 'string')
+        ? stepsJsonRaw.replace(/&quot;/g, '"')
+        : JSON.stringify(stepsJsonRaw);
+      steps = JSON.parse(decoded);
+    } catch(e) {
+      console.error('openPathModalGlobal: erro ao parsear steps', e);
+      return;
+    }
+    if (!steps || !steps.length) return;
+
+    _steps = steps;
+    _currentStep = 0;
+
+    var existing = document.getElementById('rsp-path-modal');
+    if (existing) existing.remove();
+
+    var thumbsHtml = steps.map(function(s, i) {
+      var destCls = s.isDestino ? ' is-destino' : '';
+      return '<div class="rsp-path-thumb' + destCls + '">'
+        + '<img src="' + s.url + '" alt="Passo ' + (i + 1) + '" loading="lazy" />'
+        + '<span class="rsp-path-thumb-num">' + (s.isDestino ? '📍' : (i + 1)) + '</span>'
+        + '</div>';
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.id = 'rsp-path-modal';
+    modal.innerHTML =
+        '<div class="rsp-path-backdrop"></div>'
+      + '<div class="rsp-path-panel">'
+      +   '<div class="rsp-path-header">'
+      +     '<span class="rsp-path-title">🧭 Caminho — ' + (label || pokeName || '') + '</span>'
+      +     '<button class="rsp-path-close">✕</button>'
+      +   '</div>'
+      +   '<div class="rsp-path-main-wrap">'
+      +     '<img id="rsp-path-main-img" class="rsp-path-main-img" src="' + steps[0].url + '" alt="Passo 1" />'
+      +     '<button class="rsp-path-nav-btn rsp-path-nav-prev">&#8249;</button>'
+      +     '<button class="rsp-path-nav-btn rsp-path-nav-next">&#8250;</button>'
+      +     '<div id="rsp-path-counter" class="rsp-path-counter">1 / ' + steps.length + '</div>'
+      +     '<div id="rsp-path-destino-badge" class="rsp-path-destino-badge" style="display:none">📍 Destino final</div>'
+      +   '</div>'
+      +   '<div class="rsp-path-thumbs">' + thumbsHtml + '</div>'
+      +   '<div class="rsp-path-footer">'
+      +     '<span id="rsp-path-step-label" class="rsp-path-step-label">Passo 1</span>'
+      +     '<a id="rsp-path-open-link" class="rsp-path-open-link" href="' + steps[0].url + '" target="_blank" rel="noopener">↗ Abrir no Imgur</a>'
+      +   '</div>'
+      + '</div>';
+
+    document.body.appendChild(modal);
+
+    // Eventos via JS (sem onclick inline)
+    modal.querySelector('.rsp-path-backdrop').addEventListener('click', _close);
+    modal.querySelector('.rsp-path-close').addEventListener('click', _close);
+    modal.querySelector('.rsp-path-nav-prev').addEventListener('click', function() { _goTo(_currentStep - 1); });
+    modal.querySelector('.rsp-path-nav-next').addEventListener('click', function() { _goTo(_currentStep + 1); });
+    modal.querySelector('.rsp-path-thumbs').addEventListener('click', function(e) {
+      var thumb = e.target.closest('.rsp-path-thumb');
+      if (!thumb) return;
+      var idx = Array.from(modal.querySelectorAll('.rsp-path-thumb')).indexOf(thumb);
+      if (idx >= 0) _goTo(idx);
+    });
+
+    document.addEventListener('keydown', _keyHandler);
+
+    // Ativa thumb 0
+    setTimeout(function() {
+      var first = modal.querySelector('.rsp-path-thumb');
+      if (first) first.classList.add('active');
+    }, 0);
+  };
 })();
 
 // ── renderRespawn ────────────────────────────────────────────────────
@@ -2764,10 +3062,94 @@ function navigateRespawnModal(dir) {
   var newIdx = _rspCurrentIdx + dir;
   if (newIdx < 0) newIdx = list.length - 1;
   if (newIdx >= list.length) newIdx = 0;
-  openRespawnModal(newIdx);
+  window.openRespawnModal(newIdx);
 }
 
-function openRespawnModal(idx) {
+// ── Helpers wildscape ────────────────────────────────────────────────
+
+function _rspNormalizeWildscape(ws) {
+  if (!ws) return { entries: [] };
+  // Formato objeto: { resp, resp2, path }
+  if (typeof ws === 'object' && !Array.isArray(ws)) {
+    var entries = [];
+    if (ws.resp) entries.push({ label: 'Wildscape 1', url: ws.resp, path: null });
+    if (ws.resp2) {
+      entries.push({ label: 'Wildscape 2', url: ws.resp2, path: ws.path || null });
+    } else if (ws.path && !ws.resp2) {
+      var pathArr = ws.path;
+      var dest = pathArr[pathArr.length - 1];
+      var guide = pathArr.slice(0, -1);
+      entries.push({ label: 'Wildscape 2', url: dest, path: guide.length ? guide : null });
+    }
+    return { entries: entries };
+  }
+  // Formato array legado
+  if (Array.isArray(ws)) {
+    return { entries: ws.map(function(url, i) {
+      return { label: ws.length > 1 ? 'Wildscape ' + (i + 1) : 'Wildscape', url: url, path: null };
+    })};
+  }
+  // Formato string
+  return { entries: [{ label: 'Wildscape', url: ws, path: null }] };
+}
+
+function _rspToDirectImgur(url) {
+  if (!url) return url;
+  var albumMatch = url.match(/imgur\.com\/a\/([A-Za-z0-9]+)/);
+  var imageMatch = url.match(/imgur\.com\/([A-Za-z0-9]+)(?:\.[a-z]+)?$/);
+  if (albumMatch) return 'https://i.imgur.com/' + albumMatch[1] + '.jpg';
+  if (imageMatch) return 'https://i.imgur.com/' + imageMatch[1] + '.png';
+  return url;
+}
+
+// Slot simples (mapa comum, hoenn, wildscape sem path)
+function _rspMakeSlot(type, icon, label, url, pokeName) {
+  var hasMap = !!(url);
+  var cls = 'rsp-map-slot ' + type + ' ' + (hasMap ? 'has-map' : 'no-map');
+  var sub = hasMap ? 'Clique para ver o mapa' : 'Esse Pokémon não possui respawn nesse local';
+  var onclick = hasMap ? ' onclick="openImgurMapModal(\'' + url + '\', \'' + label + '\', \'' + pokeName + '\')"' : '';
+  var arrow = hasMap ? '<span class="rsp-map-slot-arrow">→</span>' : '';
+  return '<div class="' + cls + '"' + onclick + '>'
+    + '<span class="rsp-map-slot-icon">' + icon + '</span>'
+    + '<span class="rsp-map-slot-body">'
+    +   '<div class="rsp-map-slot-label">' + label + '</div>'
+    +   '<div class="rsp-map-slot-sub">' + sub + '</div>'
+    + '</span>'
+    + arrow
+    + '</div>';
+}
+
+// Slot wildscape com path (passo a passo)
+function _rspMakeWildscapeSlot(entry, pokeName) {
+  var hasResp = !!(entry.url);
+  var hasPath = !!(entry.path && entry.path.length > 0);
+
+  // Sem path: slot simples clicável
+  if (!hasPath) {
+    return _rspMakeSlot('wildscape', '⚡', entry.label, entry.url || null, pokeName);
+  }
+
+  // Com path: steps = path[] em ordem + resp2 como destino final (último)
+  var steps = entry.path.map(function(u) { return { url: u }; });
+  if (hasResp) steps.push({ url: entry.url, isDestino: true });
+
+  var stepsJson = JSON.stringify(steps).replace(/'/g, "\\'");
+  var totalGuia = entry.path.length;
+  var subText = totalGuia + ' imagem' + (totalGuia !== 1 ? 'ns' : '') + ' de guia' + (hasResp ? ' + destino final' : '');
+
+  // Slot único — apenas o botão passo a passo (sem linha dupla)
+  return '<button class="rsp-map-slot wildscape has-map rsp-path-slot-btn" onclick="openPathModalGlobal(\'' + stepsJson.replace(/"/g, '&quot;') + '\', \'' + pokeName + '\', \'' + entry.label + '\')">'
+    +   '<span class="rsp-ws-path-icon">⚡</span>'
+    +   '<span class="rsp-ws-path-text">'
+    +     '<div class="rsp-map-slot-label">Ver Caminho — ' + entry.label + '</div>'
+    +     '<div class="rsp-map-slot-sub">' + subText + '</div>'
+    +   '</span>'
+    +   '<span class="rsp-map-slot-arrow">→</span>'
+    + '</button>';
+}
+
+// ── openRespawnModal (var = não faz hoist, não conflita com patch) ────
+var openRespawnModal = function(idx) {
   _rspCurrentIdx = idx;
   var list = window._rspFiltered || RAW_RESPAWN;
   var poke = list[idx];
@@ -2789,36 +3171,27 @@ function openRespawnModal(idx) {
     return '<span class="rsp-modal-type-chip" style="background:' + c + '22;border-color:' + c + '55;color:' + c + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</span>';
   }).join('');
 
-  // Build 3-slot map section
-  var wildscapeList = poke.wildscape ? (Array.isArray(poke.wildscape) ? poke.wildscape : [poke.wildscape]) : [];
+  // Normaliza wildscape
+  var normalized = _rspNormalizeWildscape(poke.wildscape);
 
-  function _makeSlot(type, icon, label, url, pokeName) {
-    var hasMap = !!(url);
-    var cls = 'rsp-map-slot ' + type + ' ' + (hasMap ? 'has-map' : 'no-map');
-    var sub = hasMap ? 'Clique para ver o mapa' : 'Esse Pokémon não possui respawn nesse local';
-    var onclick = hasMap ? ' onclick="openImgurMapModal(\'' + url + '\', \'' + label + '\', \'' + pokeName + '\')"' : '';
-    var arrow = hasMap ? '<span class="rsp-map-slot-arrow">→</span>' : '';
-    return '<div class="' + cls + '"' + onclick + '>'
-      + '<span class="rsp-map-slot-icon">' + icon + '</span>'
-      + '<span class="rsp-map-slot-body">'
-      +   '<div class="rsp-map-slot-label">' + label + '</div>'
-      +   '<div class="rsp-map-slot-sub">' + sub + '</div>'
-      + '</span>'
-      + arrow
-      + '</div>';
+  // wildcapePath separado (formato alternativo legado)
+  if (poke.wildcapePath && !(typeof poke.wildscape === 'object' && !Array.isArray(poke.wildscape))) {
+    var wsUrl = typeof poke.wildscape === 'string' ? poke.wildscape : null;
+    normalized = { entries: [
+      wsUrl ? { label: 'Wildscape 1', url: wsUrl, path: null } : null,
+      { label: 'Wildscape 2', url: null, path: poke.wildcapePath }
+    ].filter(Boolean) };
   }
 
   var mapBtns = '';
-  mapBtns += _makeSlot('comum',    '🗺️', 'Mapa Comum',  poke.mapImg || null,         poke.name);
-  mapBtns += _makeSlot('hoenn',    '🌿', 'Hoenn',        poke.mapHoenn || null,        poke.name);
+  mapBtns += _rspMakeSlot('comum',  '🗺️', 'Mapa Comum', poke.mapImg   || null, poke.name);
+  mapBtns += _rspMakeSlot('hoenn',  '🌿', 'Hoenn',       poke.mapHoenn || null, poke.name);
 
-  // Wildscape: one slot per entry
-  if (wildscapeList.length === 0) {
-    mapBtns += _makeSlot('wildscape', '⚡', 'Wildscape', null, poke.name);
+  if (normalized.entries.length === 0) {
+    mapBtns += _rspMakeSlot('wildscape', '⚡', 'Wildscape', null, poke.name);
   } else {
-    wildscapeList.forEach(function(wsUrl, wsIdx) {
-      var wsLabel = wildscapeList.length > 1 ? 'Wildscape ' + (wsIdx + 1) : 'Wildscape';
-      mapBtns += _makeSlot('wildscape', '⚡', wsLabel, wsUrl, poke.name);
+    normalized.entries.forEach(function(entry) {
+      mapBtns += _rspMakeWildscapeSlot(entry, poke.name);
     });
   }
 
