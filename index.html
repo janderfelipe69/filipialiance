@@ -1799,5 +1799,37 @@
 <script src="mobile-ux.js"></script>
 <script src="url-hash.js"></script>
 
+<script>
+  // ── Service Worker: cache buster automático ──────────────────────────────
+  // Para forçar atualização em todos os usuários, basta mudar VERSAO no sw.js
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        // Verifica se há uma atualização disponível
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+              // Recarrega a página automaticamente para aplicar o novo cache
+              window.location.reload();
+            }
+          });
+        });
+      }).catch(function(err) {
+        console.warn('[SW] Registro falhou:', err);
+      });
+
+      // Se o SW assumiu controle agora (novo deploy), recarrega uma vez
+      var refreshed = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (!refreshed) {
+          refreshed = true;
+          window.location.reload();
+        }
+      });
+    });
+  }
+</script>
+
 </body>
 </html>
