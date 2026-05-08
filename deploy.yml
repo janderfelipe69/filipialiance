@@ -1,0 +1,24 @@
+name: Deploy com cache-bust automático
+
+on:
+  push:
+    branches: [ main ]   # ou master, depende do seu repo
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Injeta timestamp no sw.js
+        run: |
+          BUILD_TIME=$(date +%s%3N)   # milliseconds desde epoch, ex: 1715123456789
+          sed -i "s/__BUILD_TIME__/$BUILD_TIME/g" sw.js
+          echo "BUILD_TIME=$BUILD_TIME"
+
+      - name: Deploy para GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./          # raiz do repo; ajuste se seu site estiver em /docs ou /dist
