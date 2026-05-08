@@ -9,7 +9,7 @@
  *    - JS/CSS: stale-while-revalidate (serve cache + atualiza em background)
  */
 
-const VERSAO = 'v4.8'; // ← mude aqui a cada deploy
+const VERSAO = 'v4.9'; // ← mude aqui a cada deploy
 const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 const ARQUIVOS = [
