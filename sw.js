@@ -1,7 +1,9 @@
 /**
  * sw.js — PokeAlliance Shop · Service Worker
  *
- * ✅ Como usar: mude VERSAO a cada deploy (ex: 'v5', 'v6'...).
+ * 🔑 Cache-bust automático via CI:
+ *    - O deploy.yml substitui __BUILD_TIME__ pelo timestamp do build
+ *    - Não é necessário mudar VERSAO manualmente nunca mais
  *
  * 🔑 Anti-deadlock:
  *    - sw.js NUNCA é cacheado por este SW
@@ -9,8 +11,9 @@
  *    - JS/CSS: stale-while-revalidate (serve cache + atualiza em background)
  */
 
-const VERSAO = 'v4.9'; // ← mude aqui a cada deploy
-const CACHE_NAME = 'pokealliance-' + VERSAO;
+const BUILD_TIME = '__BUILD_TIME__'; // ← substituído automaticamente pelo deploy.yml
+const VERSAO = 'v5.0';
+const CACHE_NAME = 'pokealliance-' + VERSAO + '-' + BUILD_TIME;
 
 const ARQUIVOS = [
   './style.css',
@@ -33,7 +36,7 @@ const ARQUIVOS = [
 
 // ── Instalação: skipWaiting imediato + cacheia assets ─────────────────────
 self.addEventListener('install', function(event) {
-  self.skipWaiting();
+  self.skipWaiting(); // assume controle imediato, sem esperar aba fechar
 
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
@@ -61,7 +64,7 @@ self.addEventListener('activate', function(event) {
           })
       );
     }).then(function() {
-      return self.clients.claim();
+      return self.clients.claim(); // assume controle de todas as abas abertas
     })
   );
 });
