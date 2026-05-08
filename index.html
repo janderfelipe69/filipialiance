@@ -1823,32 +1823,39 @@
 <script src="filter-smart.js"></script>
 
 <script>
-  // ── Service Worker: cache buster automático ──────────────────────────────
-  // Para forçar atualização em todos os usuários, basta mudar VERSAO no sw.js
+  // ── Service Worker ────────────────────────────────────────────────────────
   if ('serviceWorker' in navigator) {
+    var _swRefreshed = false;
+
+    // Sempre que um novo SW assumir o controle, recarrega a página 1x
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (!_swRefreshed) {
+        _swRefreshed = true;
+        window.location.reload();
+      }
+    });
+
     window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js').then(function(reg) {
-        // Verifica se há uma atualização disponível
+      navigator.serviceWorker.register('./sw.js', {
+        // updateViaCache: 'none' → browser NUNCA usa cache HTTP para o sw.js
+        // Isso resolve o deadlock: mesmo o SW antigo não consegue servir o sw.js do cache
+        updateViaCache: 'none'
+      }).then(function(reg) {
+        // Força verificação de atualização imediatamente
+        reg.update();
+
         reg.addEventListener('updatefound', function() {
           var newWorker = reg.installing;
+          if (!newWorker) return;
           newWorker.addEventListener('statechange', function() {
-            if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-              // Recarrega a página automaticamente para aplicar o novo cache
-              window.location.reload();
+            // Quando o novo SW estiver instalado (waiting), força ativação imediata
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
             }
           });
         });
       }).catch(function(err) {
         console.warn('[SW] Registro falhou:', err);
-      });
-
-      // Se o SW assumiu controle agora (novo deploy), recarrega uma vez
-      var refreshed = false;
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        if (!refreshed) {
-          refreshed = true;
-          window.location.reload();
-        }
       });
     });
   }
