@@ -43,6 +43,9 @@
     'wiki-tab-starcalc':    '#wiki/starcalc',
     'wiki-tab-punchingbag': '#wiki/punchingbag',
     'wiki-tab-roupasspeed': '#wiki/roupasspeed',
+    'wiki-tab-tierlist':    '#wiki/tierlist',
+    'wiki-tab-talents':     '#wiki/talents',
+    'wiki-tab-tokens':      '#wiki/tokens',
   };
 
   /* ── Parseia o hash atual ── */
@@ -71,6 +74,24 @@
 
     // 2. Se for wiki, descobre a sub-aba ativa
     if (activeMain.id === 'tab-wiki') {
+
+      // 2a. Verifica se um módulo do wn-nav está aberto (tierlist, talents, tokens)
+      var wnContent = document.getElementById('wn-content');
+      var wnSlot    = document.getElementById('wn-slot');
+      if (wnContent && wnContent.style.display !== 'none' && wnSlot) {
+        var wnModuleMap = {
+          'wiki-tab-tierlist': '#wiki/tierlist',
+          'wiki-tab-talents':  '#wiki/talents',
+          'wiki-tab-tokens':   '#wiki/tokens',
+        };
+        var found = null;
+        Object.keys(wnModuleMap).forEach(function(id) {
+          if (!found && wnSlot.querySelector('#' + id)) found = wnModuleMap[id];
+        });
+        if (found) { setHash(found); return; }
+      }
+
+      // 2b. Sub-abas normais (display:block)
       var activeSub = null;
       Object.keys(WIKI_MAP).forEach(function (id) {
         var el = document.getElementById(id);
@@ -96,6 +117,18 @@
     }
 
     if (h.main === 'wiki' && h.sub) {
+      // Módulos do wiki-nav (_wnOpen): tierlist, talents, tokens
+      var wnModules = ['tierlist', 'talents', 'tokens'];
+      if (wnModules.indexOf(h.sub) !== -1) {
+        setTimeout(function () {
+          if (typeof window._wnOpen === 'function') {
+            window._wnOpen(h.sub);
+          }
+        }, 200);
+        return;
+      }
+
+      // Sub-abas normais (switchWikiTab)
       setTimeout(function () {
         var wikiBtn = document.querySelector('.wiki-subtab-btn[onclick*="switchWikiTab(\'' + h.sub + '\'"]');
         if (typeof switchWikiTab === 'function' && wikiBtn) {
