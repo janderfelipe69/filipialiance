@@ -483,6 +483,12 @@
     <button class="wiki-subtab-btn" onclick="switchWikiTab('roupasspeed', this)">
       <span class="wiki-subtab-icon">🎽</span> Roupas de Speed
     </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('talents', this)">
+      <span class="wiki-subtab-icon">✨</span> PokéTalents
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('tokens', this)">
+      <span class="wiki-subtab-icon">🪙</span> Tokens
+    </button>
   </div>
 
   <!-- ===== SUB-ABA: ITENS ===== -->
@@ -740,6 +746,16 @@
     <div id="wiki-roupasspeed-content"></div>
   </div>
 
+  <!-- ===== SUB-ABA: POKETALENTS ===== -->
+  <div id="wiki-tab-talents" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-talents-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: TOKENS ===== -->
+  <div id="wiki-tab-tokens" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-tokens-content"></div>
+  </div>
+
 </div>
 
 <div class="cart-overlay" id="cart-overlay" onclick="handleOverlayClick(event)">
@@ -851,6 +867,7 @@
 <script src="dados.js"></script>
 <script src="respawn_patch_modal.js"></script>
 <script src="app.js"></script>
+<script src="wiki-nav.js"></script> 
 
 
 <!-- ===================== WELCOME MODAL ===================== -->
@@ -1281,9 +1298,9 @@
   padding: 10px 24px;
 }
 
-/* wiki-controls gruda abaixo das subtabs (ambas são sticky em cadeia) */
+/* wiki-controls gruda abaixo do header + tabs (subtabs não existem mais na wiki nova) */
 .wiki-controls {
-  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px) + var(--wiki-subtabs-h, 52px)) !important;
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px)) !important;
 }
 
 /* ══════════════════════════════════════════════
@@ -1798,6 +1815,12 @@
 
 <script src="mobile-ux.js"></script>
 <script src="url-hash.js"></script>
+<script src="item-card-popup.js"></script>
+<script src="wiki-cards-upgrade.js"></script>
+<script src="quest-modal.js"></script>
+<script src="tierlist.js"></script>
+<script src="tierlist-types.js"></script> 
+<script src="filter-smart.js"></script>
 
 <script>
   // ── Service Worker: cache buster automático ──────────────────────────────
