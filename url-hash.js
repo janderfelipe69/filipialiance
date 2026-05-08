@@ -111,6 +111,7 @@
     var h = parseHash();
     if (!h.main) return;
 
+    // Abre a aba principal
     var mainBtn = document.querySelector('.tab-btn[onclick*="switchTab(\'' + h.main + '\'"]');
     if (typeof switchTab === 'function' && mainBtn) {
       switchTab(h.main, mainBtn);
@@ -120,11 +121,27 @@
       // Módulos do wiki-nav (_wnOpen): tierlist, talents, tokens
       var wnModules = ['tierlist', 'talents', 'tokens'];
       if (wnModules.indexOf(h.sub) !== -1) {
-        setTimeout(function () {
-          if (typeof window._wnOpen === 'function') {
-            window._wnOpen(h.sub);
+        // Tenta abrir com retry — espera até o shell e o patch do tierlist.js estarem prontos
+        var attempts = 0;
+        function tryOpenWnModule() {
+          attempts++;
+          var shell  = document.getElementById('wn-shell');
+          var wnOpen = typeof window._wnOpen === 'function';
+          // Para tierlist: espera também o patch do tierlist.js (que re-patcha _wnOpen)
+          var tierlistReady = h.sub !== 'tierlist' || typeof window.renderTierList === 'function';
+          if (shell && wnOpen && tierlistReady) {
+            // Garante que a aba wiki está ativa primeiro
+            if (typeof switchTab === 'function' && mainBtn) {
+              switchTab(h.main, mainBtn);
+            }
+            setTimeout(function() {
+              window._wnOpen(h.sub);
+            }, 80);
+          } else if (attempts < 30) {
+            setTimeout(tryOpenWnModule, 100);
           }
-        }, 200);
+        }
+        setTimeout(tryOpenWnModule, 150);
         return;
       }
 
@@ -134,7 +151,7 @@
         if (typeof switchWikiTab === 'function' && wikiBtn) {
           switchWikiTab(h.sub, wikiBtn);
         }
-      }, 100);
+      }, 200);
     }
   }
 
