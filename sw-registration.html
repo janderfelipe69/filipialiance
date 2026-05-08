@@ -1,0 +1,53 @@
+<!-- ── Service Worker ── cole este bloco no final do index.html, substituindo o bloco atual ── -->
+<script>
+  if ('serviceWorker' in navigator) {
+    var _swRefreshed = false;
+
+    // Sempre que um novo SW assumir o controle, recarrega a página 1x
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (!_swRefreshed) {
+        _swRefreshed = true;
+        window.location.reload();
+      }
+    });
+
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js', {
+        // updateViaCache: 'none' → browser NUNCA usa cache HTTP para o sw.js
+        // Fundamental no mobile (Safari/iOS ignora isso sem esse flag)
+        updateViaCache: 'none'
+      }).then(function(reg) {
+
+        // Força verificação de atualização imediatamente
+        reg.update();
+
+        // ── MOBILE FIX: verifica se já existe um SW em "waiting" ──────────
+        // No mobile, o SW novo pode já estar esperando de uma visita anterior
+        // sem o evento updatefound ter disparado nesta sessão
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                // Há um SW antigo ativo — manda o novo assumir imediatamente
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+              } else {
+                // Primeira instalação (sem SW anterior) — já está no controle
+                // Não precisa recarregar
+              }
+            }
+          });
+        });
+
+      }).catch(function(err) {
+        console.warn('[SW] Registro falhou:', err);
+      });
+    });
+  }
+</script>
