@@ -7,7 +7,7 @@
  *    os usuários na próxima vez que abrirem o site.
  */
 
-const VERSAO = 'v4.6'; // ← mude aqui a cada deploy
+const VERSAO = 'v4.7'; // ← mude aqui a cada deploy
 const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 // Arquivos que serão cacheados
