@@ -1,23 +1,18 @@
 /**
- * sw.js — PokeAlliance Shop · Service Worker com Cache Buster Automático
+ * sw.js — PokeAlliance Shop · Service Worker
  *
- * ✅ Como usar: quando fizer uma atualização nos arquivos, basta mudar o
- *    número da VERSAO abaixo (ex: 'v5', 'v6'...). O Service Worker vai
- *    detectar a mudança automaticamente e limpar o cache antigo para todos
- *    os usuários na próxima vez que abrirem o site.
+ * ✅ Como usar: mude VERSAO a cada deploy (ex: 'v5', 'v6'...).
  *
- * ⚠️  IMPORTANTE: configure seu servidor para enviar este header no sw.js:
- *       Cache-Control: no-store, no-cache, must-revalidate
- *     Isso garante que o browser sempre baixe o sw.js mais recente.
+ * 🔑 Anti-deadlock:
+ *    - sw.js NUNCA é cacheado por este SW
+ *    - index.html: network-first (sempre busca na rede)
+ *    - JS/CSS: stale-while-revalidate (serve cache + atualiza em background)
  */
 
-const VERSAO = 'v4.7'; // ← mude aqui a cada deploy
+const VERSAO = 'v4.8'; // ← mude aqui a cada deploy
 const CACHE_NAME = 'pokealliance-' + VERSAO;
 
-// Arquivos que serão cacheados
 const ARQUIVOS = [
-  './',
-  './index.html',
   './style.css',
   './mobile-patch.css',
   './dados.js',
@@ -36,30 +31,33 @@ const ARQUIVOS = [
   './tierlist-types.js',
 ];
 
-// ── Instalação: cacheia todos os arquivos ──────────────────────────────────
+// ── Instalação: skipWaiting imediato + cacheia assets ─────────────────────
 self.addEventListener('install', function(event) {
+  self.skipWaiting();
+
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(ARQUIVOS);
-    }).then(function() {
-      // Ativa imediatamente sem esperar fechar a aba antiga
-      return self.skipWaiting();
+      return Promise.allSettled(
+        ARQUIVOS.map(function(url) {
+          return fetch(url, { cache: 'no-store' }).then(function(res) {
+            if (res.ok) return cache.put(url, res);
+          });
+        })
+      );
     })
   );
 });
 
-// ── Ativação: apaga TODOS os caches antigos automaticamente ───────────────
+// ── Ativação: apaga TODOS os caches antigos ────────────────────────────────
 self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(function(names) {
       return Promise.all(
-        cacheNames
-          .filter(function(name) {
-            return name.startsWith('pokealliance-') && name !== CACHE_NAME;
-          })
-          .map(function(name) {
-            console.log('[SW] Cache antigo apagado:', name);
-            return caches.delete(name);
+        names
+          .filter(function(n) { return n.startsWith('pokealliance-') && n !== CACHE_NAME; })
+          .map(function(n) {
+            console.log('[SW] Cache antigo apagado:', n);
+            return caches.delete(n);
           })
       );
     }).then(function() {
@@ -72,49 +70,48 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
 
-  // Ignora requisições externas (Google Fonts, Imgur, APIs etc.)
-  if (!url.startsWith(self.location.origin)) return;
-  // Ignora requisições não-GET
   if (event.request.method !== 'GET') return;
+  if (!url.startsWith(self.location.origin)) return;
 
-  // ⚠️ NUNCA cacheia o próprio sw.js — deixa o browser buscar sempre na rede
+  // sw.js: NUNCA intercepta — browser sempre baixa direto da rede
   if (url.includes('sw.js')) return;
 
-  // HTML (index.html e raiz) → Network-first: tenta a rede, cai no cache se offline
-  var isHTML = url.endsWith('/') || url.endsWith('.html') || url === self.location.origin;
+  // index.html e raiz: Network-first
+  var isHTML = url.endsWith('/') || url.endsWith('index.html') || url === self.location.origin;
   if (isHTML) {
     event.respondWith(
-      fetch(event.request).then(function(response) {
-        if (response && response.status === 200) {
-          var clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, clone);
-          });
-        }
-        return response;
-      }).catch(function() {
-        return caches.match(event.request);
-      })
+      fetch(event.request, { cache: 'no-store' })
+        .then(function(res) {
+          if (res && res.status === 200) {
+            caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, res.clone()); });
+          }
+          return res;
+        })
+        .catch(function() { return caches.match(event.request); })
     );
     return;
   }
 
-  // JS e CSS → Stale-while-revalidate: serve cache imediato E atualiza em segundo plano
+  // JS/CSS: Stale-while-revalidate
   event.respondWith(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.match(event.request).then(function(cached) {
-        var fetchPromise = fetch(event.request).then(function(response) {
-          if (response && response.status === 200) {
-            cache.put(event.request, response.clone());
-          }
-          return response;
-        }).catch(function() {
-          return cached; // offline: usa o cache
-        });
+        var networkFetch = fetch(event.request, { cache: 'no-store' })
+          .then(function(res) {
+            if (res && res.status === 200) cache.put(event.request, res.clone());
+            return res;
+          })
+          .catch(function() { return cached; });
 
-        // Serve o cache imediatamente se existir, mas já atualiza em background
-        return cached || fetchPromise;
+        return cached || networkFetch;
       });
     })
   );
+});
+
+// ── Mensagens da página ────────────────────────────────────────────────────
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
