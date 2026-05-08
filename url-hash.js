@@ -6,24 +6,33 @@
  *   #pacotes            → aba Pacotes
  *   #captura            → aba Captura
  *   #entregas           → aba Entregas
- *   #wiki               → aba Wiki (sub-aba padrão: itens)
- *   #wiki/respawn       → aba Wiki > Local de Respawn
+ *   #wiki               → aba Wiki (home do wiki-nav)
+ *   #wiki/itens         → aba Wiki > Itens & Drops
+ *   #wiki/respawn       → aba Wiki > Respawn
  *   #wiki/quests        → aba Wiki > Quests
- *   #wiki/npcs          → aba Wiki > NPC's
+ *   #wiki/npcs          → aba Wiki > NPCs
  *   #wiki/brokes        → aba Wiki > Brokes
  *   #wiki/hazard        → aba Wiki > Hazard Tasks
- *   #wiki/starcalc      → aba Wiki > Star Calculation
+ *   #wiki/starcalc      → aba Wiki > Star Calc
  *   #wiki/punchingbag   → aba Wiki > Punching Bag
- *   #wiki/roupasspeed   → aba Wiki > Roupas de Speed
+ *   #wiki/roupasspeed   → aba Wiki > Roupas Speed
+ *   #wiki/talents       → aba Wiki > PokéTalents
+ *   #wiki/tokens        → aba Wiki > Tokens
+ *   #wiki/tierlist      → aba Wiki > Tier Lista
  *
- * Estratégia: usa MutationObserver em vez de patchear switchTab/switchWikiTab,
- * evitando conflitos com outros scripts (mobile-ux.js etc.) que também patcheiam.
+ * BUGS CORRIGIDOS vs versão anterior:
+ *  1. Observer não detectava abertura de módulos via _wnOpen (wn-content/wn-slot)
+ *  2. syncHashFromDOM só checava tierlist/talents/tokens no wn-slot — agora usa
+ *     window._currentWnModule que é setado pelo patch do _wnOpen
+ *  3. applyHash só abria via _wnOpen os módulos tierlist/talents/tokens —
+ *     agora TODOS os módulos wiki passam pelo _wnOpen (que é como o wiki-nav funciona)
+ *  4. Observer expandido para detectar mudanças em wn-content e wn-home também
  */
 
 (function () {
   'use strict';
 
-  // Mapeia o id do tab-content → hash
+  /* ── Mapa: id do tab-content → hash ── */
   var MAIN_MAP = {
     'tab-itens':    '#itens',
     'tab-pacotes':  '#pacotes',
@@ -32,21 +41,12 @@
     'tab-wiki':     '#wiki',
   };
 
-  // Mapeia o id do wiki-subtab-content → hash
-  var WIKI_MAP = {
-    'wiki-tab-itens':       '#wiki/itens',
-    'wiki-tab-respawn':     '#wiki/respawn',
-    'wiki-tab-quests':      '#wiki/quests',
-    'wiki-tab-npcs':        '#wiki/npcs',
-    'wiki-tab-brokes':      '#wiki/brokes',
-    'wiki-tab-hazard':      '#wiki/hazard',
-    'wiki-tab-starcalc':    '#wiki/starcalc',
-    'wiki-tab-punchingbag': '#wiki/punchingbag',
-    'wiki-tab-roupasspeed': '#wiki/roupasspeed',
-    'wiki-tab-tierlist':    '#wiki/tierlist',
-    'wiki-tab-talents':     '#wiki/talents',
-    'wiki-tab-tokens':      '#wiki/tokens',
-  };
+  /* ── Todos os módulos do wiki-nav ── */
+  var WN_MODULES = [
+    'itens', 'respawn', 'quests', 'npcs', 'brokes',
+    'hazard', 'starcalc', 'punchingbag', 'roupasspeed',
+    'talents', 'tokens', 'tierlist',
+  ];
 
   /* ── Parseia o hash atual ── */
   function parseHash() {
@@ -56,49 +56,38 @@
     return { main: parts[0] || null, sub: parts[1] || null };
   }
 
-  /* ── Atualiza a URL sem adicionar ao histórico e sem query strings ── */
+  /* ── Atualiza a URL sem adicionar ao histórico ── */
   function setHash(hash) {
-    var current = window.location.hash;
-    if (current === hash) return;
+    if (window.location.hash === hash) return;
     history.replaceState(null, '', window.location.pathname + hash);
   }
 
-  /* ── Lê quais abas estão ativas agora no DOM e atualiza o hash ── */
+  /* ── Lê o estado atual do DOM e atualiza o hash ── */
   function syncHashFromDOM() {
-    // 1. Descobre a aba principal ativa
     var activeMain = document.querySelector('.tab-content.active');
     if (!activeMain) return;
 
     var mainHash = MAIN_MAP[activeMain.id];
     if (!mainHash) return;
 
-    // 2. Se for wiki, descobre a sub-aba ativa
     if (activeMain.id === 'tab-wiki') {
-
-      // 2a. Verifica se um módulo do wn-nav está aberto (tierlist, talents, tokens)
+      // Verifica se algum módulo do wiki-nav está aberto
+      // Usa window._currentWnModule que é mantido pelo patch do _wnOpen abaixo
       var wnContent = document.getElementById('wn-content');
-      var wnSlot    = document.getElementById('wn-slot');
-      if (wnContent && wnContent.style.display !== 'none' && wnSlot) {
-        var wnModuleMap = {
-          'wiki-tab-tierlist': '#wiki/tierlist',
-          'wiki-tab-talents':  '#wiki/talents',
-          'wiki-tab-tokens':   '#wiki/tokens',
-        };
-        var found = null;
-        Object.keys(wnModuleMap).forEach(function(id) {
-          if (!found && wnSlot.querySelector('#' + id)) found = wnModuleMap[id];
-        });
-        if (found) { setHash(found); return; }
+      var isWnOpen  = wnContent && (
+        wnContent.style.display === 'block' ||
+        wnContent.classList.contains('visible')
+      );
+
+      if (isWnOpen && window._currentWnModule) {
+        setHash('#wiki/' + window._currentWnModule);
+        return;
       }
 
-      // 2b. Sub-abas normais (display:block)
-      var activeSub = null;
-      Object.keys(WIKI_MAP).forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && el.style.display === 'block') activeSub = id;
-      });
-      if (activeSub) {
-        setHash(WIKI_MAP[activeSub]);
+      // Se wn-home está visível → wiki sem sub-módulo
+      var wnHome = document.getElementById('wn-home');
+      if (wnHome && wnHome.style.display !== 'none') {
+        setHash('#wiki');
         return;
       }
     }
@@ -106,65 +95,98 @@
     setHash(mainHash);
   }
 
-  /* ── Navega para o estado indicado no hash ── */
+  /* ── Abre o estado indicado no hash ── */
   function applyHash() {
     var h = parseHash();
     if (!h.main) return;
 
-    // Abre a aba principal
+    // Acha e clica na aba principal
     var mainBtn = document.querySelector('.tab-btn[onclick*="switchTab(\'' + h.main + '\'"]');
-    if (typeof switchTab === 'function' && mainBtn) {
-      switchTab(h.main, mainBtn);
+    if (typeof window.switchTab === 'function' && mainBtn) {
+      window.switchTab(h.main, mainBtn);
     }
 
     if (h.main === 'wiki' && h.sub) {
-      // Módulos do wiki-nav (_wnOpen): tierlist, talents, tokens
-      var wnModules = ['tierlist', 'talents', 'tokens'];
-      if (wnModules.indexOf(h.sub) !== -1) {
-        // Tenta abrir com retry — espera até o shell e o patch do tierlist.js estarem prontos
-        var attempts = 0;
-        function tryOpenWnModule() {
-          attempts++;
-          var shell  = document.getElementById('wn-shell');
-          var wnOpen = typeof window._wnOpen === 'function';
-          // Para tierlist: espera também o patch do tierlist.js (que re-patcha _wnOpen)
-          var tierlistReady = h.sub !== 'tierlist' || typeof window.renderTierList === 'function';
-          if (shell && wnOpen && tierlistReady) {
-            // Garante que a aba wiki está ativa primeiro
-            if (typeof switchTab === 'function' && mainBtn) {
-              switchTab(h.main, mainBtn);
-            }
-            setTimeout(function() {
-              window._wnOpen(h.sub);
-            }, 80);
-          } else if (attempts < 30) {
-            setTimeout(tryOpenWnModule, 100);
-          }
-        }
-        setTimeout(tryOpenWnModule, 150);
-        return;
-      }
+      // Todos os módulos wiki passam pelo _wnOpen (é assim que o wiki-nav funciona)
+      var attempts = 0;
+      function tryOpenModule() {
+        attempts++;
+        var shell  = document.getElementById('wn-shell');
+        var wnOpen = typeof window._wnOpen === 'function';
+        // Para tierlist: espera o renderTierList estar pronto também
+        var tierlistOk = h.sub !== 'tierlist' || typeof window.renderTierList === 'function';
 
-      // Sub-abas normais (switchWikiTab)
-      setTimeout(function () {
-        var wikiBtn = document.querySelector('.wiki-subtab-btn[onclick*="switchWikiTab(\'' + h.sub + '\'"]');
-        if (typeof switchWikiTab === 'function' && wikiBtn) {
-          switchWikiTab(h.sub, wikiBtn);
+        if (shell && wnOpen && tierlistOk) {
+          // Garante wiki ativa antes de abrir
+          if (typeof window.switchTab === 'function' && mainBtn) {
+            window.switchTab(h.main, mainBtn);
+          }
+          setTimeout(function () {
+            window._wnOpen(h.sub);
+          }, 80);
+        } else if (attempts < 40) {
+          setTimeout(tryOpenModule, 100);
         }
-      }, 200);
+      }
+      setTimeout(tryOpenModule, 150);
     }
   }
 
-  /* ── MutationObserver: detecta mudanças de classe/display no DOM ── */
+  /* ── Patch do _wnOpen: rastreia o módulo atual ─────────────────
+     Isso é necessário porque o MutationObserver não consegue saber
+     QUAL módulo foi aberto — só que algo mudou no wn-content.
+     Patcheamos _wnOpen e _wnBack para manter window._currentWnModule.
+  ── */
+  function patchWnOpen() {
+    // Tenta patchar; se _wnOpen ainda não existir, tenta de novo
+    if (typeof window._wnOpen !== 'function') {
+      setTimeout(patchWnOpen, 100);
+      return;
+    }
+
+    var _origWnOpen = window._wnOpen;
+    window._wnOpen = function (id) {
+      window._currentWnModule = id;
+      _origWnOpen.apply(this, arguments);
+      // Sincroniza hash após o módulo abrir
+      setTimeout(syncHashFromDOM, 50);
+    };
+
+    var _origWnBack = window._wnBack;
+    if (typeof _origWnBack === 'function') {
+      window._wnBack = function () {
+        window._currentWnModule = null;
+        _origWnBack.apply(this, arguments);
+        setTimeout(syncHashFromDOM, 50);
+      };
+    }
+  }
+
+  /* ── MutationObserver: detecta troca de abas principais ── */
   function startObserver() {
     var observer = new MutationObserver(function (mutations) {
       var relevant = mutations.some(function (m) {
-        if (m.type === 'attributes' && m.attributeName === 'class') {
-          return m.target.classList && m.target.classList.contains('tab-content');
+        if (m.type !== 'attributes') return false;
+
+        // Troca de aba principal (class active no tab-content)
+        if (m.attributeName === 'class' &&
+            m.target.classList &&
+            m.target.classList.contains('tab-content')) {
+          return true;
         }
-        if (m.type === 'attributes' && m.attributeName === 'style') {
-          return m.target.id && m.target.id.indexOf('wiki-tab-') === 0;
+
+        // Abertura/fechamento do wn-content (style.display)
+        if (m.attributeName === 'style' &&
+            m.target.id === 'wn-content') {
+          return true;
         }
+
+        // Abertura/fechamento do wn-home
+        if (m.attributeName === 'style' &&
+            m.target.id === 'wn-home') {
+          return true;
+        }
+
         return false;
       });
       if (relevant) syncHashFromDOM();
@@ -183,7 +205,8 @@
   /* ── Inicialização ── */
   document.addEventListener('DOMContentLoaded', function () {
     startObserver();
-    setTimeout(applyHash, 150);
+    patchWnOpen();
+    setTimeout(applyHash, 200);
   });
 
 })();
