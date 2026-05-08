@@ -5,6 +5,10 @@
  *    número da VERSAO abaixo (ex: 'v5', 'v6'...). O Service Worker vai
  *    detectar a mudança automaticamente e limpar o cache antigo para todos
  *    os usuários na próxima vez que abrirem o site.
+ *
+ * ⚠️  IMPORTANTE: configure seu servidor para enviar este header no sw.js:
+ *       Cache-Control: no-store, no-cache, must-revalidate
+ *     Isso garante que o browser sempre baixe o sw.js mais recente.
  */
 
 const VERSAO = 'v4.7'; // ← mude aqui a cada deploy
@@ -51,7 +55,6 @@ self.addEventListener('activate', function(event) {
       return Promise.all(
         cacheNames
           .filter(function(name) {
-            // Apaga qualquer cache que não seja o atual
             return name.startsWith('pokealliance-') && name !== CACHE_NAME;
           })
           .map(function(name) {
@@ -60,33 +63,57 @@ self.addEventListener('activate', function(event) {
           })
       );
     }).then(function() {
-      // Assume controle de todas as abas abertas imediatamente
       return self.clients.claim();
     })
   );
 });
 
-// ── Fetch: serve do cache, busca na rede se não tiver ─────────────────────
+// ── Fetch ──────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', function(event) {
+  var url = event.request.url;
+
   // Ignora requisições externas (Google Fonts, Imgur, APIs etc.)
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  if (!url.startsWith(self.location.origin)) return;
   // Ignora requisições não-GET
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then(function(cached) {
-      if (cached) return cached;
+  // ⚠️ NUNCA cacheia o próprio sw.js — deixa o browser buscar sempre na rede
+  if (url.includes('sw.js')) return;
 
-      // Não está no cache: busca na rede e salva
-      return fetch(event.request).then(function(response) {
-        if (!response || response.status !== 200 || response.type === 'opaque') {
-          return response;
+  // HTML (index.html e raiz) → Network-first: tenta a rede, cai no cache se offline
+  var isHTML = url.endsWith('/') || url.endsWith('.html') || url === self.location.origin;
+  if (isHTML) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, clone);
+          });
         }
-        var responseClone = response.clone();
-        caches.open(CACHE_NAME).then(function(cache) {
-          cache.put(event.request, responseClone);
-        });
         return response;
+      }).catch(function() {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  // JS e CSS → Stale-while-revalidate: serve cache imediato E atualiza em segundo plano
+  event.respondWith(
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.match(event.request).then(function(cached) {
+        var fetchPromise = fetch(event.request).then(function(response) {
+          if (response && response.status === 200) {
+            cache.put(event.request, response.clone());
+          }
+          return response;
+        }).catch(function() {
+          return cached; // offline: usa o cache
+        });
+
+        // Serve o cache imediatamente se existir, mas já atualiza em background
+        return cached || fetchPromise;
       });
     })
   );
