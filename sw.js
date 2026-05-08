@@ -7,7 +7,7 @@
  *    os usuários na próxima vez que abrirem o site.
  */
 
-const VERSAO = 'v4.2'; // ← mude aqui a cada deploy
+const VERSAO = 'v4.4'; // ← mude aqui a cada deploy
 const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 // Arquivos que serão cacheados
@@ -23,6 +23,7 @@ const ARQUIVOS = [
   './tutorial.js',
   './respawn_patch_modal.js',
   './wildscape_path_patch.js',
+  './item-card-popup.js',
 ];
 
 // ── Instalação: cacheia todos os arquivos ──────────────────────────────────
@@ -83,4 +84,4 @@ self.addEventListener('fetch', function(event) {
       });
     })
   );
-});
+});o 
