@@ -905,6 +905,8 @@ function switchWikiTab(tab, btn) {
   if (tab === 'starcalc') renderStarCalc();
   if (tab === 'punchingbag') renderPunchingBag();
   if (tab === 'roupasspeed') renderRoupasSpeed();
+  if (tab === 'talents') renderTalents();
+  if (tab === 'tokens') renderTokens();
 }
 
 // ===================== WIKI: BROKES =====================
@@ -1326,11 +1328,653 @@ function renderBrokes() {
 // ===================== DADOS DE QUESTS =====================
 // Estrutura: { name: 'Nome da Quest', icon: '⚔️', description: 'Texto descritivo', img: 'URL ou null' }
 // Para adicionar uma quest, adicione um objeto aqui:
+// =====================================================================
+// QUESTS — estrutura detalhada
+// Campos suportados:
+//   name        string  — nome da quest
+//   icon        string  — emoji do ícone
+//   level       number  — nível mínimo requerido
+//   reward      string  — HTML/texto da recompensa
+//   rewardDesc  string  — descrição extra da recompensa
+//   start       string  — HTML/texto de onde e como iniciar
+//   drop        string  — HTML/texto do que dropar/coletar
+//   puzzle      string  — HTML/texto do puzzle (opcional)
+//   puzzleImg   string  — URL da imagem do puzzle (opcional)
+//   steps       array   — passos extras [{icon, text}]
+//   notes       string  — observações extras
+// =====================================================================
 var RAW_QUESTS = [
-  // Exemplo — remova ou edite conforme necessário:
-  // { name: 'A Grande Caçada', icon: '⚔️', description: 'Derrote 10 Pokémons selvagens na Viridian Forest.', img: null },
-  // { name: 'Coletor de Itens', icon: '📦', description: 'Colete 5 Potions e leve ao NPC do Centro Pokémon.', img: null },
+  {
+    name: 'Lucky Amulet',
+    icon: '🍀',
+    level: 250,
+    reward: 'Lucky Amulet',
+    rewardDesc: 'Amuleto que permite equipar um held <strong>X-Lucky</strong>, com efeito em todos os seus Pokémons. O held terá <strong>50% da efetividade padrão</strong> e não combina com o Lucky do próprio Pokémon — vale apenas o maior bônus.',
+    start: 'Vá até as <strong>docas ao sul de Olivine</strong> e fale com o NPC <span class="quest-npc">Captain Willy</span>.',
+    drop: 'Willy pedirá para você resgatar o <strong>Valentine Gold Token</strong>.<br><br>Este item é dropado pelo <strong>Tentacruel</strong> apenas em <span class="quest-tag-hunt">hunt normal</span> (não funciona em wildscape).<br><br>Após dropar, entregue o item ao <strong>Captain Willy</strong>.',
+    puzzle: 'Após entregar o token, vá até o <strong>DIVE à direita de Vermilion</strong>.<br><br>Lá você encontrará o puzzle. Após completar o puzzle, você receberá o <strong>Lucky Amulet</strong>.<br><br><em>⚠️ Atenção: duas peças da primeira linha do puzzle foram trocadas propositalmente no spoiler abaixo.</em>',
+    puzzleImg: 'https://i.imgur.com/biG8VIv.png',
+    steps: [
+      { icon: '🗺️', text: 'Alcance o <strong>Level 250</strong> antes de iniciar.' },
+      { icon: '🚢', text: 'Vá até as <strong>docas ao sul de Olivine</strong> e fale com o NPC <span class="quest-npc">Captain Willy</span>.' },
+      { icon: '🎣', text: 'Farme o <strong>Valentine Gold Token</strong> com o <strong>Tentacruel</strong> (hunt normal, não wildscape).' },
+      { icon: '📦', text: 'Entregue o <strong>Valentine Gold Token</strong> ao <strong>Captain Willy</strong>.' },
+      { icon: '🌊', text: 'Use o <strong>DIVE à direita de Vermilion</strong> e complete o puzzle subaquático.' },
+      { icon: '🍀', text: 'Receba o <strong>Lucky Amulet</strong> como recompensa.' },
+    ],
+    notes: 'O Lucky Amulet funciona para todos os Pokémons, mas tem apenas 50% da eficácia do held X-Lucky equipado. Ele não combina com o Lucky que o Pokémon já tiver — vale apenas o maior bônus.',
+  },
+  {
+    name: 'Vernaccio\'s Paint Cans',
+    icon: '🎨',
+    level: null,
+    reward: '1.000.000 de EXP + 50 Alliance Ball',
+    rewardDesc: 'Vernaccio agradecerá pela recuperação dos baldes e como recompensa você receberá <strong>1.000.000 de EXP</strong> e <strong>50 Alliance Balls</strong>.',
+    start: 'Vá até <strong>Cianwood</strong> e encontre o NPC <span class="quest-npc">Vernaccio</span>.' +
+           '<div class="quest-location-img-wrap"><span class="quest-location-label">📍 Localização do NPC</span>' +
+           '<img class="quest-reward-img" src="https://i.imgur.com/MoXRqT0.png" alt="Localização Vernaccio" loading="lazy" /></div>' +
+           '<br>Ele irá contar que alguns baldes foram roubados pelos Smeargles e pedirá que você os recupere.',
+    parts: [
+      {
+        title: 'Etapa 1 — Falar com Vernaccio em Cianwood',
+        icon: '💬',
+        intro: 'Vá até o NPC <span class="quest-npc">Vernaccio</span> na cidade de <strong>Cianwood</strong> e dialogue com ele.<br><br>Ele irá contar que seus preciosos baldes de tinta foram roubados pelos Smeargles e espalhados pelos estúdios de arte abandonados da região. Ele precisa recuperar os baldes <strong>Azul, Vermelho, Verde e Amarelo</strong> para completar sua obra-prima.',
+        locationImg: 'https://i.imgur.com/b0Q70hc.png',
+        drops: [],
+        delivery: null,
+      },
+      {
+        title: 'Etapa 2 — Coletar os Baldes de Tinta',
+        icon: '🪣',
+        intro: 'Trace uma rota para recolher os 4 baldes. Rota recomendada: <strong>Cianwood → Golden Rod → Ecruteak</strong>, retornando a Cianwood para finalizar.<br><br>⚠️ <strong>Atenção:</strong> Em Golden Rod há <strong>2 baldes</strong> para coletar.<br><br>' +
+               '<strong>📍 Localização em Cianwood:</strong><br><br>' +
+               '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+               '<img class="quest-reward-img" src="https://i.imgur.com/HY6qcYI.png" alt="Cianwood mapa 1" loading="lazy" style="flex:1;min-width:140px;max-width:280px;border-radius:10px;" />' +
+               '<img class="quest-reward-img" src="https://i.imgur.com/dqoFCmD.png" alt="Cianwood mapa 2" loading="lazy" style="flex:1;min-width:140px;max-width:280px;border-radius:10px;" />' +
+               '</div>',
+        locationImg: undefined,
+        drops: [],
+        delivery: null,
+      },
+      {
+        title: 'Etapa 2b — Baldes em Golden Rod',
+        icon: '🗺️',
+        intro: '⚠️ <strong>ATENÇÃO:</strong> Aqui há <strong>2 baldes</strong> para serem coletados.<br><br>' +
+               '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+               '<img class="quest-reward-img" src="https://i.imgur.com/YsJqsqu.png" alt="Golden Rod mapa 1" loading="lazy" style="flex:1;min-width:140px;max-width:280px;border-radius:10px;" />' +
+               '<img class="quest-reward-img" src="https://i.imgur.com/yt1J9Nj.png" alt="Golden Rod mapa 2" loading="lazy" style="flex:1;min-width:140px;max-width:280px;border-radius:10px;" />' +
+               '</div>',
+        locationImg: undefined,
+        drops: [],
+        delivery: null,
+      },
+      {
+        title: 'Etapa 2c — Balde em Ecruteak',
+        icon: '🗺️',
+        intro: 'Localização do balde em <strong>Ecruteak City</strong>:<br><br>' +
+               '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+               '<img class="quest-reward-img" src="https://i.imgur.com/rh6R3G5.png" alt="Ecruteak mapa 1" loading="lazy" style="flex:1;min-width:140px;max-width:280px;border-radius:10px;" />' +
+               '<img class="quest-reward-img" src="https://i.imgur.com/qd6QAz7.png" alt="Ecruteak mapa 2" loading="lazy" style="flex:1;min-width:140px;max-width:280px;border-radius:10px;" />' +
+               '</div>',
+        locationImg: undefined,
+        drops: [],
+        delivery: null,
+      },
+      {
+        title: 'Etapa 3 — Entregar os Baldes',
+        icon: '✅',
+        intro: 'Após coletar os <strong>4 baldes</strong>, retorne ao NPC <span class="quest-npc">Vernaccio</span> em <strong>Cianwood</strong>. Ele irá lhe entregar a recompensa final.',
+        locationImg: undefined, // sem placeholder aqui
+        drops: [],
+        delivery: null,
+      },
+    ],
+    steps: [
+      { icon: '🗺️', text: 'Vá até <strong>Cianwood</strong> e fale com o NPC <span class="quest-npc">Vernaccio</span>.' },
+      { icon: '🪣', text: 'Colete o balde de tinta em <strong>Cianwood</strong>.' },
+      { icon: '🪣', text: 'Vá até <strong>Golden Rod</strong> e colete os <strong>2 baldes</strong> de lá.' },
+      { icon: '🪣', text: 'Vá até <strong>Ecruteak</strong> e colete o balde restante.' },
+      { icon: '🔁', text: 'Retorne a <strong>Cianwood</strong> e entregue todos os baldes ao <span class="quest-npc">Vernaccio</span>.' },
+      { icon: '🎁', text: 'Receba a recompensa: <strong>1.000.000 de EXP</strong> e <strong>50 Alliance Balls</strong>.' },
+    ],
+    info: [
+      { label: 'Início da quest',      value: 'Cianwood' },
+      { label: 'Localizações extras',  value: 'Cianwood, Ecruteak, Golden Rod' },
+      { label: 'Nível de dificuldade', value: '🟢 Baixa' },
+      { label: 'Requisitos',           value: 'Um Pokémon com <strong>Fly</strong> e um Pokémon para matar os Smeargles espalhados pelas hunts.' },
+    ],
+    notes: 'Leve um Pokémon com <strong>Fly</strong> para agilizar o trajeto entre as cidades. Os Smeargles ficam dentro das hunts — tenha um Pokémon de batalha preparado para eliminá-los.',
+  },
+  {
+    name: 'Flint Quest',
+    icon: '🏚️',
+    items: ['Onix Tail', 'Stone Rocks', 'Horn Drill', 'Rock Plate', 'Crystal Stones', 'Metal Stones'],
+    reward: '3 Ancient Stones + 500K EXP + Estante à escolha',
+    rewardDesc: 'Flint agradecerá por toda a ajuda e como recompensa você receberá <strong>3 Ancient Stones</strong>, <strong>500K de EXP</strong> e poderá escolher uma das <strong>estantes da casa de Flint</strong> como presente.',
+    rewardImg: null, // coloque a URL da imagem da recompensa aqui
+    start: 'Encontre o NPC <span class="quest-npc">Flint</span> ao <strong>sul de Pewter</strong>, na floresta de Viridian.' +
+           '<div class="quest-location-img-wrap"><span class="quest-location-label">📍 Localização</span>' +
+           '<div class="quest-img-placeholder" data-slot="flint-location">📷 Imagem — adicione a URL em <code>rewardImg</code></div></div>' +
+           '<br>Fale com ele usando o comando <span class="quest-cmd">hi</span>, depois digite <span class="quest-cmd">help</span> para iniciar a quest.',
+    parts: [
+      {
+        title: 'Parte 1 — Coleta de Materiais',
+        icon: '🧱',
+        intro: 'Flint pedirá que você colete os seguintes materiais para iniciar a reconstrução da casa:',
+        locationImg: null, // imagem desta etapa (opcional)
+        drops: [
+          { qty: 150, item: 'Onix Tail',   source: 'Onix',   locationImg: null },
+          { qty: 200, item: 'Stone Rocks',  source: 'Golem',  locationImg: null },
+          { qty: 200, item: 'Horn Drill',   source: 'Rhydon', locationImg: null },
+          { qty:  50, item: 'Rock Plate',   source: 'Pupitar',locationImg: null },
+        ],
+        delivery: 'Com todos os itens em mãos, retorne até o <span class="quest-npc">Flint</span> e fale com ele para entregar os materiais. Ele agradecerá e irá até sua casa para iniciar a reconstrução.',
+      },
+      {
+        title: 'Parte 2 — Reconstrução da Casa',
+        icon: '🏡',
+        intro: 'Vá até a <strong>casa de Flint</strong>, ainda em Viridian.',
+        locationImg: null, // imagem da casa (adicione a URL aqui)
+        drops: [
+          { qty: 10, item: 'Crystal Stones', source: null, locationImg: null },
+          { qty: 10, item: 'Metal Stones',   source: null, locationImg: null },
+        ],
+        delivery: 'Fale com o <span class="quest-npc">Flint</span> usando <span class="quest-cmd">hi</span>. Quando ele perguntar se você está pronto, responda com <span class="quest-cmd">yes</span> e entregue os materiais.',
+      },
+    ],
+    steps: [
+      { icon: '🗺️', text: 'Vá ao <strong>sul de Pewter</strong>, na floresta de Viridian, e encontre o NPC <span class="quest-npc">Flint</span>.' },
+      { icon: '💬', text: 'Fale com ele usando <span class="quest-cmd">hi</span> e em seguida <span class="quest-cmd">help</span> para iniciar.' },
+      { icon: '🧱', text: 'Colete <strong>150 Onix Tail</strong> (Onix), <strong>200 Stone Rocks</strong> (Golem), <strong>200 Horn Drill</strong> (Rhydon) e <strong>50 Rock Plate</strong> (Pupitar).' },
+      { icon: '📦', text: 'Retorne ao <span class="quest-npc">Flint</span> e entregue todos os materiais da Parte 1.' },
+      { icon: '🏡', text: 'Vá até a <strong>casa de Flint</strong> em Viridian e fale com ele novamente usando <span class="quest-cmd">hi</span>.' },
+      { icon: '🔨', text: 'Responda <span class="quest-cmd">yes</span> e entregue <strong>10 Crystal Stones</strong> e <strong>10 Metal Stones</strong>.' },
+      { icon: '🎁', text: 'Receba as recompensas: <strong>3 Ancient Stones</strong>, <strong>500K EXP</strong> e uma estante à escolha.' },
+    ],
+    notes: 'Para agilizar a coleta da Parte 1, foque nas melhores localizações para cada Pokémon. Certifique-se de estar preparado antes de iniciar, pois Flint poderá solicitar itens e tarefas adicionais.',
+  },
 ];
+
+// ── CSS injetado para quests rich ─────────────────────────────────────
+(function () {
+  if (document.getElementById('quest-rich-css')) return;
+  var s = document.createElement('style');
+  s.id = 'quest-rich-css';
+  s.textContent = `
+/* ── Quest card ── */
+.quest-row {
+  background: linear-gradient(160deg, rgba(18,26,50,0.97) 0%, rgba(8,13,28,0.99) 100%);
+  border: 1px solid rgba(255,210,80,0.12);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  position: relative;
+}
+.quest-row::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,210,80,0.5), transparent);
+  border-radius: 18px 18px 0 0;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.quest-row:hover, .quest-row.open {
+  border-color: rgba(255,210,80,0.30);
+  box-shadow: 0 0 32px rgba(255,210,80,0.07), 0 8px 32px rgba(0,0,0,0.5);
+}
+.quest-row:hover::before, .quest-row.open::before { opacity: 1; }
+
+/* ── Header ── */
+.quest-row-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+.quest-row-num {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,210,80,0.35);
+  letter-spacing: 1px;
+  min-width: 20px;
+}
+.quest-row-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(255,210,80,0.4));
+}
+.quest-row-name {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #f0d060;
+  letter-spacing: 0.6px;
+  flex: 1;
+  text-shadow: 0 0 20px rgba(255,210,80,0.2);
+}
+.quest-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quest-level-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #60aaff;
+  background: rgba(96,170,255,0.1);
+  border: 1px solid rgba(96,170,255,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+.quest-row-chevron {
+  width: 18px; height: 18px;
+  color: rgba(255,210,80,0.4);
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), color 0.2s;
+}
+.quest-row.open .quest-row-chevron {
+  transform: rotate(180deg);
+  color: #f0d060;
+}
+
+/* ── Panel (expandido) ── */
+.quest-row-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.quest-row.open .quest-row-panel {
+  max-height: 2400px;
+}
+.quest-panel-inner {
+  padding: 0 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  border-top: 1px solid rgba(255,210,80,0.08);
+  margin-top: 0;
+  padding-top: 22px;
+}
+
+/* ── Seção ── */
+.quest-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.quest-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,210,80,0.6);
+}
+.quest-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,210,80,0.12);
+}
+.quest-section-icon { font-size: 13px; }
+
+/* ── Reward box ── */
+.quest-reward-box {
+  background: rgba(255,210,80,0.05);
+  border: 1px solid rgba(255,210,80,0.18);
+  border-left: 3px solid #f0d060;
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+.quest-reward-name {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0d060;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quest-reward-desc {
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.6;
+}
+.quest-reward-desc strong { color: rgba(255,255,255,0.9); }
+
+/* ── Info box genérico ── */
+.quest-info-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.7;
+}
+.quest-info-box strong { color: rgba(255,255,255,0.9); }
+.quest-info-box em { color: rgba(255,180,50,0.8); font-style: normal; }
+
+/* ── Steps ── */
+.quest-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quest-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 11px 15px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.quest-step:hover {
+  background: rgba(255,210,80,0.04);
+  border-color: rgba(255,210,80,0.12);
+}
+.quest-step-num {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,210,80,0.4);
+  min-width: 18px;
+  padding-top: 1px;
+}
+.quest-step-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  padding-top: 0px;
+  line-height: 1.4;
+}
+.quest-step-text {
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.55;
+  flex: 1;
+}
+.quest-step-text strong { color: rgba(255,255,255,0.92); }
+
+/* ── Puzzle image ── */
+.quest-puzzle-img-wrap {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+.quest-puzzle-img-wrap img {
+  width: 100%;
+  display: block;
+  border-radius: 14px;
+}
+.quest-puzzle-spoiler-label {
+  position: absolute;
+  top: 10px; left: 10px;
+  background: rgba(0,0,0,0.75);
+  border: 1px solid rgba(255,210,80,0.3);
+  color: rgba(255,210,80,0.85);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+/* ── Notes box ── */
+.quest-notes-box {
+  background: rgba(96,170,255,0.04);
+  border: 1px solid rgba(96,170,255,0.15);
+  border-left: 3px solid rgba(96,170,255,0.5);
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.6;
+}
+.quest-notes-box strong { color: rgba(255,255,255,0.8); }
+
+/* ── Info grid (ficha resumida) ── */
+.quest-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid rgba(255,210,80,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.quest-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+}
+.quest-info-row:last-child { border-bottom: none; }
+.quest-info-row:hover { background: rgba(255,210,80,0.03); }
+.quest-info-row-label {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,210,80,0.55);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+.quest-info-row-value {
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.5;
+}
+.quest-info-row-value strong { color: rgba(255,255,255,0.9); }
+
+/* ── Inline tags ── */
+.quest-npc {
+  color: #60d0ff;
+  font-weight: 700;
+}
+.quest-tag-hunt {
+  display: inline-block;
+  background: rgba(100,229,160,0.1);
+  border: 1px solid rgba(100,229,160,0.3);
+  color: #66e5a0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  font-family: var(--font-mono, monospace);
+}
+
+@media (max-width: 600px) {
+  .quest-row-name { font-size: 13px; }
+  .quest-panel-inner { padding: 0 14px 20px; padding-top: 16px; gap: 16px; }
+  .quest-reward-box, .quest-info-box, .quest-notes-box { padding: 11px 14px; }
+}
+
+/* ── Parte header ── */
+.quest-part-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px;
+  background: rgba(255,210,80,0.05);
+  border: 1px solid rgba(255,210,80,0.14);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.quest-part-icon { font-size: 16px; }
+.quest-part-title {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,210,80,0.75);
+  letter-spacing: 0.8px;
+}
+
+/* ── Drop table ── */
+.quest-drop-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 13px;
+}
+.quest-drop-table thead tr {
+  background: rgba(255,255,255,0.04);
+}
+.quest-drop-table thead th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.quest-drop-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+}
+.quest-drop-table tbody tr:last-child { border-bottom: none; }
+.quest-drop-table tbody tr:hover { background: rgba(255,210,80,0.03); }
+.quest-drop-table td { padding: 9px 12px; vertical-align: middle; }
+.quest-drop-qty {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: #f0d060;
+  white-space: nowrap;
+  width: 60px;
+}
+.quest-drop-item {
+  color: rgba(255,255,255,0.85);
+  font-weight: 600;
+}
+.quest-drop-source {
+  color: rgba(255,255,255,0.38);
+  font-size: 11.5px;
+}
+.quest-drop-source strong { color: rgba(255,255,255,0.55); }
+.quest-drop-loc {
+  text-align: right;
+  width: 80px;
+}
+.quest-loc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #60aaff;
+  background: rgba(96,170,255,0.08);
+  border: 1px solid rgba(96,170,255,0.2);
+  border-radius: 20px;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
+}
+.quest-loc-btn:hover {
+  background: rgba(96,170,255,0.16);
+  border-color: rgba(96,170,255,0.4);
+}
+.quest-loc-placeholder {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: rgba(255,255,255,0.15);
+  font-style: italic;
+}
+
+/* ── Image placeholder ── */
+.quest-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.025);
+  border: 1.5px dashed rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 28px 20px;
+  margin-top: 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  text-align: center;
+}
+.quest-img-placeholder code {
+  color: rgba(255,210,80,0.4);
+  font-size: 10px;
+}
+
+/* ── Reward image ── */
+.quest-reward-img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  margin-top: 10px;
+  display: block;
+}
+
+/* ── Cmd tag ── */
+.quest-cmd {
+  display: inline-block;
+  background: rgba(160,212,255,0.08);
+  border: 1px solid rgba(160,212,255,0.22);
+  color: #a0d4ff;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+/* ── Delivery note ── */
+.quest-delivery-note {
+  background: rgba(102,229,160,0.04);
+  border: 1px solid rgba(102,229,160,0.12);
+  border-left: 3px solid rgba(102,229,160,0.4);
+  border-radius: 10px;
+  padding: 11px 15px;
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.quest-delivery-note strong { color: rgba(255,255,255,0.85); }
+  `;
+  document.head.appendChild(s);
+})();
 
 function renderQuests() {
   var grid = document.getElementById('quests-grid');
@@ -1350,21 +1994,208 @@ function renderQuests() {
   }
 
   grid.innerHTML = filtered.map(function(quest, idx) {
-    var imgContent = quest.img
-      ? '<img class="quest-image" src="' + quest.img + '" alt="Como fazer: ' + quest.name + '" />'
-      : '<div class="quest-image-placeholder"><span class="placeholder-icon">🖼️</span><span>Imagem em breve</span></div>';
-    return '<div class="quest-row" id="quest-row-' + idx + '">' +
-      '<div class="quest-row-header" onclick="toggleQuestRow(' + idx + ')">' +
-        '<span class="quest-row-num">' + (idx + 1) + '</span>' +
-        '<span class="quest-row-icon">' + (quest.icon || '📜') + '</span>' +
-        '<span class="quest-row-name">' + quest.name + '</span>' +
-        '<svg class="quest-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
-      '</div>' +
-      '<div class="quest-row-panel">' +
-        '<p class="quest-description">' + (quest.description || '') + '</p>' +
-        imgContent +
-      '</div>' +
-    '</div>';
+    // ── Header
+    var levelBadge = quest.level
+      ? '<span class="quest-level-badge">LVL ' + quest.level + '+</span>'
+      : '';
+
+    // ── Recompensa
+    var rewardSection = '';
+    if (quest.reward) {
+      rewardSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">🎁</span> Recompensa</div>' +
+          '<div class="quest-reward-box">' +
+            '<div class="quest-reward-name">🍀 ' + quest.reward + '</div>' +
+            (quest.rewardDesc ? '<div class="quest-reward-desc">' + quest.rewardDesc + '</div>' : '') +
+          '</div>' +
+        '</div>';
+    }
+
+    // ── Pré-requisito
+    var prereqSection = '';
+    if (quest.level) {
+      prereqSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">📋</span> Pré-requisito</div>' +
+          '<div class="quest-info-box">Level mínimo: <strong>' + quest.level + '</strong></div>' +
+        '</div>';
+    }
+
+    // ── Info (ficha resumida — início, locais, dificuldade, requisitos)
+    var infoSection = '';
+    if (quest.info && quest.info.length) {
+      var infoRows = quest.info.map(function(row) {
+        return '<div class="quest-info-row">' +
+          '<span class="quest-info-row-label">' + row.label + '</span>' +
+          '<span class="quest-info-row-value">' + row.value + '</span>' +
+        '</div>';
+      }).join('');
+      infoSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">📋</span> Informações</div>' +
+          '<div class="quest-info-grid">' + infoRows + '</div>' +
+        '</div>';
+    }
+
+    // ── Início
+    var startSection = '';
+    if (quest.start) {
+      startSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">📍</span> Início</div>' +
+          '<div class="quest-info-box">' + quest.start + '</div>' +
+        '</div>';
+    }
+
+    // ── Drop
+    var dropSection = '';
+    if (quest.drop) {
+      dropSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">⚔️</span> Drop</div>' +
+          '<div class="quest-info-box">' + quest.drop + '</div>' +
+        '</div>';
+    }
+
+    // ── Puzzle
+    var puzzleSection = '';
+    if (quest.puzzle || quest.puzzleImg) {
+      var puzzleImgHtml = '';
+      if (quest.puzzleImg) {
+        puzzleImgHtml =
+          '<div class="quest-puzzle-img-wrap">' +
+            '<span class="quest-puzzle-spoiler-label">⚠ SPOILER</span>' +
+            '<img src="' + quest.puzzleImg + '" alt="Spoiler do Puzzle" loading="lazy" />' +
+          '</div>';
+      }
+      puzzleSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">🧩</span> Puzzle</div>' +
+          (quest.puzzle ? '<div class="quest-info-box">' + quest.puzzle + '</div>' : '') +
+          puzzleImgHtml +
+        '</div>';
+    }
+
+    // ── Passo a passo
+    var stepsSection = '';
+    if (quest.steps && quest.steps.length) {
+      var stepsHtml = quest.steps.map(function(step, si) {
+        return '<div class="quest-step">' +
+          '<span class="quest-step-num">0' + (si + 1) + '</span>' +
+          '<span class="quest-step-icon">' + step.icon + '</span>' +
+          '<span class="quest-step-text">' + step.text + '</span>' +
+        '</div>';
+      }).join('');
+      stepsSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">📌</span> Passo a Passo</div>' +
+          '<div class="quest-steps">' + stepsHtml + '</div>' +
+        '</div>';
+    }
+
+    // ── Observações
+    var notesSection = '';
+    if (quest.notes) {
+      notesSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">💡</span> Observações</div>' +
+          '<div class="quest-notes-box">' + quest.notes + '</div>' +
+        '</div>';
+    }
+
+    // ── Recompensa com imagem (override para quests com rewardImg)
+    if (quest.reward && quest.rewardImg !== undefined) {
+      var rewardImgHtml = quest.rewardImg
+        ? '<img class="quest-reward-img" src="' + quest.rewardImg + '" alt="Recompensa" loading="lazy" />'
+        : '<div class="quest-img-placeholder">📷 Imagem da recompensa — substitua <code>rewardImg: null</code> pela URL</div>';
+      rewardSection =
+        '<div class="quest-section">' +
+          '<div class="quest-section-title"><span class="quest-section-icon">🎁</span> Recompensa</div>' +
+          '<div class="quest-reward-box">' +
+            '<div class="quest-reward-name">🏆 ' + quest.reward + '</div>' +
+            (quest.rewardDesc ? '<div class="quest-reward-desc">' + quest.rewardDesc + '</div>' : '') +
+            rewardImgHtml +
+          '</div>' +
+        '</div>';
+    }
+
+    // ── Partes (parts)
+    var partsSection = '';
+    if (quest.parts && quest.parts.length) {
+      partsSection = quest.parts.map(function(part, pi) {
+        // Drop table
+        var tableHtml = '';
+        if (part.drops && part.drops.length) {
+          var rows = part.drops.map(function(d) {
+            var locHtml = d.locationImg
+              ? '<a class="quest-loc-btn" href="' + d.locationImg + '" target="_blank">📍 VER</a>'
+              : '<span class="quest-loc-placeholder">a definir</span>';
+            var sourceHtml = d.source
+              ? 'Drop de <strong>' + d.source + '</strong>'
+              : '<span style="color:rgba(255,255,255,0.25)">—</span>';
+            return '<tr>' +
+              '<td class="quest-drop-qty">×' + d.qty + '</td>' +
+              '<td class="quest-drop-item">' + d.item + '</td>' +
+              '<td class="quest-drop-source">' + sourceHtml + '</td>' +
+              '<td class="quest-drop-loc">' + locHtml + '</td>' +
+            '</tr>';
+          }).join('');
+          tableHtml =
+            '<table class="quest-drop-table">' +
+              '<thead><tr>' +
+                '<th>QTD</th><th>ITEM</th><th>FONTE</th><th style="text-align:right">LOCAL</th>' +
+              '</tr></thead>' +
+              '<tbody>' + rows + '</tbody>' +
+            '</table>';
+        }
+
+        // Location image placeholder
+        var locImgHtml = '';
+        if (part.locationImg !== undefined) {
+          locImgHtml = part.locationImg
+            ? '<img class="quest-reward-img" src="' + part.locationImg + '" alt="Localização" loading="lazy" />'
+            : '<div class="quest-img-placeholder">📷 Imagem desta etapa — substitua <code>locationImg: null</code> pela URL</div>';
+        }
+
+        return '<div class="quest-section">' +
+          '<div class="quest-section-title">' +
+            '<span class="quest-section-icon">' + (part.icon || '📦') + '</span> ' + part.title +
+          '</div>' +
+          (part.intro ? '<div class="quest-info-box" style="margin-bottom:0">' + part.intro + '</div>' : '') +
+          locImgHtml +
+          tableHtml +
+          (part.delivery ? '<div class="quest-delivery-note">✅ ' + part.delivery + '</div>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    return (
+      '<div class="quest-row" id="quest-row-' + idx + '">' +
+        '<div class="quest-row-header" onclick="toggleQuestRow(' + idx + ')">' +
+          '<span class="quest-row-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
+          '<span class="quest-row-icon">' + (quest.icon || '📜') + '</span>' +
+          '<span class="quest-row-name">' + quest.name + '</span>' +
+          '<div class="quest-row-meta">' +
+            levelBadge +
+            '<svg class="quest-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
+          '</div>' +
+        '</div>' +
+        '<div class="quest-row-panel">' +
+          '<div class="quest-panel-inner">' +
+            rewardSection +
+            prereqSection +
+            infoSection +
+            startSection +
+            dropSection +
+            partsSection +
+            puzzleSection +
+            stepsSection +
+            notesSection +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
   }).join('');
 }
 
@@ -1437,11 +2268,156 @@ let activePkgIdx = null;
 // pkgCartCount já declarado globalmente acima
 
 // Ícones por tipo de pacote (heurística pelo nome)
-function getPkgIcon(name) {
-  const img = (url) => `<img src="${url}" style="width:40px;height:40px;object-fit:contain" />`;
+/* ── Cor do tipo pelo nome do pacote ────────────────────────────── */
+function getPkgTypeColor(name) {
   const n = name.toLowerCase();
-  // Gym e Reduces primeiro (mais especificos, evita conflito com water/speed)
-  if (n.startsWith('reduces') || n.startsWith('reduce')) return img('https://i.imgur.com/zpRe43i.png');
+  if (n.includes('water'))                         return '#00aaff';
+  if (n.includes('steel') || n.includes('metal'))  return '#ccddee';
+  if (n.includes('rock'))                          return '#aa8855';
+  if (n.includes('psychic'))                       return '#ff44bb';
+  if (n.includes('poison'))                        return '#aa00cc';
+  if (n.includes('normal'))                        return '#bbbbbb';
+  if (n.includes('ice'))                           return '#80e8ff';
+  if (n.includes('ground') || n.includes('sand'))  return '#cc8800';
+  if (n.includes('fire'))                          return '#ff6a00';
+  if (n.includes('grass'))                         return '#44cc00';
+  if (n.includes('electric'))                      return '#ffe600';
+  if (n.includes('dark'))                          return '#6666cc';
+  if (n.includes('dragon'))                        return '#ffaa00';
+  if (n.includes('ghost'))                         return '#9900ff';
+  if (n.includes('fairy'))                         return '#ff66bb';
+  if (n.includes('flying'))                        return '#aabbff';
+  if (n.includes('bug'))                           return '#99cc00';
+  if (n.includes('fighting') || n.includes('figthing')) return '#ff4400';
+  if (n.includes('speed'))                         return '#00ffcc';
+  if (n.includes('hp'))                            return '#ff4466';
+  if (n.startsWith('gym') || n.includes('gym'))    return '#ffd166';
+  if (n.startsWith('full'))                        return '#60aaff';
+  return '#60aaff';
+}
+
+/* ── CSS Talent-style para os cards do sidebar ──────────────────── */
+(function injectPkgTalentStyle() {
+  if (document.getElementById('pkg-talent-style')) return;
+  const s = document.createElement('style');
+  s.id = 'pkg-talent-style';
+  s.textContent = `
+    .pkg-sidebar-list {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px !important;
+      padding: 10px !important;
+    }
+    .pkg-sidebar-item {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 8px !important;
+      padding: 14px 8px 12px !important;
+      border-radius: 14px !important;
+      background: rgba(255,255,255,0.03) !important;
+      border: 1.5px solid var(--pkg-color, rgba(255,255,255,0.1)) !important;
+      cursor: pointer !important;
+      transition: background .18s, border-color .18s, box-shadow .18s, transform .15s !important;
+      position: relative !important;
+      text-align: center !important;
+    }
+    .pkg-sidebar-item:hover {
+      background: rgba(255,255,255,0.06) !important;
+      border-color: var(--pkg-color, rgba(255,255,255,0.25)) !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px var(--pkg-color, rgba(255,255,255,0.1)) !important;
+      transform: translateY(-2px) !important;
+    }
+    .pkg-sidebar-item.active {
+      background: color-mix(in srgb, var(--pkg-color, #60aaff) 12%, transparent) !important;
+      border-color: var(--pkg-color, #60aaff) !important;
+      box-shadow: 0 0 18px color-mix(in srgb, var(--pkg-color, #60aaff) 30%, transparent) !important;
+    }
+    .pkg-sidebar-item-icon {
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 50% !important;
+      background: color-mix(in srgb, var(--pkg-color, #60aaff) 14%, #0a0f1a) !important;
+      border: 2px solid color-mix(in srgb, var(--pkg-color, #60aaff) 45%, transparent) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-shadow: 0 0 14px color-mix(in srgb, var(--pkg-color, #60aaff) 20%, transparent) !important;
+      flex-shrink: 0 !important;
+      overflow: hidden !important;
+    }
+    .pkg-sidebar-item-icon img {
+      width: 38px !important;
+      height: 38px !important;
+      object-fit: contain !important;
+    }
+    .pkg-sidebar-item-info {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 3px !important;
+    }
+    .pkg-sidebar-item-name {
+      font-family: var(--font-title, 'Cinzel', serif) !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      letter-spacing: .5px !important;
+      color: #fff !important;
+      text-align: center !important;
+      line-height: 1.3 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+    }
+    .pkg-sidebar-item-sub {
+      font-family: var(--font-mono, monospace) !important;
+      font-size: 10px !important;
+      color: rgba(255,255,255,0.38) !important;
+      letter-spacing: .3px !important;
+    }
+    .pkg-card-cart-badge {
+      position: absolute !important;
+      top: 6px !important;
+      right: 6px !important;
+      font-family: var(--font-mono, monospace) !important;
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      padding: 2px 6px !important;
+      border-radius: 10px !important;
+      background: #22c55e !important;
+      color: #fff !important;
+      letter-spacing: .3px !important;
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+function getPkgIcon(name) {
+  const img = (url) => `<img src="${url}" style="width:38px;height:38px;object-fit:contain" />`;
+  const n = name.toLowerCase();
+  // Gym e Reduces primeiro (mais específicos, evita conflito com water/speed)
+  // Para "Reduces Speed <Tipo>", detecta o tipo pelo nome
+  if (n.startsWith('reduces') || n.startsWith('reduce')) {
+    if (n.includes('ice'))                          return img('https://i.imgur.com/ssFz0sA.png');
+    if (n.includes('sand') || n.includes('ground')) return img('https://i.imgur.com/JPcD2l3.png');
+    if (n.includes('fire'))                         return img('https://i.imgur.com/O8TONGE.png');
+    if (n.includes('grass'))                        return img('https://i.imgur.com/YjKxtoE.png');
+    if (n.includes('electric'))                     return img('https://i.imgur.com/Yv2WEYc.png');
+    if (n.includes('psychic'))                      return img('https://i.imgur.com/ASiZi1K.png');
+    if (n.includes('poison'))                       return img('https://i.imgur.com/xfX0ReE.png');
+    if (n.includes('normal'))                       return img('https://i.imgur.com/w2ChsIe.png');
+    if (n.includes('steel') || n.includes('metal')) return img('https://i.imgur.com/GleRjiM.png');
+    if (n.includes('rock'))                         return img('https://i.imgur.com/GvD1Mtq.png');
+    if (n.includes('dark'))                         return img('https://i.imgur.com/7Luj4az.png');
+    if (n.includes('dragon'))                       return img('https://i.imgur.com/o7JWbaN.png');
+    if (n.includes('ghost'))                        return img('https://i.imgur.com/HuybbPn.png');
+    if (n.includes('fairy'))                        return img('https://i.imgur.com/j3HaXTh.png');
+    if (n.includes('flying'))                       return img('https://i.imgur.com/npGjQae.png');
+    if (n.includes('bug'))                          return img('https://i.imgur.com/V4IXR51.png');
+    if (n.includes('fighting') || n.includes('figthing')) return img('https://i.imgur.com/OKsJXh7.png');
+    if (n.includes('water'))                        return img('https://i.imgur.com/zpRe43i.png');
+    return img('https://i.imgur.com/zpRe43i.png'); // fallback water
+  }
   if (n.includes('viridian'))  return img('https://i.imgur.com/AvX9Hbj.png');
   if (n.includes('cinnabar'))  return img('https://i.imgur.com/RsJe7OO.png');
   if (n.includes('pewter'))    return img('https://i.imgur.com/ViA3uQO.png');
@@ -1542,6 +2518,25 @@ function selectPkgCat(cat) {
   renderPackages();
 }
 
+// ── Patch CSS: pkg-sidebar-item-name sem truncar ──────────────────────────
+(function () {
+  var _patchStyle = document.getElementById('pkg-sidebar-name-patch');
+  if (_patchStyle) return; // já injetado
+  var s = document.createElement('style');
+  s.id = 'pkg-sidebar-name-patch';
+  s.textContent = `
+    .pkg-sidebar-item-name {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      overflow-wrap: break-word !important;
+      word-break: break-word !important;
+      line-height: 1.3 !important;
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
 function renderPackages() {
   const sidebarList = document.getElementById('pkg-sidebar-list');
   if (!sidebarList) return;
@@ -1561,7 +2556,8 @@ function renderPackages() {
     const isActive = activePkgIdx === pi;
     const added = pkgCartCount && pkgCartCount[pi] ? pkgCartCount[pi] : 0;
     const glowClass = added ? ' is-in-cart' : '';
-    return `<div class="pkg-sidebar-item${isActive ? ' active' : ''}${glowClass}" onclick="selectPkg(${pi})">
+    const pkgColor = getPkgTypeColor(pkg.name);
+    return `<div class="pkg-sidebar-item${isActive ? ' active' : ''}${glowClass}" onclick="selectPkg(${pi})" style="--pkg-color:${pkgColor}">
       ${added ? `<div class="pkg-card-cart-badge">✓ ×${added}</div>` : ''}
       <div class="pkg-sidebar-item-icon">${icon}</div>
       <div class="pkg-sidebar-item-info">
@@ -2696,58 +3692,9 @@ function buildDropsHtml(pokeName, typeColor) {
 }
 
 // ===================== WIKI LOOKUP POPUP =====================
-function openWikiLookup(itemName, e) {
-  if (e) { e.stopPropagation(); e.preventDefault(); }
-  var overlay = document.getElementById('wiki-popup-overlay');
-  var title = document.getElementById('wiki-popup-title');
-  var sub = document.getElementById('wiki-popup-sub');
-  var grid = document.getElementById('wiki-popup-grid');
-  var empty = document.getElementById('wiki-popup-empty');
-
-  title.textContent = itemName;
-
-  // Busca na RAW_WIKI
-  var entry = RAW_WIKI.find(function(e) {
-    return e[0].toLowerCase() === itemName.toLowerCase();
-  });
-  var sources = entry ? entry.slice(1).filter(function(s) { return s && s.trim(); }) : [];
-
-  if (!sources.length) {
-    grid.innerHTML = '';
-    grid.style.display = 'none';
-    sub.textContent = 'Nenhum drop registrado';
-    empty.style.display = 'block';
-    empty.textContent = 'Nenhum Pokémon registrado para este item.';
-  } else {
-    sub.textContent = sources.length + ' Pokémon' + (sources.length > 1 ? ' dropam' : ' dropa') + ' este item';
-    empty.style.display = 'none';
-    grid.style.display = 'flex';
-    grid.innerHTML = sources.map(function(pokeName) {
-      var sprite = getShowdownSprite(pokeName);
-      var fallback = 'https://play.pokemonshowdown.com/sprites/gen5/' + toShowdownName(pokeName) + '.png';
-      return '<div class="wiki-popup-card">' +
-        '<img src="' + sprite + '" alt="' + pokeName + '" onerror="this.src=\'' + fallback + '\'" />' +
-        '<div class="wiki-popup-card-name">' + pokeName + '</div>' +
-        '</div>';
-    }).join('');
-  }
-
-  overlay.classList.add('open');
-}
-
-function closeWikiPopup() {
-  document.getElementById('wiki-popup-overlay').classList.remove('open');
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  var overlay = document.getElementById('wiki-popup-overlay');
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) closeWikiPopup();
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeWikiPopup();
-  });
-});
+// Substituído pelo item-card-popup.js — função redefinida lá
+function openWikiLookup(itemName, e) { /* substituído por item-card-popup.js */ }
+function closeWikiPopup() {}
 // ===================== CAPTURA LIST MODE CSS =====================
 (function injectCapturaListStyles() {
   const style = document.createElement('style');
@@ -3864,7 +4811,7 @@ var RAW_HAZARD = [
   { npc: 'Lucine',  imgId: 'w8p1cJw.png', task: '8 Sh Linoone, 8 Sh Delcatty, 7 Sh Swellow, 7 Sh Kecleon' },
   { npc: 'Veska',   imgId: 'c78R578.png', task: '5 Sh Beautifly, 5 Sh Dustox, 4 Sh Masquerain, 4 Sh Ninjask, 4 Sh Volbeat, 4 Sh Ilumise, 4 Sh Shedinja' },
   { npc: 'Calder',  imgId: 'kgjNPJa.png', task: '15 Sh Camerupt, 15 Sh Torkoal' },
-  { npc: 'Kaela',   imgId: 'daf6Nxk.png', task: '10 Sh Sceptile, 10 Sh Blaziken, 10 Sh Swampert' },
+  { npc: 'Kaela',   imgId: 'wlF1RZh.png', task: '10 Sh Sceptile, 10 Sh Blaziken, 10 Sh Swampert' },
   { npc: 'Orlan',   imgId: '7E6igom.png', task: '15 Sh Pelipper, 15 Sh Altaria' },
   { npc: 'Selene',  imgId: '7E6igom.png', task: '5 Sh Gardevoir, 5 Sh Grumpig, 5 Sh Chimecho, 5 Sh Claydol, 5 Sh Lunatone, 5 Sh Solrock' },
   { npc: 'Maera',   imgId: 'NhzLpkd.png', task: '8 Sh Milotic, 8 Sh Huntail, 7 Sh Gorebyss, 7 Sh Relicanth' },
@@ -5185,4 +6132,1607 @@ function toggleRspCard(id) {
   var isOpen = card.classList.contains('open');
   document.querySelectorAll('.rsp-card.open').forEach(function(c) { c.classList.remove('open'); });
   if (!isOpen) card.classList.add('open');
+}
+
+// ===================== WIKI: POKETALENTS =====================
+// Mapa tipo → { bannerUrl, iconUrl, color, rgb }
+var TALENT_TYPE_META = {
+  water:    { banner: 'https://i.imgur.com/zpRe43i.png', color: '#00aaff', rgb: '0,170,255',     emoji: '💧' },
+  steel:    { banner: 'https://i.imgur.com/GleRjiM.png', color: '#ccddee', rgb: '204,221,238',   emoji: '⚙️' },
+  rock:     { banner: 'https://i.imgur.com/GvD1Mtq.png', color: '#aa8855', rgb: '170,136,85',    emoji: '🪨' },
+  psychic:  { banner: 'https://i.imgur.com/ASiZi1K.png', color: '#ff44bb', rgb: '255,68,187',    emoji: '🔮' },
+  poison:   { banner: 'https://i.imgur.com/xfX0ReE.png', color: '#aa00cc', rgb: '170,0,204',     emoji: '☠️' },
+  normal:   { banner: 'https://i.imgur.com/w2ChsIe.png', color: '#bbbbbb', rgb: '187,187,187',   emoji: '⭐' },
+  ice:      { banner: 'https://i.imgur.com/ssFz0sA.png', color: '#80e8ff', rgb: '128,232,255',   emoji: '❄️' },
+  ground:   { banner: 'https://i.imgur.com/JPcD2l3.png', color: '#cc8800', rgb: '204,136,0',     emoji: '🌍' },
+  fire:     { banner: 'https://i.imgur.com/O8TONGE.png', color: '#ff6a00', rgb: '255,106,0',     emoji: '🔥' },
+  grass:    { banner: 'https://i.imgur.com/YjKxtoE.png', color: '#44cc00', rgb: '68,204,0',      emoji: '🌿' },
+  electric: { banner: 'https://i.imgur.com/Yv2WEYc.png', color: '#ffe600', rgb: '255,230,0',     emoji: '⚡' },
+  dark:     { banner: 'https://i.imgur.com/7Luj4az.png', color: '#6666cc', rgb: '102,102,204',   emoji: '🌑' },
+  dragon:   { banner: 'https://i.imgur.com/o7JWbaN.png', color: '#ffaa00', rgb: '255,170,0',     emoji: '🐉' },
+  ghost:    { banner: 'https://i.imgur.com/HuybbPn.png', color: '#9900ff', rgb: '153,0,255',     emoji: '👻' },
+  fairy:    { banner: 'https://i.imgur.com/j3HaXTh.png', color: '#ff66bb', rgb: '255,102,187',   emoji: '🌸' },
+  flying:   { banner: 'https://i.imgur.com/npGjQae.png', color: '#aabbff', rgb: '170,187,255',   emoji: '🦅' },
+  bug:      { banner: 'https://i.imgur.com/V4IXR51.png', color: '#99cc00', rgb: '153,204,0',     emoji: '🐛' },
+  fighting: { banner: 'https://i.imgur.com/OKsJXh7.png', color: '#ff4400', rgb: '255,68,0',      emoji: '🥊' },
+};
+
+// Resolve o tipo de um pacote Talent pelo nome
+function getTalentPkgType(pkgName) {
+  var n = pkgName.toLowerCase();
+  var keys = Object.keys(TALENT_TYPE_META);
+  for (var i = 0; i < keys.length; i++) {
+    if (n.includes(keys[i])) return keys[i];
+  }
+  if (n.includes('figthing') || n.includes('fighting')) return 'fighting';
+  return null;
+}
+
+var _talentPanelOpen = null; // tipo atualmente aberto no painel lateral
+
+function renderTalents() {
+  var el = document.getElementById('wiki-talents-content');
+  if (!el) return;
+
+  // Injeta estilos uma única vez
+  if (!document.getElementById('talent-styles-v2')) {
+    var s = document.createElement('style');
+    s.id = 'talent-styles-v2';
+    s.textContent = `
+      /* ── Layout geral ── */
+      .tpg { padding: 0 0 48px; }
+
+      /* ── Hero ── */
+      .tpg-hero {
+        text-align: center; padding: 30px 20px 22px;
+        background: linear-gradient(180deg, rgba(255,224,102,0.07) 0%, transparent 100%);
+        border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 0;
+      }
+      .tpg-hero-icon { font-size: 40px; margin-bottom: 8px; }
+      .tpg-hero-title {
+        font-family: var(--font-title); font-size: 20px; font-weight: 900;
+        letter-spacing: 2.5px; text-transform: uppercase; color: #ffe066;
+        text-shadow: 0 0 20px rgba(255,224,102,0.35);
+      }
+      .tpg-hero-desc {
+        font-size: 12.5px; color: rgba(255,255,255,0.4);
+        margin-top: 7px; line-height: 1.65; max-width: 560px; margin-left: auto; margin-right: auto;
+      }
+
+      /* ── Body com painel lateral ── */
+      .tpg-body {
+        display: flex; gap: 0; min-height: 500px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+      }
+
+      /* ── Coluna esquerda: lista de tipos ── */
+      .tpg-list {
+        width: 220px; min-width: 180px; flex-shrink: 0;
+        border-right: 1px solid rgba(255,255,255,0.06);
+        overflow-y: auto; padding: 14px 10px;
+        display: flex; flex-direction: column; gap: 4px;
+      }
+      .tpg-section-label {
+        font-size: 10px; font-weight: 700; letter-spacing: 1.8px;
+        text-transform: uppercase; color: rgba(255,255,255,0.25);
+        padding: 10px 8px 6px; margin-top: 4px;
+      }
+      .tpg-section-label:first-child { margin-top: 0; }
+
+      .tpg-type-btn {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 10px; border-radius: 10px;
+        background: transparent; border: 1px solid transparent;
+        cursor: pointer; transition: background 0.15s, border-color 0.15s;
+        width: 100%; text-align: left;
+      }
+      .tpg-type-btn:hover {
+        background: rgba(var(--tb-rgb), 0.08);
+        border-color: rgba(var(--tb-rgb), 0.2);
+      }
+      .tpg-type-btn.active {
+        background: rgba(var(--tb-rgb), 0.14);
+        border-color: rgba(var(--tb-rgb), 0.4);
+        box-shadow: 0 0 0 1px rgba(var(--tb-rgb), 0.15) inset;
+      }
+      .tpg-type-btn-icon {
+        width: 32px; height: 32px; border-radius: 50%;
+        overflow: hidden; flex-shrink: 0;
+        border: 2px solid rgba(var(--tb-rgb), 0.35);
+        box-shadow: 0 0 8px rgba(var(--tb-rgb), 0.25);
+      }
+      .tpg-type-btn-icon img { width: 100%; height: 100%; object-fit: cover; }
+      .tpg-type-btn-label {
+        font-family: var(--font-title); font-size: 12px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase;
+        color: rgba(var(--tb-rgb), 1);
+        flex: 1;
+      }
+      .tpg-type-btn-arrow {
+        font-size: 10px; color: rgba(var(--tb-rgb), 0.5);
+        transition: transform 0.15s;
+      }
+      .tpg-type-btn.active .tpg-type-btn-arrow { transform: translateX(3px); }
+
+      /* Special buttons */
+      .tpg-special-btn {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 10px; border-radius: 10px;
+        background: transparent; border: 1px solid transparent;
+        cursor: pointer; transition: background 0.15s, border-color 0.15s;
+        width: 100%; text-align: left;
+      }
+      .tpg-special-btn:hover { background: rgba(var(--sb-rgb),0.08); border-color: rgba(var(--sb-rgb),0.2); }
+      .tpg-special-btn.active { background: rgba(var(--sb-rgb),0.14); border-color: rgba(var(--sb-rgb),0.4); }
+      .tpg-special-btn-icon {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(var(--sb-rgb),0.15);
+        border: 2px solid rgba(var(--sb-rgb),0.35);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; flex-shrink: 0;
+      }
+      .tpg-special-btn-label {
+        font-family: var(--font-title); font-size: 12px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase; color: rgba(var(--sb-rgb),1); flex: 1;
+      }
+
+      /* ── Painel direito: detalhe ── */
+      .tpg-panel {
+        flex: 1; min-width: 0;
+        padding: 24px 24px 32px;
+        display: flex; flex-direction: column; gap: 20px;
+      }
+
+      /* Estado vazio */
+      .tpg-empty {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 10px;
+        color: rgba(255,255,255,0.2); text-align: center;
+        font-size: 13px; padding: 60px 20px;
+      }
+      .tpg-empty-icon { font-size: 36px; opacity: 0.35; margin-bottom: 4px; }
+
+      /* Cabeçalho do painel */
+      .tpg-panel-header {
+        display: flex; align-items: center; gap: 14px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(var(--pd-rgb,255,255,255), 0.1);
+      }
+      .tpg-panel-banner {
+        width: 54px; height: 54px; border-radius: 50%;
+        overflow: hidden; flex-shrink: 0;
+        border: 2px solid rgba(var(--pd-rgb,255,255,255), 0.4);
+        box-shadow: 0 0 18px rgba(var(--pd-rgb,255,255,255), 0.25);
+      }
+      .tpg-panel-banner img { width: 100%; height: 100%; object-fit: cover; }
+      .tpg-panel-banner-emoji {
+        width: 54px; height: 54px; border-radius: 50%;
+        background: rgba(var(--pd-rgb,255,255,255),0.1);
+        border: 2px solid rgba(var(--pd-rgb,255,255,255),0.4);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; flex-shrink: 0;
+      }
+      .tpg-panel-info { flex: 1; }
+      .tpg-panel-name {
+        font-family: var(--font-title); font-size: 18px; font-weight: 900;
+        letter-spacing: 2px; text-transform: uppercase;
+        color: rgb(var(--pd-rgb,255,255,255));
+        text-shadow: 0 0 20px rgba(var(--pd-rgb,255,255,255),0.3);
+      }
+      .tpg-panel-sub { font-size: 12px; color: rgba(255,255,255,0.38); margin-top: 3px; }
+
+      /* Buff chips */
+      .tpg-buffs { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tpg-buff-chip {
+        display: flex; align-items: center; gap: 7px;
+        padding: 7px 13px; border-radius: 20px;
+        background: rgba(var(--pd-rgb,255,255,255),0.08);
+        border: 1px solid rgba(var(--pd-rgb,255,255,255),0.22);
+      }
+      .tpg-buff-chip-icon { font-size: 14px; }
+      .tpg-buff-chip-label { font-size: 11px; color: rgba(255,255,255,0.45); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+      .tpg-buff-chip-val {
+        font-family: var(--font-mono,monospace); font-size: 15px; font-weight: 900;
+        color: rgb(var(--pd-rgb,255,255,255));
+        text-shadow: 0 0 8px rgba(var(--pd-rgb,255,255,255),0.5);
+        margin-left: 2px;
+      }
+
+      /* Seção de ingredientes */
+      .tpg-ingr-title {
+        font-size: 10px; font-weight: 700; letter-spacing: 2px;
+        text-transform: uppercase; color: rgba(255,255,255,0.3);
+        margin-bottom: 10px;
+      }
+
+      /* Slot tabs */
+      .tpg-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+      .tpg-slot-btn {
+        padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 700;
+        letter-spacing: 0.5px; cursor: pointer;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.5);
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      .tpg-slot-btn.active {
+        background: rgba(var(--pd-rgb,255,255,255),0.14);
+        border-color: rgba(var(--pd-rgb,255,255,255),0.45);
+        color: rgb(var(--pd-rgb,255,255,255));
+      }
+
+      /* Lista de ingredientes do slot ativo */
+      .tpg-ingr-list { display: flex; flex-direction: column; gap: 6px; }
+      .tpg-ingr-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px; border-radius: 10px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        transition: background 0.15s;
+      }
+      .tpg-ingr-row:hover { background: rgba(var(--pd-rgb,255,255,255),0.06); }
+      .tpg-ingr-img {
+        width: 30px; height: 30px; object-fit: contain;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.04);
+        flex-shrink: 0;
+      }
+      .tpg-ingr-img-placeholder {
+        width: 30px; height: 30px; border-radius: 6px;
+        background: rgba(255,255,255,0.06);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; flex-shrink: 0;
+      }
+      .tpg-ingr-name {
+        flex: 1; font-size: 13px; color: rgba(255,255,255,0.75);
+        font-weight: 500;
+      }
+      .tpg-ingr-qty {
+        font-family: var(--font-mono,monospace); font-size: 13px; font-weight: 700;
+        color: rgb(var(--pd-rgb,255,255,255));
+        background: rgba(var(--pd-rgb,255,255,255),0.1);
+        border: 1px solid rgba(var(--pd-rgb,255,255,255),0.2);
+        padding: 2px 8px; border-radius: 6px;
+        white-space: nowrap;
+      }
+      .tpg-ingr-or {
+        font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+        color: rgba(255,255,255,0.2); text-align: center; padding: 2px 0;
+        position: relative;
+      }
+      .tpg-ingr-or::before, .tpg-ingr-or::after {
+        content: ''; position: absolute; top: 50%; width: 42%;
+        height: 1px; background: rgba(255,255,255,0.08);
+      }
+      .tpg-ingr-or::before { left: 0; }
+      .tpg-ingr-or::after { right: 0; }
+
+      /* Botão ir para pacotes */
+      .tpg-goto-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 11px 20px; border-radius: 10px;
+        font-family: var(--font-title); font-size: 12px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase;
+        background: rgba(var(--pd-rgb,255,255,255),0.12);
+        border: 1px solid rgba(var(--pd-rgb,255,255,255),0.35);
+        color: rgb(var(--pd-rgb,255,255,255));
+        cursor: pointer; transition: background 0.15s, transform 0.1s;
+        align-self: flex-start; margin-top: 6px;
+        text-shadow: 0 0 10px rgba(var(--pd-rgb,255,255,255),0.3);
+        box-shadow: 0 0 20px rgba(var(--pd-rgb,255,255,255),0.08);
+      }
+      .tpg-goto-btn:hover {
+        background: rgba(var(--pd-rgb,255,255,255),0.22);
+        transform: scale(1.03);
+      }
+      .tpg-goto-btn svg { flex-shrink: 0; }
+
+      /* Separador de slots — "OU" entre opções alternativas */
+      .tpg-slot-sep {
+        font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+        color: rgba(255,255,255,0.18); text-align: center;
+        padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);
+        margin-top: 4px;
+      }
+
+      /* Responsive */
+      @media(max-width:640px) {
+        .tpg-body { flex-direction: column; }
+        .tpg-list { width: 100%; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; gap: 6px; }
+        .tpg-type-btn, .tpg-special-btn { width: auto; }
+        .tpg-type-btn-arrow, .tpg-type-btn-label { display: none; }
+        .tpg-type-btn-icon, .tpg-special-btn-icon { width: 38px; height: 38px; }
+        .tpg-panel { padding: 16px; }
+        .tpg-section-label { display: none; }
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // ── Build HTML ──────────────────────────────────────────────────────────────
+  var html = '<div class="tpg">';
+
+  // ── Estilos da seção explicativa ──────────────────────────────────────────
+  if (!document.getElementById('talent-explain-styles')) {
+    var se = document.createElement('style');
+    se.id = 'talent-explain-styles';
+    se.textContent = `
+      /* Hero */
+      .tpg-hero { border-bottom: none !important; margin-bottom: 0 !important; }
+
+      /* Explain section */
+      .tpg-explain {
+        padding: 0 20px 28px;
+        max-width: 860px; margin: 0 auto;
+        display: flex; flex-direction: column; gap: 14px;
+      }
+
+      /* Intro text */
+      .tpg-intro {
+        font-family: var(--font-body); font-size: 13.5px; color: rgba(255,255,255,0.5);
+        line-height: 1.8; text-align: center;
+        max-width: 680px; margin: 0 auto; padding: 18px 0 4px;
+      }
+      .tpg-intro strong { color: rgba(255,255,255,0.82); }
+
+      /* Divider */
+      .tpg-explain-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,224,102,0.18), transparent);
+        margin: 4px 0;
+      }
+
+      /* Cards de info */
+      .tpg-ex-card {
+        border-radius: 16px; padding: 20px 22px;
+        display: flex; gap: 18px; align-items: flex-start;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.07);
+        transition: border-color .2s, background .2s;
+      }
+      .tpg-ex-card:hover {
+        border-color: rgba(255,224,102,0.18);
+        background: rgba(255,224,102,0.025);
+      }
+      .tpg-ex-card-icon { font-size: 28px; flex-shrink: 0; margin-top: 2px; line-height: 1; }
+      .tpg-ex-card-body { flex: 1; min-width: 0; }
+      .tpg-ex-card-title {
+        font-family: var(--font-title); font-size: 11.5px; font-weight: 700;
+        letter-spacing: 1.8px; text-transform: uppercase; color: #ffe066;
+        margin-bottom: 8px;
+      }
+      .tpg-ex-card-text {
+        font-family: var(--font-body); font-size: 13px; color: rgba(255,255,255,0.5);
+        line-height: 1.75;
+      }
+      .tpg-ex-card-text strong { color: rgba(255,255,255,0.82); }
+
+      /* Bullet list dentro dos cards */
+      .tpg-ex-bullets { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+      .tpg-ex-bullet {
+        display: flex; align-items: flex-start; gap: 10px;
+        background: rgba(255,255,255,0.03); border-radius: 10px;
+        padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05);
+      }
+      .tpg-ex-bullet-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #ffe066; flex-shrink: 0; margin-top: 5px;
+        box-shadow: 0 0 6px rgba(255,224,102,0.5);
+      }
+      .tpg-ex-bullet-text {
+        font-family: var(--font-body); font-size: 12.5px;
+        color: rgba(255,255,255,0.48); line-height: 1.65; flex: 1;
+      }
+      .tpg-ex-bullet-text strong { color: rgba(255,255,255,0.8); }
+
+      /* Dois cards lado a lado (especiais) */
+      .tpg-ex-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media(max-width:600px) { .tpg-ex-row { grid-template-columns: 1fr; } }
+
+      /* Card especial de talento */
+      .tpg-ex-special {
+        border-radius: 16px; padding: 20px 18px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(var(--tse-rgb,255,255,255),0.15);
+        transition: border-color .2s, background .2s, box-shadow .2s;
+      }
+      .tpg-ex-special:hover {
+        border-color: rgba(var(--tse-rgb,255,255,255),0.3);
+        background: rgba(var(--tse-rgb,255,255,255),0.04);
+        box-shadow: 0 0 24px rgba(var(--tse-rgb,255,255,255),0.06);
+      }
+      .tpg-ex-special-head {
+        display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+      }
+      .tpg-ex-special-icon {
+        width: 42px; height: 42px; border-radius: 50%;
+        background: rgba(var(--tse-rgb,255,255,255),0.1);
+        border: 1.5px solid rgba(var(--tse-rgb,255,255,255),0.25);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; flex-shrink: 0;
+      }
+      .tpg-ex-special-name {
+        font-family: var(--font-title); font-size: 14px; font-weight: 900;
+        letter-spacing: 1.5px; text-transform: uppercase;
+        color: rgba(var(--tse-rgb,255,255,255),1);
+      }
+      .tpg-ex-special-sub {
+        font-family: var(--font-body); font-size: 11px;
+        color: rgba(255,255,255,0.3); margin-top: 2px;
+      }
+      .tpg-ex-special-stats { display: flex; flex-direction: column; gap: 7px; }
+      .tpg-ex-stat {
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(var(--tse-rgb,255,255,255),0.05);
+        border-radius: 9px; padding: 8px 12px;
+        border: 1px solid rgba(var(--tse-rgb,255,255,255),0.08);
+      }
+      .tpg-ex-stat-val {
+        font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 900;
+        color: rgba(var(--tse-rgb,255,255,255),1); min-width: 52px;
+      }
+      .tpg-ex-stat-label {
+        font-family: var(--font-body); font-size: 12px;
+        color: rgba(255,255,255,0.42); flex: 1;
+      }
+
+      /* Callout "Como jogar" */
+      .tpg-callout {
+        border-radius: 14px; padding: 16px 20px;
+        background: rgba(255,224,102,0.05);
+        border: 1px solid rgba(255,224,102,0.15);
+        font-family: var(--font-body); font-size: 12.5px;
+        color: rgba(255,255,255,0.48); line-height: 1.7;
+        text-align: center;
+      }
+      .tpg-callout strong { color: #ffe066; }
+
+      /* Divider com título antes do painel */
+      .tpg-section-divider {
+        display: flex; align-items: center; gap: 14px;
+        padding: 8px 20px 0; max-width: 860px; margin: 0 auto;
+      }
+      .tpg-section-divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+      .tpg-section-divider-label {
+        font-family: var(--font-title); font-size: 10px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.2);
+        white-space: nowrap;
+      }
+    `;
+    document.head.appendChild(se);
+  }
+
+  // Hero
+  html += '<div class="tpg-hero">';
+  html += '  <div class="tpg-hero-icon">✨</div>';
+  html += '  <div class="tpg-hero-title">PokéTalents</div>';
+  html += '  <div class="tpg-hero-desc">Buffs especiais que potencializam seus Pokémon e personagem em batalha, exploração e muito mais.</div>';
+  html += '</div>';
+
+  // ── Seção explicativa ──────────────────────────────────────────────────────
+  html += '<div class="tpg-explain">';
+
+  // Intro
+  html += '<div class="tpg-intro">';
+  html += 'PokéTalents são <strong>buffs especiais</strong> que seus Pokémon e personagem podem adquirir, oferecendo vantagens exclusivas em batalhas e exploração. ';
+  html += 'O sistema foca nas <strong>tipagens dos Pokémon</strong> disponíveis no jogo — diferente dos Clans tradicionais — ';
+  html += 'permitindo que você melhore seu desempenho habilitando talentos específicos de cada tipo.';
+  html += '</div>';
+
+  html += '<div class="tpg-explain-divider"></div>';
+
+  // Card: Como funciona
+  html += '<div class="tpg-ex-card">';
+  html += '<div class="tpg-ex-card-icon">⚙️</div>';
+  html += '<div class="tpg-ex-card-body">';
+  html += '<div class="tpg-ex-card-title">Como Funciona o Sistema?</div>';
+  html += '<div class="tpg-ex-card-text">O sistema de Talentos é dividido em <strong>tipagens</strong> (Fire, Water, Electric, etc.) e <strong>talentos especiais</strong> (Character e Pokémon). Cada um funciona de forma independente e oferece bônus diferentes.</div>';
+  html += '<div class="tpg-ex-bullets">';
+  html += '<div class="tpg-ex-bullet"><div class="tpg-ex-bullet-dot"></div><div class="tpg-ex-bullet-text"><strong>Talentos por Tipagem:</strong> Cada elemento tem um talento associado. Ao habilitar, você recebe bônus de ataque e defesa para todos os Pokémon daquela tipagem.</div></div>';
+  html += '<div class="tpg-ex-bullet"><div class="tpg-ex-bullet-dot"></div><div class="tpg-ex-bullet-text"><strong>Ingredientes para Habilitar:</strong> Cada tipagem exige uma receita própria, composta por itens raros ou específicos do jogo. Clique em um tipo ao lado para ver os ingredientes necessários.</div></div>';
+  html += '<div class="tpg-ex-bullet"><div class="tpg-ex-bullet-dot"></div><div class="tpg-ex-bullet-text"><strong>Full Buff de Tipagem:</strong> Ao completar todos os slots de uma tipagem, você ativa o <strong>Full Buff</strong> — garantindo <strong>+13% de Ataque e +13% de Defesa</strong> para todos os Pokémon daquela tipagem.</div></div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // Card: Talentos especiais — Character & Pokemon lado a lado
+  html += '<div class="tpg-ex-card">';
+  html += '<div class="tpg-ex-card-icon">⭐</div>';
+  html += '<div class="tpg-ex-card-body">';
+  html += '<div class="tpg-ex-card-title">Talentos Especiais</div>';
+  html += '<div class="tpg-ex-card-text" style="margin-bottom:14px">Além das tipagens tradicionais, existem dois talentos especiais que oferecem bônus diretos ao <strong>personagem</strong> e aos <strong>Pokémon</strong>. Clique em cada um ao lado para ver a receita completa.</div>';
+  html += '<div class="tpg-ex-row">';
+
+  // Character
+  html += '<div class="tpg-ex-special" style="--tse-rgb:255,224,102">';
+  html += '<div class="tpg-ex-special-head">';
+  html += '<div class="tpg-ex-special-icon">🧍</div>';
+  html += '<div><div class="tpg-ex-special-name">Character</div><div class="tpg-ex-special-sub">Bônus direto no personagem</div></div>';
+  html += '</div>';
+  html += '<div class="tpg-ex-special-stats">';
+  html += '<div class="tpg-ex-stat"><span class="tpg-ex-stat-val">+80</span><span class="tpg-ex-stat-label">Speed do personagem</span></div>';
+  html += '<div class="tpg-ex-stat"><span class="tpg-ex-stat-val">+1400</span><span class="tpg-ex-stat-label">HP do personagem</span></div>';
+  html += '<div class="tpg-ex-stat"><span class="tpg-ex-stat-val">+11%</span><span class="tpg-ex-stat-label">Chance de Crítico</span></div>';
+  html += '</div>';
+  html += '</div>';
+
+  // Pokemon
+  html += '<div class="tpg-ex-special" style="--tse-rgb:96,192,255">';
+  html += '<div class="tpg-ex-special-head">';
+  html += '<div class="tpg-ex-special-icon">🐾</div>';
+  html += '<div><div class="tpg-ex-special-name">Pokémon</div><div class="tpg-ex-special-sub">Bônus de Speed por terreno</div></div>';
+  html += '</div>';
+  html += '<div class="tpg-ex-special-stats">';
+  html += '<div class="tpg-ex-stat"><span class="tpg-ex-stat-val">+10%</span><span class="tpg-ex-stat-label">Speed em terreno de Água 💧</span></div>';
+  html += '<div class="tpg-ex-stat"><span class="tpg-ex-stat-val">+10%</span><span class="tpg-ex-stat-label">Speed em terreno de Areia 🏜️</span></div>';
+  html += '<div class="tpg-ex-stat"><span class="tpg-ex-stat-val">+10%</span><span class="tpg-ex-stat-label">Speed em terreno de Gelo ❄️</span></div>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div>'; // tpg-ex-row
+  html += '</div>'; // card-body
+  html += '</div>'; // card
+
+  // Callout final
+  html += '<div class="tpg-callout">';
+  html += '💡 <strong>Selecione uma tipagem ou talento especial na lista abaixo</strong> para ver os ingredientes necessários, os slots disponíveis e como habilitar cada bônus.';
+  html += '</div>';
+
+  html += '</div>'; // .tpg-explain
+
+  // Estilos do grid de blocos
+  if (!document.getElementById('talent-grid-styles')) {
+    var sg = document.createElement('style');
+    sg.id = 'talent-grid-styles';
+    sg.textContent = `
+      /* ── Seção explorar ── */
+      .tpg-explore-section {
+        padding: 0 20px 48px;
+        max-width: 860px; margin: 0 auto;
+      }
+
+      /* Divider com label */
+      .tpg-section-divider {
+        display: flex; align-items: center; gap: 14px;
+        padding: 8px 20px 20px; max-width: 860px; margin: 0 auto;
+      }
+      .tpg-section-divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+      .tpg-section-divider-label {
+        font-family: var(--font-title); font-size: 10px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.2);
+        white-space: nowrap;
+      }
+
+      /* Sub-label de categoria */
+      .tpg-grid-cat-label {
+        font-family: var(--font-title); font-size: 10px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase;
+        color: rgba(255,255,255,0.25); margin-bottom: 12px; margin-top: 22px;
+      }
+      .tpg-grid-cat-label:first-child { margin-top: 0; }
+
+      /* Grid de blocos */
+      .tpg-blocks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+      }
+      @media(max-width:480px) { .tpg-blocks-grid { grid-template-columns: repeat(3, 1fr); } }
+
+      /* Bloco individual */
+      .tpg-block {
+        border-radius: 16px; padding: 18px 12px 14px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.08);
+        cursor: pointer; text-align: center;
+        transition: background .2s, border-color .2s, transform .15s, box-shadow .2s;
+        position: relative; overflow: hidden;
+      }
+      .tpg-block::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: rgba(var(--tb-rgb), 0.6);
+        opacity: 0; transition: opacity .2s;
+        border-radius: 16px 16px 0 0;
+      }
+      .tpg-block:hover::before { opacity: 1; }
+      .tpg-block:hover {
+        background: rgba(var(--tb-rgb), 0.07);
+        border-color: rgba(var(--tb-rgb), 0.35);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      }
+      .tpg-block-img {
+        width: 44px; height: 44px; border-radius: 50%;
+        overflow: hidden; margin: 0 auto 10px;
+        border: 2px solid rgba(var(--tb-rgb), 0.35);
+        box-shadow: 0 0 14px rgba(var(--tb-rgb), 0.25);
+      }
+      .tpg-block-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .tpg-block-emoji-icon {
+        width: 44px; height: 44px; border-radius: 50%;
+        margin: 0 auto 10px;
+        background: rgba(var(--tb-rgb), 0.12);
+        border: 2px solid rgba(var(--tb-rgb), 0.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px;
+      }
+      .tpg-block-name {
+        font-family: var(--font-title); font-size: 9.5px; font-weight: 700;
+        letter-spacing: 0.8px; text-transform: uppercase;
+        color: rgba(var(--tb-rgb), 1); line-height: 1.3;
+        margin-bottom: 6px;
+      }
+      .tpg-block-tag {
+        display: inline-block;
+        background: rgba(var(--tb-rgb), 0.1);
+        border: 1px solid rgba(var(--tb-rgb), 0.22);
+        border-radius: 20px; padding: 2px 8px;
+        font-family: var(--font-mono, monospace); font-size: 9px; font-weight: 700;
+        color: rgba(var(--tb-rgb), 0.85);
+      }
+
+      /* ── Modal de talento ── */
+      .tpg-modal-overlay {
+        position: fixed; inset: 0; z-index: 10001;
+        background: rgba(0,0,0,0.78); backdrop-filter: blur(7px);
+        display: flex; align-items: center; justify-content: center;
+        padding: 16px;
+        animation: tpg-fade .15s ease;
+      }
+      @keyframes tpg-fade { from { opacity: 0 } to { opacity: 1 } }
+
+      .tpg-modal {
+        background: #0a1220;
+        border-radius: 22px;
+        border: 1px solid rgba(var(--tm-rgb,255,255,255), 0.2);
+        box-shadow: 0 0 60px rgba(var(--tm-rgb,255,255,255), 0.08), 0 24px 60px rgba(0,0,0,0.65);
+        max-width: 480px; width: 100%;
+        max-height: 85vh; overflow-y: auto;
+        animation: tpg-slideup .22s cubic-bezier(.4,0,.2,1);
+      }
+      @keyframes tpg-slideup { from { transform: translateY(18px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+
+      .tpg-modal-header {
+        padding: 22px 22px 18px;
+        background: linear-gradient(135deg, rgba(var(--tm-rgb,255,255,255),0.06), transparent);
+        border-bottom: 1px solid rgba(var(--tm-rgb,255,255,255), 0.1);
+        display: flex; align-items: center; gap: 14px;
+        position: sticky; top: 0; z-index: 2;
+        background-color: #0a1220;
+      }
+      .tpg-modal-banner {
+        width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+        border: 2px solid rgba(var(--tm-rgb,255,255,255), 0.4);
+        box-shadow: 0 0 18px rgba(var(--tm-rgb,255,255,255), 0.2);
+      }
+      .tpg-modal-banner img { width: 100%; height: 100%; object-fit: cover; }
+      .tpg-modal-banner-emoji {
+        width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+        background: rgba(var(--tm-rgb,255,255,255), 0.1);
+        border: 2px solid rgba(var(--tm-rgb,255,255,255), 0.35);
+        display: flex; align-items: center; justify-content: center; font-size: 22px;
+      }
+      .tpg-modal-header-info { flex: 1; }
+      .tpg-modal-title {
+        font-family: var(--font-title); font-size: 16px; font-weight: 900;
+        letter-spacing: 1.5px; text-transform: uppercase;
+        color: rgba(var(--tm-rgb,255,255,255), 1); margin-bottom: 3px;
+      }
+      .tpg-modal-sub { font-family: var(--font-body); font-size: 11.5px; color: rgba(255,255,255,0.32); }
+      .tpg-modal-close {
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.45); border-radius: 50%; width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 14px; transition: background .15s, color .15s; flex-shrink: 0;
+      }
+      .tpg-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+      .tpg-modal-body {
+        padding: 20px 22px 24px;
+        display: flex; flex-direction: column; gap: 20px;
+      }
+      .tpg-modal-section-label {
+        font-family: var(--font-title); font-size: 9.5px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.22);
+        margin-bottom: 10px;
+      }
+
+      /* Buffs no modal */
+      .tpg-modal-buffs { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tpg-modal-buff {
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(var(--tm-rgb,255,255,255), 0.06);
+        border: 1px solid rgba(var(--tm-rgb,255,255,255), 0.12);
+        border-radius: 10px; padding: 9px 14px;
+        flex: 1; min-width: 120px;
+      }
+      .tpg-modal-buff-icon { font-size: 16px; flex-shrink: 0; }
+      .tpg-modal-buff-val {
+        font-family: var(--font-mono, monospace); font-size: 14px; font-weight: 900;
+        color: rgba(var(--tm-rgb,255,255,255), 1);
+      }
+      .tpg-modal-buff-label {
+        font-family: var(--font-body); font-size: 11px;
+        color: rgba(255,255,255,0.38); margin-top: 1px;
+      }
+
+      /* Slots no modal */
+      .tpg-modal-slots { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+      .tpg-modal-slot-btn {
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 6px 14px; cursor: pointer;
+        font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700;
+        color: rgba(255,255,255,0.4);
+        transition: background .15s, border-color .15s, color .15s;
+      }
+      .tpg-modal-slot-btn:hover {
+        background: rgba(var(--tm-rgb,255,255,255), 0.08);
+        border-color: rgba(var(--tm-rgb,255,255,255), 0.25);
+        color: rgba(var(--tm-rgb,255,255,255), 0.8);
+      }
+      .tpg-modal-slot-btn.active {
+        background: rgba(var(--tm-rgb,255,255,255), 0.14);
+        border-color: rgba(var(--tm-rgb,255,255,255), 0.4);
+        color: rgba(var(--tm-rgb,255,255,255), 1);
+      }
+
+      /* Ingredientes no modal */
+      .tpg-modal-ingr-list { display: flex; flex-direction: column; gap: 6px; }
+      .tpg-modal-ingr-row {
+        display: flex; align-items: center; gap: 12px;
+        background: rgba(255,255,255,0.03); border-radius: 10px;
+        padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05);
+      }
+      .tpg-modal-ingr-img { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
+      .tpg-modal-ingr-placeholder {
+        width: 32px; height: 32px; border-radius: 6px;
+        background: rgba(255,255,255,0.05); display: flex; align-items: center;
+        justify-content: center; font-size: 14px; flex-shrink: 0;
+      }
+      .tpg-modal-ingr-name { flex: 1; font-family: var(--font-body); font-size: 12.5px; color: rgba(255,255,255,0.7); }
+      .tpg-modal-ingr-qty {
+        font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 700;
+        color: rgba(var(--tm-rgb,255,255,255), 0.9);
+      }
+      .tpg-modal-ingr-or {
+        text-align: center; font-size: 10px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.2);
+        padding: 2px 0;
+      }
+
+      /* Botão pacote no modal */
+      .tpg-modal-goto {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(var(--tm-rgb,255,255,255), 0.08);
+        border: 1px solid rgba(var(--tm-rgb,255,255,255), 0.2);
+        border-radius: 12px; padding: 11px 18px; cursor: pointer;
+        font-family: var(--font-title); font-size: 11px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase;
+        color: rgba(var(--tm-rgb,255,255,255), 0.9);
+        transition: background .15s, border-color .15s, transform .15s;
+        width: 100%; justify-content: center;
+      }
+      .tpg-modal-goto:hover {
+        background: rgba(var(--tm-rgb,255,255,255), 0.15);
+        border-color: rgba(var(--tm-rgb,255,255,255), 0.35);
+        transform: scale(1.02);
+      }
+    `;
+    document.head.appendChild(sg);
+  }
+
+  // Divider antes do grid
+  html += '<div class="tpg-section-divider">';
+  html += '<div class="tpg-section-divider-line"></div>';
+  html += '<div class="tpg-section-divider-label">✨ Explorar Talentos</div>';
+  html += '<div class="tpg-section-divider-line"></div>';
+  html += '</div>';
+
+  html += '<div class="tpg-explore-section">';
+
+  // Label tipagens
+  html += '<div class="tpg-grid-cat-label">⚔️ Tipagens — +13% ATK &amp; DEF</div>';
+  html += '<div class="tpg-blocks-grid">';
+
+  var TYPE_ORDER = ['fire','water','electric','grass','ice','psychic','ghost','dragon','dark','fairy','poison','ground','rock','bug','flying','steel','normal','fighting'];
+  TYPE_ORDER.forEach(function(type) {
+    var m = TALENT_TYPE_META[type];
+    if (!m) return;
+    var label = type.charAt(0).toUpperCase() + type.slice(1);
+    html += '<div class="tpg-block" style="--tb-rgb:' + m.rgb + '" onclick="openTalentModal(\'' + type + '\')">';
+    html += '<div class="tpg-block-img"><img src="' + m.banner + '" alt="' + label + '" loading="lazy" /></div>';
+    html += '<div class="tpg-block-name">' + m.emoji + ' ' + label + '</div>';
+    html += '<div class="tpg-block-tag">+13% ATK&DEF</div>';
+    html += '</div>';
+  });
+
+  html += '</div>'; // .tpg-blocks-grid
+
+  // Label especiais
+  html += '<div class="tpg-grid-cat-label">⭐ Talentos Especiais</div>';
+  html += '<div class="tpg-blocks-grid">';
+
+  // Character
+  html += '<div class="tpg-block" style="--tb-rgb:255,224,102" onclick="openTalentModal(\'character\')">';
+  html += '<div class="tpg-block-emoji-icon">🧍</div>';
+  html += '<div class="tpg-block-name">Character</div>';
+  html += '<div class="tpg-block-tag">Speed · HP · Crit</div>';
+  html += '</div>';
+
+  // Pokemon
+  html += '<div class="tpg-block" style="--tb-rgb:96,192,255" onclick="openTalentModal(\'pokemon\')">';
+  html += '<div class="tpg-block-emoji-icon">🐾</div>';
+  html += '<div class="tpg-block-name">Pokémon</div>';
+  html += '<div class="tpg-block-tag">Speed Terreno</div>';
+  html += '</div>';
+
+  html += '</div>'; // .tpg-blocks-grid
+
+  html += '</div>'; // .tpg-explore-section
+
+  // Raiz do modal
+  html += '<div id="tpg-modal-root"></div>';
+
+  html += '</div>'; // .tpg
+
+  el.innerHTML = html;
+  _talentPanelOpen = null;
+}
+
+// Slot ativo por tipo (mantido para compatibilidade)
+var _talentActiveSlot = {};
+
+// Slot ativo por tipo
+var _talentActiveSlot = {};
+
+function openTalentModal(type) {
+  if (_talentActiveSlot[type] === undefined) _talentActiveSlot[type] = 0;
+
+  var isType = TALENT_TYPE_META[type];
+  var isCharacter = (type === 'character');
+  var rgb, bannerHtml, name, sub;
+
+  if (isType) {
+    var m = TALENT_TYPE_META[type];
+    rgb = m.rgb;
+    bannerHtml = '<div class="tpg-modal-banner" style="--tm-rgb:' + rgb + '"><img src="' + m.banner + '" alt="' + type + '" /></div>';
+    name = m.emoji + ' ' + (type.charAt(0).toUpperCase() + type.slice(1));
+    sub = 'Talento de Tipagem — Full Buff';
+  } else if (isCharacter) {
+    rgb = '255,224,102';
+    bannerHtml = '<div class="tpg-modal-banner-emoji" style="--tm-rgb:' + rgb + '">🧍</div>';
+    name = 'Character'; sub = 'Talento Especial — Bônus direto no personagem';
+  } else {
+    rgb = '96,192,255';
+    bannerHtml = '<div class="tpg-modal-banner-emoji" style="--tm-rgb:' + rgb + '">🐾</div>';
+    name = 'Pokémon'; sub = 'Talento Especial — Bônus de Speed por terreno';
+  }
+
+  var html = '<div class="tpg-modal-overlay" id="tpg-modal-overlay" onclick="closeTalentModalOverlay(event)">';
+  html += '<div class="tpg-modal" style="--tm-rgb:' + rgb + '">';
+
+  // Header
+  html += '<div class="tpg-modal-header">';
+  html += bannerHtml;
+  html += '<div class="tpg-modal-header-info">';
+  html += '<div class="tpg-modal-title">' + name + '</div>';
+  html += '<div class="tpg-modal-sub">' + sub + '</div>';
+  html += '</div>';
+  html += '<button class="tpg-modal-close" onclick="closeTalentModal()">✕</button>';
+  html += '</div>';
+
+  // Body
+  html += '<div class="tpg-modal-body">';
+
+  // Buffs
+  html += '<div>';
+  html += '<div class="tpg-modal-section-label">🎯 Buffs Concedidos</div>';
+  html += '<div class="tpg-modal-buffs">';
+  if (isType) {
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">⚔️</div><div><div class="tpg-modal-buff-val">+13%</div><div class="tpg-modal-buff-label">Ataque</div></div></div>';
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">🛡️</div><div><div class="tpg-modal-buff-val">+13%</div><div class="tpg-modal-buff-label">Defesa</div></div></div>';
+    html += '</div>';
+    html += '<div style="margin-top:8px;font-size:11.5px;color:rgba(255,255,255,0.3);font-family:var(--font-body)">Bônus aplicado apenas aos Pokémon desta tipagem.</div>';
+  } else if (isCharacter) {
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">💨</div><div><div class="tpg-modal-buff-val">+80</div><div class="tpg-modal-buff-label">Speed</div></div></div>';
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">❤️</div><div><div class="tpg-modal-buff-val">+1400</div><div class="tpg-modal-buff-label">HP</div></div></div>';
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">🎯</div><div><div class="tpg-modal-buff-val">+11%</div><div class="tpg-modal-buff-label">Crítico</div></div></div>';
+    html += '</div>';
+  } else {
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">💧</div><div><div class="tpg-modal-buff-val">+10%</div><div class="tpg-modal-buff-label">Speed Água</div></div></div>';
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">🏜️</div><div><div class="tpg-modal-buff-val">+10%</div><div class="tpg-modal-buff-label">Speed Areia</div></div></div>';
+    html += '<div class="tpg-modal-buff"><div class="tpg-modal-buff-icon">❄️</div><div><div class="tpg-modal-buff-val">+10%</div><div class="tpg-modal-buff-label">Speed Gelo</div></div></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Ingredientes para tipagens
+  if (isType) {
+    var pkg = null, pkgIdx = -1;
+    for (var pi = 0; pi < PACKAGES.length; pi++) {
+      var pName = PACKAGES[pi].name.toLowerCase();
+      if (pName.startsWith('talent') && (pName.includes(type) || (type === 'fighting' && (pName.includes('figthing') || pName.includes('fighting'))))) {
+        pkg = PACKAGES[pi]; pkgIdx = pi; break;
+      }
+    }
+
+    html += '<div>';
+    html += '<div class="tpg-modal-section-label">🧪 Ingredientes Necessários</div>';
+
+    if (pkg && pkg.slots) {
+      var slots = pkg.slots;
+      var si = Math.min(_talentActiveSlot[type] || 0, slots.length - 1);
+
+      html += '<div class="tpg-modal-slots">';
+      for (var idx = 0; idx < slots.length; idx++) {
+        html += '<button class="tpg-modal-slot-btn' + (idx === si ? ' active' : '') + '" onclick="selectTalentSlot(\'' + type + '\',' + idx + ')">Slot ' + (idx + 1) + '</button>';
+      }
+      html += '</div>';
+
+      var currentSlot = slots[si];
+      html += '<div class="tpg-modal-ingr-list">';
+      for (var ii = 0; ii < currentSlot.length; ii++) {
+        var iName = currentSlot[ii][0];
+        var iQty  = currentSlot[ii][1];
+        var itemData = typeof getPkgItemData === 'function' ? getPkgItemData(iName) : null;
+        var imgHtml = itemData && itemData.image
+          ? '<img class="tpg-modal-ingr-img" src="' + itemData.image + '" alt="' + iName + '" loading="lazy" onerror="this.style.display=\'none\'" />'
+          : '<div class="tpg-modal-ingr-placeholder">🔹</div>';
+        if (ii > 0) html += '<div class="tpg-modal-ingr-or">ou</div>';
+        html += '<div class="tpg-modal-ingr-row">' + imgHtml + '<span class="tpg-modal-ingr-name">' + iName + '</span><span class="tpg-modal-ingr-qty">×' + iQty.toLocaleString() + '</span></div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div style="color:rgba(255,255,255,0.25);font-size:13px;padding:8px 0">Pacote não encontrado.</div>';
+    }
+    html += '</div>';
+
+    if (pkgIdx >= 0) {
+      html += '<button class="tpg-modal-goto" onclick="closeTalentModal();goToTalentPackage(' + pkgIdx + ')">';
+      html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>';
+      html += 'Ver no Pacotes / Adicionar ao Carrinho';
+      html += '</button>';
+    }
+
+  } else if (isCharacter) {
+    html += '<div>';
+    html += '<div class="tpg-modal-section-label">📦 Pacotes Relacionados</div>';
+    html += '<div style="font-size:12.5px;color:rgba(255,255,255,0.4);line-height:1.7;margin-bottom:12px">Habilitado pelos pacotes <strong style="color:rgba(255,224,102,0.85)">Full Speed</strong> e <strong style="color:rgba(255,224,102,0.85)">Full HP</strong>.</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    PACKAGES.forEach(function(p, pi) {
+      var pn = p.name.toLowerCase();
+      if (pn === 'full speed' || pn === 'full hp') {
+        html += '<button class="tpg-modal-goto" style="flex:1;min-width:140px" onclick="closeTalentModal();goToTalentPackage(' + pi + ')">📦 ' + p.name + '</button>';
+      }
+    });
+    html += '</div>';
+    html += '</div>';
+  } else {
+    // Pokémon especial — habilitado pelos pacotes Reduces
+    html += '<div>';
+    html += '<div class="tpg-modal-section-label">📦 Pacotes Relacionados</div>';
+    html += '<div style="font-size:12.5px;color:rgba(255,255,255,0.4);line-height:1.75;margin-bottom:14px">';
+    html += 'Os bônus de Speed por terreno são habilitados pelos pacotes <strong style="color:rgba(96,192,255,0.85)">Reduces Speed</strong>. ';
+    html += 'Cada pacote corresponde a um terreno específico — clique para ver os ingredientes e adicionar ao carrinho.';
+    html += '</div>';
+
+    // Monta os 3 sub-blocos de terreno com botão para o pacote correspondente
+    var terrainos = [
+      { label: 'Water', icon: '💧', rgb: '96,192,255', keyword: 'water' },
+      { label: 'Sand',  icon: '🏜️', rgb: '204,136,0',  keyword: 'sand'  },
+      { label: 'Ice',   icon: '❄️', rgb: '128,232,255', keyword: 'ice'   },
+    ];
+
+    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+    terrainos.forEach(function(t) {
+      // Encontra o pacote Reduces correspondente
+      var rPkgIdx = -1;
+      for (var ri = 0; ri < PACKAGES.length; ri++) {
+        var rn = PACKAGES[ri].name.toLowerCase();
+        if (rn.startsWith('reduces') && rn.includes(t.keyword)) { rPkgIdx = ri; break; }
+      }
+      var pkgName = rPkgIdx >= 0 ? PACKAGES[rPkgIdx].name : ('Reduces Speed ' + t.label);
+      var onclick = rPkgIdx >= 0
+        ? 'onclick="closeTalentModal();goToTalentPackageReduces(' + rPkgIdx + ')"'
+        : '';
+      html += '<div style="display:flex;align-items:center;gap:12px;background:rgba(' + t.rgb + ',0.06);border:1px solid rgba(' + t.rgb + ',0.18);border-radius:12px;padding:12px 14px;">';
+      html += '<div style="font-size:22px;flex-shrink:0">' + t.icon + '</div>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-family:var(--font-title);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(' + t.rgb + ',0.95);margin-bottom:2px">' + pkgName + '</div>';
+      html += '<div style="font-size:11px;color:rgba(255,255,255,0.3);font-family:var(--font-body)">+10% Speed em terreno de ' + t.label + '</div>';
+      html += '</div>';
+      if (rPkgIdx >= 0) {
+        html += '<button style="background:rgba(' + t.rgb + ',0.1);border:1px solid rgba(' + t.rgb + ',0.25);border-radius:8px;padding:7px 14px;cursor:pointer;font-family:var(--font-title);font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:rgba(' + t.rgb + ',0.9);white-space:nowrap;transition:background .15s" ' + onclick + '>Ver Pacote →</button>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '</div>';
+  }
+
+  html += '</div>'; // .tpg-modal-body
+  html += '</div>'; // .tpg-modal
+  html += '</div>'; // .tpg-modal-overlay
+
+  var root = document.getElementById('tpg-modal-root');
+  if (root) { root.innerHTML = html; document.body.style.overflow = 'hidden'; }
+}
+
+function closeTalentModal() {
+  var root = document.getElementById('tpg-modal-root');
+  if (root) root.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function closeTalentModalOverlay(e) {
+  if (e.target.id === 'tpg-modal-overlay') closeTalentModal();
+}
+
+function selectTalentSlot(type, idx) {
+  _talentActiveSlot[type] = idx;
+  openTalentModal(type);
+}
+
+// Alias de compatibilidade
+function openTalentPanel(type) { openTalentModal(type); }
+
+function goToTalentPackage(pkgIdx) {
+  // Navega para a aba de Pacotes e seleciona o pacote
+  var tabBtn = document.querySelector('.tab-btn[onclick*="pacotes"]');
+  if (tabBtn) { switchTab('pacotes', tabBtn); }
+  // Dá um pequeno delay para o render acontecer
+  setTimeout(function() {
+    if (typeof selectPkg === 'function') selectPkg(pkgIdx);
+    // Garante que a categoria Talent está ativa
+    if (typeof activePkgCat !== 'undefined') {
+      var pkgName = (PACKAGES[pkgIdx] && PACKAGES[pkgIdx].name) || '';
+      var cat = pkgName.toLowerCase().startsWith('full') ? 'full' : 'talent';
+      activePkgCat = cat;
+      if (typeof renderPackages === 'function') renderPackages();
+      if (typeof renderPkgDetail === 'function') renderPkgDetail(pkgIdx);
+    }
+  }, 80);
+}
+
+function goToTalentPackageReduces(pkgIdx) {
+  var tabBtn = document.querySelector('.tab-btn[onclick*="pacotes"]');
+  if (tabBtn) { switchTab('pacotes', tabBtn); }
+  setTimeout(function() {
+    if (typeof activePkgCat !== 'undefined') {
+      activePkgCat = 'reduces';
+      if (typeof renderPackages === 'function') renderPackages();
+    }
+    if (typeof selectPkg === 'function') selectPkg(pkgIdx);
+    if (typeof renderPkgDetail === 'function') renderPkgDetail(pkgIdx);
+  }, 80);
+}
+// ===================== WIKI: TOKENS =====================
+var _tokensRendered = false;
+
+var TOKENS_HELDS = [
+  {
+    id: 'choice-band',
+    icon: '🔴',
+    name: 'Choice Band',
+    categoria: 'Ataque',
+    cor: '#ff6b6b',
+    rgb: '255,107,107',
+    custo: '5 Tokens',
+    efeito: 'Aumenta o Ataque do Pokémon em 50%, mas o prende em apenas um movimento.',
+    dica: 'Ótimo para sweepers físicos. Use com movimentos de alta potência base.',
+  },
+  {
+    id: 'choice-specs',
+    icon: '🔵',
+    name: 'Choice Specs',
+    categoria: 'Ataque Especial',
+    cor: '#60aaff',
+    rgb: '96,170,255',
+    custo: '5 Tokens',
+    efeito: 'Aumenta o Ataque Especial em 50%, mas o prende em apenas um movimento.',
+    dica: 'Ideal para attackers especiais. Combine com movimentos cobertura.',
+  },
+  {
+    id: 'choice-scarf',
+    icon: '🟡',
+    name: 'Choice Scarf',
+    categoria: 'Velocidade',
+    cor: '#ffe066',
+    rgb: '255,224,102',
+    custo: '5 Tokens',
+    efeito: 'Aumenta a Velocidade em 50%, mas o prende em apenas um movimento.',
+    dica: 'Perfeito para revés de velocidade. Transforma Pokémon lentos em ameaças.',
+  },
+  {
+    id: 'life-orb',
+    icon: '🟠',
+    name: 'Life Orb',
+    categoria: 'Dano Universal',
+    cor: '#ff9060',
+    rgb: '255,144,96',
+    custo: '8 Tokens',
+    efeito: 'Aumenta o dano de todos os ataques em 30%, mas consome 10% do HP a cada golpe.',
+    dica: 'Mais versátil que os Choice. Permite trocar de movimento livremente.',
+  },
+  {
+    id: 'focus-sash',
+    icon: '⚪',
+    name: 'Focus Sash',
+    categoria: 'Sobrevivência',
+    cor: '#c0c0c0',
+    rgb: '192,192,192',
+    custo: '4 Tokens',
+    efeito: 'Se o Pokémon estiver com HP cheio e levar um golpe fatal, sobrevive com 1 HP.',
+    dica: 'Excelente para leads e Pokémon frágeis. Não funciona se o HP já estiver reduzido.',
+  },
+  {
+    id: 'leftovers',
+    icon: '🍃',
+    name: 'Leftovers',
+    categoria: 'Recuperação',
+    cor: '#4caf8a',
+    rgb: '76,175,138',
+    custo: '4 Tokens',
+    efeito: 'Restaura 1/16 do HP máximo no final de cada turno.',
+    dica: 'Fundamental em estratégias defensivas. Prolonga a durabilidade do Pokémon.',
+  },
+  {
+    id: 'assault-vest',
+    icon: '🟣',
+    name: 'Assault Vest',
+    categoria: 'Defesa Especial',
+    cor: '#b06aff',
+    rgb: '176,106,255',
+    custo: '6 Tokens',
+    efeito: 'Aumenta a Defesa Especial em 50%, mas impede o uso de movimentos de status.',
+    dica: 'Transforma Pokémon em tanques especiais. Ótimo para Pokémon com bulk decente.',
+  },
+  {
+    id: 'rocky-helmet',
+    icon: '🪨',
+    name: 'Rocky Helmet',
+    categoria: 'Punição de Contato',
+    cor: '#a08060',
+    rgb: '160,128,96',
+    custo: '5 Tokens',
+    efeito: 'O atacante perde 1/6 do HP ao usar movimentos de contato.',
+    dica: 'Ideal contra times físicos. Penaliza U-turn, golpes corpo-a-corpo etc.',
+  },
+  {
+    id: 'black-sludge',
+    icon: '🖤',
+    name: 'Black Sludge',
+    categoria: 'Recuperação (Venenosos)',
+    cor: '#7a7a7a',
+    rgb: '122,122,122',
+    custo: '3 Tokens',
+    efeito: 'Recupera 1/16 do HP a cada turno se for Venenoso; caso contrário, perde HP.',
+    dica: 'Leftovers exclusivo para tipos Venenosos. Nunca use em não-Venenosos.',
+  },
+  {
+    id: 'heavy-duty-boots',
+    icon: '👢',
+    name: 'Heavy-Duty Boots',
+    categoria: 'Proteção de Entrada',
+    cor: '#8aaa60',
+    rgb: '138,170,96',
+    custo: '6 Tokens',
+    efeito: 'Impede que o Pokémon sofra dano de armadilhas ao entrar em campo (Stealth Rock, Spikes etc.).',
+    dica: 'Essencial para Pokémon com fraqueza a Rocha ou que entram e saem muito.',
+  },
+];
+
+function renderTokens() {
+  var el = document.getElementById('wiki-tokens-content');
+  if (!el) return;
+  if (_tokensRendered) return;
+  _tokensRendered = true;
+
+  el.innerHTML = `
+<style>
+/* ── TOKENS PAGE ── */
+.tk-page { padding: 0 0 60px; }
+
+/* Hero */
+.tk-hero {
+  text-align: center; padding: 32px 20px 28px;
+  background: linear-gradient(180deg, rgba(255,200,50,0.08) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.tk-hero-icon { font-size: 44px; margin-bottom: 10px; line-height: 1; }
+.tk-hero-title {
+  font-family: var(--font-title); font-size: 22px; font-weight: 900;
+  letter-spacing: 3px; text-transform: uppercase; color: #ffd166;
+  text-shadow: 0 0 24px rgba(255,209,102,0.4); margin-bottom: 10px;
+}
+.tk-hero-desc {
+  font-family: var(--font-body); font-size: 13.5px; color: rgba(255,255,255,0.45);
+  line-height: 1.7; max-width: 580px; margin: 0 auto;
+}
+
+/* Seções de explicação */
+.tk-explain-section {
+  padding: 28px 24px 0;
+  max-width: 820px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.tk-info-card {
+  border-radius: 16px; padding: 20px 22px;
+  display: flex; gap: 18px; align-items: flex-start;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: border-color .2s, background .2s;
+}
+.tk-info-card:hover {
+  border-color: rgba(255,209,102,0.2);
+  background: rgba(255,209,102,0.03);
+}
+.tk-info-card-icon {
+  font-size: 30px; flex-shrink: 0; margin-top: 2px; line-height: 1;
+}
+.tk-info-card-body { flex: 1; min-width: 0; }
+.tk-info-card-title {
+  font-family: var(--font-title); font-size: 13px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: #ffd166;
+  margin-bottom: 8px;
+}
+.tk-info-card-text {
+  font-family: var(--font-body); font-size: 13px; color: rgba(255,255,255,0.55);
+  line-height: 1.75;
+}
+.tk-info-card-text strong { color: rgba(255,255,255,0.85); }
+.tk-info-card-text a {
+  color: #60aaff; text-decoration: none; border-bottom: 1px solid rgba(96,170,255,0.3);
+  transition: color .15s, border-color .15s;
+}
+.tk-info-card-text a:hover { color: #90c8ff; border-color: rgba(96,170,255,0.6); }
+
+/* Formas de obter — steps */
+.tk-steps {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 10px;
+}
+.tk-step {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: rgba(255,255,255,0.03); border-radius: 12px;
+  padding: 14px 16px; border: 1px solid rgba(255,255,255,0.05);
+}
+.tk-step-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono, monospace); font-size: 12px;
+  font-weight: 700; color: #ffd166; margin-top: 1px;
+}
+.tk-step-text {
+  font-family: var(--font-body); font-size: 12.5px; color: rgba(255,255,255,0.5);
+  line-height: 1.7; flex: 1;
+}
+.tk-step-text strong { color: rgba(255,255,255,0.82); }
+.tk-step-text a {
+  color: #60aaff; text-decoration: none; border-bottom: 1px solid rgba(96,170,255,0.3);
+}
+.tk-step-text a:hover { color: #90c8ff; }
+.tk-step-bonus {
+  font-size: 11px; color: rgba(255,209,102,0.6); margin-top: 4px;
+  font-style: italic;
+}
+
+/* Divider */
+.tk-divider {
+  margin: 28px 24px 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,209,102,0.2), transparent);
+  max-width: 820px;
+}
+
+/* Helds Section */
+.tk-helds-section {
+  padding: 28px 24px 0;
+  max-width: 820px; margin: 0 auto;
+}
+.tk-helds-title {
+  font-family: var(--font-title); font-size: 11px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,0.3);
+  margin-bottom: 16px;
+}
+.tk-helds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+@media(max-width: 500px) {
+  .tk-helds-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.tk-held-block {
+  border-radius: 14px; padding: 18px 14px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer; text-align: center;
+  transition: background .2s, border-color .2s, transform .15s, box-shadow .2s;
+  position: relative; overflow: hidden;
+}
+.tk-held-block::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(var(--hb-rgb),0.1), transparent 70%);
+  opacity: 0; transition: opacity .2s;
+}
+.tk-held-block:hover::before { opacity: 1; }
+.tk-held-block:hover {
+  background: rgba(var(--hb-rgb), 0.06);
+  border-color: rgba(var(--hb-rgb), 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.tk-held-block-icon { font-size: 28px; margin-bottom: 8px; line-height: 1; }
+.tk-held-block-name {
+  font-family: var(--font-title); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  color: rgba(var(--hb-rgb), 0.9);
+  margin-bottom: 6px; line-height: 1.3;
+}
+.tk-held-block-cat {
+  font-family: var(--font-body); font-size: 10px;
+  color: rgba(255,255,255,0.3); margin-bottom: 6px;
+}
+.tk-held-block-cost {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(var(--hb-rgb), 0.1);
+  border: 1px solid rgba(var(--hb-rgb), 0.25);
+  border-radius: 20px; padding: 3px 9px;
+  font-family: var(--font-mono, monospace); font-size: 10px; font-weight: 700;
+  color: rgba(var(--hb-rgb), 0.9);
+}
+
+/* Modal do held */
+.tk-held-modal-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: tk-fade-in .15s ease;
+}
+@keyframes tk-fade-in { from { opacity: 0 } to { opacity: 1 } }
+.tk-held-modal {
+  background: #0d1624; border-radius: 20px;
+  border: 1px solid rgba(var(--hm-rgb,255,255,255), 0.2);
+  box-shadow: 0 0 60px rgba(var(--hm-rgb,255,255,255), 0.1), 0 20px 60px rgba(0,0,0,0.6);
+  max-width: 420px; width: 100%; overflow: hidden;
+  animation: tk-slide-up .2s cubic-bezier(.4,0,.2,1);
+}
+@keyframes tk-slide-up { from { transform: translateY(16px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+.tk-held-modal-header {
+  padding: 24px 24px 20px;
+  background: linear-gradient(135deg, rgba(var(--hm-rgb,255,255,255),0.06), transparent);
+  border-bottom: 1px solid rgba(var(--hm-rgb,255,255,255), 0.1);
+  display: flex; align-items: center; gap: 16px;
+}
+.tk-held-modal-icon { font-size: 40px; line-height: 1; }
+.tk-held-modal-info { flex: 1; }
+.tk-held-modal-name {
+  font-family: var(--font-title); font-size: 16px; font-weight: 900;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: rgba(var(--hm-rgb,255,255,255), 1);
+  margin-bottom: 4px;
+}
+.tk-held-modal-cat {
+  font-family: var(--font-body); font-size: 12px; color: rgba(255,255,255,0.35);
+}
+.tk-held-modal-close {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.5); border-radius: 50%; width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.tk-held-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.tk-held-modal-body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 18px; }
+.tk-held-modal-section-label {
+  font-family: var(--font-title); font-size: 9px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.25);
+  margin-bottom: 8px;
+}
+.tk-held-modal-efeito {
+  font-family: var(--font-body); font-size: 13.5px; color: rgba(255,255,255,0.75);
+  line-height: 1.7;
+}
+.tk-held-modal-dica {
+  background: rgba(var(--hm-rgb,255,255,255), 0.05);
+  border: 1px solid rgba(var(--hm-rgb,255,255,255), 0.12);
+  border-radius: 12px; padding: 14px 16px;
+  font-family: var(--font-body); font-size: 12.5px; color: rgba(255,255,255,0.5);
+  line-height: 1.65; font-style: italic;
+}
+.tk-held-modal-custo {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(var(--hm-rgb,255,255,255), 0.08);
+  border: 1px solid rgba(var(--hm-rgb,255,255,255), 0.2);
+  border-radius: 40px; padding: 8px 18px;
+  font-family: var(--font-mono, monospace); font-size: 14px; font-weight: 700;
+  color: rgba(var(--hm-rgb,255,255,255), 1);
+  align-self: flex-start;
+}
+</style>
+
+<div class="tk-page">
+
+  <!-- Hero -->
+  <div class="tk-hero">
+    <div class="tk-hero-icon">🪙</div>
+    <div class="tk-hero-title">Sistema de Tokens</div>
+    <div class="tk-hero-desc">
+      Tokens são a moeda especial usada para adquirir Helds — os itens equipáveis nos seus Pokémon que potencializam seu desempenho em batalha. Entenda como tudo funciona abaixo.
+    </div>
+  </div>
+
+  <!-- Explicações -->
+  <div class="tk-explain-section">
+
+    <!-- O que são tokens -->
+    <div class="tk-info-card">
+      <div class="tk-info-card-icon">🪙</div>
+      <div class="tk-info-card-body">
+        <div class="tk-info-card-title">O Que São Tokens?</div>
+        <div class="tk-info-card-text">
+          Tokens são uma <strong>moeda especial do servidor</strong> usada exclusivamente para trocar por <strong>Helds</strong>.
+          Helds são os itens que você equipa nos seus Pokémon para aumentar seu poder em batalha — funcionam como acessórios estratégicos
+          que podem ampliar ataque, defesa, velocidade e outros atributos essenciais.
+          <br><br>
+          Diferente do dinheiro comum (KK), os Tokens são conquistados por meio de atividades específicas e têm um propósito focado:
+          <strong>fortalecer o seu time</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Máquina de troca -->
+    <div class="tk-info-card">
+      <div class="tk-info-card-icon">🏪</div>
+      <div class="tk-info-card-body">
+        <div class="tk-info-card-title">Como Utilizar Tokens?</div>
+        <div class="tk-info-card-text">
+          Para trocar seus Tokens por Helds, você precisa ir até a
+          <strong><a href="https://prnt.sc/DYsS5fNrU0Ob" target="_blank" rel="noopener">Máquina de Troca</a></strong>
+          localizada no <strong>Trade Center (TC), no segundo andar</strong>.
+          <br><br>
+          Cada Held tem um custo diferente em Tokens. Ao interagir com a máquina, você verá a lista de Helds disponíveis com seus
+          respectivos preços. Basta ter a quantidade necessária de Tokens e confirmar a troca para receber o item.
+          <br><br>
+          Cada Held possui um <strong>efeito único</strong> — alguns aumentam dano, outros melhoram sobrevivência ou velocidade.
+          Escolha de acordo com a estratégia do seu time!
+        </div>
+      </div>
+    </div>
+
+    <!-- Como obter -->
+    <div class="tk-info-card">
+      <div class="tk-info-card-icon">⚡</div>
+      <div class="tk-info-card-body">
+        <div class="tk-info-card-title">Como Obter Tokens?</div>
+        <div class="tk-info-card-text">Existem <strong>três formas principais</strong> de acumular Tokens:</div>
+        <div class="tk-steps">
+
+          <div class="tk-step">
+            <div class="tk-step-num">1</div>
+            <div class="tk-step-text">
+              <strong>Lutando Contra Rockets</strong> —
+              Os Rockets são inimigos localizados ao sul de Pewter.
+              Você pode encontrá-los <a href="https://prnt.sc/LNR7YvrKhaBF" target="_blank" rel="noopener">aqui</a>.
+              Derrotá-los pode render Tokens como recompensa de drop.
+              <div class="tk-step-bonus">🎁 Bônus: chance de dropar a <strong>Rocket Outfit</strong> exclusiva!</div>
+            </div>
+          </div>
+
+          <div class="tk-step">
+            <div class="tk-step-num">2</div>
+            <div class="tk-step-text">
+              <strong>NPCs da Duelist Brotherhood</strong> —
+              A Duelist Brotherhood é um grupo de NPCs espalhados pelo servidor que te desafiam para batalhas.
+              Ao vencê-los, você recebe Tokens como parte da recompensa.
+              É uma atividade recorrente e também garante <strong>EXP</strong> para seus Pokémon.
+            </div>
+          </div>
+
+          <div class="tk-step">
+            <div class="tk-step-num">3</div>
+            <div class="tk-step-text">
+              <strong>Missões Diárias (Guild Daily's Mission)</strong> —
+              As Missões Diárias são renovadas periodicamente e podem envolver batalhas específicas ou objetivos variados.
+              Ao completá-las com sucesso, você garante <strong>Tokens como recompensa</strong>.
+              Vale checar todo dia para não perder nenhuma!
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Guia de helds -->
+    <div class="tk-info-card">
+      <div class="tk-info-card-icon">📖</div>
+      <div class="tk-info-card-body">
+        <div class="tk-info-card-title">Saiba Mais Sobre Helds</div>
+        <div class="tk-info-card-text">
+          Quer entender mais profundamente como cada Held funciona, como equipá-los e qual é o ideal para sua estratégia?
+          Confira o <strong>Guia Completo de Helds</strong> — lá você encontra tudo sobre os tipos de Helds, combinações recomendadas
+          e dicas para montar o time perfeito.
+          <br><br>
+          Os Helds disponíveis na Máquina de Troca estão listados abaixo — clique em qualquer um para ver seus detalhes!
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tk-explain-section -->
+
+  <div class="tk-divider" style="margin:28px auto 0; max-width:820px;"></div>
+
+  <!-- Grid de Helds -->
+  <div class="tk-helds-section">
+    <div class="tk-helds-title">🎒 Helds Disponíveis na Máquina de Troca</div>
+    <div class="tk-helds-grid" id="tk-helds-grid"></div>
+  </div>
+
+</div>
+
+<!-- Modal do Held -->
+<div id="tk-held-modal-root"></div>
+`;
+
+  // Renderiza os blocos de helds
+  var grid = document.getElementById('tk-helds-grid');
+  if (!grid) return;
+  grid.innerHTML = TOKENS_HELDS.map(function(h) {
+    return '<div class="tk-held-block" style="--hb-rgb:' + h.rgb + '" onclick="openHeldModal(\'' + h.id + '\')">' +
+      '<div class="tk-held-block-icon">' + h.icon + '</div>' +
+      '<div class="tk-held-block-name">' + h.name + '</div>' +
+      '<div class="tk-held-block-cat">' + h.categoria + '</div>' +
+      '<div class="tk-held-block-cost">🪙 ' + h.custo + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function openHeldModal(id) {
+  var h = TOKENS_HELDS.find(function(x) { return x.id === id; });
+  if (!h) return;
+  // Remove modal existente
+  var existing = document.getElementById('tk-held-modal-root');
+  if (existing) existing.innerHTML = '';
+  var root = existing || document.body;
+
+  var html = '<div class="tk-held-modal-overlay" onclick="closeHeldModal(event)" id="tk-held-modal-overlay">' +
+    '<div class="tk-held-modal" style="--hm-rgb:' + h.rgb + '">' +
+      '<div class="tk-held-modal-header">' +
+        '<div class="tk-held-modal-icon">' + h.icon + '</div>' +
+        '<div class="tk-held-modal-info">' +
+          '<div class="tk-held-modal-name">' + h.name + '</div>' +
+          '<div class="tk-held-modal-cat">' + h.categoria + '</div>' +
+        '</div>' +
+        '<button class="tk-held-modal-close" onclick="closeHeldModalBtn()">✕</button>' +
+      '</div>' +
+      '<div class="tk-held-modal-body">' +
+        '<div>' +
+          '<div class="tk-held-modal-section-label">Efeito</div>' +
+          '<div class="tk-held-modal-efeito">' + h.efeito + '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="tk-held-modal-section-label">Dica de Uso</div>' +
+          '<div class="tk-held-modal-dica">' + h.dica + '</div>' +
+        '</div>' +
+        '<div class="tk-held-modal-custo">🪙 ' + h.custo + '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  root.innerHTML = html;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHeldModal(e) {
+  if (e.target.id === 'tk-held-modal-overlay') closeHeldModalBtn();
+}
+function closeHeldModalBtn() {
+  var root = document.getElementById('tk-held-modal-root');
+  if (root) root.innerHTML = '';
+  document.body.style.overflow = '';
 }
