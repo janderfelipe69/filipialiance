@@ -1356,6 +1356,28 @@ const PACKAGES = [
       [["crystal stone", 500], ["water stone", 1000], ["duck paw", 500], ["aquatic tail", 600], ["big fist gloves", 600], ["gyarados tail", 1000], ["giant ruby", 600], ["mythic water orb", 3]],
     ]
   },
+    {
+    name: "Reduces Speed Ice 6/6",
+    slots: [
+      [["crystal stone", 25], ["ice stone", 50], ["dragonite tail", 250], ["dewgong tail", 300], ["psychic wig", 300], ["dragonair tail", 500], ["pieces of shell", 300]],
+      [["crystal stone", 50], ["ice stone", 100], ["dragonite tail", 300], ["dewgong tail", 360], ["psychic wig", 360], ["dragonair tail", 600], ["pieces of shell", 360], ["simple ice orb", 10]],
+      [["crystal stone", 100], ["ice stone", 200], ["dragonite tail", 375], ["dewgong tail", 420], ["psychic wig", 420], ["dragonair tail", 700], ["pieces of shell", 420], ["simple ice orb", 20]],
+      [["crystal stone", 200], ["ice stone", 400], ["dragonite tail", 375], ["dewgong tail", 450], ["psychic wig", 450], ["dragonair tail", 750], ["pieces of shell", 450], ["arcane ice orb", 5]],
+      [["crystal stone", 400], ["ice stone", 800], ["dragonite tail", 400], ["dewgong tail", 525], ["psychic wig", 525], ["dragonair tail", 875], ["pieces of shell", 525], ["arcane ice orb", 20]],
+      [["crystal stone", 500], ["ice stone", 1000], ["dragonite tail", 500], ["dewgong tail", 600], ["psychic wig", 600], ["dragonair tail", 1000], ["pieces of shell", 600], ["mythic ice orb", 3]],
+    ]
+  },
+      {
+    name: "Reduces Speed Sand 6/6",
+    slots: [
+      [["heart stone", 50], ["enigma stone", 50], ["blue ray tail", 250], ["water cannon", 300], ["red hair", 300], ["sea dragon fin", 500], ["giraffe antenna", 300]],
+      [["heart stone", 100], ["enigma stone", 100], ["blue ray tail", 300], ["water cannon", 360], ["red hair", 360], ["sea dragon fin", 600], ["giraffe antenna", 360], ["simple psychic orb", 10]],
+      [["heart stone", 200], ["enigma stone", 200], ["blue ray tail", 375], ["water cannon", 420], ["red hair", 420], ["sea dragon fin", 700], ["giraffe antenna", 420], ["simple psychic orb", 20]],
+      [["heart stone", 400], ["enigma stone", 400], ["blue ray tail", 375], ["water cannon", 450], ["red hair", 450], ["sea dragon fin", 750], ["giraffe antenna", 450], ["arcane psychic orb", 5]],
+      [["heart stone", 800], ["enigma stone", 800], ["blue ray tail", 400], ["water cannon", 525], ["red hair", 525], ["sea dragon fin", 875], ["giraffe antenna", 525], ["arcane psychic orb", 20]],
+      [["heart stone", 1000], ["enigma stone", 1000], ["blue ray tail", 500], ["water cannon", 600], ["red hair", 600], ["sea dragon fin", 1000], ["giraffe antenna", 600], ["mythic psychic orb", 3]],
+    ]
+  },
 ];
 
 // ============================================================
