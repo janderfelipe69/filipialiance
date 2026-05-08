@@ -20,14 +20,13 @@
  *   #wiki/tokens        → aba Wiki > Tokens
  *   #wiki/tierlist      → aba Wiki > Tier Lista
  *
- * BUGS CORRIGIDOS vs versão anterior:
- *  1. applyHash chamava _wnOpen antes do patch ser aplicado — agora applyHash
- *     só executa APÓS patchWnOpen() confirmar que o patch foi realizado.
- *  2. switchTab resetava o wn-content antes de _wnOpen ser chamado — agora
- *     aguardamos um tick após switchTab antes de chamar _wnOpen.
- *  3. Race condition entre patchWnOpen e tryOpenModule eliminada: applyHash
- *     é disparado como callback de patchWnOpen, não em paralelo.
- *  4. Observer expandido para detectar mudanças em wn-content e wn-home.
+ * BUG CORRIGIDO (principal):
+ *   O switchTab sobrescrito pelo wiki-nav.js sempre resetava o wiki para
+ *   o home quando tab === 'wiki'. Como url-hash.js chamava switchTab antes
+ *   de _wnOpen, o reset apagava o estado e o submódulo nunca abria.
+ *
+ *   SOLUÇÃO: flag window._wnSkipReset. Quando true, o switchTab patcheado
+ *   aqui não executa o reset do wiki-nav. O flag é limpo após _wnOpen rodar.
  */
 
 (function () {
@@ -86,19 +85,28 @@
     setHash(mainHash);
   }
 
-  /* ── Abre o estado indicado no hash ──
-     IMPORTANTE: só deve ser chamado APÓS patchWnOpen() ter finalizado,
-     para garantir que window._wnOpen já é a versão patcheada.
-  ── */
+  /* ── Ativa a aba wiki visualmente sem disparar o reset do wiki-nav ── */
+  function activateWikiTab(btn) {
+    var tabWiki = document.getElementById('tab-wiki');
+    if (!tabWiki) return;
+    if (tabWiki.classList.contains('active')) return; /* já ativa, nada a fazer */
+
+    document.querySelectorAll('.tab-content').forEach(function (el) {
+      el.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(function (el) {
+      el.classList.remove('active');
+    });
+    tabWiki.classList.add('active');
+    if (btn) btn.classList.add('active');
+  }
+
+  /* ── Abre o estado indicado no hash ── */
   function applyHash() {
     var h = parseHash();
     if (!h.main) return;
 
-    // 1. Ativa a aba principal
     var mainBtn = document.querySelector('.tab-btn[onclick*="switchTab(\'' + h.main + '\'"]');
-    if (typeof window.switchTab === 'function' && mainBtn) {
-      window.switchTab(h.main, mainBtn);
-    }
 
     if (h.main === 'wiki' && h.sub) {
       var sub = h.sub;
@@ -111,31 +119,35 @@
         var tierlistOk = sub !== 'tierlist' || typeof window.renderTierList === 'function';
 
         if (shell && wnOpen && tierlistOk) {
-          // Garante aba wiki ativa (pode ter sido resetada pelo switchTab)
-          // e aguarda um tick para o DOM do wiki se estabilizar
-          if (typeof window.switchTab === 'function' && mainBtn) {
-            window.switchTab(h.main, mainBtn);
-          }
-          // Aguarda 120ms após switchTab para o wiki terminar de montar
-          // antes de chamar _wnOpen
+          /*
+           * Ativa a aba wiki diretamente (sem passar pelo switchTab do wiki-nav)
+           * para evitar o reset do shell para o home.
+           */
+          activateWikiTab(mainBtn);
+
+          /* Abre o submódulo após o DOM estabilizar */
           setTimeout(function () {
             window._wnOpen(sub);
-          }, 120);
+          }, 100);
+
         } else if (attempts < 60) {
           setTimeout(tryOpenModule, 100);
         }
       }
 
-      // Aguarda um tick para o switchTab acima processar antes de começar
-      // a checar se o wn-shell e _wnOpen estão prontos
       setTimeout(tryOpenModule, 200);
+
+    } else {
+      /* Abas normais ou #wiki sem sub: usa switchTab normalmente */
+      if (typeof window.switchTab === 'function' && mainBtn) {
+        window.switchTab(h.main, mainBtn);
+      }
     }
   }
 
   /* ── Patch do _wnOpen e _wnBack ─────────────────────────────────
-     Mantém window._currentWnModule sincronizado.
-     Ao finalizar o patch, dispara applyHash() — garantindo que
-     applyHash sempre usa a versão patcheada de _wnOpen.
+     - Rastreia window._currentWnModule para syncHashFromDOM
+     - Dispara applyHash como callback após o patch (elimina race condition)
   ── */
   function patchWnOpen(onReady) {
     if (typeof window._wnOpen !== 'function') {
@@ -143,7 +155,6 @@
       return;
     }
 
-    // Evita aplicar o patch mais de uma vez
     if (window._wnOpen._patched) {
       if (typeof onReady === 'function') onReady();
       return;
@@ -166,7 +177,6 @@
       };
     }
 
-    // Patch concluído → agora é seguro chamar applyHash
     if (typeof onReady === 'function') onReady();
   }
 
@@ -204,15 +214,13 @@
 
   /* ── Reage ao botão Voltar/Avançar do browser ── */
   window.addEventListener('popstate', function () {
-    // No popstate também precisamos garantir que o patch está aplicado
     patchWnOpen(applyHash);
   });
 
   /* ── Inicialização ── */
   document.addEventListener('DOMContentLoaded', function () {
     startObserver();
-    // patchWnOpen dispara applyHash() como callback ao concluir —
-    // eliminando a race condition entre patch e applyHash
+    /* patchWnOpen dispara applyHash como callback — sem race condition */
     patchWnOpen(applyHash);
   });
 
