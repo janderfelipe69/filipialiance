@@ -1835,20 +1835,21 @@
       }
     });
 
-    window.addEventListener('load', function() {
+window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js', {
-        // updateViaCache: 'none' → browser NUNCA usa cache HTTP para o sw.js
-        // Isso resolve o deadlock: mesmo o SW antigo não consegue servir o sw.js do cache
         updateViaCache: 'none'
       }).then(function(reg) {
-        // Força verificação de atualização imediatamente
         reg.update();
+
+        // MOBILE FIX: SW novo pode já estar em waiting de uma visita anterior
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
 
         reg.addEventListener('updatefound', function() {
           var newWorker = reg.installing;
           if (!newWorker) return;
           newWorker.addEventListener('statechange', function() {
-            // Quando o novo SW estiver instalado (waiting), força ativação imediata
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               newWorker.postMessage({ type: 'SKIP_WAITING' });
             }
