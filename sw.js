@@ -7,7 +7,7 @@
  *    os usuários na próxima vez que abrirem o site.
  */
 
-const VERSAO = 'v4.5'; // ← mude aqui a cada deploy
+const VERSAO = 'v4.6'; // ← mude aqui a cada deploy
 const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 // Arquivos que serão cacheados
@@ -24,6 +24,12 @@ const ARQUIVOS = [
   './respawn_patch_modal.js',
   './wildscape_path_patch.js',
   './item-card-popup.js',
+  './wiki-nav.js',
+  './wiki-cards-upgrade.js',
+  './quest-modal.js',
+  './filter-smart.js',
+  './tierlist.js',
+  './tierlist-types.js',
 ];
 
 // ── Instalação: cacheia todos os arquivos ──────────────────────────────────
@@ -84,4 +90,4 @@ self.addEventListener('fetch', function(event) {
       });
     })
   );
-});o 
+});
