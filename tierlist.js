@@ -215,6 +215,64 @@ var TIER_DATA = [
   ["Hydreigon","T2"],["Shiny Hydreigon","Super Rare"],["Flabebe","T6"],["Shiny Flabebe","T5"],
   ["Floette","T5"],["Shiny Floette","T4"],["Florges","T2"],["Shiny Florges","Super Rare"],
   ["Sylveon","T2"],["Shiny Sylveon","Legendary"],["Mimikyu","T2"],["Shiny Mimikyu","Super Rare"],
+
+  // Pokémon base faltantes da planilha
+  ["Lucario","T2"],["Shiny Lucario","Super Rare"],
+  ["Garchomp","T2"],["Shiny Garchomp","Super Rare"],
+  ["Infernape","T2"],["Shiny Infernape","Super Rare"],
+  ["Gliscor","T2"],["Shiny Gliscor","Super Rare"],
+  ["Dusknoir","T2"],["Shiny Dusknoir","Super Rare"],
+  ["Gogoat","T2"],["Shiny Gogoat","Super Rare"],
+  ["Yanmega","T2"],["Shiny Yanmega","Legendary"],
+  ["Mismagius","T2"],["Shiny Mismagius","Ultra Rare"],
+  ["Staraptor","T2"],["Shiny Staraptor","Legendary"],
+  ["Conkeldurr","T2"],["Shiny Conkeldurr","Legendary"],
+  ["Drapion","T2"],["Shiny Drapion","Legendary"],
+  ["Gallade","T2"],["Shiny Gallade","Ultra Rare"],
+  ["Rampardos","T2"],["Shiny Rampardos","Ultra Rare"],
+  ["Bastiodon","T2"],["Shiny Bastiodon","Super Rare"],
+  ["Vespiquen","T2"],["Shiny Vespiquen","Ultra Rare"],
+  ["Electivire","T2"],["Shiny Electivire","Mythic"],
+  ["Magmortar","T2"],["Shiny Magmortar","Mythic"],
+  ["Sneasler","T2"],["Shiny Sneasler","Mythic"],
+  ["Abomasnow","T2"],["Shiny Abomasnow","Super Rare"],
+
+  // Mega Evoluções
+  ["Mega Charizard X","Legendary"],
+  ["Mega Charizard Y","Legendary"],
+  ["Mega Blastoise","Legendary"],
+  ["Mega Venusaur","Legendary"],
+  ["Mega Pidgeot","Legendary"],
+  ["Mega Alakazam","Legendary"],
+  ["Mega Gengar","Legendary"],
+  ["Mega Kangaskhan","Legendary"],
+  ["Mega Pinsir","Legendary"],
+  ["Mega Gyarados","Legendary"],
+  ["Mega Aerodactyl","Legendary"],
+  ["Mega Ampharos","Legendary"],
+  ["Mega Scizor","Legendary"],
+  ["Mega Heracross","Legendary"],
+  ["Mega Houndoom","Legendary"],
+  ["Mega Tyranitar","Legendary"],
+  ["Mega Sceptile","Legendary"],
+  ["Mega Blaziken","Legendary"],
+  ["Mega Swampert","Legendary"],
+  ["Mega Gardevoir","Legendary"],
+  ["Mega Sableye","Legendary"],
+  ["Mega Mawile","Legendary"],
+  ["Mega Aggron","Legendary"],
+  ["Mega Medicham","Legendary"],
+  ["Mega Manectric","Legendary"],
+  ["Mega Altaria","Legendary"],
+  ["Mega Salamence","Legendary"],
+  ["Mega Metagross","Legendary"],
+  ["Mega Banette","Legendary"],
+  ["Mega Absol","Legendary"],
+  ["Mega Glalie","Legendary"],
+  ["Mega Steelix","Legendary"],
+  ["Mega Audino","Legendary"],
+  ["Mega Scolipede","Legendary"],
+  ["Mega Dragalge","Legendary"],
 ];
 
 /* ══════════════════════════════════════════
@@ -269,12 +327,18 @@ function _tlSprite(name) {
     'mr.mime': 'mrmime',
     "farfetch'd": 'farfetchd',
     'flabebe': 'flabebe',
-    'mega abomasnow': 'abomasnow-mega',
+    // Megas com nome fixo (incluindo X/Y sem hífen separador, padrão Showdown)
+    'mega abomasnow':   'abomasnow-mega',
+    'mega charizard x': 'charizard-megax',
+    'mega charizard y': 'charizard-megay',
+    // Megas customizados do servidor (não existem oficialmente — usa base form)
+    'mega scolipede':   'scolipede',
+    'mega dragalge':    'dragalge',
   };
   if (fixes[n]) n = fixes[n];
   else {
     var megaXY = n.match(/^mega\s+(.+?)\s+(x|y)$/);
-    if (megaXY) n = megaXY[1].replace(/\s+/g,'') + '-mega-' + megaXY[2];
+    if (megaXY) n = megaXY[1].replace(/\s+/g,'') + '-mega' + megaXY[2];
     else {
       var megaBase = n.match(/^mega\s+(.+)$/);
       if (megaBase) n = megaBase[1].replace(/\s+/g,'') + '-mega';
@@ -842,10 +906,10 @@ window.renderTierList = function() {
       card.className = 'wn-card';
       card.style.cssText = '--wn-color:#f06292;--wn-rgb:240,98,146;--wn-glow:rgba(240,98,146,0.12)';
       card.setAttribute('onclick', "window._wnOpen('tierlist')");
-      card.title = 'Tier Lista';
+      card.title = 'Tier List & Respawn';
       card.innerHTML =
         '<div class="wn-card-icon">🏆</div>' +
-        '<div class="wn-card-name">Tier Lista</div>' +
+        '<div class="wn-card-name">Tier List & Respawn</div>' +
         '<div class="wn-card-desc">Ranking de raridade de todos os Pokémon</div>' +
         '<div class="wn-card-arrow">→</div>';
       grid.appendChild(card);
@@ -871,7 +935,7 @@ window.renderTierList = function() {
         var bcIcon = document.getElementById('wn-bc-icon');
         var bcName = document.getElementById('wn-bc-name');
         if (bcIcon) bcIcon.innerHTML = '🏆';
-        if (bcName) bcName.textContent = 'Tier Lista';
+        if (bcName) bcName.textContent = 'Tier List & Respawn';
 
         var modBanner = document.getElementById('wn-mod-banner');
         var modLine   = document.getElementById('wn-mod-line');
@@ -882,7 +946,7 @@ window.renderTierList = function() {
           var modName = document.getElementById('wn-mod-name');
           var modDesc = document.getElementById('wn-mod-desc');
           if (modIcon) modIcon.innerHTML = '🏆';
-          if (modName) modName.textContent = 'Tier Lista';
+          if (modName) modName.textContent = 'Tier List & Respawn';
           if (modDesc) modDesc.textContent = 'Ranking de raridade de todos os Pokémon';
         }
         if (modLine) modLine.style.background = 'linear-gradient(90deg,#f0629255,transparent 60%)';
