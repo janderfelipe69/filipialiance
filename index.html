@@ -864,10 +864,50 @@
   </div>
 </div>
 
+<script src="tabs-config.js"></script>
 <script src="dados.js"></script>
 <script src="respawn_patch_modal.js"></script>
 <script src="app.js"></script>
+<script>
+// ── Aplica TABS_CONFIG: oculta abas desabilitadas ────────────────────────
+(function() {
+  if (typeof TABS_CONFIG === 'undefined') return;
+
+  var firstEnabled = null;
+
+  Object.keys(TABS_CONFIG).forEach(function(tab) {
+    if (TABS_CONFIG[tab] === false) {
+      // Oculta o botão da aba
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        var oc = btn.getAttribute('onclick') || '';
+        if (oc.indexOf("'" + tab + "'") !== -1) btn.style.display = 'none';
+      });
+      // Oculta o conteúdo da aba
+      var content = document.getElementById('tab-' + tab);
+      if (content) content.style.display = 'none';
+    } else {
+      if (!firstEnabled) firstEnabled = tab;
+    }
+  });
+
+  // Ativa a primeira aba habilitada
+  if (firstEnabled) {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+
+    var firstBtn = null;
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
+    });
+    if (firstBtn) firstBtn.classList.add('active');
+
+    var firstContent = document.getElementById('tab-' + firstEnabled);
+    if (firstContent) firstContent.classList.add('active');
+  }
+})();
+</script>
 <script src="wiki-nav.js"></script> 
+<script src="wiki-medals.js"></script>
 
 
 <!-- ===================== WELCOME MODAL ===================== -->
@@ -1822,6 +1862,13 @@
 <script src="tierlist-types.js"></script> 
 <script src="tierlist-popup.js"></script>
 <script src="filter-smart.js"></script>
+<script src="wiki-nav.js"></script>
+<script src="wiki-boost.js"></script>
+<script src="wiki-star-ascension.js"></script>
+<script src="wiki-up150.js"></script>
+<script src="wiki-minimap.js"></script>
+<script src="wiki-medals.js"></script>
+<script src="wiki-medals-buffs.js"></script>
 
 <script>
   // ── Service Worker ────────────────────────────────────────────────────────

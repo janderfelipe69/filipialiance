@@ -347,13 +347,18 @@ function getSprites(name) {
     'mega mewtwo y':'mewtwo-megay',
     'mega kyogre':'kyogre-primal',
     'mega groudon':'groudon-primal',
-    // Fan-made Megas do servidor — usa forma base
-    'mega scolipede':'scolipede',
-    'mega dragalge':'dragalge',
+    // Fan-made Megas do servidor — sprites próprios via Imgur
+    'mega scolipede':'https://i.imgur.com/stT9gDR.png',
+    'mega dragalge':'https://i.imgur.com/CTd0hxa.png',
   };
   var slug;
   if (n in fixes) {
-    slug = fixes[n];
+    var fixVal = fixes[n];
+    // URL direta — retorna sem montar URL do Showdown
+    if (fixVal.indexOf('http') === 0) {
+      return { animated: fixVal, static: fixVal, fallback: fixVal };
+    }
+    slug = fixVal;
   } else {
     // Megas padrão: "Mega Steelix" → "steelix-mega"
     var megaMatch = n.match(/^mega\s+(.+)$/);

@@ -331,11 +331,18 @@ function _tlSprite(name) {
     'mega abomasnow':   'abomasnow-mega',
     'mega charizard x': 'charizard-megax',
     'mega charizard y': 'charizard-megay',
-    // Megas customizados do servidor (não existem oficialmente — usa base form)
-    'mega scolipede':   'scolipede',
-    'mega dragalge':    'dragalge',
+    // Megas customizados do servidor (sprites próprios via Imgur)
+    'mega scolipede':   'https://i.imgur.com/stT9gDR.png',
+    'mega dragalge':    'https://i.imgur.com/CTd0hxa.png',
   };
-  if (fixes[n]) n = fixes[n];
+  if (fixes[n]) {
+    var fixVal = fixes[n];
+    // URL direta (imgur etc.) — retorna sem montar URL do Showdown
+    if (fixVal.indexOf('http') === 0) {
+      return { src: fixVal, fallback: fixVal };
+    }
+    n = fixVal;
+  }
   else {
     var megaXY = n.match(/^mega\s+(.+?)\s+(x|y)$/);
     if (megaXY) n = megaXY[1].replace(/\s+/g,'') + '-mega' + megaXY[2];

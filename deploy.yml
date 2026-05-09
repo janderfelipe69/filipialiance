@@ -16,6 +16,8 @@ jobs:
           BUILD_TIME=$(date +%s%3N)   # milliseconds desde epoch, ex: 1715123456789
           sed -i "s/__BUILD_TIME__/$BUILD_TIME/g" sw.js
           echo "BUILD_TIME=$BUILD_TIME"
+          # Confirma que a substituição funcionou
+          grep "CACHE_NAME" sw.js
 
       - name: Deploy para GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
