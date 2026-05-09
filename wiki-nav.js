@@ -632,14 +632,6 @@ const MODULES = [
     rgb:   '58,140,255',
   },
   {
-    id:    'respawn',
-    name:  'Respawn',
-    icon:  '🗺️',
-    desc:  'Locais de spawn de cada Pokémon',
-    color: '#66e5a0',
-    rgb:   '102,229,160',
-  },
-  {
     id:    'quests',
     name:  'Quests',
     icon:  '📜',
