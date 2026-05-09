@@ -12,7 +12,7 @@
  */
 
 const BUILD_TIME = '__BUILD_TIME__'; // ← substituído automaticamente pelo deploy.yml
-const VERSAO = 'v5.0';
+const VERSAO = 'v5.1';
 const CACHE_NAME = 'pokealliance-' + VERSAO + '-' + BUILD_TIME;
 
 const ARQUIVOS = [
