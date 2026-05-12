@@ -282,176 +282,186 @@ function onNickInput() {
   if (err)  err.classList.remove('visible');
 }
 
-function sendToWhatsApp() {
-  const keys = Object.keys(cart).filter(k => cart[k] > 0);
-  if (!keys.length) return;
+// ============================================================
+// Supabase — configuração
+// ============================================================
+const SUPABASE_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
 
-  // Valida nick obrigatorio
-  const nickInput = document.getElementById('cart-nick-input');
-  const nick = nickInput ? nickInput.value.trim() : '';
-  if (!nick) {
-    const wrap = document.getElementById('nick-field-wrap');
-    const err  = document.getElementById('nick-error');
-    if (wrap) { wrap.classList.remove('error'); void wrap.offsetWidth; wrap.classList.add('error'); }
-    if (err)  err.classList.add('visible');
-    if (nickInput) nickInput.focus();
-    return;
-  }
+// ── helpers compartilhados pelas duas funções ─────────────────────────────────
 
-  function toBRL(raw) {
-    return (raw / 1000000 * KK_TO_BRL).toFixed(2);
-  }
-  // Helper que ja entrega o valor com virgula decimal
-  function fmt(raw) {
-    return toBRL(raw).replace('.', ',');
-  }
-
-  const rows = ['PEDIDO DE SERVICO', 'Nick no jogo: ' + nick, 'Item;Quantidade;Valor Unitario;Valor Total'];
-  let grandTotalBRL = 0;
-
-  keys.forEach(k => {
-    const item = items[k];
-    const qty      = cart[k];
-    const unitRaw  = item.price || 0;
-    const totalRaw = unitRaw * qty;
-    const unitBRL  = unitRaw  > 0 ? fmt(unitRaw)  : '0,00';
-    const totalBRL = totalRaw > 0 ? fmt(totalRaw) : '0,00';
-    grandTotalBRL += totalRaw > 0 ? parseFloat(toBRL(totalRaw)) : 0;
-    rows.push(`${item.name};${qty};${unitBRL};${totalBRL}`);
-  });
-
-  const grandTotalRaw = keys.reduce((s, k) => {
-    const item = items[k];
-    return s + (item && item.price ? item.price * cart[k] : 0);
-  }, 0);
-
-  const TAXA_THRESHOLD = 10000000;
-  const TAXA_VALOR     = 5000000;
-  const hasTaxa = grandTotalRaw > 0 && grandTotalRaw < TAXA_THRESHOLD;
-  if (hasTaxa) {
-    const taxaNum = parseFloat(toBRL(TAXA_VALOR));
-    const taxaStr = taxaNum.toFixed(2).replace('.', ',');
-    grandTotalBRL += taxaNum;
-    rows.push(`Taxa de servico (pedido abaixo de 10kk);1;${taxaStr};${taxaStr}`);
-  }
-
-  // Grand total com vírgula
-  const grandTotalStr = grandTotalBRL.toFixed(2).replace('.', ',');
-  rows.push(`TOTAL GERAL;;;${grandTotalStr}`);
-
-  const mode = _currentPayMode;
-  if (mode === 'kk') {
-    const kkD = formatKK(_payTotalKk);
-    if (kkD) rows.push(`\nPagamento: ${kkD.label} KK (moeda do jogo)`);
-  } else if (mode === 'brl') {
-    rows.push(`\nPagamento: R$ ${grandTotalStr} via PIX`);
-  } else if (mode === 'mix') {
-    const kkVal  = parseFloat(document.getElementById('mix-kk-input').value) || 0;
-    const brlVal = parseFloat(document.getElementById('mix-brl-input').value) || 0;
-    if (kkVal > 0 || brlVal > 0) {
-      const kkD    = formatKK(kkVal * 1000000);
-      const brlStr = brlVal.toFixed(2).replace('.', ',');
-      rows.push(`\nPagamento misto: ${kkD ? kkD.label : '0'} KK + R$ ${brlStr} via PIX`);
-    }
-  }
-
-  const msg  = rows.join('\n');
-  const phone = '5565999911832';
-  const url   = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
-  window.open(url, '_blank');
+function _getCartNick() {
+  const el = document.getElementById('cart-nick-input');
+  return el ? el.value.trim() : '';
 }
 
-function sendToDiscord() {
-  const keys = Object.keys(cart).filter(k => cart[k] > 0);
-  if (!keys.length) return;
-
-  const nickInput = document.getElementById('cart-nick-input');
-  const nick = nickInput ? nickInput.value.trim() : '';
+function _validateNick() {
+  const nick = _getCartNick();
   if (!nick) {
     const wrap = document.getElementById('nick-field-wrap');
     const err  = document.getElementById('nick-error');
     if (wrap) { wrap.classList.remove('error'); void wrap.offsetWidth; wrap.classList.add('error'); }
     if (err)  err.classList.add('visible');
-    if (nickInput) nickInput.focus();
-    return;
+    const el = document.getElementById('cart-nick-input');
+    if (el) el.focus();
   }
+  return nick;
+}
 
-  function toBRL(raw) { return (raw / 1000000 * KK_TO_BRL).toFixed(2); }
-  function fmt(raw)   { return toBRL(raw).replace('.', ','); }
-
-  const lines = ['**PEDIDO DE SERVIÇO**', `**Nick no jogo:** ${nick}`, '```'];
-  lines.push('Item                          | Qtd | Unit.   | Total');
-  lines.push('------------------------------|-----|---------|--------');
-
-  let grandTotalBRL = 0;
-  keys.forEach(k => {
-    const item = items[k];
-    const qty      = cart[k];
-    const unitRaw  = item.price || 0;
-    const totalRaw = unitRaw * qty;
-    const unitBRL  = unitRaw  > 0 ? 'R$' + fmt(unitRaw)  : 'R$0,00';
-    const totalBRL = totalRaw > 0 ? 'R$' + fmt(totalRaw) : 'R$0,00';
-    grandTotalBRL += totalRaw > 0 ? parseFloat(toBRL(totalRaw)) : 0;
-    lines.push(`${item.name.padEnd(30)}| ${String(qty).padEnd(3)} | ${unitBRL.padEnd(7)} | ${totalBRL}`);
-  });
-
-  const grandTotalRaw = keys.reduce((s, k) => {
-    const item = items[k];
-    return s + (item && item.price ? item.price * cart[k] : 0);
-  }, 0);
-
+function _calcTotais(keys) {
   const TAXA_THRESHOLD = 10000000;
   const TAXA_VALOR     = 5000000;
-  const hasTaxa = grandTotalRaw > 0 && grandTotalRaw < TAXA_THRESHOLD;
-  if (hasTaxa) {
-    const taxaNum = parseFloat(toBRL(TAXA_VALOR));
-    const taxaStr = 'R$' + taxaNum.toFixed(2).replace('.', ',');
-    grandTotalBRL += taxaNum;
-    lines.push(`Taxa de serviço (abaixo 10kk) |  1  | ${taxaStr.padEnd(7)} | ${taxaStr}`);
-  }
+  const grandTotalRaw   = keys.reduce((s, k) => s + (items[k]?.price ? items[k].price * cart[k] : 0), 0);
+  const hasTaxa         = grandTotalRaw > 0 && grandTotalRaw < TAXA_THRESHOLD;
+  const grandTotalFinal = hasTaxa ? grandTotalRaw + TAXA_VALOR : grandTotalRaw;
+  return { grandTotalRaw, grandTotalFinal, hasTaxa, TAXA_VALOR };
+}
 
-  const grandTotalStr = 'R$' + grandTotalBRL.toFixed(2).replace('.', ',');
-  lines.push('');
-  lines.push(`TOTAL GERAL: ${grandTotalStr}`);
-  lines.push('```');
-
+function _buildPagamentoInfo(grandTotalFinal) {
   const mode = _currentPayMode;
-  if (mode === 'kk') {
-    const kkD = formatKK(_payTotalKk);
-    if (kkD) lines.push(`**Pagamento:** ${kkD.label} KK (moeda do jogo)`);
-  } else if (mode === 'brl') {
-    lines.push(`**Pagamento:** ${grandTotalStr} via PIX`);
-  } else if (mode === 'mix') {
-    const kkVal  = parseFloat(document.getElementById('mix-kk-input').value) || 0;
-    const brlVal = parseFloat(document.getElementById('mix-brl-input').value) || 0;
-    if (kkVal > 0 || brlVal > 0) {
-      const kkD    = formatKK(kkVal * 1000000);
-      const brlStr = 'R$' + brlVal.toFixed(2).replace('.', ',');
-      lines.push(`**Pagamento misto:** ${kkD ? kkD.label : '0'} KK + ${brlStr} via PIX`);
-    }
-  }
+  let pagamento_modo = mode;
+  let pagamento_kk   = null;
+  let pagamento_brl  = null;
 
-  const msg = lines.join('\n');
-  navigator.clipboard.writeText(msg).then(() => {
-    const discordUrl = 'https://discord.com/users/304012234420518914';
-    window.open(discordUrl, '_blank');
-    // Toast de confirmação
-    const toast = document.getElementById('no-price-toast');
-    const toastMsg = document.getElementById('no-price-toast-msg');
-    const toastTitle = toast ? toast.querySelector('.toast-title') : null;
-    if (toast) {
-      if (toastTitle) toastTitle.textContent = '✅ Pedido copiado!';
-      if (toastMsg) toastMsg.textContent = 'O pedido foi copiado. Cole no chat do Discord com Ctrl+V!';
-      toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-        if (toastTitle) toastTitle.textContent = 'Atenção — item sem preço!';
-      }, 4000);
-    }
-  }).catch(() => {
-    // Fallback: abre o Discord mesmo assim
-    window.open('https://discord.com/users/304012234420518914', '_blank');
+  if (mode === 'kk') {
+    const kkD = formatKK(_payTotalKk || grandTotalFinal);
+    pagamento_kk = kkD ? kkD.label : null;
+  } else if (mode === 'brl') {
+    pagamento_brl = (grandTotalFinal / 1000000 * KK_TO_BRL)
+      .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  } else if (mode === 'mix') {
+    const kkVal  = parseFloat(document.getElementById('mix-kk-input')?.value)  || 0;
+    const brlVal = parseFloat(document.getElementById('mix-brl-input')?.value) || 0;
+    const kkD    = kkVal > 0 ? formatKK(kkVal * 1000000) : null;
+    pagamento_kk  = kkD  ? kkD.label : null;
+    pagamento_brl = brlVal > 0
+      ? brlVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : null;
+  }
+  return { pagamento_modo, pagamento_kk, pagamento_brl };
+}
+
+function _showToastMsg(titulo, msg) {
+  const toast      = document.getElementById('no-price-toast');
+  const toastMsg   = document.getElementById('no-price-toast-msg');
+  const toastTitle = toast ? toast.querySelector('.toast-title') : null;
+  if (!toast) return;
+  if (toastTitle) toastTitle.textContent = titulo;
+  if (toastMsg)   toastMsg.textContent   = msg;
+  toast.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    if (toastTitle) toastTitle.textContent = 'Atenção — item sem preço!';
+  }, 5000);
+}
+
+async function _salvarPedidoSupabase(payload) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/pedidos`, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'apikey':        SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Prefer':        'return=representation',
+    },
+    body: JSON.stringify(payload),
   });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error('Supabase ' + res.status + ': ' + txt);
+  }
+  const data = await res.json().catch(() => []);
+  return Array.isArray(data) ? data[0] : data;
+}
+
+function _limparCarrinhoAposPedido() {
+  Object.keys(cart).forEach(k => delete cart[k]);
+  updateCartBadge();
+  closeCart();
+}
+
+// ── sendToWhatsApp — agora salva no Supabase ──────────────────────────────────
+
+async function sendToWhatsApp() {
+  const keys = Object.keys(cart).filter(k => cart[k] > 0);
+  if (!keys.length) return;
+
+  const nick = _validateNick();
+  if (!nick) return;
+
+  const { grandTotalRaw, grandTotalFinal, hasTaxa, TAXA_VALOR } = _calcTotais(keys);
+
+  const itensPedido = keys.map(k => {
+    const item    = items[k];
+    const qty     = cart[k];
+    const unitRaw = item.price || 0;
+    const totRaw  = unitRaw * qty;
+    return {
+      nome:            item.name,
+      tier:            item.tier || '',
+      quantidade:      qty,
+      preco_unit_raw:  unitRaw,
+      preco_unit_kk:   unitRaw > 0 ? (formatKK(unitRaw)?.label || '—') : '—',
+      preco_unit_brl:  unitRaw > 0
+        ? (unitRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        : '—',
+      preco_total_raw: totRaw,
+      preco_total_kk:  totRaw  > 0 ? (formatKK(totRaw)?.label  || '—') : '—',
+      preco_total_brl: totRaw  > 0
+        ? (totRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        : '—',
+    };
+  });
+
+  const { pagamento_modo, pagamento_kk, pagamento_brl } = _buildPagamentoInfo(grandTotalFinal);
+
+  const payload = {
+    nick_jogo:      nick,
+    itens:          itensPedido,
+    subtotal_kk:    grandTotalRaw  > 0 ? (formatKK(grandTotalRaw)?.label  || '—') : '—',
+    subtotal_brl:   grandTotalRaw  > 0
+      ? (grandTotalRaw  / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : '—',
+    taxa_servico:   hasTaxa,
+    total_kk:       grandTotalFinal > 0 ? (formatKK(grandTotalFinal)?.label || '—') : '—',
+    total_brl:      grandTotalFinal > 0
+      ? (grandTotalFinal / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : '—',
+    pagamento_modo,
+    pagamento_kk,
+    pagamento_brl,
+    status:         'pendente',
+  };
+
+  // Desabilita botão durante o envio
+  const btn = document.querySelector('[onclick="sendToWhatsApp()"]');
+  const originalLabel = btn ? btn.innerHTML : null;
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Salvando...'; }
+
+  try {
+    const saved   = await _salvarPedidoSupabase(payload);
+    const pedidoId = saved?.id ? ' #' + String(saved.id).padStart(4, '0') : '';
+    _limparCarrinhoAposPedido();
+    _showToastMsg(
+      '✅ Pedido enviado!' + pedidoId,
+      'Seu pedido foi registrado com sucesso. Aguarde o contato do vendedor para confirmar a entrega.'
+    );
+  } catch (err) {
+    console.error('[Supabase]', err);
+    _showToastMsg(
+      '❌ Erro ao salvar pedido',
+      'Não foi possível registrar o pedido. Verifique sua conexão e tente novamente.'
+    );
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = originalLabel; }
+  }
+}
+
+// ── sendToDiscord — redireciona para o mesmo fluxo Supabase ──────────────────
+
+async function sendToDiscord() {
+  await sendToWhatsApp();
 }
 
 // ===================== TOAST SEM PREÇO =====================
