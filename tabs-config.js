@@ -6,9 +6,9 @@
 // ============================================================
 
 const TABS_CONFIG = {
-  itens:     true,
-  pacotes:   true,
-  captura:   true,
+  itens:     false,
+  pacotes:   false,
+  captura:   false,
   entregas:  true,
   wiki:      true,
 };
