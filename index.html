@@ -1081,21 +1081,19 @@
 
 <script>
 (function() {
-  const SB_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
+  var SB_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
 
-  let _todosPedidos = [];
+  var _todosPedidos = [];
 
-  // ── Formata data ──────────────────────────────────────────────────────────
   function _fmtDate(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso);
+    if (!iso) return '\u2014';
+    var d = new Date(iso);
     return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
   }
 
-  // ── Atualiza status no Supabase ───────────────────────────────────────────
   async function _atualizarStatus(id, novoStatus) {
-    const res = await fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + id, {
+    var res = await fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + id, {
       method: 'PATCH',
       headers: {
         'Content-Type':  'application/json',
@@ -1108,37 +1106,40 @@
     if (!res.ok) throw new Error('Erro ' + res.status);
   }
 
-  // ── Renderiza um card ─────────────────────────────────────────────────────
   function _renderCard(p) {
-    const id       = p.id;
-    const nick     = p.nick_jogo || '—';
-    const status   = p.status   || 'pendente';
-    const totalKK  = p.total_kk  || p.subtotal_kk || '—';
-    const totalBRL = p.total_brl || p.subtotal_brl || '—';
-    const modoLabel= p.pagamento_modo === 'brl' ? totalBRL : p.pagamento_modo === 'mix' ? (p.pagamento_kk || '') + ' + ' + (p.pagamento_brl || '') : totalKK;
-    const itens    = Array.isArray(p.itens) ? p.itens : (typeof p.itens === 'string' ? JSON.parse(p.itens) : []);
-    const date     = _fmtDate(p.created_at);
-    const cardId   = 'pedido-card-' + id;
+    var id       = p.id;
+    var nick     = p.nick_jogo || '\u2014';
+    var status   = p.status   || 'pendente';
+    var totalKK  = p.total_kk  || p.subtotal_kk || '\u2014';
+    var totalBRL = p.total_brl || p.subtotal_brl || '\u2014';
+    var modoLabel = p.pagamento_modo === 'brl' ? totalBRL
+                  : p.pagamento_modo === 'mix' ? ((p.pagamento_kk || '') + ' + ' + (p.pagamento_brl || ''))
+                  : totalKK;
+    var itens = Array.isArray(p.itens) ? p.itens : [];
+    try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch(e){}
+    var date   = _fmtDate(p.created_at);
+    var cardId = 'pedido-card-' + id;
 
-    const itensHTML = itens.map(function(it) {
+    var itensHTML = itens.map(function(it) {
       return '<div class="pedido-item-row">'
-        + '<span class="pedido-item-nome">' + (it.nome || '—') + (it.tier ? ' <small style="opacity:.45">(' + it.tier + ')</small>' : '') + '</span>'
+        + '<span class="pedido-item-nome">' + (it.nome || '\u2014') + (it.tier ? ' <small style="opacity:.45">(' + it.tier + ')</small>' : '') + '</span>'
         + '<span class="pedido-item-qty">x' + (it.quantidade || 1) + '</span>'
-        + '<span class="pedido-item-preco">' + (it.preco_total_kk || '—') + '</span>'
-      + '</div>';
+        + '<span class="pedido-item-preco">' + (it.preco_total_kk || '\u2014') + '</span>'
+        + '</div>';
     }).join('');
 
-    const actionsHTML = status === 'pendente' ? 
-      '<button class="pedido-action-btn confirmar" onclick="pedidoSetStatus(' + id + ','confirmado')">✓ Confirmar</button>'
-      + '<button class="pedido-action-btn entregar"  onclick="pedidoSetStatus(' + id + ','entregue')">📦 Entregar</button>'
-      + '<button class="pedido-action-btn cancelar"  onclick="pedidoSetStatus(' + id + ','cancelado')">✕ Cancelar</button>'
-      : status === 'confirmado' ?
-      '<button class="pedido-action-btn entregar"  onclick="pedidoSetStatus(' + id + ','entregue')">📦 Marcar Entregue</button>'
-      + '<button class="pedido-action-btn cancelar"  onclick="pedidoSetStatus(' + id + ','cancelado')">✕ Cancelar</button>'
-      : '';
+    var actionsHTML = '';
+    if (status === 'pendente') {
+      actionsHTML = '<button class="pedido-action-btn confirmar" onclick="pedidoSetStatus(' + id + ',\'confirmado\')">&#10003; Confirmar</button>'
+        + '<button class="pedido-action-btn entregar" onclick="pedidoSetStatus(' + id + ',\'entregue\')">&#128230; Entregar</button>'
+        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelado\')">&#10005; Cancelar</button>';
+    } else if (status === 'confirmado') {
+      actionsHTML = '<button class="pedido-action-btn entregar" onclick="pedidoSetStatus(' + id + ',\'entregue\')">&#128230; Marcar Entregue</button>'
+        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelado\')">&#10005; Cancelar</button>';
+    }
 
     return '<div class="pedido-card" id="' + cardId + '">'
-      + '<div class="pedido-card-header" onclick="pedidoToggle('' + cardId + '')">'
+      + '<div class="pedido-card-header" onclick="pedidoToggle(\'' + cardId + '\')">'
         + '<span class="pedido-card-id">#' + String(id).padStart(4,'0') + '</span>'
         + '<span class="pedido-card-nick">' + nick + '</span>'
         + '<span class="pedido-card-total">' + modoLabel + '</span>'
@@ -1161,9 +1162,8 @@
     + '</div>';
   }
 
-  // ── Renderiza lista ───────────────────────────────────────────────────────
   function _renderLista(lista) {
-    const el = document.getElementById('pedidos-lista');
+    var el = document.getElementById('pedidos-lista');
     if (!el) return;
     if (!lista.length) {
       el.innerHTML = '';
@@ -1175,13 +1175,12 @@
     document.getElementById('pedidos-count-badge').textContent = lista.length + ' pedido' + (lista.length !== 1 ? 's' : '');
   }
 
-  // ── Filtro ────────────────────────────────────────────────────────────────
   window.pedidosFiltrar = function() {
-    const q      = (document.getElementById('pedidos-search')?.value || '').toLowerCase();
-    const status = document.getElementById('pedidos-status-filter')?.value || 'all';
-    const filtrado = _todosPedidos.filter(function(p) {
-      const matchStatus = status === 'all' || p.status === status;
-      const matchQ = !q
+    var q      = (document.getElementById('pedidos-search') ? document.getElementById('pedidos-search').value : '').toLowerCase();
+    var status = document.getElementById('pedidos-status-filter') ? document.getElementById('pedidos-status-filter').value : 'all';
+    var filtrado = _todosPedidos.filter(function(p) {
+      var matchStatus = status === 'all' || p.status === status;
+      var matchQ = !q
         || (p.nick_jogo || '').toLowerCase().includes(q)
         || JSON.stringify(p.itens || '').toLowerCase().includes(q);
       return matchStatus && matchQ;
@@ -1189,17 +1188,15 @@
     _renderLista(filtrado);
   };
 
-  // ── Toggle card ───────────────────────────────────────────────────────────
   window.pedidoToggle = function(cardId) {
-    const card = document.getElementById(cardId);
+    var card = document.getElementById(cardId);
     if (card) card.classList.toggle('open');
   };
 
-  // ── Atualiza status ───────────────────────────────────────────────────────
   window.pedidoSetStatus = async function(id, novoStatus) {
     try {
       await _atualizarStatus(id, novoStatus);
-      const idx = _todosPedidos.findIndex(function(p) { return p.id === id; });
+      var idx = _todosPedidos.findIndex(function(p) { return p.id === id; });
       if (idx !== -1) _todosPedidos[idx].status = novoStatus;
       pedidosFiltrar();
     } catch(e) {
@@ -1207,12 +1204,11 @@
     }
   };
 
-  // ── Carrega pedidos ───────────────────────────────────────────────────────
   window.pedidosCarregar = async function() {
-    const loading = document.getElementById('pedidos-loading');
-    const erro    = document.getElementById('pedidos-erro');
-    const lista   = document.getElementById('pedidos-lista');
-    const btn     = document.querySelector('.pedidos-refresh-btn');
+    var loading = document.getElementById('pedidos-loading');
+    var erro    = document.getElementById('pedidos-erro');
+    var lista   = document.getElementById('pedidos-lista');
+    var btn     = document.querySelector('.pedidos-refresh-btn');
 
     if (loading) loading.style.display = 'flex';
     if (erro)    erro.style.display    = 'none';
@@ -1220,7 +1216,7 @@
     if (btn)     btn.classList.add('spin');
 
     try {
-      const res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.desc&limit=200', {
+      var res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.desc&limit=200', {
         headers: {
           'apikey':        SB_KEY,
           'Authorization': 'Bearer ' + SB_KEY,
@@ -1241,9 +1237,7 @@
     }
   };
 
-  // Carrega ao abrir a aba
   document.addEventListener('DOMContentLoaded', function() {
-    // Hook no switchTab para carregar quando abrir pedidos
     var _origSwitch = window.switchTab;
     window.switchTab = function(tab, el) {
       if (_origSwitch) _origSwitch(tab, el);

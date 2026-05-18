@@ -11,9 +11,8 @@
  *    - JS/CSS: stale-while-revalidate (serve cache + atualiza em background)
  */
 
-const BUILD_TIME = '__BUILD_TIME__'; // ← substituído automaticamente pelo deploy.yml
-const VERSAO = 'v5.1';
-const CACHE_NAME = 'pokealliance-' + VERSAO + '-' + BUILD_TIME;
+const VERSAO = 'v5.3-' + Date.now();
+const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 const ARQUIVOS = [
   './style.css',
