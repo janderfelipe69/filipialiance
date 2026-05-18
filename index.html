@@ -782,16 +782,21 @@
         <span class="pedidos-count-badge" id="pedidos-count-badge">—</span>
       </div>
       <div class="pedidos-topbar-right">
+        <button id="pedidos-my-filter" class="pedidos-my-filter-btn" title="Apenas meus pedidos">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span>Meus Pedidos</span>
+        </button>
         <div class="pedidos-search-wrap">
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           <input type="text" id="pedidos-search" placeholder="Buscar nick ou item..." oninput="pedidosFiltrar()" />
         </div>
         <select id="pedidos-status-filter" onchange="pedidosFiltrar()">
-          <option value="all">Todos</option>
-          <option value="pendente">Pendente</option>
-          <option value="confirmado">Confirmado</option>
-          <option value="entregue">Entregue</option>
-          <option value="cancelado">Cancelado</option>
+          <option value="all">Todos status</option>
+          <option value="pendente">⏳ Pendente</option>
+          <option value="em_andamento">⚡ Em Andamento</option>
+          <option value="parcial">🔮 Parcial</option>
+          <option value="concluido">✅ Concluído</option>
+          <option value="cancelado">✕ Cancelado</option>
         </select>
         <button class="pedidos-refresh-btn" onclick="pedidosCarregar()" title="Atualizar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -1089,173 +1094,6 @@
 }
 </style>
 
-<script>
-(function() {
-  var SB_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
-
-  var _todosPedidos = [];
-
-  function _fmtDate(iso) {
-    if (!iso) return '\u2014';
-    var d = new Date(iso);
-    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-  }
-
-  async function _atualizarStatus(id, novoStatus) {
-    var res = await fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + id, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
-        'Prefer':        'return=minimal',
-      },
-      body: JSON.stringify({ status: novoStatus }),
-    });
-    if (!res.ok) throw new Error('Erro ' + res.status);
-  }
-
-  function _renderCard(p) {
-    var id       = p.id;
-    var nick     = p.nick_jogo || '\u2014';
-    var status   = p.status   || 'pendente';
-    var totalKK  = p.total_kk  || p.subtotal_kk || '\u2014';
-    var totalBRL = p.total_brl || p.subtotal_brl || '\u2014';
-    var modoLabel = p.pagamento_modo === 'brl' ? totalBRL
-                  : p.pagamento_modo === 'mix' ? ((p.pagamento_kk || '') + ' + ' + (p.pagamento_brl || ''))
-                  : totalKK;
-    var itens = Array.isArray(p.itens) ? p.itens : [];
-    try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch(e){}
-    var date   = _fmtDate(p.created_at);
-    var cardId = 'pedido-card-' + id;
-
-    var itensHTML = itens.map(function(it) {
-      return '<div class="pedido-item-row">'
-        + '<span class="pedido-item-nome">' + (it.nome || '\u2014') + (it.tier ? ' <small style="opacity:.45">(' + it.tier + ')</small>' : '') + '</span>'
-        + '<span class="pedido-item-qty">x' + (it.quantidade || 1) + '</span>'
-        + '<span class="pedido-item-preco">' + (it.preco_total_kk || '\u2014') + '</span>'
-        + '</div>';
-    }).join('');
-
-    var actionsHTML = '';
-    if (status === 'pendente') {
-      actionsHTML = '<button class="pedido-action-btn confirmar" onclick="pedidoSetStatus(' + id + ',\'confirmado\')">&#10003; Confirmar</button>'
-        + '<button class="pedido-action-btn entregar" onclick="pedidoSetStatus(' + id + ',\'entregue\')">&#128230; Entregar</button>'
-        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelado\')">&#10005; Cancelar</button>';
-    } else if (status === 'confirmado') {
-      actionsHTML = '<button class="pedido-action-btn entregar" onclick="pedidoSetStatus(' + id + ',\'entregue\')">&#128230; Marcar Entregue</button>'
-        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelado\')">&#10005; Cancelar</button>';
-    }
-
-    return '<div class="pedido-card" id="' + cardId + '">'
-      + '<div class="pedido-card-header" onclick="pedidoToggle(\'' + cardId + '\')">'
-        + '<span class="pedido-card-id">#' + String(id).padStart(4,'0') + '</span>'
-        + '<span class="pedido-card-nick">' + nick + '</span>'
-        + '<span class="pedido-card-total">' + modoLabel + '</span>'
-        + '<span class="pedido-card-date">' + date + '</span>'
-        + '<span class="pedido-status-pill ' + status + '">' + status + '</span>'
-        + '<svg class="pedido-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
-      + '</div>'
-      + '<div class="pedido-card-body">'
-        + '<div class="pedido-card-inner">'
-          + '<div class="pedido-itens-label">Itens do pedido</div>'
-          + itensHTML
-          + '<div class="pedido-totais">'
-            + '<div class="pedido-total-box"><div class="pedido-total-box-label">Total KK</div><div class="pedido-total-box-val">' + totalKK + '</div></div>'
-            + '<div class="pedido-total-box"><div class="pedido-total-box-label">Total R$</div><div class="pedido-total-box-val" style="color:#5ae698">' + totalBRL + '</div></div>'
-            + (p.taxa_servico ? '<div class="pedido-total-box" style="flex:none"><div class="pedido-total-box-label">Taxa</div><div class="pedido-total-box-val" style="color:#ff9060;font-size:12px">+5kk aplicada</div></div>' : '')
-          + '</div>'
-          + (actionsHTML ? '<div class="pedido-actions">' + actionsHTML + '</div>' : '')
-        + '</div>'
-      + '</div>'
-    + '</div>';
-  }
-
-  function _renderLista(lista) {
-    var el = document.getElementById('pedidos-lista');
-    if (!el) return;
-    if (!lista.length) {
-      el.innerHTML = '';
-      document.getElementById('pedidos-empty').style.display = 'flex';
-      return;
-    }
-    document.getElementById('pedidos-empty').style.display = 'none';
-    el.innerHTML = lista.map(_renderCard).join('');
-    document.getElementById('pedidos-count-badge').textContent = lista.length + ' pedido' + (lista.length !== 1 ? 's' : '');
-  }
-
-  window.pedidosFiltrar = function() {
-    var q      = (document.getElementById('pedidos-search') ? document.getElementById('pedidos-search').value : '').toLowerCase();
-    var status = document.getElementById('pedidos-status-filter') ? document.getElementById('pedidos-status-filter').value : 'all';
-    var filtrado = _todosPedidos.filter(function(p) {
-      var matchStatus = status === 'all' || p.status === status;
-      var matchQ = !q
-        || (p.nick_jogo || '').toLowerCase().includes(q)
-        || JSON.stringify(p.itens || '').toLowerCase().includes(q);
-      return matchStatus && matchQ;
-    });
-    _renderLista(filtrado);
-  };
-
-  window.pedidoToggle = function(cardId) {
-    var card = document.getElementById(cardId);
-    if (card) card.classList.toggle('open');
-  };
-
-  window.pedidoSetStatus = async function(id, novoStatus) {
-    try {
-      await _atualizarStatus(id, novoStatus);
-      var idx = _todosPedidos.findIndex(function(p) { return p.id === id; });
-      if (idx !== -1) _todosPedidos[idx].status = novoStatus;
-      pedidosFiltrar();
-    } catch(e) {
-      alert('Erro ao atualizar status: ' + e.message);
-    }
-  };
-
-  window.pedidosCarregar = async function() {
-    var loading = document.getElementById('pedidos-loading');
-    var erro    = document.getElementById('pedidos-erro');
-    var lista   = document.getElementById('pedidos-lista');
-    var btn     = document.querySelector('.pedidos-refresh-btn');
-
-    if (loading) loading.style.display = 'flex';
-    if (erro)    erro.style.display    = 'none';
-    if (lista)   lista.innerHTML       = '';
-    if (btn)     btn.classList.add('spin');
-
-    try {
-      var res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.desc&limit=200', {
-        headers: {
-          'apikey':        SB_KEY,
-          'Authorization': 'Bearer ' + SB_KEY,
-        }
-      });
-      if (!res.ok) throw new Error('Supabase ' + res.status);
-      _todosPedidos = await res.json();
-      document.getElementById('pedidos-count-badge').textContent = _todosPedidos.length + ' pedido' + (_todosPedidos.length !== 1 ? 's' : '');
-      pedidosFiltrar();
-    } catch(e) {
-      if (erro) {
-        document.getElementById('pedidos-erro-msg').textContent = 'Erro: ' + e.message;
-        erro.style.display = 'flex';
-      }
-    } finally {
-      if (loading) loading.style.display = 'none';
-      if (btn)     btn.classList.remove('spin');
-    }
-  };
-
-  document.addEventListener('DOMContentLoaded', function() {
-    var _origSwitch = window.switchTab;
-    window.switchTab = function(tab, el) {
-      if (_origSwitch) _origSwitch(tab, el);
-      if (tab === 'pedidos') pedidosCarregar();
-    };
-  });
-})();
-</script>
 
 <div class="cart-overlay" id="cart-overlay" onclick="handleOverlayClick(event)">
   <div class="cart-panel">
@@ -1369,7 +1207,6 @@
 <script src="dados.js"></script>
 <script src="respawn_patch_modal.js"></script>
 <script src="app.js"></script>
-<script src="pedidos.js"></script>
 <script>
 // ── Aplica TABS_CONFIG: oculta abas desabilitadas ────────────────────────
 (function() {
@@ -2368,6 +2205,7 @@
 <script src="orders-admin.js"></script>
 <script src="orders-ui.js"></script>
 <script src="orders-integration-patch.js"></script>
+<script src="pedidos.js"></script>
 <script>
   // Inicializa a sessão assim que o DOM estiver pronto.
   // Session.init() recupera sessão persistida e atualiza o header automaticamente.

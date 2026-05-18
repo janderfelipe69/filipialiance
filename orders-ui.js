@@ -48,42 +48,25 @@ const OrdersUI = (() => {
 
   function _setupTopbar() {
     const topbarRight = document.querySelector('.pedidos-topbar-right');
-    const topbarLeft = document.querySelector('.pedidos-topbar-left');
     if (!topbarRight) return;
 
-    // Atualiza opções do select de status para o novo sistema
+    // Conecta select de status (já existe no HTML com opções corretas)
     const statusSelect = document.getElementById('pedidos-status-filter');
     if (statusSelect) {
-      statusSelect.innerHTML = `
-        <option value="all">Todos status</option>
-        <option value="pendente">⏳ Pendente</option>
-        <option value="em_andamento">⚡ Em Andamento</option>
-        <option value="parcial">🔮 Parcial</option>
-        <option value="concluido">✅ Concluído</option>
-        <option value="cancelado">✕ Cancelado</option>
-      `;
       statusSelect.onchange = () => {
         _state.status = statusSelect.value;
         render();
       };
     }
 
-    // Botão "Meus Pedidos"
-    if (!document.getElementById('pedidos-my-filter')) {
-      const myBtn = document.createElement('button');
-      myBtn.id = 'pedidos-my-filter';
-      myBtn.className = 'pedidos-my-filter-btn';
-      myBtn.title = 'Apenas meus pedidos';
-      myBtn.innerHTML = `
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        <span>Meus Pedidos</span>
-      `;
+    // Conecta botão "Meus Pedidos" (já existe no HTML)
+    const myBtn = document.getElementById('pedidos-my-filter');
+    if (myBtn) {
       myBtn.onclick = () => {
         const isActive = myBtn.classList.toggle('active');
         _state.filter = isActive ? 'mine' : 'all';
         render();
       };
-      topbarRight.insertBefore(myBtn, topbarRight.firstChild);
     }
 
     // Conecta campo de busca
@@ -95,12 +78,18 @@ const OrdersUI = (() => {
       };
     }
 
-    // Botão refresh
+    // Botão refresh — delega ao pedidosCarregar para re-buscar do BD
     const refreshBtn = document.querySelector('.pedidos-refresh-btn');
     if (refreshBtn) {
       refreshBtn.onclick = () => {
-        render();
-        OrdersNotifications.show('Lista de pedidos atualizada.', 'info', 2500);
+        if (typeof pedidosCarregar === 'function') {
+          pedidosCarregar();
+        } else {
+          render();
+        }
+        if (typeof OrdersNotifications !== 'undefined') {
+          OrdersNotifications.show('Lista de pedidos atualizada.', 'info', 2500);
+        }
       };
     }
   }
@@ -889,27 +878,16 @@ const OrdersUI = (() => {
   };
 })();
 
-// ── Integração com o sistema existente de pedidos ──────────────────────────
-// Compatibilidade com pedidosCarregar() e pedidosFiltrar() existentes no HTML
+// ── Inicialização do OrdersUI ──────────────────────────────────────────────
+// pedidosCarregar() e pedidosFiltrar() são definidos em pedidos.js (não duplicar aqui)
+// OrdersUI.init() é chamado após o DOM estar pronto
 
-function pedidosCarregar() {
-  if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
-}
-
-function pedidosFiltrar() {
-  // O input/select do topbar já está conectado via OrdersUI._setupTopbar()
-  if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
-}
-
-// Inicializa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function () {
-  // Aguarda outros módulos
-  setTimeout(() => {
-    if (typeof OrdersStorage !== 'undefined' &&
-        typeof OrdersProgress !== 'undefined' &&
-        typeof OrdersAdmin !== 'undefined' &&
-        typeof OrdersNotifications !== 'undefined') {
+  setTimeout(function () {
+    try {
       OrdersUI.init();
+    } catch(e) {
+      console.error('[OrdersUI] Falha na inicialização:', e);
     }
-  }, 100);
+  }, 150);
 });
