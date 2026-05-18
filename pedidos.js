@@ -141,7 +141,7 @@ async function sendToWhatsApp() {
   const payload = _pedidos_buildPayload(nick, itens, grandTotalRaw, grandTotalFinal);
 
   // visual: desabilita botão enquanto salva
-  const btn = document.querySelector('.send-whatsapp-btn, [onclick="sendToWhatsApp()"]');
+  const btn = document.querySelector('.enviar-pedido-btn, .send-whatsapp-btn, [onclick="sendToWhatsApp()"]');
   const originalLabel = btn ? btn.innerHTML : null;
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Salvando...'; }
 
