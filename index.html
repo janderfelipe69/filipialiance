@@ -111,6 +111,10 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     Entregas
   </button>
+  <button class="tab-btn tab-btn--pedidos" onclick="switchTab('pedidos', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+    Pedidos
+  </button>
   <button class="tab-btn tab-btn--wiki" onclick="switchTab('wiki', this)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     Wiki
@@ -758,6 +762,497 @@
 
 </div>
 
+<!-- TAB: PEDIDOS -->
+<div class="tab-content" id="tab-pedidos">
+  <div class="pedidos-page">
+
+    <div class="pedidos-topbar">
+      <div class="pedidos-topbar-left">
+        <div class="pedidos-titulo">📋 Pedidos</div>
+        <span class="pedidos-count-badge" id="pedidos-count-badge">—</span>
+      </div>
+      <div class="pedidos-topbar-right">
+        <div class="pedidos-search-wrap">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" id="pedidos-search" placeholder="Buscar nick ou item..." oninput="pedidosFiltrar()" />
+        </div>
+        <select id="pedidos-status-filter" onchange="pedidosFiltrar()">
+          <option value="all">Todos</option>
+          <option value="pendente">Pendente</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="entregue">Entregue</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <button class="pedidos-refresh-btn" onclick="pedidosCarregar()" title="Atualizar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="pedidos-loading" class="pedidos-loading">
+      <div class="pedidos-spinner"></div>
+      <span>Carregando pedidos...</span>
+    </div>
+    <div id="pedidos-empty" class="pedidos-empty" style="display:none">
+      <div style="font-size:40px;margin-bottom:12px">📭</div>
+      <div>Nenhum pedido encontrado</div>
+    </div>
+    <div id="pedidos-erro" class="pedidos-erro" style="display:none">
+      <div style="font-size:36px;margin-bottom:10px">⚠️</div>
+      <div id="pedidos-erro-msg">Erro ao carregar pedidos</div>
+      <button onclick="pedidosCarregar()" style="margin-top:14px;padding:8px 20px;border-radius:8px;border:none;background:#3a8cff;color:#fff;cursor:pointer;font-weight:700">Tentar novamente</button>
+    </div>
+    <div id="pedidos-lista" class="pedidos-lista"></div>
+
+  </div>
+</div>
+
+<style>
+/* ── Pedidos Page ── */
+.pedidos-page { padding: 16px 0 80px; }
+
+.pedidos-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 0 2px;
+}
+.pedidos-topbar-left { display: flex; align-items: center; gap: 12px; }
+.pedidos-topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.pedidos-titulo {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+}
+.pedidos-count-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(58,140,255,0.15);
+  border: 1px solid rgba(58,140,255,0.3);
+  color: #60aaff;
+}
+
+.pedidos-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  padding: 0 12px;
+  height: 36px;
+  color: rgba(255,255,255,0.35);
+  min-width: 180px;
+}
+.pedidos-search-wrap:focus-within {
+  border-color: rgba(96,170,255,0.4);
+  background: rgba(96,170,255,0.06);
+}
+.pedidos-search-wrap input {
+  flex:1; background:none; border:none; outline:none;
+  color:#fff; font-size:13px;
+  font-family: var(--font-body, sans-serif);
+}
+.pedidos-search-wrap input::placeholder { color: rgba(255,255,255,0.28); }
+
+#pedidos-status-filter {
+  height: 36px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  color: #fff;
+  font-size: 13px;
+  padding: 0 10px;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-body, sans-serif);
+}
+
+.pedidos-refresh-btn {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.pedidos-refresh-btn:hover { background: rgba(58,140,255,0.15); color: #60aaff; }
+.pedidos-refresh-btn.spin svg { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pedidos-loading, .pedidos-empty, .pedidos-erro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(255,255,255,0.35);
+  font-family: var(--font-body, sans-serif);
+  font-size: 14px;
+  gap: 8px;
+}
+.pedidos-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(58,140,255,0.2);
+  border-top-color: #3a8cff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 8px;
+}
+
+.pedidos-lista { display: flex; flex-direction: column; gap: 12px; }
+
+/* Card de pedido */
+.pedido-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.pedido-card:hover { border-color: rgba(96,170,255,0.25); }
+
+.pedido-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.pedido-card-id {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+}
+.pedido-card-nick {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pedido-card-total {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffd166;
+  white-space: nowrap;
+}
+.pedido-card-date {
+  font-family: var(--font-body, sans-serif);
+  font-size: 11px;
+  color: rgba(255,255,255,0.28);
+  white-space: nowrap;
+}
+.pedido-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.pedido-status-pill.pendente  { background: rgba(255,193,7,0.15);  border:1px solid rgba(255,193,7,0.4);  color: #ffd166; }
+.pedido-status-pill.confirmado{ background: rgba(58,140,255,0.15); border:1px solid rgba(58,140,255,0.4); color: #60aaff; }
+.pedido-status-pill.entregue  { background: rgba(39,174,96,0.15);  border:1px solid rgba(39,174,96,0.4);  color: #5ae698; }
+.pedido-status-pill.cancelado { background: rgba(231,76,60,0.15);  border:1px solid rgba(231,76,60,0.4);  color: #ff6b6b; }
+
+.pedido-card-chevron {
+  color: rgba(255,255,255,0.25);
+  transition: transform .3s;
+  flex-shrink: 0;
+}
+.pedido-card.open .pedido-card-chevron { transform: rotate(180deg); color: #60aaff; }
+
+.pedido-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .35s cubic-bezier(.4,0,.2,1);
+}
+.pedido-card.open .pedido-card-body { max-height: 600px; }
+
+.pedido-card-inner {
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.pedido-itens-label {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin: 14px 0 8px;
+}
+.pedido-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-body, sans-serif);
+  font-size: 13px;
+}
+.pedido-item-row:last-child { border-bottom: none; }
+.pedido-item-nome { flex:1; color: rgba(255,255,255,0.85); }
+.pedido-item-qty  { color: rgba(255,255,255,0.4); font-size:11px; white-space:nowrap; }
+.pedido-item-preco{ color: #ffd166; font-family: var(--font-mono,monospace); font-size:12px; white-space:nowrap; }
+
+.pedido-totais {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.pedido-total-box {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.pedido-total-box-label {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 5px;
+}
+.pedido-total-box-val {
+  font-family: var(--font-mono, monospace);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd166;
+}
+
+.pedido-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.pedido-action-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  font-family: var(--font-body, sans-serif);
+}
+.pedido-action-btn:hover { opacity: 0.85; }
+.pedido-action-btn:active { transform: scale(0.97); }
+.pedido-action-btn.confirmar { background: rgba(58,140,255,0.15); border-color: rgba(58,140,255,0.4); color: #60aaff; }
+.pedido-action-btn.entregar  { background: rgba(39,174,96,0.15);  border-color: rgba(39,174,96,0.4);  color: #5ae698; }
+.pedido-action-btn.cancelar  { background: rgba(231,76,60,0.12);  border-color: rgba(231,76,60,0.35); color: #ff6b6b; }
+
+@media (max-width: 600px) {
+  .pedidos-topbar { flex-direction: column; align-items: flex-start; }
+  .pedidos-topbar-right { width: 100%; }
+  .pedidos-search-wrap { flex: 1; min-width: 0; }
+  .pedido-card-header { flex-wrap: wrap; gap: 8px; }
+  .pedido-card-date { display: none; }
+}
+</style>
+
+<script>
+(function() {
+  const SB_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
+
+  let _todosPedidos = [];
+
+  // ── Formata data ──────────────────────────────────────────────────────────
+  function _fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  // ── Atualiza status no Supabase ───────────────────────────────────────────
+  async function _atualizarStatus(id, novoStatus) {
+    const res = await fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + id, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Prefer':        'return=minimal',
+      },
+      body: JSON.stringify({ status: novoStatus }),
+    });
+    if (!res.ok) throw new Error('Erro ' + res.status);
+  }
+
+  // ── Renderiza um card ─────────────────────────────────────────────────────
+  function _renderCard(p) {
+    const id       = p.id;
+    const nick     = p.nick_jogo || '—';
+    const status   = p.status   || 'pendente';
+    const totalKK  = p.total_kk  || p.subtotal_kk || '—';
+    const totalBRL = p.total_brl || p.subtotal_brl || '—';
+    const modoLabel= p.pagamento_modo === 'brl' ? totalBRL : p.pagamento_modo === 'mix' ? (p.pagamento_kk || '') + ' + ' + (p.pagamento_brl || '') : totalKK;
+    const itens    = Array.isArray(p.itens) ? p.itens : (typeof p.itens === 'string' ? JSON.parse(p.itens) : []);
+    const date     = _fmtDate(p.created_at);
+    const cardId   = 'pedido-card-' + id;
+
+    const itensHTML = itens.map(function(it) {
+      return '<div class="pedido-item-row">'
+        + '<span class="pedido-item-nome">' + (it.nome || '—') + (it.tier ? ' <small style="opacity:.45">(' + it.tier + ')</small>' : '') + '</span>'
+        + '<span class="pedido-item-qty">x' + (it.quantidade || 1) + '</span>'
+        + '<span class="pedido-item-preco">' + (it.preco_total_kk || '—') + '</span>'
+      + '</div>';
+    }).join('');
+
+    const actionsHTML = status === 'pendente' ? 
+      '<button class="pedido-action-btn confirmar" onclick="pedidoSetStatus(' + id + ','confirmado')">✓ Confirmar</button>'
+      + '<button class="pedido-action-btn entregar"  onclick="pedidoSetStatus(' + id + ','entregue')">📦 Entregar</button>'
+      + '<button class="pedido-action-btn cancelar"  onclick="pedidoSetStatus(' + id + ','cancelado')">✕ Cancelar</button>'
+      : status === 'confirmado' ?
+      '<button class="pedido-action-btn entregar"  onclick="pedidoSetStatus(' + id + ','entregue')">📦 Marcar Entregue</button>'
+      + '<button class="pedido-action-btn cancelar"  onclick="pedidoSetStatus(' + id + ','cancelado')">✕ Cancelar</button>'
+      : '';
+
+    return '<div class="pedido-card" id="' + cardId + '">'
+      + '<div class="pedido-card-header" onclick="pedidoToggle('' + cardId + '')">'
+        + '<span class="pedido-card-id">#' + String(id).padStart(4,'0') + '</span>'
+        + '<span class="pedido-card-nick">' + nick + '</span>'
+        + '<span class="pedido-card-total">' + modoLabel + '</span>'
+        + '<span class="pedido-card-date">' + date + '</span>'
+        + '<span class="pedido-status-pill ' + status + '">' + status + '</span>'
+        + '<svg class="pedido-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div class="pedido-card-body">'
+        + '<div class="pedido-card-inner">'
+          + '<div class="pedido-itens-label">Itens do pedido</div>'
+          + itensHTML
+          + '<div class="pedido-totais">'
+            + '<div class="pedido-total-box"><div class="pedido-total-box-label">Total KK</div><div class="pedido-total-box-val">' + totalKK + '</div></div>'
+            + '<div class="pedido-total-box"><div class="pedido-total-box-label">Total R$</div><div class="pedido-total-box-val" style="color:#5ae698">' + totalBRL + '</div></div>'
+            + (p.taxa_servico ? '<div class="pedido-total-box" style="flex:none"><div class="pedido-total-box-label">Taxa</div><div class="pedido-total-box-val" style="color:#ff9060;font-size:12px">+5kk aplicada</div></div>' : '')
+          + '</div>'
+          + (actionsHTML ? '<div class="pedido-actions">' + actionsHTML + '</div>' : '')
+        + '</div>'
+      + '</div>'
+    + '</div>';
+  }
+
+  // ── Renderiza lista ───────────────────────────────────────────────────────
+  function _renderLista(lista) {
+    const el = document.getElementById('pedidos-lista');
+    if (!el) return;
+    if (!lista.length) {
+      el.innerHTML = '';
+      document.getElementById('pedidos-empty').style.display = 'flex';
+      return;
+    }
+    document.getElementById('pedidos-empty').style.display = 'none';
+    el.innerHTML = lista.map(_renderCard).join('');
+    document.getElementById('pedidos-count-badge').textContent = lista.length + ' pedido' + (lista.length !== 1 ? 's' : '');
+  }
+
+  // ── Filtro ────────────────────────────────────────────────────────────────
+  window.pedidosFiltrar = function() {
+    const q      = (document.getElementById('pedidos-search')?.value || '').toLowerCase();
+    const status = document.getElementById('pedidos-status-filter')?.value || 'all';
+    const filtrado = _todosPedidos.filter(function(p) {
+      const matchStatus = status === 'all' || p.status === status;
+      const matchQ = !q
+        || (p.nick_jogo || '').toLowerCase().includes(q)
+        || JSON.stringify(p.itens || '').toLowerCase().includes(q);
+      return matchStatus && matchQ;
+    });
+    _renderLista(filtrado);
+  };
+
+  // ── Toggle card ───────────────────────────────────────────────────────────
+  window.pedidoToggle = function(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) card.classList.toggle('open');
+  };
+
+  // ── Atualiza status ───────────────────────────────────────────────────────
+  window.pedidoSetStatus = async function(id, novoStatus) {
+    try {
+      await _atualizarStatus(id, novoStatus);
+      const idx = _todosPedidos.findIndex(function(p) { return p.id === id; });
+      if (idx !== -1) _todosPedidos[idx].status = novoStatus;
+      pedidosFiltrar();
+    } catch(e) {
+      alert('Erro ao atualizar status: ' + e.message);
+    }
+  };
+
+  // ── Carrega pedidos ───────────────────────────────────────────────────────
+  window.pedidosCarregar = async function() {
+    const loading = document.getElementById('pedidos-loading');
+    const erro    = document.getElementById('pedidos-erro');
+    const lista   = document.getElementById('pedidos-lista');
+    const btn     = document.querySelector('.pedidos-refresh-btn');
+
+    if (loading) loading.style.display = 'flex';
+    if (erro)    erro.style.display    = 'none';
+    if (lista)   lista.innerHTML       = '';
+    if (btn)     btn.classList.add('spin');
+
+    try {
+      const res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.desc&limit=200', {
+        headers: {
+          'apikey':        SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY,
+        }
+      });
+      if (!res.ok) throw new Error('Supabase ' + res.status);
+      _todosPedidos = await res.json();
+      document.getElementById('pedidos-count-badge').textContent = _todosPedidos.length + ' pedido' + (_todosPedidos.length !== 1 ? 's' : '');
+      pedidosFiltrar();
+    } catch(e) {
+      if (erro) {
+        document.getElementById('pedidos-erro-msg').textContent = 'Erro: ' + e.message;
+        erro.style.display = 'flex';
+      }
+    } finally {
+      if (loading) loading.style.display = 'none';
+      if (btn)     btn.classList.remove('spin');
+    }
+  };
+
+  // Carrega ao abrir a aba
+  document.addEventListener('DOMContentLoaded', function() {
+    // Hook no switchTab para carregar quando abrir pedidos
+    var _origSwitch = window.switchTab;
+    window.switchTab = function(tab, el) {
+      if (_origSwitch) _origSwitch(tab, el);
+      if (tab === 'pedidos') pedidosCarregar();
+    };
+  });
+})();
+</script>
+
 <div class="cart-overlay" id="cart-overlay" onclick="handleOverlayClick(event)">
   <div class="cart-panel">
     <div class="cart-header">
@@ -856,8 +1351,10 @@
         <div class="nick-error" id="nick-error">⚠ Informe seu nick no jogo antes de enviar!</div>
       </div>
       <div class="contact-btns-row">
-        <button class="whats-btn" onclick="sendToWhatsApp()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
-        <button class="discord-btn" onclick="sendToDiscord()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963a.075.075 0 0 0-.041-.104 13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z"/></svg> Discord</button>
+        <button class="send-order-btn" id="send-order-btn" onclick="enviarPedido()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Enviar Pedido
+        </button>
       </div>
       <button class="clear-btn" onclick="clearCart()">Limpar Carrinho</button>
     </div>
@@ -1911,5 +2408,104 @@ window.addEventListener('load', function() {
   }
 </script>
 
+
+<style>
+.send-order-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #3a8cff 0%, #1a5fcc 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(58,140,255,0.35);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.send-order-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(58,140,255,0.5); }
+.send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
+.send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+</style>
+<script>
+function enviarPedido() {
+  var nick = (document.getElementById('cart-nick-input') || {}).value || '';
+  if (!nick.trim()) {
+    var errEl = document.getElementById('nick-error');
+    if (errEl) errEl.style.display = 'block';
+    var nickInput = document.getElementById('cart-nick-input');
+    if (nickInput) { nickInput.focus(); nickInput.classList.add('error'); }
+    return;
+  }
+  var btn = document.getElementById('send-order-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  if (typeof submitPedido === 'function') {
+    submitPedido();
+  } else if (typeof sendPedido === 'function') {
+    sendPedido();
+  } else {
+    alert('Erro: funcao de envio nao encontrada em pedidos.js');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Pedido'; }
+  }
+}
+</script>
+
+<style>
+.send-order-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #3a8cff 0%, #1a5fcc 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(58,140,255,0.35);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.send-order-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(58,140,255,0.5); }
+.send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
+.send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+</style>
+<script>
+function enviarPedido() {
+  var nick = (document.getElementById('cart-nick-input') || {}).value || '';
+  if (!nick.trim()) {
+    var errEl = document.getElementById('nick-error');
+    if (errEl) errEl.style.display = 'block';
+    var nickInput = document.getElementById('cart-nick-input');
+    if (nickInput) { nickInput.focus(); nickInput.classList.add('error'); }
+    return;
+  }
+  var btn = document.getElementById('send-order-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  if (typeof sendToWhatsApp === 'function') {
+    Promise.resolve(sendToWhatsApp()).finally(function() {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Pedido';
+      }
+    });
+  } else {
+    alert('Erro: pedidos.js nao carregado');
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar Pedido'; }
+  }
+}
+</script>
 </body>
 </html>
