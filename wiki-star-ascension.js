@@ -654,9 +654,9 @@ const STEPS = [
 /* ═══════════════════════════════════════════
    RENDERIZADOR
 ═══════════════════════════════════════════ */
-function renderStarAscension() {
-  /* O panel já é garantido por wiki-modules-ext.js (_ensurePanel) antes desta função.
-     Se por algum motivo não existir (chamada direta legada), ainda funciona. */
+window.renderStarAscension = function renderStarAscension() {
+  /* O panel é garantido por _ensurePanel() em wiki-modules-ext.js antes desta chamada.
+     O fallback abaixo cobre chamadas diretas legadas. */
   var panel = document.getElementById('wiki-tab-starascension');
   if (!panel) {
     panel = document.createElement('div');
@@ -666,9 +666,8 @@ function renderStarAscension() {
     if (tabWiki) tabWiki.appendChild(panel);
   }
 
-  /* Idempotente: não re-renderiza se já foi preenchido */
-  if (panel.dataset.saRendered) return;
-  panel.dataset.saRendered = '1';
+  /* Guard de idempotência — só marca DEPOIS de preencher o innerHTML */
+  if (panel.dataset.saRendered === '1') return;
 
   panel.innerHTML = `
 
@@ -834,6 +833,9 @@ function renderStarAscension() {
     </div>
 
   `;
+
+  /* Marca DEPOIS do innerHTML estar preenchido — nunca antes */
+  panel.dataset.saRendered = '1';
 }
 
 /* ═══════════════════════════════════════════

@@ -527,12 +527,11 @@ const FAQS = [
 /* ════════════════════════════════════════════════════════════
    RENDERER
 ════════════════════════════════════════════════════════════ */
-function renderMinimap() {
+window.renderMinimap = function renderMinimap() {
   const panel = document.getElementById('wiki-tab-minimap');
   if (!panel) return;
   if (panel.dataset.rendered === '1') return;
-  panel.dataset.rendered = '1';
-
+  
   const stepsHtml = STEPS.map(function(s, i) {
     const isLast = i === STEPS.length - 1;
     return `
@@ -635,6 +634,8 @@ function renderMinimap() {
 
     </div>
   `;
+  /* Marca DEPOIS do innerHTML estar preenchido */
+  panel.dataset.rendered = '1';
 }
 
 /* Copiar caminho */
@@ -661,7 +662,7 @@ window.mmToggleFaq = function(i) {
 /* ════════════════════════════════════════════════════════════
    REGISTRO
 ════════════════════════════════════════════════════════════ */
-function registerMinimap() {
+window.registerMinimap = function registerMinimap() {
   var tabWiki = document.getElementById('tab-wiki');
   if (!tabWiki) return;
   if (document.getElementById('wiki-tab-minimap')) return;

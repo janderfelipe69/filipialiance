@@ -874,11 +874,10 @@ const RANGES_OPT2 = [
 /* ════════════════════════════════════════════════════════════════
    RENDERER
 ════════════════════════════════════════════════════════════════ */
-function renderUp150() {
+window.renderUp150 = function renderUp150() {
   const panel = document.getElementById('wiki-tab-up150');
   if (!panel) return;
   if (panel.dataset.rendered === '1') return;
-  panel.dataset.rendered = '1';
 
   panel.innerHTML = `
     <div class="up150-page">
@@ -928,6 +927,8 @@ function renderUp150() {
   var firstOpt2 = panel.querySelector('#up150-opt2-content .up150-range-section');
   if (firstOpt1) firstOpt1.classList.add('open');
   if (firstOpt2) firstOpt2.classList.add('open');
+  /* Marca DEPOIS do innerHTML e bindings prontos */
+  panel.dataset.rendered = '1';
 }
 
 function buildRanges(ranges, prefix) {
@@ -995,7 +996,7 @@ window.up150SelectOpt = function(opt) {
 /* ════════════════════════════════════════════════════════════════
    REGISTRA O PAINEL E O RENDERER
 ════════════════════════════════════════════════════════════════ */
-function registerUp150() {
+window.registerUp150 = function registerUp150() {
   /* Cria o painel se não existir */
   var tabWiki = document.getElementById('tab-wiki');
   if (!tabWiki) return;
