@@ -435,12 +435,18 @@
       while (slot.firstChild) slot.removeChild(slot.firstChild);
     }
 
+    /* Reseta _current ANTES de qualquer mutação no DOM.
+     * O MutationObserver em nav-runtime.js pode disparar durante as
+     * alterações de classe/display abaixo. Se _current ainda apontar para
+     * o módulo antigo nesse instante, _syncFromDOM lerá WikiModules.current()
+     * e gravará #wiki/<módulo> de volta na URL — exatamente o bug que
+     * estamos corrigindo. Resetar aqui garante que _syncFromDOM verá null. */
+    _current = null;
+
     /* Callback opcional do módulo */
     if (mod && typeof mod.onClose === 'function') {
       try { mod.onClose(); } catch (e) {}
     }
-
-    _current = null;
 
     /* Mostra home */
     var home    = document.getElementById('wn-home');

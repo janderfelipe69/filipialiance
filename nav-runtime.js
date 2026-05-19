@@ -168,12 +168,18 @@
    * os hooks de history. Sem monkey patch de _wnOpen.
    */
 
-  /* Hook: quando um módulo wiki abre → atualiza URL */
+  /* Hook: quando um módulo wiki abre → atualiza URL.
+   * Usa applying=true para bloquear _syncFromDOM durante a escrita na URL,
+   * evitando que o MutationObserver grave novamente com estado antigo.
+   */
   document.addEventListener('wikiModuleOpen', function (e) {
+    if (_state.applying) return; /* já dentro de applyHash — URL não muda */
+    _state.applying = true;
     _state.wikiModule = e.detail.id;
-    if (!_state.applying) {
-      _navigateTo('#wiki/' + e.detail.id);
-    }
+    _navigateTo('#wiki/' + e.detail.id);
+    Promise.resolve().then(function () {
+      _state.applying = false;
+    });
   });
 
   /* Hook: quando o módulo wiki fecha (volta ao home) → atualiza URL.
@@ -187,11 +193,29 @@
    *   open(module)  → pushState    → cria nova entrada navegável
    *   close()       → replaceState → substitui entrada atual, não empilha
    */
+  /* Proteção contra race com MutationObserver:
+   * O close() altera classes DOM ANTES de disparar wikiModuleClose.
+   * O MutationObserver poderia ver a mutação e chamar _syncFromDOM()
+   * enquanto _state.wikiModule ainda não foi resetado, regravando
+   * a URL com o módulo antigo (ex: #wiki/hazard).
+   *
+   * Solução: aplicamos applying=true durante todo o handler para que
+   * _syncFromDOM ignore mutações deste tick. Liberamos em microtask
+   * (Promise) após todas as mutações síncronas serem processadas.
+   *
+   * Simetria open/close:
+   *   open(module) → pushState    → #wiki/id  (navegável para trás)
+   *   close()      → replaceState → #wiki      (não cria nova entrada)
+   */
   document.addEventListener('wikiModuleClose', function () {
+    /* Bloqueia MutationObserver antes de qualquer I/O de URL */
+    _state.applying = true;
     _state.wikiModule = null;
-    if (!_state.applying) {
-      _navigateTo('#wiki', /* replace= */ true);
-    }
+    _navigateTo('#wiki', /* replace= */ true);
+    /* Libera após todas as mutações síncronas deste evento */
+    Promise.resolve().then(function () {
+      _state.applying = false;
+    });
   });
 
   /* Hook de switchTab: quando navega PARA wiki reset módulo; quando sai, fecha módulo */
@@ -320,8 +344,12 @@
 
     var hash;
     if (key === 'wiki') {
-      var mod = _state.wikiModule ||
-        (global.WikiModules ? global.WikiModules.current() : null);
+      /* Usa WikiModules.current() como fonte de verdade canônica.
+       * _state.wikiModule pode estar desatualizado se o fechamento
+       * ainda está em andamento. WikiModules._current já foi resetado
+       * para null antes das mutações DOM, então esta leitura é segura. */
+      var mod = (global.WikiModules ? global.WikiModules.current() : null)
+                || _state.wikiModule;
       hash = mod ? '#wiki/' + mod : '#wiki';
     } else {
       hash = MAIN_TABS[key];
