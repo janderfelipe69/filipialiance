@@ -344,12 +344,22 @@
 
     var hash;
     if (key === 'wiki') {
-      /* Usa WikiModules.current() como fonte de verdade canônica.
-       * _state.wikiModule pode estar desatualizado se o fechamento
-       * ainda está em andamento. WikiModules._current já foi resetado
-       * para null antes das mutações DOM, então esta leitura é segura. */
-      var mod = (global.WikiModules ? global.WikiModules.current() : null)
-                || _state.wikiModule;
+      /* WikiModules.current() é a fonte de verdade canônica.
+       *
+       * IMPORTANTE: NÃO usar _state.wikiModule como fallback aqui.
+       *
+       * Motivo: close() em wiki-nav.js reseta _current para null ANTES
+       * das mutações DOM (para que _syncFromDOM leia null corretamente),
+       * mas despacha wikiModuleClose DEPOIS das mutações. O MutationObserver
+       * pode chamar _syncFromDOM durante as mutações — antes de wikiModuleClose
+       * ser processado — logo _state.wikiModule ainda aponta para o módulo
+       * antigo. Usar _state.wikiModule como fallback reescreveria a URL de
+       * volta para #wiki/<módulo> imediatamente após o fechamento.
+       *
+       * WikiModules._current é resetado para null antes de qualquer mutação
+       * DOM, portanto WikiModules.current() aqui sempre reflete o estado
+       * correto do módulo, independente do timing do evento. */
+      var mod = global.WikiModules ? global.WikiModules.current() : null;
       hash = mod ? '#wiki/' + mod : '#wiki';
     } else {
       hash = MAIN_TABS[key];
