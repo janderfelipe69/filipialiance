@@ -176,18 +176,30 @@
     }
   });
 
-  /* Hook: quando o módulo wiki fecha (volta ao home) → atualiza URL */
+  /* Hook: quando o módulo wiki fecha (volta ao home) → atualiza URL.
+   *
+   * USA replaceState (replace=true) em vez de pushState:
+   *   - O fechamento de um módulo NÃO cria nova entrada no history stack.
+   *   - A entrada atual (#wiki/starascension) é substituída por (#wiki).
+   *   - Isso impede que o botão Back do browser reaplique o módulo fechado.
+   *
+   * Simetria intencional:
+   *   open(module)  → pushState    → cria nova entrada navegável
+   *   close()       → replaceState → substitui entrada atual, não empilha
+   */
   document.addEventListener('wikiModuleClose', function () {
     _state.wikiModule = null;
     if (!_state.applying) {
-      _navigateTo('#wiki');
+      _navigateTo('#wiki', /* replace= */ true);
     }
   });
 
   /* Hook de switchTab: quando navega PARA wiki reset módulo; quando sai, fecha módulo */
   onTabSwitch('after', 'nav-runtime-wiki-sync', function (tab) {
     if (tab !== 'wiki') {
-      /* Saiu da aba wiki — garante que o home é mostrado na volta */
+      /* Saiu da aba wiki — garante que o home é mostrado na volta.
+       * NÃO fecha o módulo aqui: WikiModules mantém o estado para quando
+       * o usuário voltar via tab. O wikiModule state é resetado na URL. */
       _state.wikiModule = null;
     }
   });
@@ -224,6 +236,18 @@
 
   /**
    * Única função que escreve na URL.
+   *
+   * SEMÂNTICA INTENCIONAL:
+   *   pushState  (replace=false, padrão) → nova entrada no history stack.
+   *              Use ao ABRIR algo: tabs, módulos. O usuário pode voltar.
+   *   replaceState (replace=true) → substitui entrada atual, sem empilhar.
+   *              Use ao FECHAR algo: o estado anterior não deve ser
+   *              restaurado pelo botão Back do browser.
+   *
+   * Simetria open/close:
+   *   WikiModules.open(id)  → pushState    → #wiki/id   (navegável para trás)
+   *   WikiModules.close()   → replaceState → #wiki       (não cria nova entrada)
+   *
    * @param {string}  hash    - ex: '#wiki', '#wiki/boost'
    * @param {boolean} replace - true → replaceState (sem entrada no histórico)
    */
@@ -254,20 +278,30 @@
     );
     switchTab(h.main, btn || null, { skipHistory: true });
 
-    /* 2. Abre módulo wiki se necessário */
-    if (h.main === 'wiki' && h.sub) {
-      var wm = global.WikiModules;
-      if (wm && typeof wm.open === 'function') {
-        wm.open(h.sub, { skipHistory: true });
+    /* 2. Abre módulo wiki se necessário; fecha se não necessário */
+    if (h.main === 'wiki') {
+      if (h.sub) {
+        var wm = global.WikiModules;
+        if (wm && typeof wm.open === 'function') {
+          wm.open(h.sub, { skipHistory: true });
+        } else {
+          /* WikiModules ainda não pronto — aguarda o evento de pronto */
+          document.addEventListener('wikiModulesReady', function onReady() {
+            document.removeEventListener('wikiModulesReady', onReady);
+            if (global.WikiModules) global.WikiModules.open(h.sub, { skipHistory: true });
+            _state.applying = false;
+          }, { once: true });
+          /* Não reseta applying aqui — será resetado no handler acima */
+          return;
+        }
       } else {
-        /* WikiModules ainda não pronto — aguarda o evento de pronto */
-        document.addEventListener('wikiModulesReady', function onReady() {
-          document.removeEventListener('wikiModulesReady', onReady);
-          if (global.WikiModules) global.WikiModules.open(h.sub, { skipHistory: true });
-          _state.applying = false;
-        }, { once: true });
-        /* Não reseta applying aqui — será resetado no handler acima */
-        return;
+        /* URL é #wiki sem módulo — fecha qualquer módulo aberto.
+         * Isso garante que popstate para #wiki fecha o módulo visível,
+         * em vez de deixar o estado da UI dessincronizado com a URL. */
+        var wmClose = global.WikiModules;
+        if (wmClose && typeof wmClose.close === 'function' && wmClose.current()) {
+          wmClose.close({ skipHistory: true });
+        }
       }
     }
 
