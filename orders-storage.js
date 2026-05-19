@@ -216,9 +216,10 @@ const OrdersStorage = (() => {
   }
 
   /**
-   * Exclui pedido (somente admin).
+   * Remove pedido do storage sem verificação de permissão.
+   * Chamar apenas via OrdersAdmin.deleteOrder(), que valida isAdmin() antes.
    */
-  function deleteOrder(orderId) {
+  function deleteOrderDirect(orderId) {
     const orders = getAllOrders().filter(o => o.id !== orderId);
     _saveAllOrders(orders);
     return { success: true };
@@ -324,7 +325,7 @@ const OrdersStorage = (() => {
     updateStatus,
     updateItemProgress,
     addObservation,
-    deleteOrder,
+    deleteOrder: deleteOrderDirect,
     markNotificationsRead,
     getUnreadCount,
     migrateLegacyOrders,

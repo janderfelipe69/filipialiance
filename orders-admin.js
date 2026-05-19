@@ -188,7 +188,7 @@ const OrdersAdmin = (() => {
 
     if (!confirm(`Excluir PERMANENTEMENTE o pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)}? Esta ação não pode ser desfeita.`)) return;
 
-    OrdersStorage.deleteOrder(orderId);
+    OrdersStorage.deleteOrder(orderId); // deleteOrderDirect internamente — auth já validada acima
     OrdersNotifications.show('Pedido excluído.', 'info');
     if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
   }

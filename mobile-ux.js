@@ -164,6 +164,8 @@
       setTimeout(patchSwitchTab, 100);
       return;
     }
+    if (window._mobileTabPatched) return;
+    window._mobileTabPatched = true;
     var _orig = window.switchTab;
     window.switchTab = function(tab, btn) {
       _orig(tab, btn);
