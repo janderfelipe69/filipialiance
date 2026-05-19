@@ -858,6 +858,7 @@ function injectCard() {
 /* Faz o patch no _wnOpen para reconhecer o novo id */
 function patchWnOpen() {
   if (typeof window._wnOpen !== 'function') { setTimeout(patchWnOpen, 100); return; }
+  if (window._wnOpen._starAscPatched) return;
   var _orig = window._wnOpen;
   window._wnOpen = function(id) {
     if (id !== 'starascension') { _orig.call(this, id); return; }
@@ -904,6 +905,7 @@ function patchWnOpen() {
     _mount();
     setTimeout(_mount, 100);
   };
+  window._wnOpen._starAscPatched = true;
 }
 
 function init() {
