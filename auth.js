@@ -1,12 +1,18 @@
 // ============================================================
-// auth.js — Lógica de Autenticação com Supabase  [CORRIGIDO]
+// auth.js — Lógica de Autenticação com Supabase
 // PokeAlliance Shop
 //
-// CORREÇÕES APLICADAS:
-//   1. Regex de nickname agora aceita espaços internos
-//   2. Mínimo de nickname corrigido para 2 (era 3)
-//   3. Mensagem de erro atualizada para refletir regras corretas
-//   4. Fallback de role em comentários alinhado com o banco ('user')
+// CORREÇÕES v3:
+//   1. signUp: detecta corretamente auto-confirm ON e OFF
+//      GoTrue v1 /auth/v1/signup retorna formatos diferentes:
+//        - auto-confirm OFF: { id, email, confirmation_sent_at, ... }
+//          (sem .user wrapper, sem .access_token)
+//        - auto-confirm ON:  { access_token, refresh_token, user, ... }
+//          (sem .session — session não existe nesse endpoint)
+//   2. Adicionado log detalhado da resposta para diagnóstico
+//   3. _mapAuthError: cobre duplicate email, nickname em uso
+//   4. Nickname duplicado: mensagem específica ao usuário
+//   5. Fluxo login automático pós-signup corrigido
 //
 // Depende de: supabase-client.js, session.js
 // ============================================================
@@ -33,13 +39,11 @@ const Auth = (() => {
 
   const RULES = {
     nickname: {
-      min: 2,   // ✅ CORRIGIDO: era 3
+      min: 2,
       max: 24,
-      // ✅ CORRIGIDO: aceita letras, números e espaços internos
-      // Regex: ^(?=.{2,24}$)(?!\s+$)[A-Za-z0-9 ]+$
-      //   - (?=.{2,24}$)  → entre 2 e 24 caracteres no total
-      //   - (?!\s+$)       → não pode ser só espaços
-      //   - [A-Za-z0-9 ]+ → só letras, números e espaço
+      // Aceita letras, números e espaços internos
+      // "J F", "Player One", "DarkKnight" → válidos
+      // " ", "@@@", "A" → inválidos
       pattern: /^(?=.{2,24}$)(?!\s+$)[A-Za-z0-9 ]+$/,
     },
     password: { min: 6, max: 64 },
@@ -47,21 +51,13 @@ const Auth = (() => {
 
   function validateNickname(value) {
     if (!value || !value.trim()) return { ok: false, msg: 'Nickname é obrigatório.' };
-
-    // Não faz trim antes de validar — espaços internos são permitidos,
-    // mas espaços nas BORDAS são removidos antes de enviar ao banco.
     const trimmed = value.trim();
-
     if (trimmed.length < RULES.nickname.min)
       return { ok: false, msg: `Mínimo ${RULES.nickname.min} caracteres.` };
-
     if (trimmed.length > RULES.nickname.max)
       return { ok: false, msg: `Máximo ${RULES.nickname.max} caracteres.` };
-
-    // ✅ Regex atualizada: aceita espaços internos
     if (!RULES.nickname.pattern.test(trimmed))
       return { ok: false, msg: 'Use apenas letras, números e espaços.' };
-
     return { ok: true };
   }
 
@@ -93,13 +89,21 @@ const Auth = (() => {
   /**
    * Cadastra novo usuário no Supabase.
    *
-   * O que acontece no backend:
+   * Fluxo no backend:
    *   1. Supabase Auth cria o registro em auth.users
    *   2. O trigger `on_auth_user_created` dispara automaticamente
-   *   3. O trigger insere em public.users com role = 'user' por padrão
+   *   3. O trigger insere em public.users com role = 'user' (hardcoded)
    *   4. O frontend NÃO faz nenhum INSERT em public.users
    *
-   * @param {{ nickname, email, password, confirmPassword, serverConfirmed }}
+   * Formatos de resposta do GoTrue v1 /auth/v1/signup:
+   *
+   *   auto-confirm DESATIVADO (email de confirmação necessário):
+   *     HTTP 200 → { id, aud, email, confirmation_sent_at, user_metadata, ... }
+   *     NÃO tem .user wrapper, NÃO tem .access_token
+   *
+   *   auto-confirm ATIVADO (sem confirmação de email):
+   *     HTTP 200 → { access_token, token_type, expires_in, refresh_token, user: {...} }
+   *     NÃO tem .session (isso é formato do SDK v2, não da REST API direta)
    */
   async function register({ nickname, email, password, confirmPassword, serverConfirmed }) {
     if (!serverConfirmed) {
@@ -111,7 +115,6 @@ const Auth = (() => {
       return { success: false, message: `Muitas tentativas. Aguarde ${rl.wait}s.` };
     }
 
-    // Valida nickname (regex nova — aceita espaços internos)
     const nickV = validateNickname(nickname);
     if (!nickV.ok) return { success: false, field: 'nickname', message: nickV.msg };
 
@@ -124,45 +127,71 @@ const Auth = (() => {
     const confV = validateConfirmPassword(password, confirmPassword);
     if (!confV.ok) return { success: false, field: 'confirmPassword', message: confV.msg };
 
-    console.log('[Auth] 📝 Iniciando cadastro para:', email);
+    const cleanEmail    = email.trim().toLowerCase();
+    const cleanNickname = nickname.trim(); // preserva espaços internos: "J F" → "J F"
+
+    console.log('[Auth] Iniciando cadastro para:', cleanEmail, '| Nickname:', cleanNickname);
 
     try {
-      // ✅ Envia nickname sem espaços nas bordas (trim),
-      //    mas preserva espaços internos — "J F", "Player One" são válidos.
       const data = await SupabaseClient.Auth.signUp(
-        email.trim().toLowerCase(),
+        cleanEmail,
         password,
         {
-          nickname: nickname.trim(), // "  J F  " → "J F"  ✅
+          nickname: cleanNickname,
           server:   'Moon',
+          // NUNCA enviar role aqui — o trigger define role = 'user' no banco
         }
       );
 
-      if (!data || !data.user) {
-        return { success: false, message: 'Resposta inesperada do servidor. Tente novamente.' };
+      // ── LOG DIAGNÓSTICO ───────────────────────────────────────────────────
+      console.log('[Auth] SIGNUP RESPONSE bruto:', JSON.stringify({
+        has_access_token:      !!data?.access_token,
+        has_user:              !!data?.user,
+        has_id_root:           !!data?.id,
+        has_confirmation_sent: !!data?.confirmation_sent_at,
+        user_id:               data?.user?.id   || data?.id    || null,
+        user_email:            data?.user?.email || data?.email || null,
+      }));
+
+      if (!data) {
+        console.error('[Auth] Resposta nula do servidor');
+        return { success: false, message: 'Sem resposta do servidor. Verifique sua conexão.' };
       }
 
-      if (!data.session) {
-        console.log('[Auth] ✉️ Email de confirmação enviado para:', email);
+      // ── CASO 1: auto-confirm ATIVADO ──────────────────────────────────────
+      // GoTrue retorna: { access_token, refresh_token, expires_in, user: {...} }
+      if (data.access_token && data.user) {
+        console.log('[Auth] Cadastro com auto-confirm ON. Login automático...');
+        const user = await Session._handleLoginSuccess({
+          access_token:  data.access_token,
+          refresh_token: data.refresh_token,
+          expires_in:    data.expires_in,
+          user:          data.user,
+        });
+        return { success: true, user };
+      }
+
+      // ── CASO 2: auto-confirm DESATIVADO ───────────────────────────────────
+      // GoTrue retorna: { id, email, confirmation_sent_at, ... }
+      // Sem .user wrapper, sem .access_token
+      // O usuário FOI criado em auth.users mas precisa confirmar o email.
+      if (data.id || data.confirmation_sent_at) {
+        const userEmail = data.email || cleanEmail;
+        console.log('[Auth] Cadastro com auto-confirm OFF. Email enviado para:', userEmail);
         return {
-          success: true,
+          success:           true,
           needsConfirmation: true,
-          message: `Conta criada! Verifique o e-mail ${email} para ativar sua conta.`,
-          user: { email: data.user.email, nickname: nickname.trim() },
+          message:           `Conta criada! Verifique o e-mail ${userEmail} para ativar sua conta.`,
+          user:              { email: userEmail, nickname: cleanNickname },
         };
       }
 
-      console.log('[Auth] ✅ Cadastro bem-sucedido, fazendo login automático...');
-      const user = await Session._handleLoginSuccess(
-        data.session
-          ? { ...data.session, user: data.user }
-          : data
-      );
-
-      return { success: true, user };
+      // ── CASO 3: formato inesperado ────────────────────────────────────────
+      console.error('[Auth] Formato de resposta desconhecido:', JSON.stringify(data));
+      return { success: false, message: 'Resposta inesperada do servidor. Tente novamente.' };
 
     } catch (e) {
-      console.error('[Auth] ❌ Erro no cadastro:', e.message);
+      console.error('[Auth] Erro no cadastro:', e.message);
       return { success: false, message: _mapAuthError(e.message) };
     }
   }
@@ -178,21 +207,26 @@ const Auth = (() => {
     if (!email || !email.trim()) return { success: false, field: 'email', message: 'Digite seu e-mail.' };
     if (!password)               return { success: false, field: 'password', message: 'Digite sua senha.' };
 
-    console.log('[Auth] 🔐 Tentando login para:', email);
+    console.log('[Auth] Tentando login para:', email.trim().toLowerCase());
 
     try {
       const data = await SupabaseClient.Auth.signIn(email.trim().toLowerCase(), password);
+
+      console.log('[Auth] LOGIN RESPONSE:', JSON.stringify({
+        has_access_token: !!data?.access_token,
+        has_user:         !!data?.user,
+      }));
 
       if (!data || !data.access_token) {
         return { success: false, message: 'Resposta inesperada do servidor. Tente novamente.' };
       }
 
       const user = await Session._handleLoginSuccess(data);
-      console.log('[Auth] ✅ Login bem-sucedido:', user.nickname || user.email);
+      console.log('[Auth] Login bem-sucedido:', user.nickname || user.email);
       return { success: true, user };
 
     } catch (e) {
-      console.error('[Auth] ❌ Erro no login:', e.message);
+      console.error('[Auth] Erro no login:', e.message);
       return { success: false, message: _mapAuthError(e.message) };
     }
   }
@@ -208,23 +242,38 @@ const Auth = (() => {
   function _mapAuthError(msg) {
     if (!msg) return 'Erro desconhecido. Tente novamente.';
     const m = msg.toLowerCase();
+
     if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
       return 'E-mail ou senha incorretos.';
     }
     if (m.includes('email not confirmed')) {
       return 'Confirme seu e-mail antes de entrar.';
     }
-    if (m.includes('user already registered') || m.includes('already been registered')) {
-      return 'Este e-mail já possui uma conta. Faça login.';
+    // Email duplicado em auth.users
+    if (m.includes('user already registered') || m.includes('already been registered') || m.includes('email address is already registered')) {
+      return 'Este e-mail já possui uma conta. Tente fazer login.';
+    }
+    // UNIQUE constraint do PostgreSQL (código 23505) — pode vir do trigger
+    if (m.includes('duplicate key') || m.includes('23505')) {
+      if (m.includes('nickname')) {
+        return 'Este nickname já está em uso. Escolha outro.';
+      }
+      if (m.includes('email')) {
+        return 'Este e-mail já possui uma conta. Tente fazer login.';
+      }
+      return 'Dados já cadastrados. Verifique email e nickname.';
     }
     if (m.includes('password should be at least')) {
       return 'Senha muito curta. Mínimo 6 caracteres.';
     }
-    if (m.includes('rate limit') || m.includes('too many requests')) {
-      return 'Muitas tentativas. Aguarde alguns minutos.';
+    if (m.includes('rate limit') || m.includes('too many requests') || m.includes('security purposes')) {
+      return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
     }
-    if (m.includes('network') || m.includes('fetch')) {
+    if (m.includes('network') || m.includes('fetch') || m.includes('failed to fetch')) {
       return 'Erro de conexão. Verifique sua internet.';
+    }
+    if (m.includes('signup is disabled') || m.includes('signups not allowed')) {
+      return 'Cadastro temporariamente desativado. Tente mais tarde.';
     }
     return msg;
   }
