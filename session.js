@@ -1,46 +1,34 @@
 // ============================================================
-// session.js — Gerenciamento de Sessão com Supabase
+// session.js — Gerenciamento de Sessão com Supabase  [CORRIGIDO]
 // PokeAlliance Shop
 //
-// Responsabilidades:
-//   - Persistência de tokens no localStorage (access + refresh)
-//   - Renovação automática de token expirado
-//   - Carregamento do perfil completo em public.users (com role)
-//   - Notificação de mudanças de estado (Observer pattern)
-//   - Atualização da UI do header
+// CORREÇÃO APLICADA:
+//   - role fallback era 'consumer' em dois lugares — corrigido para 'user'
+//     (deve bater com o CHECK CONSTRAINT do banco: IN ('user', 'admin'))
 //
 // Depende de: supabase-client.js
-// NÃO depende mais de user-storage.js
 // ============================================================
 
 const Session = (() => {
   'use strict';
 
-  // ── Chaves do localStorage ───────────────────────────────────────────────
-  // Apenas tokens são guardados localmente — nunca dados de usuário ou role.
   const KEYS = {
     ACCESS_TOKEN:  'pa_sb_access_token',
     REFRESH_TOKEN: 'pa_sb_refresh_token',
-    TOKEN_EXPIRY:  'pa_sb_token_expiry',   // timestamp em ms
+    TOKEN_EXPIRY:  'pa_sb_token_expiry',
   };
 
-  // ── Estado em memória ────────────────────────────────────────────────────
-  // _currentUser contém dados vindos EXCLUSIVAMENTE do Supabase (public.users).
-  // A role NUNCA vem do localStorage ou do frontend.
-  let _currentUser = null;      // dados de public.users + email de auth.users
-  let _accessToken = null;
+  let _currentUser  = null;
+  let _accessToken  = null;
   let _refreshToken = null;
-  let _initialized = false;
+  let _initialized  = false;
   let _refreshTimer = null;
 
-  // ── Observers ────────────────────────────────────────────────────────────
   const _listeners = [];
 
   function onAuthChange(callback) {
-    // Evita registro duplicado (previne múltiplos listeners)
     if (_listeners.includes(callback)) return;
     _listeners.push(callback);
-    // Notifica imediatamente com estado atual se já inicializado
     if (_initialized) {
       try { callback(_currentUser ? 'login' : 'logout', _currentUser); } catch (_) {}
     }
@@ -95,7 +83,6 @@ const Session = (() => {
   function _isTokenExpired() {
     try {
       const expiry = parseInt(localStorage.getItem(KEYS.TOKEN_EXPIRY) || '0', 10);
-      // Considera expirado 60s antes para renovar com margem
       return Date.now() > expiry - 60_000;
     } catch {
       return true;
@@ -106,7 +93,6 @@ const Session = (() => {
 
   function _scheduleRefresh(expiresInSeconds) {
     if (_refreshTimer) clearTimeout(_refreshTimer);
-    // Renova 2 minutos antes de expirar
     const delay = Math.max((expiresInSeconds - 120) * 1000, 30_000);
     _refreshTimer = setTimeout(_doRefresh, delay);
     console.log(`[Session] ⏱ Token será renovado em ${Math.round(delay / 60000)} min.`);
@@ -127,10 +113,6 @@ const Session = (() => {
 
   // ── Carregamento de Perfil ───────────────────────────────────────────────
 
-  /**
-   * Busca o perfil completo de public.users (inclui role).
-   * A role vem SEMPRE do banco — nunca do frontend.
-   */
   async function _loadProfile(authUserId, jwt) {
     console.log('[Session] 📋 Carregando perfil do banco...');
     try {
@@ -149,10 +131,6 @@ const Session = (() => {
 
   // ── Inicialização ────────────────────────────────────────────────────────
 
-  /**
-   * Deve ser chamado no DOMContentLoaded.
-   * Recupera sessão salva, renova token se necessário, carrega perfil.
-   */
   async function init() {
     if (_initialized) {
       console.warn('[Session] ⚠️ init() chamado mais de uma vez. Ignorando.');
@@ -168,7 +146,6 @@ const Session = (() => {
       return;
     }
 
-    // Renova se expirado
     if (_isTokenExpired()) {
       console.log('[Session] 🔄 Token expirado, tentando renovar...');
       try {
@@ -182,7 +159,6 @@ const Session = (() => {
       }
     }
 
-    // Busca dados do usuário autenticado
     let authUser;
     try {
       authUser = await SupabaseClient.Auth.getUser(_accessToken);
@@ -193,12 +169,10 @@ const Session = (() => {
       return;
     }
 
-    // Carrega perfil do banco (com role)
     const profile = await _loadProfile(authUser.id, _accessToken);
     if (!profile) {
-      // auth.users existe mas public.users não — situação inconsistente
-      // Mantém autenticado mas sem role (limita acesso)
-      _currentUser = { id: authUser.id, email: authUser.email, role: 'consumer', nickname: authUser.email };
+      // ✅ CORRIGIDO: era 'consumer' — deve ser 'user' (alinhado com o banco)
+      _currentUser = { id: authUser.id, email: authUser.email, role: 'user', nickname: authUser.email };
       console.warn('[Session] ⚠️ Perfil não encontrado em public.users. Usando fallback básico.');
     } else {
       _currentUser = profile;
@@ -211,20 +185,17 @@ const Session = (() => {
 
   // ── Login / Logout ───────────────────────────────────────────────────────
 
-  /**
-   * Chamado após autenticação bem-sucedida.
-   * Recebe os dados retornados pelo Supabase Auth.
-   */
   async function _handleLoginSuccess(authData) {
     _saveTokens(authData.access_token, authData.refresh_token, authData.expires_in);
 
     const profile = await _loadProfile(authData.user.id, authData.access_token);
     if (!profile) {
+      // ✅ CORRIGIDO: era 'consumer' — deve ser 'user' (alinhado com o banco)
       _currentUser = {
         id:       authData.user.id,
         email:    authData.user.email,
         nickname: authData.user.email,
-        role:     'consumer',
+        role:     'user',   // ← CORRIGIDO
         server:   'Moon',
         avatar:   null,
       };
@@ -244,7 +215,6 @@ const Session = (() => {
       try {
         await SupabaseClient.Auth.signOut(_accessToken);
       } catch (e) {
-        // Ignora erro de logout no servidor — limpa localmente de qualquer forma
         console.warn('[Session] Erro no signOut remoto (ignorado):', e.message);
       }
     }
@@ -255,25 +225,10 @@ const Session = (() => {
     console.log('[Session] ✅ Logout concluído.');
   }
 
-  function getCurrentUser() {
-    return _currentUser;
-  }
-
-  function isLoggedIn() {
-    return _currentUser !== null && _accessToken !== null;
-  }
-
-  function getAccessToken() {
-    return _accessToken;
-  }
-
-  /**
-   * Verifica se o usuário atual tem role 'admin'.
-   * A role vem SEMPRE do banco — nunca do localStorage/frontend.
-   */
-  function isAdmin() {
-    return _currentUser !== null && _currentUser.role === 'admin';
-  }
+  function getCurrentUser()  { return _currentUser; }
+  function isLoggedIn()      { return _currentUser !== null && _accessToken !== null; }
+  function getAccessToken()  { return _accessToken; }
+  function isAdmin()         { return _currentUser !== null && _currentUser.role === 'admin'; }
 
   // ── Renderização do Header ───────────────────────────────────────────────
 
@@ -289,7 +244,7 @@ const Session = (() => {
     const container = document.getElementById('auth-header-slot');
     if (!container) return;
 
-    const initials = _getInitials(user.nickname);
+    const initials    = _getInitials(user.nickname);
     const isAdminUser = user.role === 'admin';
 
     container.innerHTML = `
@@ -360,8 +315,6 @@ const Session = (() => {
     document.removeEventListener('click', _handleOutsideClick);
   }
 
-  // ── Helpers da UI ────────────────────────────────────────────────────────
-
   function _handleOutsideClick(e) {
     const widget = document.getElementById('auth-user-widget');
     if (widget && !widget.contains(e.target)) _closeMenu();
@@ -398,7 +351,6 @@ const Session = (() => {
     if (typeof AuthModal !== 'undefined') AuthModal.openMyAccount();
   }
 
-  // ── Exporta API pública ──────────────────────────────────────────────────
   return {
     init,
     logout,
@@ -407,9 +359,7 @@ const Session = (() => {
     isAdmin,
     getAccessToken,
     onAuthChange,
-    // Interno — exposto para uso do auth.js
     _handleLoginSuccess,
-    // Internos da UI (usados nos onclick inline do header)
     _toggleMenu,
     _closeMenu,
     _confirmLogout,
