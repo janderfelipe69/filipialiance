@@ -381,16 +381,6 @@
 
     _log('Módulo carregado. Aguardando tab de pedidos...');
 
-    // Intercepta switchTab para carregar ao abrir a aba
-    var _origSwitch = global.switchTab;
-    global.switchTab = function (tab, el) {
-      if (_origSwitch) _origSwitch(tab, el);
-      if (tab === 'pedidos') {
-        _log('Tab pedidos ativada → carregando');
-        global.pedidosCarregar();
-      }
-    };
-
     // Se a aba já está ativa no carregamento, busca imediatamente
     var tabPedidos = document.getElementById('tab-pedidos');
     if (tabPedidos && tabPedidos.classList.contains('active')) {

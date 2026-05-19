@@ -1245,8 +1245,7 @@
   }
 })();
 </script>
-<script src="wiki-nav.js"></script> 
-<script src="wiki-medals.js"></script>
+
 
 
 <!-- ===================== WELCOME MODAL ===================== -->
@@ -2216,21 +2215,26 @@
 </script>
 
 <script src="mobile-ux.js"></script>
-<script src="url-hash.js"></script>
 <script src="item-card-popup.js"></script>
 <script src="wiki-cards-upgrade.js"></script>
 <script src="quest-modal.js"></script>
+
+<!-- Renderizadores de módulos (ordem não importa entre si) -->
 <script src="tierlist.js"></script>
-<script src="tierlist-types.js"></script> 
+<script src="tierlist-types.js"></script>
 <script src="tierlist-popup.js"></script>
 <script src="filter-smart.js"></script>
-<script src="wiki-nav.js"></script>
 <script src="wiki-boost.js"></script>
 <script src="wiki-star-ascension.js"></script>
 <script src="wiki-up150.js"></script>
 <script src="wiki-minimap.js"></script>
 <script src="wiki-medals.js"></script>
 <script src="wiki-medals-buffs.js"></script>
+
+<!-- Runtime de navegação — deve vir APÓS todos os renderizadores -->
+<script src="wiki-nav.js"></script>
+<script src="wiki-modules-ext.js"></script>
+<script src="nav-runtime.js"></script>
 
 <script>
   // ── Service Worker ────────────────────────────────────────────────────────

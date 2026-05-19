@@ -1014,20 +1014,6 @@ function registerUp150() {
   /* (wiki-nav expõe via window._wnOpen — o renderer é chamado lá) */
 }
 
-/* ── Patch do _wnOpen para chamar renderUp150 ── */
-(function patchWnOpen() {
-  var _orig = window._wnOpen;
-  window._wnOpen = function(id) {
-    if (id === 'up150') {
-      /* Registra panel se necessário */
-      registerUp150();
-      /* Chama o renderer antes do _wnOpen original montar o slot */
-      renderUp150();
-    }
-    if (_orig) _orig(id);
-  };
-})();
-
 /* ── Init ── */
 function init() {
   if (window._wnInitDone) {

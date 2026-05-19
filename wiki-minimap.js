@@ -672,18 +672,6 @@ function registerMinimap() {
   tabWiki.appendChild(panel);
 }
 
-/* Patch do _wnOpen */
-(function patchWnOpen() {
-  var _orig = window._wnOpen;
-  window._wnOpen = function(id) {
-    if (id === 'minimap') {
-      registerMinimap();
-      renderMinimap();
-    }
-    if (_orig) _orig(id);
-  };
-})();
-
 function init() {
   if (window._wnInitDone) {
     registerMinimap();

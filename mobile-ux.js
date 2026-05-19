@@ -157,22 +157,19 @@
   }
 
   /* ══════════════════════════════════════════════════════════
-     PATCH: switchTab — scroll tab ao centro + haptic
+     HOOK: switchTab via NavRuntime — scroll tab ao centro + haptic
   ══════════════════════════════════════════════════════════ */
-  function patchSwitchTab() {
-    if (typeof switchTab !== 'function') {
-      setTimeout(patchSwitchTab, 100);
+  function registerMobileHook() {
+    if (!window.NavRuntime) {
+      document.addEventListener('DOMContentLoaded', registerMobileHook);
       return;
     }
-    if (window._mobileTabPatched) return;
-    window._mobileTabPatched = true;
-    var _orig = window.switchTab;
-    window.switchTab = function(tab, btn) {
-      _orig(tab, btn);
+    NavRuntime.onTabSwitch('after', 'mobile-ux', function (tab, btn) {
       scrollTabIntoView(btn);
       haptic('light');
-    };
+    });
   }
+  registerMobileHook();
 
   /* ══════════════════════════════════════════════════════════
      PACKAGE SIDEBAR — scroll item selecionado ao centro
@@ -241,7 +238,6 @@
     setTimeout(function() {
       patchCartFunctions();
       patchPkgModal();
-      patchSwitchTab();
     }, 50);
 
     patchPkgSidebar();

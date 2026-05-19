@@ -3590,11 +3590,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape')     lb.classList.remove('open');
 });
 
-const _origSwitchTab = switchTab;
-switchTab = function(tab, btn) {
-  _origSwitchTab(tab, btn);
-  if (tab === 'entregas') renderEntregas();
-};
+// Substituto seguro (adicione no final de app.js, após DOMContentLoaded):
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.NavRuntime) {
+    NavRuntime.onTabSwitch('after', 'app-entregas', function (tab) {
+      if (tab === 'entregas' && typeof renderEntregas === 'function') renderEntregas();
+    });
+  }
+});
 
 // Sticky offset — mede header e tabs e expõe como variáveis CSS
 function updateStickyOffsets() {
@@ -7747,3 +7750,4 @@ function closeHeldModalBtn() {
   if (root) root.innerHTML = '';
   document.body.style.overflow = '';
 }
+
