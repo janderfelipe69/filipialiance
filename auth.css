@@ -41,6 +41,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  z-index: 201; /* acima do header (z-index:200) para garantir que o dropdown flutue corretamente */
 }
 
 .auth-avatar {

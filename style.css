@@ -336,7 +336,7 @@ header {
   z-index: 200;
   background: rgba(8,15,30,0.98);
   border-bottom: 1px solid var(--border);
-  overflow: hidden;
+  overflow: visible; /* era hidden — cortava o auth-dropdown; linha ::after usa pseudo-elemento, não precisa de clip */
   /* backdrop-filter removido — causa jank severo em elementos sticky */
 }
 
