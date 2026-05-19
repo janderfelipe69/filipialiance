@@ -313,37 +313,59 @@
   /**
    * Monta o painel do módulo no #wn-slot, garantindo que
    * apenas um painel fica visível por vez.
+   *
+   * IMPORTANTE: render() já deve ter rodado antes desta função.
+   * O panel deve existir em #tab-wiki antes de ser movido para o slot.
+   *
    * @param {string} id
+   * @returns {HTMLElement|null} o panel montado, ou null se slot não existe
    */
   function _mountPanel(id) {
     var slot  = document.getElementById('wn-slot');
     var panel = document.getElementById('wiki-tab-' + id);
 
-    if (!slot) return;
+    if (!slot) return null;
 
+    /* Se render() não criou o panel (módulo sem renderer), cria um container
+       mínimo para que o slot não fique em estado inconsistente. */
     if (!panel) {
-      /* Módulo ainda não criou o painel — cria um container genérico */
       panel = document.createElement('div');
       panel.id = 'wiki-tab-' + id;
       panel.className = 'wiki-subtab-content';
-      document.getElementById('tab-wiki').appendChild(panel);
+      /* Não faz appendChild em tab-wiki — o slot já é dentro de #wn-shell
+         que está dentro de #tab-wiki, então o panel vai direto para o slot. */
     }
 
+    /* Remove visibilidade de todos os outros painéis */
+    document.querySelectorAll('.wiki-subtab-content.wn-visible').forEach(function (el) {
+      if (el !== panel) el.classList.remove('wn-visible');
+    });
+
+    /* Move o panel para o slot (idempotente — slot.contains já verifica) */
     if (!slot.contains(panel)) {
-      /* Remove visibilidade de outros painéis */
-      document.querySelectorAll('.wiki-subtab-content.wn-visible').forEach(function (el) {
-        el.classList.remove('wn-visible');
-      });
-      /* Limpa slot e insere o novo painel */
       while (slot.firstChild) slot.removeChild(slot.firstChild);
       slot.appendChild(panel);
     }
 
+    /* Torna visível — só aqui, após estar no slot, o CSS libera o display */
     panel.classList.add('wn-visible');
+    return panel;
   }
 
   /**
    * Abre um módulo.
+   *
+   * Ordem de operações (determinística):
+   *   1. Atualiza chrome (breadcrumb, banner, cor)
+   *   2. Mostra #wn-content, esconde #wn-home
+   *   3. Chama mod.render() — o módulo cria/preenche seu panel em #tab-wiki
+   *   4. _mountPanel() move o panel para #wn-slot e adiciona wn-visible
+   *
+   * render() ANTES de _mountPanel() garante que:
+   *   - o panel existe quando _mountPanel() o busca
+   *   - tierlist-root e outros containers internos existem antes da montagem
+   *   - nenhum panel genérico vazio é exibido
+   *
    * @param {string} id
    * @param {Object} [opts]
    * @param {boolean} [opts.skipHistory] - não dispara evento wikiModuleOpen
@@ -362,9 +384,10 @@
 
     _current = id;
 
+    /* 1. Atualiza chrome */
     _updateChrome(mod);
 
-    /* Mostra tela de conteúdo, esconde home */
+    /* 2. Mostra tela de conteúdo, esconde home */
     var home    = document.getElementById('wn-home');
     var content = document.getElementById('wn-content');
     if (home)    home.style.display = 'none';
@@ -372,15 +395,17 @@
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    /* Monta o painel no slot */
-    _mountPanel(id);
-
-    /* Chama renderer do módulo */
+    /* 3. Chama renderer ANTES de montar no slot
+          O módulo cria/preenche #wiki-tab-<id> em #tab-wiki.
+          Se render() falhar, _mountPanel ainda tenta montar o que houver. */
     if (typeof mod.render === 'function') {
       try { mod.render(); } catch (e) { console.error('WikiModules: erro em render de', id, e); }
     }
 
-    /* Notifica NavRuntime (e quem mais ouvir) */
+    /* 4. Monta o painel no slot (panel já existe graças ao render() acima) */
+    _mountPanel(id);
+
+    /* Notifica NavRuntime */
     if (!opts.skipHistory) {
       document.dispatchEvent(new CustomEvent('wikiModuleOpen', { detail: { id: id } }));
     }

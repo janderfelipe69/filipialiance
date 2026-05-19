@@ -207,18 +207,9 @@
   /* mobile-ux.js: scroll + haptic — preenchido em mobile-ux.js via NavRuntime.onTabSwitch */
   /* (mobile-ux.js registra seu próprio hook, não precisa de patch aqui) */
 
-  /* wiki-nav.js: ao entrar na aba wiki, garante home visível */
-  onTabSwitch('after', 'wiki-nav-reset', function (tab) {
-    if (tab !== 'wiki') return;
-    var home    = document.getElementById('wn-home');
-    var content = document.getElementById('wn-content');
-    if (home)    home.style.display = 'block';
-    if (content) { content.style.display = 'none'; content.classList.remove('visible'); }
-    document.querySelectorAll('.wiki-subtab-content.wn-visible').forEach(function (el) {
-      el.classList.remove('wn-visible');
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  /* Nota: o hook 'wiki-nav-reset' (exibir wn-home ao entrar na aba wiki)
+     é registrado por wiki-nav.js com lógica que respeita o módulo atual.
+     nav-runtime.js NÃO registra este hook para evitar conflito de ID. */
 
   /* ═══════════════════════════════════════════════════════════════
      ROUTER DE URL HASH

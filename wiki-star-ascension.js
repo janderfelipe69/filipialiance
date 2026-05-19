@@ -655,16 +655,20 @@ const STEPS = [
    RENDERIZADOR
 ═══════════════════════════════════════════ */
 function renderStarAscension() {
-  const tabWiki = document.getElementById('tab-wiki');
-  if (!tabWiki) return;
-
-  let panel = document.getElementById('wiki-tab-starascension');
+  /* O panel já é garantido por wiki-modules-ext.js (_ensurePanel) antes desta função.
+     Se por algum motivo não existir (chamada direta legada), ainda funciona. */
+  var panel = document.getElementById('wiki-tab-starascension');
   if (!panel) {
     panel = document.createElement('div');
     panel.id = 'wiki-tab-starascension';
     panel.className = 'wiki-subtab-content';
-    tabWiki.appendChild(panel);
+    var tabWiki = document.getElementById('tab-wiki');
+    if (tabWiki) tabWiki.appendChild(panel);
   }
+
+  /* Idempotente: não re-renderiza se já foi preenchido */
+  if (panel.dataset.saRendered) return;
+  panel.dataset.saRendered = '1';
 
   panel.innerHTML = `
 

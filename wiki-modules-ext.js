@@ -4,22 +4,44 @@
  * CARREGUE APÓS wiki-nav.js e após os arquivos de renderização de cada módulo
  * (wiki-boost.js, wiki-star-ascension.js, tierlist.js, wiki-up150.js, wiki-minimap.js).
  *
- * Este arquivo registra cada módulo via WikiModules.register().
- * NÃO faz monkey patch de _wnOpen, _wnBack nem switchTab.
- * NÃO usa setTimeout/setInterval para detectar funções.
+ * Cada render() aqui segue o contrato:
+ *   1. Garante que #wiki-tab-<id> existe em #tab-wiki (com estrutura interna correta).
+ *   2. Chama o renderizador do módulo (renderBoost, renderStarAscension, etc.).
+ *   3. NÃO move o panel para #wn-slot — isso é responsabilidade exclusiva de _mountPanel()
+ *      em wiki-nav.js, que é chamado DEPOIS de render().
  *
- * Os arquivos de renderização (wiki-boost.js, etc.) continuam existindo, mas
- * devem APENAS expor window.renderBoost, window.renderStarAscension, etc.
- * O bloco patchWnOpen / injectCard de cada um deve ser REMOVIDO.
+ * Esta separação garante:
+ *   - O panel sempre existe quando _mountPanel() o busca.
+ *   - Containers internos (ex: #tierlist-root) existem antes da montagem.
+ *   - Nenhum panel genérico vazio é exibido.
+ *   - O runtime controla 100% da montagem, visibilidade e slot.
  */
 
 (function (global) {
   'use strict';
 
-  /* Garante que WikiModules existe — se não, algo carregou fora de ordem */
   if (!global.WikiModules) {
     console.error('wiki-modules-ext.js: WikiModules não encontrado. Verifique a ordem de carga dos scripts.');
     return;
+  }
+
+  /* ─── Utilitário: garante que o panel existe em #tab-wiki ────────
+     Módulos que precisam de estrutura interna específica
+     (ex: tierlist precisa de #tierlist-root) passam o innerHTML inicial.
+     Se o panel já existe (segunda abertura), não recria — evita apagar
+     conteúdo renderizado.
+  ────────────────────────────────────────────────────────────────── */
+  function _ensurePanel(id, initialHTML) {
+    var panel = document.getElementById('wiki-tab-' + id);
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'wiki-tab-' + id;
+      panel.className = 'wiki-subtab-content';
+      if (initialHTML) panel.innerHTML = initialHTML;
+      var tabWiki = document.getElementById('tab-wiki');
+      if (tabWiki) tabWiki.appendChild(panel);
+    }
+    return panel;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -35,14 +57,8 @@
     rgb:   '255,159,67',
 
     render: function () {
-      /* Garante que o painel existe antes de renderizar */
-      var panel = document.getElementById('wiki-tab-boost');
-      if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'wiki-tab-boost';
-        panel.className = 'wiki-subtab-content';
-        document.getElementById('tab-wiki').appendChild(panel);
-      }
+      /* Garante panel antes do renderizador (renderBoost faz early-return se não existe) */
+      _ensurePanel('boost');
       if (typeof global.renderBoost === 'function') {
         global.renderBoost();
       }
@@ -62,13 +78,10 @@
     rgb:   '240,180,41',
 
     render: function () {
-      var panel = document.getElementById('wiki-tab-starascension');
-      if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'wiki-tab-starascension';
-        panel.className = 'wiki-subtab-content';
-        document.getElementById('tab-wiki').appendChild(panel);
-      }
+      /* renderStarAscension() já cria o panel se não existe — mas cria em #tab-wiki.
+         _ensurePanel garante o panel antes, evitando criação duplicada e
+         tornando o comportamento explícito e auditável. */
+      _ensurePanel('starascension');
       if (typeof global.renderStarAscension === 'function') {
         global.renderStarAscension();
       }
@@ -77,6 +90,9 @@
 
   /* ═══════════════════════════════════════════════════════════════
      TIER LIST & RESPAWN
+     ATENÇÃO: renderTierList() busca #tierlist-root — que deve existir
+     DENTRO do panel antes de renderTierList() ser chamado.
+     _ensurePanel cria o panel com o container interno correto.
   ═══════════════════════════════════════════════════════════════ */
 
   WikiModules.register({
@@ -88,14 +104,8 @@
     rgb:   '240,98,146',
 
     render: function () {
-      var panel = document.getElementById('wiki-tab-tierlist');
-      if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'wiki-tab-tierlist';
-        panel.className = 'wiki-subtab-content';
-        panel.innerHTML = '<div id="tierlist-root"></div>';
-        document.getElementById('tab-wiki').appendChild(panel);
-      }
+      /* Cria o panel com #tierlist-root interno — renderTierList() depende disso */
+      _ensurePanel('tierlist', '<div id="tierlist-root"></div>');
       if (typeof global.renderTierList === 'function') {
         global.renderTierList();
       }
@@ -104,9 +114,6 @@
 
   /* ═══════════════════════════════════════════════════════════════
      UP 150
-     (wiki-up150.js já registra o renderer em RENDERERS do wiki-nav
-      via window._wnRenderers — mas com a nova arquitetura,
-      registerUp150 só precisa criar o panel; o render é declarativo aqui)
   ═══════════════════════════════════════════════════════════════ */
 
   WikiModules.register({
@@ -118,7 +125,9 @@
     rgb:   '96,224,160',
 
     render: function () {
-      /* registerUp150 garante que o painel existe */
+      /* registerUp150() cria o panel em #tab-wiki se não existe —
+         _ensurePanel é idempotente e garante que isso ocorra antes de renderUp150() */
+      _ensurePanel('up150');
       if (typeof global.registerUp150 === 'function') global.registerUp150();
       if (typeof global.renderUp150   === 'function') global.renderUp150();
     },
@@ -137,6 +146,7 @@
     rgb:   '76,217,160',
 
     render: function () {
+      _ensurePanel('minimap');
       if (typeof global.registerMinimap === 'function') global.registerMinimap();
       if (typeof global.renderMinimap   === 'function') global.renderMinimap();
     },
