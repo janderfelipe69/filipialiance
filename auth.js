@@ -1,21 +1,14 @@
 // ============================================================
-// auth.js — Lógica de Autenticação com Supabase
+// auth.js — Lógica de Autenticação com Supabase  [CORRIGIDO]
 // PokeAlliance Shop
 //
-// Responsabilidades:
-//   - Validação de formulários em tempo real
-//   - Cadastro via Supabase Auth (signUp)
-//   - Login via Supabase Auth (signIn com email+senha)
-//   - Logout delegado ao Session
-//   - Rate limiting no frontend (proteção extra — o Supabase já limita no servidor)
-//
-// Arquitetura:
-//   - auth.js chama SupabaseClient.Auth.*
-//   - auth.js delega gerência de estado ao Session
-//   - A role NUNCA é definida aqui — vem do banco via trigger
+// CORREÇÕES APLICADAS:
+//   1. Regex de nickname agora aceita espaços internos
+//   2. Mínimo de nickname corrigido para 2 (era 3)
+//   3. Mensagem de erro atualizada para refletir regras corretas
+//   4. Fallback de role em comentários alinhado com o banco ('user')
 //
 // Depende de: supabase-client.js, session.js
-// NÃO usa localStorage para dados de usuário ou role
 // ============================================================
 
 const Auth = (() => {
@@ -39,16 +32,36 @@ const Auth = (() => {
   // ── Validações ───────────────────────────────────────────────────────────
 
   const RULES = {
-    nickname: { min: 3, max: 24, pattern: /^[a-zA-Z0-9_\-\.]+$/ },
+    nickname: {
+      min: 2,   // ✅ CORRIGIDO: era 3
+      max: 24,
+      // ✅ CORRIGIDO: aceita letras, números e espaços internos
+      // Regex: ^(?=.{2,24}$)(?!\s+$)[A-Za-z0-9 ]+$
+      //   - (?=.{2,24}$)  → entre 2 e 24 caracteres no total
+      //   - (?!\s+$)       → não pode ser só espaços
+      //   - [A-Za-z0-9 ]+ → só letras, números e espaço
+      pattern: /^(?=.{2,24}$)(?!\s+$)[A-Za-z0-9 ]+$/,
+    },
     password: { min: 6, max: 64 },
   };
 
   function validateNickname(value) {
     if (!value || !value.trim()) return { ok: false, msg: 'Nickname é obrigatório.' };
-    const v = value.trim();
-    if (v.length < RULES.nickname.min) return { ok: false, msg: `Mínimo ${RULES.nickname.min} caracteres.` };
-    if (v.length > RULES.nickname.max) return { ok: false, msg: `Máximo ${RULES.nickname.max} caracteres.` };
-    if (!RULES.nickname.pattern.test(v)) return { ok: false, msg: 'Use apenas letras, números, _, - ou .' };
+
+    // Não faz trim antes de validar — espaços internos são permitidos,
+    // mas espaços nas BORDAS são removidos antes de enviar ao banco.
+    const trimmed = value.trim();
+
+    if (trimmed.length < RULES.nickname.min)
+      return { ok: false, msg: `Mínimo ${RULES.nickname.min} caracteres.` };
+
+    if (trimmed.length > RULES.nickname.max)
+      return { ok: false, msg: `Máximo ${RULES.nickname.max} caracteres.` };
+
+    // ✅ Regex atualizada: aceita espaços internos
+    if (!RULES.nickname.pattern.test(trimmed))
+      return { ok: false, msg: 'Use apenas letras, números e espaços.' };
+
     return { ok: true };
   }
 
@@ -71,12 +84,8 @@ const Auth = (() => {
     return { ok: true };
   }
 
-  // Nickname availability: sem localStorage — nicknames únicos são garantidos
-  // pelo banco (constraint UNIQUE em public.users.nickname).
-  // A verificação real acontece no cadastro.
   function checkNicknameAvailability(_nickname) {
-    // Validação de formato apenas (unicidade verificada pelo banco no submit)
-    return null; // null = sem erro de formato
+    return null; // unicidade verificada pelo banco no submit
   }
 
   // ── Fluxo de Cadastro ────────────────────────────────────────────────────
@@ -87,24 +96,22 @@ const Auth = (() => {
    * O que acontece no backend:
    *   1. Supabase Auth cria o registro em auth.users
    *   2. O trigger `on_auth_user_created` dispara automaticamente
-   *   3. O trigger insere em public.users com role = 'consumer' por padrão
-   *   4. O frontend NÃO precisa fazer nenhum INSERT em public.users
+   *   3. O trigger insere em public.users com role = 'user' por padrão
+   *   4. O frontend NÃO faz nenhum INSERT em public.users
    *
    * @param {{ nickname, email, password, confirmPassword, serverConfirmed }}
    */
   async function register({ nickname, email, password, confirmPassword, serverConfirmed }) {
-    // Verificação de servidor
     if (!serverConfirmed) {
       return { success: false, field: 'server', message: 'Confirme que você é do servidor Moon.' };
     }
 
-    // Rate limiting
     const rl = _checkRateLimit('register');
     if (rl.blocked) {
       return { success: false, message: `Muitas tentativas. Aguarde ${rl.wait}s.` };
     }
 
-    // Validações
+    // Valida nickname (regex nova — aceita espaços internos)
     const nickV = validateNickname(nickname);
     if (!nickV.ok) return { success: false, field: 'nickname', message: nickV.msg };
 
@@ -120,23 +127,21 @@ const Auth = (() => {
     console.log('[Auth] 📝 Iniciando cadastro para:', email);
 
     try {
-      // Envia nickname e server como metadata — o trigger usa esses dados
-      // para preencher public.users automaticamente
+      // ✅ Envia nickname sem espaços nas bordas (trim),
+      //    mas preserva espaços internos — "J F", "Player One" são válidos.
       const data = await SupabaseClient.Auth.signUp(
         email.trim().toLowerCase(),
         password,
         {
-          nickname: nickname.trim(),
+          nickname: nickname.trim(), // "  J F  " → "J F"  ✅
           server:   'Moon',
         }
       );
 
-      // Supabase retorna user mesmo sem confirmar email
       if (!data || !data.user) {
         return { success: false, message: 'Resposta inesperada do servidor. Tente novamente.' };
       }
 
-      // Se o Supabase exige confirmação de email, data.session será null
       if (!data.session) {
         console.log('[Auth] ✉️ Email de confirmação enviado para:', email);
         return {
@@ -147,11 +152,11 @@ const Auth = (() => {
         };
       }
 
-      // Login automático após cadastro (quando email confirmation está desativado)
       console.log('[Auth] ✅ Cadastro bem-sucedido, fazendo login automático...');
-      const user = await Session._handleLoginSuccess(data.session
-        ? { ...data.session, user: data.user }
-        : data
+      const user = await Session._handleLoginSuccess(
+        data.session
+          ? { ...data.session, user: data.user }
+          : data
       );
 
       return { success: true, user };
@@ -164,12 +169,6 @@ const Auth = (() => {
 
   // ── Fluxo de Login ───────────────────────────────────────────────────────
 
-  /**
-   * Autentica com email e senha.
-   * Após o login, o perfil é carregado de public.users (incluindo role).
-   *
-   * @param {{ email, password }}
-   */
   async function login({ email, password }) {
     const rl = _checkRateLimit('login');
     if (rl.blocked) {
@@ -227,7 +226,6 @@ const Auth = (() => {
     if (m.includes('network') || m.includes('fetch')) {
       return 'Erro de conexão. Verifique sua internet.';
     }
-    // Retorna mensagem original se não mapeada (pode ajudar no debug)
     return msg;
   }
 
@@ -236,7 +234,6 @@ const Auth = (() => {
     register,
     login,
     logout,
-    // Validações expostas para feedback em tempo real no formulário
     validateNickname,
     validateEmail,
     validatePassword,
