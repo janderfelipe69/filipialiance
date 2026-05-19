@@ -1,26 +1,25 @@
 // ============================================================
-// orders-admin.js — Ações Administrativas
-// PokeAlliance Shop — Sistema de Rastreamento de Pedidos
+// orders-admin.js — v3 — Ações Administrativas
+// PokeAlliance Shop
 //
-// MUDANÇA IMPORTANTE:
-//   A verificação de admin agora usa EXCLUSIVAMENTE o campo
-//   `role` vindo de public.users (banco de dados).
-//   Não há mais ADMIN_NICKNAMES hardcoded — isso era inseguro.
+// MUDANÇAS v3:
+//   - startService(): ação mais importante — inicia o SLA real
+//   - completeService(): conclui o serviço, sai da fila
+//   - Todos os status usam o novo enum (waiting_queue, in_progress, etc.)
+//   - O painel exibe ETA real quando in_progress, fila quando waiting
+//   - Botão "INICIAR SERVIÇO" é o único que ativa o countdown
 //
-// Para promover alguém a admin, execute no SQL Editor do Supabase:
-//   UPDATE users SET role = 'admin' WHERE email = 'email@exemplo.com';
+// VERIFICAÇÃO DE ADMIN:
+//   Exclusivamente via public.users.role = 'admin' no banco.
+//   Nunca via localStorage, frontend, ou lista hardcoded.
 // ============================================================
 
 const OrdersAdmin = (() => {
 
-  // ── Verificação de Permissão ──────────────────────────────────────────────
-  // Role vem EXCLUSIVAMENTE do banco via Session.getCurrentUser().
-  // Não há mais lista de nicknames hardcoded — foi removida por segurança.
+  // ── Verificação de Permissão ─────────────────────────────────────────────
 
   function isAdmin(user) {
     if (!user) return false;
-    // A role 'admin' vem APENAS do campo public.users.role no banco de dados.
-    // Nunca confiar em role do localStorage, frontend ou parâmetro de URL.
     return user.role === 'admin';
   }
 
@@ -29,38 +28,318 @@ const OrdersAdmin = (() => {
     return isAdmin(user);
   }
 
-  // ── Painel Inline de Admin ────────────────────────────────────────────────
+  // ── Ação Principal: INICIAR SERVIÇO ──────────────────────────────────────
+  //
+  // Esta é a ação mais importante do sistema.
+  // Ela chama a função start_service() do banco via RPC,
+  // que salva started_at e ativa o SLA real.
+  //
+  // ANTES desta ação: nenhum countdown, nenhum ETA.
+  // DEPOIS desta ação: SLA conta a partir do started_at retornado.
 
-  /**
-   * Gera o HTML do painel de controles admin inserido inline no card.
-   */
+  async function startService(supabaseOrderId) {
+    if (!isCurrentUserAdmin()) {
+      console.warn('[OrdersAdmin] ⛔ Acesso negado: não é admin.');
+      return { success: false, error: 'Apenas admins podem iniciar serviços.' };
+    }
+
+    const confirmed = confirm(
+      `⚡ Iniciar serviço #${supabaseOrderId}?\n\n` +
+      `O countdown do cliente começa AGORA.\n` +
+      `Você confirma que está pronto para executar este serviço?`
+    );
+    if (!confirmed) return { success: false, cancelled: true };
+
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/rpc/start_service`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + _getJWT(),
+          },
+          body: JSON.stringify({ p_order_id: supabaseOrderId }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok || (data && data.success === false)) {
+        const err = (data && data.error) || `HTTP ${res.status}`;
+        console.error('[OrdersAdmin] Falha ao iniciar serviço:', err);
+        alert('Erro ao iniciar serviço: ' + err);
+        return { success: false, error: err };
+      }
+
+      console.log('[OrdersAdmin] ✅ Serviço iniciado:', data);
+
+      if (typeof OrdersNotifications !== 'undefined') {
+        OrdersNotifications.show(
+          `✅ Serviço #${supabaseOrderId} iniciado! SLA: ${data.sla_min_days}~${data.sla_max_days} dias.`,
+          'success',
+          4000
+        );
+      }
+
+      // Recarrega a lista para refletir o novo status
+      if (typeof pedidosCarregar === 'function') pedidosCarregar();
+      else if (typeof OrdersUI !== 'undefined') OrdersUI.render();
+
+      return { success: true, data };
+
+    } catch (e) {
+      console.error('[OrdersAdmin] Erro de rede ao iniciar serviço:', e);
+      alert('Erro de rede: ' + e.message);
+      return { success: false, error: e.message };
+    }
+  }
+
+  // ── Ação: CONCLUIR SERVIÇO ────────────────────────────────────────────────
+
+  async function completeService(supabaseOrderId, adminNotes) {
+    if (!isCurrentUserAdmin()) return;
+
+    const confirmed = confirm(
+      `✅ Concluir serviço #${supabaseOrderId}?\n\nO pedido sairá da fila principal.`
+    );
+    if (!confirmed) return { success: false, cancelled: true };
+
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/rpc/complete_service`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + _getJWT(),
+          },
+          body: JSON.stringify({
+            p_order_id:    supabaseOrderId,
+            p_admin_notes: adminNotes || null,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok || (data && data.success === false)) {
+        const err = (data && data.error) || `HTTP ${res.status}`;
+        alert('Erro ao concluir: ' + err);
+        return { success: false, error: err };
+      }
+
+      if (typeof OrdersNotifications !== 'undefined') {
+        OrdersNotifications.show(`✅ Pedido #${supabaseOrderId} concluído!`, 'success', 3000);
+      }
+
+      if (typeof pedidosCarregar === 'function') pedidosCarregar();
+      else if (typeof OrdersUI !== 'undefined') OrdersUI.render();
+
+      return { success: true, data };
+
+    } catch (e) {
+      alert('Erro de rede: ' + e.message);
+      return { success: false, error: e.message };
+    }
+  }
+
+  // ── Ação: CANCELAR ────────────────────────────────────────────────────────
+
+  async function cancelOrder(supabaseOrderId) {
+    if (!isCurrentUserAdmin()) return;
+    const confirmed = confirm(`Cancelar pedido #${supabaseOrderId}? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    await _patchStatus(supabaseOrderId, 'cancelled');
+  }
+
+  // ── Mudança de status genérica (para outros status permitidos) ────────────
+
+  async function setStatus(orderId, newStatus) {
+    if (!isCurrentUserAdmin()) return;
+
+    // Para iniciar/concluir, usa as funções específicas (que validam no banco)
+    if (newStatus === 'in_progress') {
+      const supabaseId = _extractSupabaseId(orderId);
+      if (supabaseId) return startService(supabaseId);
+    }
+    if (newStatus === 'completed') {
+      const supabaseId = _extractSupabaseId(orderId);
+      if (supabaseId) return completeService(supabaseId);
+    }
+    if (newStatus === 'cancelled') {
+      const supabaseId = _extractSupabaseId(orderId);
+      if (supabaseId) return cancelOrder(supabaseId);
+    }
+
+    // Para outros casos: PATCH direto
+    await _patchStatus(_extractSupabaseId(orderId) || orderId, newStatus);
+  }
+
+  // ── Atualizar quantidade entregue de item ─────────────────────────────────
+
+  function updateItemQty(orderId, itemId, rawQty) {
+    if (!isCurrentUserAdmin()) return;
+    const qty = parseInt(rawQty, 10);
+    if (isNaN(qty)) return;
+    const admin = Session.getCurrentUser();
+    const result = OrdersStorage.updateItemProgress(orderId, itemId, qty, admin.nickname);
+    if (result.success && typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+  }
+
+  // ── Salvar observação ─────────────────────────────────────────────────────
+
+  function saveObservation(orderId, text) {
+    if (!isCurrentUserAdmin()) return;
+    const admin = Session.getCurrentUser();
+    OrdersStorage.addObservation(orderId, text, admin.nickname);
+  }
+
+  // ── Excluir pedido ────────────────────────────────────────────────────────
+
+  async function deleteOrder(orderId) {
+    if (!isCurrentUserAdmin()) return;
+    const confirmed = confirm('Excluir pedido permanentemente? Esta ação não pode ser desfeita.');
+    if (!confirmed) return;
+
+    // Remove do storage local
+    OrdersStorage.deleteOrder(orderId);
+
+    // Remove do banco se for pedido do Supabase
+    const supabaseId = _extractSupabaseId(orderId);
+    if (supabaseId) {
+      try {
+        await fetch(
+          `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'apikey':        window.SUPABASE_KEY,
+              'Authorization': 'Bearer ' + _getJWT(),
+            },
+          }
+        );
+      } catch (e) {
+        console.warn('[OrdersAdmin] Falha ao excluir do banco:', e);
+      }
+    }
+
+    if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+  }
+
+  // ── Painel Admin Inline ───────────────────────────────────────────────────
+
   function renderAdminPanel(order) {
-    const cfg = OrdersProgress.STATUS_CONFIG;
-    const allStatuses = Object.entries(cfg).map(([key, val]) => `
-      <button class="oa-status-opt ${order.status === key ? 'active' : ''}"
-              data-status="${key}"
-              style="--s-color:${val.color}; --s-bg:${val.bg}; --s-border:${val.border};"
-              onclick="OrdersAdmin.setStatus('${order.id}', '${key}')">
-        <span class="oa-status-dot"></span>
-        ${val.icon} ${val.label}
-      </button>
-    `).join('');
+    const status     = OrdersProgress.normalizeStatus(order.status_v3 || order.status);
+    const supabaseId = order._supabaseId || order.orderNumber;
+    const eta        = OrdersProgress.calcETA(order);
+    const sla        = OrdersProgress.calcSLA(
+      order.service_type || 'normal_package',
+      order.service_quantity || 1
+    );
 
+    // Botão de ação principal varia por status
+    let mainActionHTML = '';
+    if (status === 'waiting_queue') {
+      mainActionHTML = `
+        <button class="oa-btn oa-btn--start" onclick="OrdersAdmin.startService(${supabaseId})">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          INICIAR SERVIÇO
+        </button>
+      `;
+    } else if (status === 'in_progress') {
+      mainActionHTML = `
+        <button class="oa-btn oa-btn--complete" onclick="OrdersAdmin.completeService(${supabaseId})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          CONCLUIR SERVIÇO
+        </button>
+      `;
+    }
+
+    // ETA ou info de fila
+    let slaInfoHTML = '';
+    if (status === 'in_progress' && eta) {
+      const overdue = eta.slaStatus === 'overdue';
+      slaInfoHTML = `
+        <div class="oa-sla-info ${overdue ? 'overdue' : ''}">
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">Iniciado em</span>
+            <span class="oa-sla-val">${OrdersProgress.formatDate(order.started_at)}</span>
+          </div>
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">SLA</span>
+            <span class="oa-sla-val">${sla.label}</span>
+          </div>
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">ETA</span>
+            <span class="oa-sla-val">${eta.etaMinLabel} ~ ${eta.etaMaxLabel}</span>
+          </div>
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">Status</span>
+            <span class="oa-sla-val ${overdue ? 'text-red' : 'text-green'}">${eta.label}</span>
+          </div>
+          <div class="oa-progress-bar">
+            <div class="oa-progress-fill" style="width:${eta.progressPct}%; background:${overdue ? '#ef4444' : '#3a8cff'}"></div>
+          </div>
+        </div>
+      `;
+    } else if (status === 'waiting_queue') {
+      slaInfoHTML = `
+        <div class="oa-sla-info waiting">
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">Status</span>
+            <span class="oa-sla-val text-yellow">⏳ Aguardando início</span>
+          </div>
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">SLA estimado</span>
+            <span class="oa-sla-val">${sla.label}</span>
+          </div>
+          <div class="oa-sla-note">
+            O countdown começa somente quando você clicar em "Iniciar Serviço".
+          </div>
+        </div>
+      `;
+    }
+
+    // Seletor de tipo de serviço (só para waiting_queue — antes de iniciar)
+    let serviceTypeHTML = '';
+    if (status === 'waiting_queue') {
+      serviceTypeHTML = `
+        <div class="oa-section">
+          <div class="oa-section-label">Tipo de Serviço</div>
+          <div class="oa-service-grid">
+            <button class="oa-service-opt ${(order.service_type || 'normal_package') === 'normal_package' ? 'active' : ''}"
+                    onclick="OrdersAdmin.setServiceType('${order.id}', ${supabaseId}, 'normal_package')">
+              📦 Pacote Normal<br><small>4~7 dias/pacote</small>
+            </button>
+            <button class="oa-service-opt ${order.service_type === 'pokemon_sr' ? 'active' : ''}"
+                    onclick="OrdersAdmin.setServiceType('${order.id}', ${supabaseId}, 'pokemon_sr')">
+              ✨ Pokémon SR<br><small>25~40 dias/unit</small>
+            </button>
+          </div>
+          <div class="oa-qty-row">
+            <span class="oa-section-label">Quantidade</span>
+            <input type="number" class="oa-qty-input" min="1" max="99"
+                   value="${order.service_quantity || 1}"
+                   onchange="OrdersAdmin.setServiceQuantity('${order.id}', ${supabaseId}, this.value)" />
+          </div>
+        </div>
+      `;
+    }
+
+    // Item progress rows
     const itemRows = (order.items || []).map(item => {
       const pct = OrdersProgress.calcItemProgress(item);
       return `
         <div class="oa-item-row" data-item-id="${item.id}">
           <span class="oa-item-name">${item.name}</span>
           <div class="oa-item-controls">
-            <input
-              type="number"
-              class="oa-item-qty-input"
-              min="0"
-              max="${item.qtdTotal}"
-              value="${item.qtdEntregue}"
-              aria-label="Entregues de ${item.name}"
-              onchange="OrdersAdmin.updateItemQty('${order.id}', '${item.id}', this.value)"
-            />
+            <input type="number" class="oa-item-qty-input"
+                   min="0" max="${item.qtdTotal}" value="${item.qtdEntregue}"
+                   aria-label="Entregues de ${item.name}"
+                   onchange="OrdersAdmin.updateItemQty('${order.id}', '${item.id}', this.value)" />
             <span class="oa-item-total">/ ${item.qtdTotal}</span>
             <div class="oa-item-mini-bar">
               <div class="oa-item-mini-fill" style="width:${pct}%; background:${OrdersProgress.progressBarColor(pct)}"></div>
@@ -80,10 +359,9 @@ const OrdersAdmin = (() => {
           </span>
         </div>
 
-        <div class="oa-section">
-          <div class="oa-section-label">Status</div>
-          <div class="oa-status-grid">${allStatuses}</div>
-        </div>
+        ${slaInfoHTML}
+
+        ${serviceTypeHTML}
 
         ${order.items && order.items.length ? `
         <div class="oa-section">
@@ -93,24 +371,21 @@ const OrdersAdmin = (() => {
         ` : ''}
 
         <div class="oa-section">
-          <div class="oa-section-label">Observação</div>
-          <textarea class="oa-obs-input" placeholder="Adicione uma observação..."
-                    maxlength="300"
+          <div class="oa-section-label">Observação (interna)</div>
+          <textarea class="oa-obs-input" placeholder="Notas internas (não visível ao cliente)..."
+                    maxlength="500"
                     onblur="OrdersAdmin.saveObservation('${order.id}', this.value)"
           >${order.observations || ''}</textarea>
         </div>
 
         <div class="oa-actions">
-          <button class="oa-btn oa-btn--complete" onclick="OrdersAdmin.completeOrder('${order.id}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Concluir
-          </button>
-          <button class="oa-btn oa-btn--cancel" onclick="OrdersAdmin.cancelOrder('${order.id}')">
+          ${mainActionHTML}
+          <button class="oa-btn oa-btn--cancel" onclick="OrdersAdmin.cancelOrder(${supabaseId})">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Cancelar
           </button>
           <button class="oa-btn oa-btn--delete" onclick="OrdersAdmin.deleteOrder('${order.id}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             Excluir
           </button>
         </div>
@@ -118,347 +393,305 @@ const OrdersAdmin = (() => {
     `;
   }
 
-  // ── Ações Admin ───────────────────────────────────────────────────────────
+  // ── Alterar tipo de serviço (antes do início) ─────────────────────────────
 
-  function setStatus(orderId, status) {
-    if (!isCurrentUserAdmin()) {
-      console.warn('[OrdersAdmin] ⛔ Acesso negado: usuário não é admin.');
-      return;
-    }
-    const admin = Session.getCurrentUser();
-    const result = OrdersStorage.updateStatus(orderId, status, admin.nickname);
-    if (result.success) {
-      OrdersNotifications.notifyStatusChange(result.order, status);
-      if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
-    }
-  }
-
-  function updateItemQty(orderId, itemId, rawQty) {
+  async function setServiceType(localOrderId, supabaseId, serviceType) {
     if (!isCurrentUserAdmin()) return;
-    const qty = parseInt(rawQty, 10);
-    if (isNaN(qty)) return;
-    const admin = Session.getCurrentUser();
-    const result = OrdersStorage.updateItemProgress(orderId, itemId, qty, admin.nickname);
-    if (result.success) {
-      if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
-    }
-  }
 
-  function saveObservation(orderId, text) {
-    if (!isCurrentUserAdmin()) return;
-    const admin = Session.getCurrentUser();
-    OrdersStorage.addObservation(orderId, text, admin.nickname);
-  }
-
-  function completeOrder(orderId) {
-    if (!isCurrentUserAdmin()) return;
-    const order = OrdersStorage.getOrderById(orderId);
-    if (!order) return;
-
-    const admin = Session.getCurrentUser();
-    const result = OrdersStorage.updateStatus(orderId, 'concluido', admin.nickname);
-    if (result.success) {
-      result.order.items.forEach(item => {
-        OrdersStorage.updateItemProgress(orderId, item.id, item.qtdTotal, admin.nickname);
-      });
-      OrdersNotifications.show(`Pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)} concluído!`, 'concluido');
-      if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+    try {
+      await fetch(
+        `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + _getJWT(),
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify({ service_type: serviceType }),
+        }
+      );
+      if (typeof pedidosCarregar === 'function') pedidosCarregar();
+    } catch (e) {
+      console.error('[OrdersAdmin] Erro ao alterar tipo de serviço:', e);
     }
   }
 
-  function cancelOrder(orderId) {
+  async function setServiceQuantity(localOrderId, supabaseId, qty) {
     if (!isCurrentUserAdmin()) return;
-    const order = OrdersStorage.getOrderById(orderId);
-    if (!order) return;
+    const q = Math.max(1, parseInt(qty, 10) || 1);
 
-    if (!confirm(`Cancelar pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)} de ${order.nickname}?`)) return;
-
-    const admin = Session.getCurrentUser();
-    const result = OrdersStorage.updateStatus(orderId, 'cancelado', admin.nickname);
-    if (result.success) {
-      OrdersNotifications.show(`Pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)} cancelado.`, 'cancelado');
-      if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+    try {
+      await fetch(
+        `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + _getJWT(),
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify({ service_quantity: q }),
+        }
+      );
+    } catch (e) {
+      console.error('[OrdersAdmin] Erro ao alterar quantidade:', e);
     }
   }
 
-  function deleteOrder(orderId) {
-    if (!isCurrentUserAdmin()) return;
-    const order = OrdersStorage.getOrderById(orderId);
-    if (!order) return;
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-    if (!confirm(`Excluir PERMANENTEMENTE o pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)}? Esta ação não pode ser desfeita.`)) return;
-
-    OrdersStorage.deleteOrder(orderId); // deleteOrderDirect internamente — auth já validada acima
-    OrdersNotifications.show('Pedido excluído.', 'info');
-    if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+  function _getJWT() {
+    // Tenta pegar o JWT do Session
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    return (user && user.jwt) || window.SUPABASE_KEY;
   }
 
-  // ── Estilos do Painel Admin ───────────────────────────────────────────────
+  function _extractSupabaseId(orderId) {
+    if (typeof orderId === 'number') return orderId;
+    if (typeof orderId === 'string' && orderId.startsWith('sb_')) {
+      const parsed = parseInt(orderId.slice(3), 10);
+      return isNaN(parsed) ? null : parsed;
+    }
+    const parsed = parseInt(orderId, 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  async function _patchStatus(supabaseId, newStatus) {
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + _getJWT(),
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify({ status_v3: newStatus }),
+        }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (typeof pedidosCarregar === 'function') pedidosCarregar();
+    } catch (e) {
+      console.error('[OrdersAdmin] Falha ao atualizar status:', e);
+      alert('Erro ao atualizar status: ' + e.message);
+    }
+  }
+
+  // ── Estilos do Painel ─────────────────────────────────────────────────────
 
   function injectStyles() {
-    if (document.getElementById('orders-admin-styles')) return;
+    if (document.getElementById('oa-styles-v3')) return;
     const style = document.createElement('style');
-    style.id = 'orders-admin-styles';
+    style.id = 'oa-styles-v3';
     style.textContent = `
-      /* ── Admin Panel ── */
       .oa-panel {
-        margin-top: 14px;
-        border-radius: 12px;
         background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,215,100,0.15);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
         padding: 14px;
-        animation: oa-expand 0.25s cubic-bezier(0.4,0,0.2,1) both;
-        box-shadow: 0 0 20px rgba(255,200,50,0.05) inset;
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
-      @keyframes oa-expand {
-        from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
       .oa-panel-header {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 14px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255,215,100,0.1);
+        justify-content: space-between;
       }
       .oa-panel-title {
-        font-family: var(--font-title, 'Cinzel', serif);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: rgba(255,215,100,0.7);
-        display: flex;
-        align-items: center;
-        gap: 5px;
+        display: flex; align-items: center; gap: 6px;
+        font-size: 10px; font-weight: 700; letter-spacing: 1px;
+        text-transform: uppercase; color: rgba(255,215,100,0.7);
       }
-
-      .oa-section { margin-bottom: 14px; }
+      .oa-section { display: flex; flex-direction: column; gap: 8px; }
       .oa-section-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        color: rgba(255,255,255,0.3);
-        margin-bottom: 8px;
-        font-family: var(--font-mono, monospace);
+        font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
+        text-transform: uppercase; color: rgba(255,255,255,0.35);
       }
 
-      .oa-status-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 6px;
-      }
-      .oa-status-opt {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 7px 10px;
+      /* SLA Info Box */
+      .oa-sla-info {
+        background: rgba(58,140,255,0.06);
+        border: 1px solid rgba(58,140,255,0.18);
         border-radius: 8px;
-        background: var(--s-bg, rgba(255,255,255,0.05));
-        border: 1px solid var(--s-border, rgba(255,255,255,0.08));
-        color: rgba(255,255,255,0.6);
-        font-size: 12px;
-        font-family: var(--font-body, sans-serif);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: left;
+        padding: 10px 12px;
+        display: flex; flex-direction: column; gap: 5px;
       }
-      .oa-status-opt:hover, .oa-status-opt.active {
-        background: var(--s-bg, rgba(255,255,255,0.05));
-        border-color: var(--s-color, #fff);
-        color: var(--s-color, #fff);
-        box-shadow: 0 0 10px color-mix(in srgb, var(--s-color, transparent) 30%, transparent);
+      .oa-sla-info.waiting {
+        background: rgba(245,197,66,0.06);
+        border-color: rgba(245,197,66,0.18);
       }
-      .oa-status-dot {
-        width: 7px; height: 7px;
-        border-radius: 50%;
-        background: var(--s-color, #fff);
-        flex-shrink: 0;
-        box-shadow: 0 0 6px var(--s-color, transparent);
+      .oa-sla-info.overdue {
+        background: rgba(239,68,68,0.06);
+        border-color: rgba(239,68,68,0.25);
+      }
+      .oa-sla-row {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 11px;
+      }
+      .oa-sla-label { color: rgba(255,255,255,0.4); }
+      .oa-sla-val   { color: rgba(255,255,255,0.85); font-weight: 600; }
+      .oa-sla-note  {
+        font-size: 10px; color: rgba(245,197,66,0.55);
+        border-top: 1px solid rgba(255,255,255,0.05);
+        padding-top: 5px; margin-top: 2px;
+      }
+      .text-green { color: #4ade80 !important; }
+      .text-red   { color: #f87171 !important; }
+      .text-yellow{ color: #ffd166 !important; }
+
+      /* Progress Bar */
+      .oa-progress-bar {
+        height: 3px; background: rgba(255,255,255,0.08);
+        border-radius: 2px; overflow: hidden; margin-top: 4px;
+      }
+      .oa-progress-fill {
+        height: 100%; border-radius: 2px;
+        transition: width 0.5s ease;
       }
 
-      .oa-items-list { display: flex; flex-direction: column; gap: 8px; }
-      .oa-item-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.06);
+      /* Service Type Selector */
+      .oa-service-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
       }
-      .oa-item-name {
-        font-family: var(--font-body, sans-serif);
-        font-size: 12px;
-        color: rgba(255,255,255,0.7);
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .oa-item-controls {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-shrink: 0;
-      }
-      .oa-item-qty-input {
-        width: 44px;
-        height: 26px;
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 6px;
-        color: #fff;
-        font-size: 12px;
-        font-weight: 700;
-        text-align: center;
-        padding: 0 4px;
-        font-family: var(--font-mono, monospace);
-        outline: none;
-        transition: border-color 0.2s;
-      }
-      .oa-item-qty-input:focus { border-color: rgba(96,170,255,0.5); }
-      .oa-item-total { font-size: 11px; color: rgba(255,255,255,0.3); font-family: var(--font-mono, monospace); }
-
-      .oa-item-mini-bar {
-        width: 40px;
-        height: 4px;
-        border-radius: 2px;
-        background: rgba(255,255,255,0.07);
-        overflow: hidden;
-      }
-      .oa-item-mini-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.4s ease;
-      }
-      .oa-item-check {
-        color: #4ade80;
-        font-size: 12px;
-        font-weight: 700;
-        animation: check-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
-      }
-      @keyframes check-pop {
-        from { transform: scale(0) rotate(-30deg); opacity: 0; }
-        to   { transform: scale(1) rotate(0); opacity: 1; }
-      }
-
-      .oa-obs-input {
-        width: 100%;
+      .oa-service-opt {
         background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.09);
-        border-radius: 8px;
-        color: rgba(255,255,255,0.75);
-        font-size: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 8px 10px;
+        color: rgba(255,255,255,0.6); font-size: 11px;
+        cursor: pointer; text-align: left; line-height: 1.4;
+        transition: all 0.2s; font-family: var(--font-body, sans-serif);
+      }
+      .oa-service-opt small { font-size: 10px; opacity: 0.6; }
+      .oa-service-opt:hover {
+        background: rgba(255,255,255,0.07);
+        border-color: rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.9);
+      }
+      .oa-service-opt.active {
+        background: rgba(58,140,255,0.12);
+        border-color: rgba(58,140,255,0.4);
+        color: #60aaff;
+      }
+      .oa-qty-row {
+        display: flex; align-items: center; gap: 10px; margin-top: 4px;
+      }
+      .oa-qty-input {
+        width: 60px; padding: 4px 8px; border-radius: 6px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.85); font-size: 13px; text-align: center;
         font-family: var(--font-body, sans-serif);
-        padding: 9px 12px;
-        resize: vertical;
-        min-height: 60px;
-        max-height: 120px;
-        outline: none;
-        transition: border-color 0.2s;
+      }
+
+      /* Item rows */
+      .oa-items-list { display: flex; flex-direction: column; gap: 6px; }
+      .oa-item-row {
+        display: flex; align-items: center;
+        justify-content: space-between; gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+      }
+      .oa-item-name   { font-size: 12px; color: rgba(255,255,255,0.75); flex: 1; }
+      .oa-item-controls { display: flex; align-items: center; gap: 6px; }
+      .oa-item-qty-input {
+        width: 46px; padding: 3px 6px; border-radius: 5px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.85); font-size: 12px; text-align: center;
+        font-family: var(--font-body, sans-serif);
+      }
+      .oa-item-total  { font-size: 11px; color: rgba(255,255,255,0.35); }
+      .oa-item-mini-bar {
+        width: 40px; height: 3px; background: rgba(255,255,255,0.08);
+        border-radius: 2px; overflow: hidden;
+      }
+      .oa-item-mini-fill { height: 100%; border-radius: 2px; }
+      .oa-item-check  { color: #4ade80; font-size: 12px; }
+
+      /* Obs */
+      .oa-obs-input {
+        width: 100%; min-height: 60px; padding: 8px 10px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 7px; color: rgba(255,255,255,0.8);
+        font-size: 12px; resize: vertical;
+        font-family: var(--font-body, sans-serif);
         box-sizing: border-box;
       }
-      .oa-obs-input:focus { border-color: rgba(96,170,255,0.4); }
-      .oa-obs-input::placeholder { color: rgba(255,255,255,0.2); }
 
+      /* Action Buttons */
       .oa-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 4px;
+        display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px;
+        border-top: 1px solid rgba(255,255,255,0.06);
       }
       .oa-btn {
-        flex: 1;
-        min-width: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 8px 12px;
-        border-radius: 8px;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        font-family: var(--font-body, sans-serif);
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+        padding: 8px 14px; border-radius: 8px; border: 1px solid transparent;
+        cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+        text-transform: uppercase; font-family: var(--font-body, sans-serif);
         transition: all 0.2s;
       }
-      .oa-btn--complete {
-        background: rgba(34,197,94,0.1);
-        border-color: rgba(34,197,94,0.3);
+      /* Botão principal: INICIAR SERVIÇO */
+      .oa-btn--start {
+        background: rgba(34,197,94,0.12);
+        border-color: rgba(34,197,94,0.4);
         color: #4ade80;
+        flex: 1;
+        font-size: 12px;
+        padding: 10px 16px;
+        box-shadow: 0 0 16px rgba(34,197,94,0.15);
       }
-      .oa-btn--complete:hover { background: rgba(34,197,94,0.2); box-shadow: 0 0 12px rgba(34,197,94,0.3); }
+      .oa-btn--start:hover {
+        background: rgba(34,197,94,0.22);
+        box-shadow: 0 0 24px rgba(34,197,94,0.3);
+        transform: translateY(-1px);
+      }
+      .oa-btn--complete {
+        background: rgba(34,197,94,0.08);
+        border-color: rgba(34,197,94,0.25);
+        color: #4ade80; flex: 1;
+      }
+      .oa-btn--complete:hover { background: rgba(34,197,94,0.16); }
       .oa-btn--cancel {
-        background: rgba(245,197,66,0.08);
+        background: rgba(245,197,66,0.07);
         border-color: rgba(245,197,66,0.2);
         color: #ffd166;
       }
-      .oa-btn--cancel:hover { background: rgba(245,197,66,0.15); box-shadow: 0 0 12px rgba(245,197,66,0.2); }
+      .oa-btn--cancel:hover { background: rgba(245,197,66,0.14); }
       .oa-btn--delete {
-        background: rgba(239,68,68,0.08);
-        border-color: rgba(239,68,68,0.2);
+        background: rgba(239,68,68,0.07);
+        border-color: rgba(239,68,68,0.18);
         color: #f87171;
       }
-      .oa-btn--delete:hover { background: rgba(239,68,68,0.15); box-shadow: 0 0 12px rgba(239,68,68,0.25); }
+      .oa-btn--delete:hover { background: rgba(239,68,68,0.14); }
 
+      /* Toggle admin */
       .order-card-admin-toggle {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        border-radius: 7px;
+        display: flex; align-items: center; gap: 5px;
+        padding: 5px 10px; border-radius: 7px;
         background: rgba(255,215,100,0.07);
         border: 1px solid rgba(255,215,100,0.15);
-        color: rgba(255,215,100,0.7);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.2s;
+        color: rgba(255,215,100,0.7); font-size: 10px;
+        font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+        cursor: pointer; transition: all 0.2s;
         font-family: var(--font-body, sans-serif);
       }
-      .order-card-admin-toggle:hover {
-        background: rgba(255,215,100,0.12);
-        color: #ffd166;
+      .order-card-admin-toggle:hover, .order-card-admin-toggle.active {
+        background: rgba(255,215,100,0.12); color: #ffd166;
         border-color: rgba(255,215,100,0.3);
-      }
-      .order-card-admin-toggle.active {
-        background: rgba(255,215,100,0.12);
-        color: #ffd166;
-        border-color: rgba(255,215,100,0.35);
-      }
-
-      /* Badge de role no dropdown do header */
-      .auth-dropdown-role-badge {
-        display: inline-block;
-        margin-top: 4px;
-        padding: 2px 8px;
-        border-radius: 4px;
-        background: rgba(255,215,100,0.12);
-        border: 1px solid rgba(255,215,100,0.25);
-        color: #ffd166;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
       }
 
       @media (max-width: 480px) {
-        .oa-status-grid { grid-template-columns: 1fr 1fr; }
-        .oa-item-row { flex-direction: column; align-items: flex-start; }
-        .oa-item-controls { width: 100%; }
-        .oa-item-name { font-size: 11px; }
+        .oa-service-grid { grid-template-columns: 1fr; }
+        .oa-item-row     { flex-direction: column; align-items: flex-start; }
+        .oa-item-controls{ width: 100%; }
       }
     `;
     document.head.appendChild(style);
@@ -467,13 +700,16 @@ const OrdersAdmin = (() => {
   return {
     isAdmin,
     isCurrentUserAdmin,
-    renderAdminPanel,
+    startService,
+    completeService,
+    cancelOrder,
     setStatus,
     updateItemQty,
     saveObservation,
-    completeOrder,
-    cancelOrder,
     deleteOrder,
+    setServiceType,
+    setServiceQuantity,
+    renderAdminPanel,
     injectStyles,
   };
 })();

@@ -1,51 +1,36 @@
 // ============================================================
-// pedidos.js — Bridge Supabase ↔ OrdersStorage ↔ OrdersUI
+// pedidos.js — v3 — Bridge Supabase ↔ OrdersStorage ↔ OrdersUI
 // PokeAlliance Shop
 //
-// Responsabilidades:
-//   - Única fonte de verdade para credenciais Supabase
-//   - Busca pedidos do banco de dados
-//   - Converte formato Supabase → OrdersStorage
-//   - Delega renderização ao OrdersUI
-//   - Expõe pedidosCarregar() / pedidosFiltrar() globais (compatibilidade HTML)
-//   - Expõe pedidoSetStatus() para ações admin inline
+// MUDANÇAS v3:
+//   - Lê status_v3 do banco (campo novo) — não mais o campo status legado
+//   - Passa started_at, sla_min_days, sla_max_days, service_type, service_quantity
+//   - Esses campos são obrigatórios para o cálculo de ETA real
+//   - Usa v_active_queue para fila e pedidos diretos para histórico
 //
-// IMPORTANTE: Não declara const em escopo global para evitar
-//   "Identifier has already been declared" em múltiplas cargas.
+// REGRA CENTRAL:
+//   ETA só existe quando started_at != null (admin iniciou o serviço).
+//   Antes disso: pedido está em waiting_queue sem countdown.
 // ============================================================
 
 ;(function (global) {
   'use strict';
 
-  // ── Configuração Supabase (única declaração no projeto) ────────────────
-  var SB_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
+  var SB_URL = global.SUPABASE_URL || 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
+  var SB_KEY = global.SUPABASE_KEY || '';
 
-  // Expõe globalmente para outros módulos que precisarem (sem const)
   global.SUPABASE_URL = global.SUPABASE_URL || SB_URL;
   global.SUPABASE_KEY = global.SUPABASE_KEY || SB_KEY;
 
-  // ── Estado interno ─────────────────────────────────────────────────────
-  var _pedidosBD = [];      // dados brutos do Supabase
-  var _carregando = false;
+  var _pedidosBD   = [];
+  var _carregando  = false;
   var _initialized = false;
 
   // ── Utilitários ────────────────────────────────────────────────────────
 
-  function _log() {
-    var args = Array.prototype.slice.call(arguments);
-    console.log.apply(console, ['[Pedidos]'].concat(args));
-  }
-
-  function _warn() {
-    var args = Array.prototype.slice.call(arguments);
-    console.warn.apply(console, ['[Pedidos]'].concat(args));
-  }
-
-  function _error() {
-    var args = Array.prototype.slice.call(arguments);
-    console.error.apply(console, ['[Pedidos]'].concat(args));
-  }
+  function _log()   { var a = Array.prototype.slice.call(arguments); console.log.apply(console, ['[Pedidos v3]'].concat(a)); }
+  function _warn()  { var a = Array.prototype.slice.call(arguments); console.warn.apply(console, ['[Pedidos v3]'].concat(a)); }
+  function _error() { var a = Array.prototype.slice.call(arguments); console.error.apply(console, ['[Pedidos v3]'].concat(a)); }
 
   function _fmtDate(iso) {
     if (!iso) return '—';
@@ -53,58 +38,81 @@
     return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
-  // ── Conversão: formato Supabase → OrdersStorage ────────────────────────
-  // Permite que o OrdersUI (que lê OrdersStorage) exiba os pedidos do BD.
+  // ── Conversão: Supabase → OrdersStorage ───────────────────────────────
+  //
+  // CAMPOS CRÍTICOS v3 que DEVEM ser passados:
+  //   status_v3        → status normalizado (waiting_queue, in_progress, etc.)
+  //   started_at       → quando o admin iniciou (null se não iniciado)
+  //   sla_min_days     → dias mínimos do SLA (null se não iniciado)
+  //   sla_max_days     → dias máximos do SLA (null se não iniciado)
+  //   service_type     → tipo do serviço (normal_package | pokemon_sr)
+  //   service_quantity → quantidade de unidades/pacotes
 
   function _supabaseToOrderStorage(p) {
     var itens = Array.isArray(p.itens) ? p.itens : [];
-    try {
-      if (typeof p.itens === 'string') itens = JSON.parse(p.itens);
-    } catch (e) { itens = []; }
+    try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch (e) { itens = []; }
 
     var items = itens.map(function (it, idx) {
       return {
-        id: 'sb_item_' + p.id + '_' + idx,
-        name: it.nome || it.name || '—',
-        qtdTotal: parseInt(it.quantidade || it.qty || it.qtdTotal || 1, 10),
-        qtdEntregue: (p.status === 'entregue' || p.status === 'concluido') ? parseInt(it.quantidade || 1, 10) : 0,
-        concluido: (p.status === 'entregue' || p.status === 'concluido'),
+        id:          'sb_item_' + p.id + '_' + idx,
+        name:        it.nome || it.name || '—',
+        qtdTotal:    parseInt(it.quantidade || it.qty || it.qtdTotal || 1, 10),
+        qtdEntregue: 0,
+        concluido:   false,
       };
     });
 
-    // Mapeia status antigo → novo (compatibilidade)
-    // Mapeamento do status do banco → status interno (usado pela fila dinâmica)
-    // ACTIVE_STATUSES: pendente, em_andamento, parcial
-    // INACTIVE_STATUSES: concluido, cancelado
-    var statusMap = {
-      pendente:   'pendente',     // → fila ativa
-      confirmado: 'em_andamento', // → fila ativa
-      em_andamento: 'em_andamento', // caso já venha normalizado
-      preparacao: 'parcial',      // → fila ativa
-      parcial:    'parcial',      // → fila ativa
-      entregue:   'concluido',    // → histórico (fora da fila)
-      concluido:  'concluido',    // → histórico
-      cancelado:  'cancelado',    // → histórico (fora da fila)
-      deleted:    'cancelado',    // → histórico
-    };
-    var status = statusMap[p.status] || p.status || 'pendente';
+    // Usa status_v3 se disponível (campo novo), senão usa mapeamento legado
+    var statusV3 = p.status_v3;
+    if (!statusV3 || !['waiting_queue','in_progress','completed','cancelled'].includes(statusV3)) {
+      // Fallback: mapeia o status legado
+      var legacyMap = {
+        pendente:     'waiting_queue',
+        confirmado:   'waiting_queue',
+        preparacao:   'in_progress',
+        em_andamento: 'in_progress',
+        parcial:      'in_progress',
+        entregue:     'completed',
+        concluido:    'completed',
+        cancelado:    'cancelled',
+        deleted:      'cancelled',
+      };
+      statusV3 = legacyMap[p.status] || 'waiting_queue';
+    }
 
     return {
-      id:          'sb_' + p.id,
-      _supabaseId: p.id,           // ID real no BD para atualizações
-      orderNumber: p.id,
-      userId:      null,           // BD não tem vínculo de userId local
-      nickname:    p.nick_jogo || '—',
-      createdAt:   p.created_at || new Date().toISOString(),
-      status:      status,
-      items:       items,
-      progress:    (status === 'concluido') ? 100 : (status === 'em_andamento' ? 50 : 0),
+      // Identificadores
+      id:            'sb_' + p.id,
+      _supabaseId:   p.id,
+      orderNumber:   p.id,
+      userId:        p.user_id || null,
+
+      // Dados do pedido
+      nickname:      p.nick_jogo || '—',
+      createdAt:     p.created_at || new Date().toISOString(),
+
+      // ── CAMPOS CRÍTICOS v3 ──
+      // Estes campos alimentam o cálculo de ETA e SLA.
+      // NÃO remova ou renomeie.
+      status_v3:        statusV3,
+      status:           statusV3,            // alias para compatibilidade
+      started_at:       p.started_at || null, // null = não iniciado ainda
+      completed_at:     p.completed_at || null,
+      service_type:     p.service_type || 'normal_package',
+      service_quantity: parseInt(p.service_quantity || 1, 10),
+      sla_min_days:     p.sla_min_days || null,  // null = SLA não calculado ainda
+      sla_max_days:     p.sla_max_days || null,
+      // ────────────────────────
+
+      items:   items,
+      progress: (statusV3 === 'completed') ? 100 : 0,
       notifications: [],
       history: [{ at: p.created_at, event: 'created', label: 'Pedido criado', by: p.nick_jogo }],
       cancelledAt:  p.status === 'cancelado' ? p.updated_at : null,
-      completedAt:  p.status === 'entregue'  ? p.updated_at : null,
-      observations: '',
-      // Dados extras do Supabase preservados para render custom
+      completedAt:  p.completed_at || null,
+      observations: p.admin_notes || '',
+
+      // Valores monetários
       _totalKK:  p.total_kk  || p.subtotal_kk  || null,
       _totalBRL: p.total_brl || p.subtotal_brl || null,
       _pagModo:  p.pagamento_modo || null,
@@ -114,75 +122,59 @@
     };
   }
 
-  // ── Sincroniza dados do BD com OrdersStorage ───────────────────────────
-  // Mantém pedidos do BD separados dos pedidos locais (prefixo 'sb_')
+  // ── Sincroniza com OrdersStorage ───────────────────────────────────────
 
   function _sincronizarComOrdersStorage(pedidosBD) {
     if (typeof OrdersStorage === 'undefined') {
-      _warn('OrdersStorage não disponível — renderização delegada ao sistema legado');
+      _warn('OrdersStorage não disponível — renderização legada');
       return false;
     }
-
-    console.group('[Pedidos] Sincronizando com OrdersStorage');
-    _log('Pedidos recebidos do BD:', pedidosBD.length);
-
     try {
-      // Lê pedidos locais (criados pelo sistema novo, sem prefixo sb_)
-      var todos = OrdersStorage.getAllOrders();
+      var todos  = OrdersStorage.getAllOrders();
       var locais = todos.filter(function (o) { return !o.id.startsWith('sb_'); });
-
-      // Converte pedidos do BD
-      var doBD = pedidosBD.map(_supabaseToOrderStorage);
-
-      // Mescla: locais + BD (BD tem prioridade pelo prefixo sb_)
+      var doBD   = pedidosBD.map(_supabaseToOrderStorage);
       var merged = locais.concat(doBD);
-
-      // Salva no storage (acessa diretamente para não conflitar com API pública)
-      try {
-        localStorage.setItem('pa_orders_v2', JSON.stringify(merged));
-        _log('Orders salvos no storage:', merged.length, '(locais:', locais.length, '+ BD:', doBD.length + ')');
-      } catch (e) {
-        _error('Falha ao salvar no localStorage:', e);
-      }
-
-      console.groupEnd();
+      localStorage.setItem('pa_orders_v2', JSON.stringify(merged));
+      _log('Sincronizados:', merged.length, '(local:', locais.length, '+ BD:', doBD.length + ')');
       return true;
     } catch (e) {
-      _error('Erro na sincronização:', e);
-      console.groupEnd();
+      _error('Falha na sincronização:', e);
       return false;
     }
   }
 
-  // ── Fetch principal do Supabase ────────────────────────────────────────
+  // ── Fetch do Supabase ──────────────────────────────────────────────────
+  // Busca todos os campos necessários para o sistema v3, incluindo os novos.
+  // Ordenado por created_at ASC — fonte de verdade da fila.
 
   async function _fetchDoBD() {
-    _log('Iniciando fetch do Supabase...');
-    var res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.asc&limit=500', {
+    _log('Buscando pedidos do Supabase...');
+    var url = SB_URL + '/rest/v1/pedidos' +
+      '?order=created_at.asc' +
+      '&limit=500' +
+      '&select=id,nick_jogo,status,status_v3,created_at,updated_at,' +
+              'started_at,completed_at,service_type,service_quantity,' +
+              'sla_min_days,sla_max_days,itens,total_kk,total_brl,' +
+              'subtotal_kk,subtotal_brl,pagamento_modo,pagamento_kk,' +
+              'pagamento_brl,taxa_servico,admin_notes,user_id';
+
+    var res = await fetch(url, {
       headers: {
         'apikey':        SB_KEY,
         'Authorization': 'Bearer ' + SB_KEY,
       },
     });
-    if (!res.ok) throw new Error('Supabase respondeu com status ' + res.status);
+    if (!res.ok) throw new Error('Supabase: HTTP ' + res.status);
     var dados = await res.json();
-    _log('Fetch concluído. Total de pedidos:', dados.length);
+    _log('Pedidos recebidos:', dados.length);
     return dados;
   }
 
-  // ── Atualiza status no Supabase ────────────────────────────────────────
+  // ── Atualiza status no banco ───────────────────────────────────────────
+  // ATENÇÃO: Para iniciar/concluir, use as funções RPC (start_service/complete_service)
+  // via OrdersAdmin. Este método só é para updates simples de status.
 
   async function _atualizarStatusBD(supabaseId, novoStatus) {
-    // Mapeia status interno → status do BD
-    var statusReverso = {
-      pendente:     'pendente',
-      em_andamento: 'confirmado',
-      parcial:      'preparacao',
-      concluido:    'entregue',
-      cancelado:    'cancelado',
-    };
-    var statusBD = statusReverso[novoStatus] || novoStatus;
-
     var res = await fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + supabaseId, {
       method:  'PATCH',
       headers: {
@@ -191,25 +183,23 @@
         'Authorization': 'Bearer ' + SB_KEY,
         'Prefer':        'return=minimal',
       },
-      body: JSON.stringify({ status: statusBD }),
+      body: JSON.stringify({ status_v3: novoStatus }),
     });
-    if (!res.ok) throw new Error('Erro ao atualizar: status ' + res.status);
+    if (!res.ok) throw new Error('Erro ao atualizar: HTTP ' + res.status);
   }
 
-  // ── UI helpers ─────────────────────────────────────────────────────────
+  // ── UI Helpers ─────────────────────────────────────────────────────────
 
   function _mostrarLoading(sim) {
     var el = document.getElementById('pedidos-loading');
     if (el) el.style.display = sim ? 'flex' : 'none';
   }
-
   function _mostrarErro(msg) {
     var el   = document.getElementById('pedidos-erro');
     var msg_ = document.getElementById('pedidos-erro-msg');
     if (el)   el.style.display = msg ? 'flex' : 'none';
     if (msg_) msg_.textContent = msg || '';
   }
-
   function _girarRefresh(sim) {
     var btn = document.querySelector('.pedidos-refresh-btn');
     if (btn) btn.classList.toggle('spin', sim);
@@ -218,191 +208,160 @@
   // ── Função principal de carregamento ───────────────────────────────────
 
   global.pedidosCarregar = async function () {
-    if (_carregando) {
-      _log('Carregamento já em progresso, ignorando chamada duplicada');
-      return;
-    }
+    if (_carregando) return;
     _carregando = true;
-    console.group('[Pedidos] Carregando pedidos');
-
     _mostrarLoading(true);
     _mostrarErro(null);
     _girarRefresh(true);
-
     var usouBD = false;
 
     try {
       _pedidosBD = await _fetchDoBD();
-      usouBD = _sincronizarComOrdersStorage(_pedidosBD);
+      usouBD     = _sincronizarComOrdersStorage(_pedidosBD);
       _mostrarErro(null);
     } catch (e) {
       _error('Falha ao buscar do Supabase:', e.message);
-      _mostrarErro('Falha de conexão: ' + e.message + '. Exibindo dados locais.');
-      _pedidosBD = [];
-      // Não limpa OrdersStorage — mantém dados locais existentes
+      _mostrarErro('Falha de conexão: ' + e.message);
     }
 
     _mostrarLoading(false);
     _girarRefresh(false);
 
-    // Delega renderização
     if (usouBD && typeof OrdersUI !== 'undefined') {
-      _log('Delegando renderização ao OrdersUI');
       OrdersUI.render();
     } else if (!usouBD) {
-      // Fallback: renderização legada com dados do BD direto
-      _log('Usando renderização legada');
       _renderLegado(_pedidosBD);
     }
 
-    console.groupEnd();
     _carregando = false;
   };
 
-  // ── Filtro (compatibilidade HTML) ──────────────────────────────────────
+  // ── Filtro ─────────────────────────────────────────────────────────────
 
   global.pedidosFiltrar = function () {
-    // Conecta o input/select à lógica do OrdersUI
-    if (typeof OrdersUI !== 'undefined') {
-      // Lê valores atuais e força re-render
-      var search = document.getElementById('pedidos-search');
-      var status = document.getElementById('pedidos-status-filter');
-      // Os eventos já estão conectados pelo _setupTopbar do OrdersUI
-      OrdersUI.render();
-    }
+    if (typeof OrdersUI !== 'undefined') OrdersUI.render();
   };
-
-  // ── Toggle de card (compatibilidade) ──────────────────────────────────
 
   global.pedidoToggle = function (cardId) {
     var card = document.getElementById(cardId);
     if (card) card.classList.toggle('open');
   };
 
-  // ── Atualiza status (compatibilidade + novo sistema) ───────────────────
+  // ── Set Status (compatibilidade) ───────────────────────────────────────
+  // Para starting/completing usa OrdersAdmin que chama RPC do banco.
 
   global.pedidoSetStatus = async function (supabaseId, novoStatus) {
-    console.group('[Pedidos] Atualizando status #' + supabaseId);
+    // Delega para OrdersAdmin se disponível (tem as validações corretas)
+    if (typeof OrdersAdmin !== 'undefined') {
+      if (novoStatus === 'in_progress' || novoStatus === 'confirmado') {
+        return OrdersAdmin.startService(supabaseId);
+      }
+      if (novoStatus === 'completed' || novoStatus === 'entregue' || novoStatus === 'concluido') {
+        return OrdersAdmin.completeService(supabaseId);
+      }
+      if (novoStatus === 'cancelled' || novoStatus === 'cancelado') {
+        return OrdersAdmin.cancelOrder(supabaseId);
+      }
+    }
+
     try {
       await _atualizarStatusBD(supabaseId, novoStatus);
-      _log('Status atualizado no BD:', novoStatus);
-
-      // Atualiza cache local
       var idx = _pedidosBD.findIndex(function (p) { return p.id === supabaseId; });
       if (idx !== -1) {
-        _pedidosBD[idx].status = novoStatus;
+        _pedidosBD[idx].status_v3 = novoStatus;
         _sincronizarComOrdersStorage(_pedidosBD);
         if (typeof OrdersUI !== 'undefined') OrdersUI.render();
         else _renderLegado(_pedidosBD);
       }
     } catch (e) {
       _error('Falha ao atualizar status:', e.message);
-      alert('Erro ao atualizar status: ' + e.message);
+      alert('Erro: ' + e.message);
     }
-    console.groupEnd();
   };
 
-  // ── Renderização legada (fallback sem OrdersUI) ────────────────────────
-  // Usado quando OrdersStorage/OrdersUI não estão disponíveis
+  // ── Renderização legada (fallback) ─────────────────────────────────────
 
   function _renderLegado(lista) {
     var el    = document.getElementById('pedidos-lista');
     var empty = document.getElementById('pedidos-empty');
     var badge = document.getElementById('pedidos-count-badge');
-
     if (!el) return;
 
-    if (!lista || !lista.length) {
+    // Só mostra pedidos ativos na fila principal
+    var ativos = lista.filter(function (p) {
+      var s = p.status_v3 || p.status || '';
+      return s === 'waiting_queue' || s === 'in_progress' || s === 'pendente' || s === 'confirmado' || s === 'em_andamento';
+    }).sort(function (a, b) {
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+
+    if (!ativos.length) {
       el.innerHTML = '';
       if (empty) empty.style.display = 'flex';
-      if (badge) badge.textContent = '0 pedidos';
+      if (badge) badge.textContent = '0 na fila';
       return;
     }
-
     if (empty) empty.style.display = 'none';
-    if (badge) badge.textContent = lista.length + ' pedido' + (lista.length !== 1 ? 's' : '');
-
-    el.innerHTML = lista.map(_renderCardLegado).join('');
+    if (badge) badge.textContent = ativos.length + ' na fila';
+    el.innerHTML = ativos.map(function (p, idx) { return _renderCardLegado(p, idx + 1); }).join('');
   }
 
-  function _renderCardLegado(p) {
-    var id       = p.id;
-    var nick     = p.nick_jogo || '—';
-    var status   = p.status    || 'pendente';
-    var totalKK  = p.total_kk  || p.subtotal_kk  || '—';
-    var totalBRL = p.total_brl || p.subtotal_brl || '—';
-    var modoLabel = p.pagamento_modo === 'brl' ? totalBRL
-                  : p.pagamento_modo === 'mix' ? ((p.pagamento_kk || '') + ' + ' + (p.pagamento_brl || ''))
-                  : totalKK;
-    var itens = Array.isArray(p.itens) ? p.itens : [];
+  function _renderCardLegado(p, queuePos) {
+    var id      = p.id;
+    var nick    = p.nick_jogo || '—';
+    var status  = p.status_v3 || p.status || 'waiting_queue';
+    var totalKK = p.total_kk  || p.subtotal_kk  || '—';
+    var date    = _fmtDate(p.created_at);
+    var cardId  = 'pedido-card-' + id;
+    var itens   = Array.isArray(p.itens) ? p.itens : [];
     try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch (e) { itens = []; }
-    var date   = _fmtDate(p.created_at);
-    var cardId = 'pedido-card-' + id;
 
-    var itensHTML = itens.map(function (it) {
-      return '<div class="pedido-item-row">'
-        + '<span class="pedido-item-nome">' + (it.nome || '—')
-          + (it.tier ? ' <small style="opacity:.45">(' + it.tier + ')</small>' : '') + '</span>'
-        + '<span class="pedido-item-qty">x' + (it.quantidade || 1) + '</span>'
-        + '<span class="pedido-item-preco">' + (it.preco_total_kk || '—') + '</span>'
-        + '</div>';
-    }).join('');
+    // ETA só para in_progress com started_at
+    var etaHTML = '';
+    if (status === 'in_progress' && p.started_at && p.sla_min_days) {
+      etaHTML = '<span style="color:#60aaff;font-size:11px">⏱ SLA: ' + p.sla_min_days + '~' + p.sla_max_days + 'd (iniciado ' + _fmtDate(p.started_at) + ')</span>';
+    } else if (status === 'waiting_queue' || status === 'pendente') {
+      etaHTML = '<span style="color:#ffd166;font-size:11px">⏳ Posição #' + queuePos + ' na fila — aguardando início</span>';
+    }
 
     var actionsHTML = '';
-    if (status === 'pendente') {
-      actionsHTML = '<button class="pedido-action-btn confirmar" onclick="pedidoSetStatus(' + id + ',\'confirmado\')">✓ Confirmar</button>'
-        + '<button class="pedido-action-btn entregar" onclick="pedidoSetStatus(' + id + ',\'entregue\')">📦 Entregar</button>'
-        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelado\')">✕ Cancelar</button>';
-    } else if (status === 'confirmado') {
-      actionsHTML = '<button class="pedido-action-btn entregar" onclick="pedidoSetStatus(' + id + ',\'entregue\')">📦 Marcar Entregue</button>'
-        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelado\')">✕ Cancelar</button>';
+    if (status === 'waiting_queue' || status === 'pendente') {
+      actionsHTML = '<button class="pedido-action-btn confirmar" onclick="OrdersAdmin.startService(' + id + ')">▶ Iniciar Serviço</button>'
+        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelled\')">✕ Cancelar</button>';
+    } else if (status === 'in_progress') {
+      actionsHTML = '<button class="pedido-action-btn entregar" onclick="OrdersAdmin.completeService(' + id + ')">✓ Concluir</button>'
+        + '<button class="pedido-action-btn cancelar" onclick="pedidoSetStatus(' + id + ',\'cancelled\')">✕ Cancelar</button>';
     }
 
     return '<div class="pedido-card" id="' + cardId + '">'
       + '<div class="pedido-card-header" onclick="pedidoToggle(\'' + cardId + '\')">'
-        + '<span class="pedido-card-id">#' + String(id).padStart(4, '0') + '</span>'
+        + '<span class="pedido-card-id">#' + queuePos + '</span>'
         + '<span class="pedido-card-nick">' + nick + '</span>'
-        + '<span class="pedido-card-total">' + modoLabel + '</span>'
+        + '<span class="pedido-card-total">' + totalKK + '</span>'
         + '<span class="pedido-card-date">' + date + '</span>'
         + '<span class="pedido-status-pill ' + status + '">' + status + '</span>'
-        + '<svg class="pedido-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
-      + '<div class="pedido-card-body">'
-        + '<div class="pedido-card-inner">'
-          + '<div class="pedido-itens-label">Itens do pedido</div>'
-          + itensHTML
-          + '<div class="pedido-totais">'
-            + '<div class="pedido-total-box"><div class="pedido-total-box-label">Total KK</div><div class="pedido-total-box-val">' + totalKK + '</div></div>'
-            + '<div class="pedido-total-box"><div class="pedido-total-box-label">Total R$</div><div class="pedido-total-box-val" style="color:#5ae698">' + totalBRL + '</div></div>'
-            + (p.taxa_servico ? '<div class="pedido-total-box" style="flex:none"><div class="pedido-total-box-label">Taxa</div><div class="pedido-total-box-val" style="color:#ff9060;font-size:12px">+5kk aplicada</div></div>' : '')
-          + '</div>'
-          + (actionsHTML ? '<div class="pedido-actions">' + actionsHTML + '</div>' : '')
-        + '</div>'
-      + '</div>'
+      + '<div class="pedido-card-body"><div class="pedido-card-inner">'
+        + etaHTML
+        + (actionsHTML ? '<div class="pedido-actions">' + actionsHTML + '</div>' : '')
+      + '</div></div>'
     + '</div>';
   }
 
-  // ── Inicialização automática ───────────────────────────────────────────
+  // ── Inicialização ──────────────────────────────────────────────────────
 
   function _init() {
     if (_initialized) return;
     _initialized = true;
-
-    _log('Módulo carregado. Aguardando tab de pedidos...');
-
-    // Se a aba já está ativa no carregamento, busca imediatamente
     var tabPedidos = document.getElementById('tab-pedidos');
     if (tabPedidos && tabPedidos.classList.contains('active')) {
-      _log('Aba pedidos já ativa na carga inicial → carregando');
       global.pedidosCarregar();
     }
   }
 
-  // Aguarda DOM + todos os módulos
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _init);
   } else {
-    // DOM já pronto (script carregado após DOMContentLoaded)
     _init();
   }
 
