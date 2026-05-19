@@ -861,7 +861,7 @@ function patchWnOpen() {
   if (window._wnOpen._starAscPatched) return;
   var _orig = window._wnOpen;
   window._wnOpen = function(id) {
-    if (id !== 'starascension') { _orig.call(this, id); return; }
+    if (id !== 'starascension') { _orig.apply(this, arguments); return; }
 
     /* Abre o módulo manualmente com o mesmo fluxo do wiki-nav */
     var MOD = { id:'starascension', name:'Star Ascension', icon:'⭐',
@@ -905,6 +905,10 @@ function patchWnOpen() {
     _mount();
     setTimeout(_mount, 100);
   };
+  // Preservar todos os flags que outros patches colocaram no _orig,
+  // para que url-hash (_wnOpenPatched) e wiki-boost (_boostPatched) não percam seus guards.
+  if (_orig._wnOpenPatched) window._wnOpen._wnOpenPatched = true;
+  if (_orig._boostPatched)  window._wnOpen._boostPatched  = true;
   window._wnOpen._starAscPatched = true;
 }
 
