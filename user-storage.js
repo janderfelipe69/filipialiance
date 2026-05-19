@@ -76,7 +76,7 @@ const UserStorage = (() => {
       createdAt: new Date().toISOString(),
       // Campos preparados para expansão futura:
       avatar:    null,         // URL de avatar customizado
-      role:      'player',     // 'player' | 'admin' | 'mod'
+      role:      'user',       // 'user' | 'admin'
       favorites: [],           // Lista de IDs de itens favoritos
       orderHistory: [],        // Histórico de pedidos
       savedCart:  {},          // Carrinho salvo entre sessões
