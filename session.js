@@ -1,65 +1,258 @@
 // ============================================================
-// session.js — Gerenciamento de sessão ativa
-// PokeAlliance Shop — Sistema de Autenticação
+// session.js — Gerenciamento de Sessão com Supabase
+// PokeAlliance Shop
 //
-// Este módulo mantém o estado do usuário em memória e
-// sincroniza a UI com o estado de login/logout.
-// Depende de: user-storage.js
+// Responsabilidades:
+//   - Persistência de tokens no localStorage (access + refresh)
+//   - Renovação automática de token expirado
+//   - Carregamento do perfil completo em public.users (com role)
+//   - Notificação de mudanças de estado (Observer pattern)
+//   - Atualização da UI do header
+//
+// Depende de: supabase-client.js
+// NÃO depende mais de user-storage.js
 // ============================================================
 
 const Session = (() => {
-  // Estado em memória — fonte de verdade durante a navegação
-  let _currentUser = null;
+  'use strict';
 
-  // ── Callbacks para notificar outros módulos ──────────────────────────────
-  // Padrão Observer: permite que outros módulos escutem mudanças de sessão
-  // Útil para: carrinho salvo, histórico, permissões futuras
+  // ── Chaves do localStorage ───────────────────────────────────────────────
+  // Apenas tokens são guardados localmente — nunca dados de usuário ou role.
+  const KEYS = {
+    ACCESS_TOKEN:  'pa_sb_access_token',
+    REFRESH_TOKEN: 'pa_sb_refresh_token',
+    TOKEN_EXPIRY:  'pa_sb_token_expiry',   // timestamp em ms
+  };
+
+  // ── Estado em memória ────────────────────────────────────────────────────
+  // _currentUser contém dados vindos EXCLUSIVAMENTE do Supabase (public.users).
+  // A role NUNCA vem do localStorage ou do frontend.
+  let _currentUser = null;      // dados de public.users + email de auth.users
+  let _accessToken = null;
+  let _refreshToken = null;
+  let _initialized = false;
+  let _refreshTimer = null;
+
+  // ── Observers ────────────────────────────────────────────────────────────
   const _listeners = [];
 
   function onAuthChange(callback) {
+    // Evita registro duplicado (previne múltiplos listeners)
+    if (_listeners.includes(callback)) return;
     _listeners.push(callback);
+    // Notifica imediatamente com estado atual se já inicializado
+    if (_initialized) {
+      try { callback(_currentUser ? 'login' : 'logout', _currentUser); } catch (_) {}
+    }
   }
 
-  function _notifyListeners(eventType, user) {
+  function _notify(eventType, user) {
+    console.log(`[Session] 🔔 Evento: ${eventType}`, user ? `(${user.nickname || user.email})` : '');
     _listeners.forEach(cb => {
-      try { cb(eventType, user); } catch (e) { /* não deixa um listener quebrar os outros */ }
+      try { cb(eventType, user); } catch (e) {
+        console.warn('[Session] Erro em listener:', e);
+      }
     });
   }
 
+  // ── Persistência de Tokens ───────────────────────────────────────────────
+
+  function _saveTokens(accessToken, refreshToken, expiresIn) {
+    _accessToken  = accessToken;
+    _refreshToken = refreshToken;
+    const expiry  = Date.now() + (expiresIn || 3600) * 1000;
+    try {
+      localStorage.setItem(KEYS.ACCESS_TOKEN,  accessToken);
+      localStorage.setItem(KEYS.REFRESH_TOKEN, refreshToken);
+      localStorage.setItem(KEYS.TOKEN_EXPIRY,  String(expiry));
+    } catch (e) {
+      console.warn('[Session] Falha ao salvar tokens:', e);
+    }
+    _scheduleRefresh(expiresIn || 3600);
+  }
+
+  function _loadTokensFromStorage() {
+    try {
+      _accessToken  = localStorage.getItem(KEYS.ACCESS_TOKEN);
+      _refreshToken = localStorage.getItem(KEYS.REFRESH_TOKEN);
+      return !!_accessToken;
+    } catch {
+      return false;
+    }
+  }
+
+  function _clearTokens() {
+    _accessToken  = null;
+    _refreshToken = null;
+    if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
+    try {
+      localStorage.removeItem(KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(KEYS.TOKEN_EXPIRY);
+    } catch (_) {}
+  }
+
+  function _isTokenExpired() {
+    try {
+      const expiry = parseInt(localStorage.getItem(KEYS.TOKEN_EXPIRY) || '0', 10);
+      // Considera expirado 60s antes para renovar com margem
+      return Date.now() > expiry - 60_000;
+    } catch {
+      return true;
+    }
+  }
+
+  // ── Renovação Automática de Token ────────────────────────────────────────
+
+  function _scheduleRefresh(expiresInSeconds) {
+    if (_refreshTimer) clearTimeout(_refreshTimer);
+    // Renova 2 minutos antes de expirar
+    const delay = Math.max((expiresInSeconds - 120) * 1000, 30_000);
+    _refreshTimer = setTimeout(_doRefresh, delay);
+    console.log(`[Session] ⏱ Token será renovado em ${Math.round(delay / 60000)} min.`);
+  }
+
+  async function _doRefresh() {
+    if (!_refreshToken) return;
+    console.log('[Session] 🔄 Renovando token de sessão...');
+    try {
+      const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
+      _saveTokens(data.access_token, data.refresh_token, data.expires_in);
+      console.log('[Session] ✅ Token renovado com sucesso.');
+    } catch (e) {
+      console.warn('[Session] ⚠️ Falha ao renovar token. Fazendo logout:', e.message);
+      await logout();
+    }
+  }
+
+  // ── Carregamento de Perfil ───────────────────────────────────────────────
+
+  /**
+   * Busca o perfil completo de public.users (inclui role).
+   * A role vem SEMPRE do banco — nunca do frontend.
+   */
+  async function _loadProfile(authUserId, jwt) {
+    console.log('[Session] 📋 Carregando perfil do banco...');
+    try {
+      const profile = await SupabaseClient.DB.getUserProfile(authUserId, jwt);
+      if (!profile) {
+        console.warn('[Session] ⚠️ Perfil não encontrado em public.users para id:', authUserId);
+        return null;
+      }
+      console.log(`[Session] ✅ Perfil carregado. Role: ${profile.role}`);
+      return profile;
+    } catch (e) {
+      console.error('[Session] ❌ Erro ao carregar perfil:', e.message);
+      return null;
+    }
+  }
+
   // ── Inicialização ────────────────────────────────────────────────────────
+
   /**
    * Deve ser chamado no DOMContentLoaded.
-   * Recupera sessão persistida e atualiza a UI automaticamente.
+   * Recupera sessão salva, renova token se necessário, carrega perfil.
    */
-  function init() {
-    const session = UserStorage.getSession();
-    if (session) {
-      const user = UserStorage.getUserById(session.userId);
-      if (user) {
-        _currentUser = user;
-        _renderLoggedIn(user);
-        _notifyListeners('login', user);
-      } else {
-        // Usuário deletado mas sessão ainda existe → limpa
-        UserStorage.clearSession();
+  async function init() {
+    if (_initialized) {
+      console.warn('[Session] ⚠️ init() chamado mais de uma vez. Ignorando.');
+      return;
+    }
+    _initialized = true;
+    console.log('[Session] 🚀 Inicializando sessão...');
+
+    const hasTokens = _loadTokensFromStorage();
+    if (!hasTokens) {
+      console.log('[Session] ℹ️ Nenhuma sessão salva.');
+      _renderLoggedOut();
+      return;
+    }
+
+    // Renova se expirado
+    if (_isTokenExpired()) {
+      console.log('[Session] 🔄 Token expirado, tentando renovar...');
+      try {
+        const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
+        _saveTokens(data.access_token, data.refresh_token, data.expires_in);
+      } catch (e) {
+        console.warn('[Session] ⚠️ Não foi possível renovar sessão:', e.message);
+        _clearTokens();
+        _renderLoggedOut();
+        return;
       }
     }
-    // Se não há sessão, a UI padrão (botão Login) já está no HTML
+
+    // Busca dados do usuário autenticado
+    let authUser;
+    try {
+      authUser = await SupabaseClient.Auth.getUser(_accessToken);
+    } catch (e) {
+      console.warn('[Session] ⚠️ Token inválido:', e.message);
+      _clearTokens();
+      _renderLoggedOut();
+      return;
+    }
+
+    // Carrega perfil do banco (com role)
+    const profile = await _loadProfile(authUser.id, _accessToken);
+    if (!profile) {
+      // auth.users existe mas public.users não — situação inconsistente
+      // Mantém autenticado mas sem role (limita acesso)
+      _currentUser = { id: authUser.id, email: authUser.email, role: 'consumer', nickname: authUser.email };
+      console.warn('[Session] ⚠️ Perfil não encontrado em public.users. Usando fallback básico.');
+    } else {
+      _currentUser = profile;
+    }
+
+    _renderLoggedIn(_currentUser);
+    _notify('login', _currentUser);
+    console.log('[Session] ✅ Sessão restaurada para:', _currentUser.nickname || _currentUser.email);
   }
 
-  // ── Login/Logout ─────────────────────────────────────────────────────────
-  function login(user) {
-    _currentUser = user;
-    UserStorage.saveSession(user);
-    _renderLoggedIn(user);
-    _notifyListeners('login', user);
+  // ── Login / Logout ───────────────────────────────────────────────────────
+
+  /**
+   * Chamado após autenticação bem-sucedida.
+   * Recebe os dados retornados pelo Supabase Auth.
+   */
+  async function _handleLoginSuccess(authData) {
+    _saveTokens(authData.access_token, authData.refresh_token, authData.expires_in);
+
+    const profile = await _loadProfile(authData.user.id, authData.access_token);
+    if (!profile) {
+      _currentUser = {
+        id:       authData.user.id,
+        email:    authData.user.email,
+        nickname: authData.user.email,
+        role:     'consumer',
+        server:   'Moon',
+        avatar:   null,
+      };
+      console.warn('[Session] ⚠️ Perfil não encontrado após login. Usando dados básicos do auth.');
+    } else {
+      _currentUser = profile;
+    }
+
+    _renderLoggedIn(_currentUser);
+    _notify('login', _currentUser);
+    return _currentUser;
   }
 
-  function logout() {
+  async function logout() {
+    console.log('[Session] 👋 Fazendo logout...');
+    if (_accessToken) {
+      try {
+        await SupabaseClient.Auth.signOut(_accessToken);
+      } catch (e) {
+        // Ignora erro de logout no servidor — limpa localmente de qualquer forma
+        console.warn('[Session] Erro no signOut remoto (ignorado):', e.message);
+      }
+    }
     _currentUser = null;
-    UserStorage.clearSession();
+    _clearTokens();
     _renderLoggedOut();
-    _notifyListeners('logout', null);
+    _notify('logout', null);
+    console.log('[Session] ✅ Logout concluído.');
   }
 
   function getCurrentUser() {
@@ -67,32 +260,41 @@ const Session = (() => {
   }
 
   function isLoggedIn() {
-    return _currentUser !== null;
+    return _currentUser !== null && _accessToken !== null;
   }
 
-  // ── Renderização da UI do Header ─────────────────────────────────────────
+  function getAccessToken() {
+    return _accessToken;
+  }
+
   /**
-   * Gera as iniciais do nickname para o avatar padrão.
-   * Ex: "Filipe123" → "FI"
+   * Verifica se o usuário atual tem role 'admin'.
+   * A role vem SEMPRE do banco — nunca do localStorage/frontend.
    */
+  function isAdmin() {
+    return _currentUser !== null && _currentUser.role === 'admin';
+  }
+
+  // ── Renderização do Header ───────────────────────────────────────────────
+
   function _getInitials(nickname) {
     return (nickname || '?').slice(0, 2).toUpperCase();
   }
 
-  /**
-   * Atualiza o header com informações do usuário logado.
-   * Substitui o botão de login pelo widget de usuário.
-   */
+  function _truncate(str, max) {
+    return str && str.length > max ? str.slice(0, max) + '…' : (str || '');
+  }
+
   function _renderLoggedIn(user) {
     const container = document.getElementById('auth-header-slot');
     if (!container) return;
 
     const initials = _getInitials(user.nickname);
+    const isAdminUser = user.role === 'admin';
 
     container.innerHTML = `
       <div class="auth-user-widget" id="auth-user-widget">
-        <!-- Avatar com iniciais -->
-        <div class="auth-avatar" aria-label="Avatar de ${user.nickname}">
+        <div class="auth-avatar" aria-label="Avatar de ${user.nickname || user.email}">
           ${user.avatar
             ? `<img src="${user.avatar}" alt="${user.nickname}" />`
             : `<span class="auth-avatar-initials">${initials}</span>`
@@ -100,26 +302,26 @@ const Session = (() => {
           <span class="auth-status-dot" aria-hidden="true"></span>
         </div>
 
-        <!-- Nome do usuário -->
         <div class="auth-user-info">
-          <span class="auth-nickname" title="${user.nickname}">
-            ${_truncate(user.nickname, 12)}
+          <span class="auth-nickname" title="${user.nickname || user.email}">
+            ${_truncate(user.nickname || user.email, 12)}
           </span>
-          <span class="auth-server-tag">🌙 Moon</span>
+          <span class="auth-server-tag">
+            ${isAdminUser ? '⚙️ Admin' : '🌙 Moon'}
+          </span>
         </div>
 
-        <!-- Menu dropdown -->
         <button class="auth-menu-btn" onclick="Session._toggleMenu()" aria-label="Menu do usuário" aria-expanded="false" id="auth-menu-btn">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
             <path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
           </svg>
         </button>
 
-        <!-- Dropdown -->
         <div class="auth-dropdown" id="auth-dropdown" role="menu" aria-hidden="true">
           <div class="auth-dropdown-header">
-            <div class="auth-dropdown-nick">${user.nickname}</div>
-            <div class="auth-dropdown-email">${user.email}</div>
+            <div class="auth-dropdown-nick">${user.nickname || '—'}</div>
+            <div class="auth-dropdown-email">${user.email || '—'}</div>
+            ${isAdminUser ? '<div class="auth-dropdown-role-badge">⚙️ Administrador</div>' : ''}
           </div>
           <div class="auth-dropdown-divider"></div>
           <button class="auth-dropdown-item" onclick="Session._openMyAccount()" role="menuitem">
@@ -139,7 +341,6 @@ const Session = (() => {
       </div>
     `;
 
-    // Fecha o dropdown ao clicar fora
     document.addEventListener('click', _handleOutsideClick, { passive: true });
   }
 
@@ -160,19 +361,14 @@ const Session = (() => {
   }
 
   // ── Helpers da UI ────────────────────────────────────────────────────────
-  function _truncate(str, max) {
-    return str.length > max ? str.slice(0, max) + '…' : str;
-  }
 
   function _handleOutsideClick(e) {
     const widget = document.getElementById('auth-user-widget');
-    if (widget && !widget.contains(e.target)) {
-      _closeMenu();
-    }
+    if (widget && !widget.contains(e.target)) _closeMenu();
   }
 
   function _toggleMenu() {
-    const dd = document.getElementById('auth-dropdown');
+    const dd  = document.getElementById('auth-dropdown');
     const btn = document.getElementById('auth-menu-btn');
     if (!dd) return;
     const isOpen = dd.classList.contains('open');
@@ -186,31 +382,34 @@ const Session = (() => {
   }
 
   function _closeMenu() {
-    const dd = document.getElementById('auth-dropdown');
+    const dd  = document.getElementById('auth-dropdown');
     const btn = document.getElementById('auth-menu-btn');
-    if (dd) { dd.classList.remove('open'); dd.setAttribute('aria-hidden', 'true'); }
+    if (dd)  { dd.classList.remove('open');  dd.setAttribute('aria-hidden', 'true'); }
     if (btn) btn.setAttribute('aria-expanded', 'false');
   }
 
   function _confirmLogout() {
     _closeMenu();
-    AuthModal.openLogoutConfirm();
+    if (typeof AuthModal !== 'undefined') AuthModal.openLogoutConfirm();
   }
 
   function _openMyAccount() {
     _closeMenu();
-    AuthModal.openMyAccount();
+    if (typeof AuthModal !== 'undefined') AuthModal.openMyAccount();
   }
 
-  // ── Exporta API pública ───────────────────────────────────────────────────
+  // ── Exporta API pública ──────────────────────────────────────────────────
   return {
     init,
-    login,
     logout,
     getCurrentUser,
     isLoggedIn,
+    isAdmin,
+    getAccessToken,
     onAuthChange,
-    // Métodos internos da UI expostos para os onclick inline:
+    // Interno — exposto para uso do auth.js
+    _handleLoginSuccess,
+    // Internos da UI (usados nos onclick inline do header)
     _toggleMenu,
     _closeMenu,
     _confirmLogout,

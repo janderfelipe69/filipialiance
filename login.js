@@ -108,21 +108,21 @@ const AuthModal = (() => {
               <div class="auth-form-error" id="auth-login-error" role="alert" aria-live="polite"></div>
 
               <div class="auth-field">
-                <label class="auth-label" for="auth-login-nick">Nickname</label>
+                <label class="auth-label" for="auth-login-email">E-mail</label>
                 <div class="auth-input-wrap">
-                  <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                   <input
-                    id="auth-login-nick"
+                    id="auth-login-email"
                     class="auth-input"
                     type="text"
-                    placeholder="Seu nickname no jogo"
-                    autocomplete="username"
-                    maxlength="24"
-                    oninput="AuthModal._clearFieldError('auth-login-nick')"
+                    placeholder="seu@email.com"
+                    autocomplete="email"
+                    maxlength="100"
+                    oninput="AuthModal._clearFieldError('auth-login-email')"
                     onkeydown="if(event.key==='Enter') AuthModal._submitLogin()"
                   />
                 </div>
-                <div class="auth-field-error" id="auth-login-nick-error"></div>
+                <div class="auth-field-error" id="auth-login-email-error"></div>
               </div>
 
               <div class="auth-field">
@@ -169,14 +169,14 @@ const AuthModal = (() => {
                   <span class="auth-nick-availability" id="auth-nick-avail"></span>
                 </label>
                 <div class="auth-input-wrap">
-                  <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                   <input
                     id="auth-reg-nick"
                     class="auth-input"
                     type="text"
                     placeholder="Seu nick no jogo"
-                    autocomplete="username"
-                    maxlength="24"
+                    autocomplete="email"
+                    maxlength="100"
                     oninput="AuthModal._onNickInput(this.value)"
                   />
                 </div>
@@ -474,20 +474,20 @@ const AuthModal = (() => {
   async function _submitLogin() {
     if (_isSubmitting) return;
 
-    const nickname = (document.getElementById('auth-login-nick') || {}).value || '';
+    const email = (document.getElementById('auth-login-email') || {}).value || '';
     const password = (document.getElementById('auth-login-pass') || {}).value || '';
 
     _setLoading('auth-login-submit', true);
     _clearError('auth-login-error');
     _isSubmitting = true;
 
-    const result = await Auth.login({ nickname, password });
+    const result = await Auth.login({ email, password });
     _isSubmitting = false;
     _setLoading('auth-login-submit', false);
 
     if (!result.success) {
-      if (result.field === 'nickname') {
-        _setFieldError('auth-login-nick', result.message);
+      if (result.field === 'email') {
+        _setFieldError('auth-login-email', result.message);
       } else if (result.field === 'password') {
         _setFieldError('auth-login-pass', result.message);
       } else {

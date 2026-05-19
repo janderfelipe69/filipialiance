@@ -2192,9 +2192,10 @@
   </div>
 </div>
 
-<!-- ── Sistema de Autenticação PokeAlliance ─────────────────────────── -->
-<!-- Ordem importa: storage → session → auth → login (UI) -->
-<script src="user-storage.js"></script>
+<!-- ── Sistema de Autenticação PokeAlliance (Supabase) ──────────────── -->
+<!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
+<!-- user-storage.js foi REMOVIDO — dados agora vêm do banco Supabase    -->
+<script src="supabase-client.js"></script>
 <script src="session.js"></script>
 <script src="auth.js"></script>
 <script src="login.js"></script>

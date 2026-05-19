@@ -2,21 +2,26 @@
 // orders-admin.js — Ações Administrativas
 // PokeAlliance Shop — Sistema de Rastreamento de Pedidos
 //
-// Controla permissões, painel admin inline nos cards,
-// e expõe funções de gestão de pedidos para o admin.
+// MUDANÇA IMPORTANTE:
+//   A verificação de admin agora usa EXCLUSIVAMENTE o campo
+//   `role` vindo de public.users (banco de dados).
+//   Não há mais ADMIN_NICKNAMES hardcoded — isso era inseguro.
+//
+// Para promover alguém a admin, execute no SQL Editor do Supabase:
+//   UPDATE users SET role = 'admin' WHERE email = 'email@exemplo.com';
 // ============================================================
 
 const OrdersAdmin = (() => {
-  // IDs de admin (adicione aqui os nicknames/ids admin)
-  // Em produção, isso viria do backend / campo role do usuário
-  const ADMIN_NICKNAMES = ['filipi', 'admin', 'filipes'];
 
-  // ── Verificação de Permissão ──────────────────────────────────────────
+  // ── Verificação de Permissão ──────────────────────────────────────────────
+  // Role vem EXCLUSIVAMENTE do banco via Session.getCurrentUser().
+  // Não há mais lista de nicknames hardcoded — foi removida por segurança.
 
   function isAdmin(user) {
     if (!user) return false;
-    if (user.role === 'admin') return true;
-    return ADMIN_NICKNAMES.includes((user.nickname || '').toLowerCase());
+    // A role 'admin' vem APENAS do campo public.users.role no banco de dados.
+    // Nunca confiar em role do localStorage, frontend ou parâmetro de URL.
+    return user.role === 'admin';
   }
 
   function isCurrentUserAdmin() {
@@ -24,7 +29,7 @@ const OrdersAdmin = (() => {
     return isAdmin(user);
   }
 
-  // ── Painel Inline de Admin ────────────────────────────────────────────
+  // ── Painel Inline de Admin ────────────────────────────────────────────────
 
   /**
    * Gera o HTML do painel de controles admin inserido inline no card.
@@ -113,10 +118,13 @@ const OrdersAdmin = (() => {
     `;
   }
 
-  // ── Ações Admin ───────────────────────────────────────────────────────
+  // ── Ações Admin ───────────────────────────────────────────────────────────
 
   function setStatus(orderId, status) {
-    if (!isCurrentUserAdmin()) return;
+    if (!isCurrentUserAdmin()) {
+      console.warn('[OrdersAdmin] ⛔ Acesso negado: usuário não é admin.');
+      return;
+    }
     const admin = Session.getCurrentUser();
     const result = OrdersStorage.updateStatus(orderId, status, admin.nickname);
     if (result.success) {
@@ -147,20 +155,14 @@ const OrdersAdmin = (() => {
     const order = OrdersStorage.getOrderById(orderId);
     if (!order) return;
 
-    // Marca todos os itens como completos
-    const orders = OrdersStorage._getAllOrders();
-    const idx = orders.findIndex(o => o.id === orderId);
-    if (idx !== -1) {
-      const admin = Session.getCurrentUser();
-      const result = OrdersStorage.updateStatus(orderId, 'concluido', admin.nickname);
-      if (result.success) {
-        // Marca todos os itens como entregues
-        result.order.items.forEach(item => {
-          OrdersStorage.updateItemProgress(orderId, item.id, item.qtdTotal, admin.nickname);
-        });
-        OrdersNotifications.show(`Pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)} concluído!`, 'concluido');
-        if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
-      }
+    const admin = Session.getCurrentUser();
+    const result = OrdersStorage.updateStatus(orderId, 'concluido', admin.nickname);
+    if (result.success) {
+      result.order.items.forEach(item => {
+        OrdersStorage.updateItemProgress(orderId, item.id, item.qtdTotal, admin.nickname);
+      });
+      OrdersNotifications.show(`Pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)} concluído!`, 'concluido');
+      if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
     }
   }
 
@@ -191,7 +193,7 @@ const OrdersAdmin = (() => {
     if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
   }
 
-  // ── Estilos do Painel Admin ────────────────────────────────────────────
+  // ── Estilos do Painel Admin ───────────────────────────────────────────────
 
   function injectStyles() {
     if (document.getElementById('orders-admin-styles')) return;
@@ -244,7 +246,6 @@ const OrdersAdmin = (() => {
         font-family: var(--font-mono, monospace);
       }
 
-      /* Status grid */
       .oa-status-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -280,7 +281,6 @@ const OrdersAdmin = (() => {
         box-shadow: 0 0 6px var(--s-color, transparent);
       }
 
-      /* Items list */
       .oa-items-list { display: flex; flex-direction: column; gap: 8px; }
       .oa-item-row {
         display: flex;
@@ -349,7 +349,6 @@ const OrdersAdmin = (() => {
         to   { transform: scale(1) rotate(0); opacity: 1; }
       }
 
-      /* Observation textarea */
       .oa-obs-input {
         width: 100%;
         background: rgba(255,255,255,0.04);
@@ -369,7 +368,6 @@ const OrdersAdmin = (() => {
       .oa-obs-input:focus { border-color: rgba(96,170,255,0.4); }
       .oa-obs-input::placeholder { color: rgba(255,255,255,0.2); }
 
-      /* Action buttons */
       .oa-actions {
         display: flex;
         gap: 8px;
@@ -413,7 +411,6 @@ const OrdersAdmin = (() => {
       }
       .oa-btn--delete:hover { background: rgba(239,68,68,0.15); box-shadow: 0 0 12px rgba(239,68,68,0.25); }
 
-      /* Admin toggle button in card */
       .order-card-admin-toggle {
         display: flex;
         align-items: center;
@@ -440,6 +437,21 @@ const OrdersAdmin = (() => {
         background: rgba(255,215,100,0.12);
         color: #ffd166;
         border-color: rgba(255,215,100,0.35);
+      }
+
+      /* Badge de role no dropdown do header */
+      .auth-dropdown-role-badge {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(255,215,100,0.12);
+        border: 1px solid rgba(255,215,100,0.25);
+        color: #ffd166;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
       }
 
       @media (max-width: 480px) {
