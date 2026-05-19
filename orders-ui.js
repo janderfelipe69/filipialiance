@@ -2,22 +2,23 @@
 // orders-ui.js — Renderização da aba Pedidos
 // PokeAlliance Shop — Sistema de Rastreamento de Pedidos
 //
-// Responsabilidades:
-//   - Renderização dos cards de pedido
-//   - Filtros (todos / meus pedidos / status / busca)
-//   - Timeline de histórico
-//   - Barra de progresso geral
-//   - Progresso por item
-//   - Integração com módulos: OrdersStorage, OrdersProgress, OrdersAdmin, OrdersNotifications
+// MUDANÇA ARQUITETURAL v2 — FILA DE PROCESSAMENTO:
+//   - A fila exibe SOMENTE pedidos ativos (pendente, em_andamento, parcial)
+//   - Pedidos concluídos/cancelados são EXCLUÍDOS da fila principal
+//   - A posição exibida (#1, #2...) é calculada dinamicamente,
+//     sem usar o ID real do PostgreSQL
+//   - ETA calculado apenas com base nos pedidos ativos à frente
+//   - Aba "Histórico" separada para pedidos concluídos/cancelados
 // ============================================================
 
 const OrdersUI = (() => {
   let _state = {
-    filter: 'all',   // 'all' | 'mine'
-    status: 'all',
+    tab: 'queue',         // 'queue' | 'history'
+    filter: 'all',        // 'all' | 'mine'
+    status: 'all',        // filtra dentro da aba ativa
     search: '',
-    expandedPanels: new Set(), // IDs de painéis admin abertos
-    expandedHistory: new Set(), // IDs com timeline aberta
+    expandedPanels: new Set(),
+    expandedHistory: new Set(),
   };
 
   // ── Inicialização ──────────────────────────────────────────────────────
@@ -28,29 +29,25 @@ const OrdersUI = (() => {
     _setupTopbar();
     render();
 
-    // Ouve mudanças de sessão para re-renderizar (admin badge etc.)
     if (typeof Session !== 'undefined') {
       Session.onAuthChange(() => render());
     }
 
-    // Inicializa notificações
     if (typeof OrdersNotifications !== 'undefined') {
       OrdersNotifications.init();
     }
 
-    // Migra dados legados na primeira carga
     if (typeof OrdersStorage !== 'undefined') {
       OrdersStorage.migrateLegacyOrders();
     }
   }
 
-  // ── Setup do Topbar (filtros) ──────────────────────────────────────────
+  // ── Setup do Topbar ────────────────────────────────────────────────────
 
   function _setupTopbar() {
     const topbarRight = document.querySelector('.pedidos-topbar-right');
     if (!topbarRight) return;
 
-    // Conecta select de status (já existe no HTML com opções corretas)
     const statusSelect = document.getElementById('pedidos-status-filter');
     if (statusSelect) {
       statusSelect.onchange = () => {
@@ -59,7 +56,6 @@ const OrdersUI = (() => {
       };
     }
 
-    // Conecta botão "Meus Pedidos" (já existe no HTML)
     const myBtn = document.getElementById('pedidos-my-filter');
     if (myBtn) {
       myBtn.onclick = () => {
@@ -69,7 +65,6 @@ const OrdersUI = (() => {
       };
     }
 
-    // Conecta campo de busca
     const searchInput = document.getElementById('pedidos-search');
     if (searchInput) {
       searchInput.oninput = () => {
@@ -78,7 +73,6 @@ const OrdersUI = (() => {
       };
     }
 
-    // Botão refresh — delega ao pedidosCarregar para re-buscar do BD
     const refreshBtn = document.querySelector('.pedidos-refresh-btn');
     if (refreshBtn) {
       refreshBtn.onclick = () => {
@@ -103,84 +97,171 @@ const OrdersUI = (() => {
     const erro = document.getElementById('pedidos-erro');
     if (!lista) return;
 
-    // Esconde estados de loading/erro
     if (loading) loading.style.display = 'none';
     if (erro) erro.style.display = 'none';
 
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
-    let orders = OrdersStorage.getAllOrders();
 
-    // Filtra
+    // ── Todos os pedidos brutos do storage ──────────────────────────────
+    const allOrders = OrdersStorage.getAllOrders();
+
+    // ── Fila ativa: SOMENTE pedidos com status ativo ────────────────────
+    // A posição dinâmica é calculada a partir desta lista.
+    const activeQueue = OrdersProgress.getActiveQueue(allOrders);
+
+    // ── Histórico: pedidos inativos (concluídos, cancelados) ─────────────
+    const historyOrders = allOrders
+      .filter(o => OrdersProgress.isInactiveStatus(o.status))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // ── Seleciona qual lista renderizar conforme a aba ativa ─────────────
+    // Admin vê ambas as abas; usuário comum vê só a fila (seus pedidos ativos)
+    let baseList = _state.tab === 'history' ? historyOrders : activeQueue;
+
+    // ── Filtros adicionais ───────────────────────────────────────────────
     if (_state.filter === 'mine' && user) {
-      orders = orders.filter(o => o.userId === user.id || o.nickname === user.nickname);
+      baseList = baseList.filter(o => o.userId === user.id || o.nickname === user.nickname);
     }
     if (_state.status !== 'all') {
-      orders = orders.filter(o => o.status === _state.status);
+      baseList = baseList.filter(o => o.status === _state.status);
     }
     if (_state.search.trim()) {
       const q = _state.search.trim().toLowerCase();
-      orders = orders.filter(o =>
+      baseList = baseList.filter(o =>
         o.nickname.toLowerCase().includes(q) ||
         (o.items || []).some(it => it.name.toLowerCase().includes(q)) ||
         String(o.orderNumber).includes(q)
       );
     }
 
-    // Ordena: mais recentes primeiro
-    orders = orders.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // ── Tabs ─────────────────────────────────────────────────────────────
+    _renderTabs(activeQueue.length, historyOrders.length, isAdmin);
 
-    // Atualiza contagem
+    // ── Badge de contagem ────────────────────────────────────────────────
     const badge = document.getElementById('pedidos-count-badge');
-    if (badge) badge.textContent = `${orders.length} pedido${orders.length !== 1 ? 's' : ''}`;
+    if (badge) {
+      if (_state.tab === 'queue') {
+        badge.textContent = `${activeQueue.length} na fila`;
+      } else {
+        badge.textContent = `${historyOrders.length} pedido${historyOrders.length !== 1 ? 's' : ''}`;
+      }
+    }
 
-    if (!orders.length) {
+    if (!baseList.length) {
       lista.innerHTML = '';
-      if (empty) empty.style.display = 'flex';
+      if (empty) {
+        empty.style.display = 'flex';
+        const emptyMsg = empty.querySelector('.pedidos-empty-msg');
+        if (emptyMsg) {
+          emptyMsg.textContent = _state.tab === 'queue'
+            ? 'Nenhum pedido aguardando atendimento'
+            : 'Nenhum pedido no histórico';
+        }
+      }
       return;
     }
 
     if (empty) empty.style.display = 'none';
 
-    // Renderiza cards (re-uso inteligente de DOM: atualiza só o que mudou)
+    // ── Renderiza cards ───────────────────────────────────────────────────
     const existingCards = new Map();
     lista.querySelectorAll('.order-card[data-order-id]').forEach(el => {
       existingCards.set(el.dataset.orderId, el);
     });
 
-    // Monta fragmento
     const frag = document.createDocumentFragment();
-    orders.forEach(order => {
-      const el = _renderCard(order, user, isAdmin, existingCards.get(order.id));
+    baseList.forEach(order => {
+      // Passa a fila ativa para calcular posição e ETA
+      const el = _renderCard(order, user, isAdmin, activeQueue, existingCards.get(order.id));
       frag.appendChild(el);
       existingCards.delete(order.id);
-      // Flush notificações não lidas
       if (typeof OrdersNotifications !== 'undefined') {
         OrdersNotifications.flushUnreadNotifications(order);
       }
     });
 
-    // Remove cards que não existem mais
     existingCards.forEach(el => el.remove());
     lista.innerHTML = '';
     lista.appendChild(frag);
   }
 
+  // ── Renderização das Tabs ──────────────────────────────────────────────
+
+  function _renderTabs(queueCount, historyCount, isAdmin) {
+    let tabsEl = document.getElementById('orders-tabs');
+    if (!tabsEl) {
+      tabsEl = document.createElement('div');
+      tabsEl.id = 'orders-tabs';
+      tabsEl.className = 'orders-tabs';
+      const lista = document.getElementById('pedidos-lista');
+      if (lista && lista.parentNode) {
+        lista.parentNode.insertBefore(tabsEl, lista);
+      }
+    }
+
+    // Admin vê histórico; usuário normal vê só a fila
+    tabsEl.innerHTML = `
+      <button class="orders-tab ${_state.tab === 'queue' ? 'active' : ''}"
+              onclick="OrdersUI._setTab('queue')">
+        <span class="orders-tab-icon">⚡</span>
+        Fila Ativa
+        ${queueCount > 0 ? `<span class="orders-tab-badge">${queueCount}</span>` : ''}
+      </button>
+      ${isAdmin ? `
+      <button class="orders-tab ${_state.tab === 'history' ? 'active' : ''}"
+              onclick="OrdersUI._setTab('history')">
+        <span class="orders-tab-icon">📋</span>
+        Histórico
+        ${historyCount > 0 ? `<span class="orders-tab-badge orders-tab-badge--muted">${historyCount}</span>` : ''}
+      </button>
+      ` : ''}
+    `;
+  }
+
+  function _setTab(tab) {
+    _state.tab = tab;
+    _state.status = 'all'; // reset do filtro de status ao trocar aba
+    render();
+  }
+
   // ── Renderização de Card ───────────────────────────────────────────────
 
-  function _renderCard(order, user, isAdmin, existingEl) {
+  function _renderCard(order, user, isAdmin, activeQueue, existingEl) {
     const cfg = OrdersProgress.getStatusConfig(order.status);
     const progress = OrdersProgress.calcOrderProgress(order);
-    const num = OrdersProgress.formatOrderNumber(order.orderNumber);
     const relTime = OrdersProgress.formatRelativeTime(order.createdAt);
-    const canCancel = user && OrdersProgress.canUserCancel(order, user.id);
     const isOwner = user && (order.userId === user.id);
     const panelOpen = _state.expandedPanels.has(order.id);
     const histOpen = _state.expandedHistory.has(order.id);
     const unreadCount = order.notifications ? order.notifications.filter(n => !n.read && isOwner).length : 0;
+    const canCancel = user && OrdersProgress.canUserCancel(order, user.id);
+
+    // ── Posição dinâmica na fila (NÃO usa ID do banco) ────────────────
+    const queuePos = OrdersProgress.calcQueuePosition(order.id, activeQueue.concat(
+      // incluímos os inativos apenas para que calcQueuePosition os ignore corretamente
+      // (a função já filtra por isActiveStatus internamente)
+      []
+    ));
+    // Recalcula diretamente pela fila ativa já filtrada
+    const posIdx = activeQueue.findIndex(o => o.id === order.id);
+    const position = posIdx !== -1 ? posIdx + 1 : null;
+
+    // ── ETA ────────────────────────────────────────────────────────────
+    const eta = position !== null ? (() => {
+      const minutesAhead = posIdx * OrdersProgress.AVG_MINUTES_PER_ORDER;
+      if (position === 1) return { label: 'Próximo', minutes: 0 };
+      if (minutesAhead < 60) return { label: `~${minutesAhead}min`, minutes: minutesAhead };
+      const h = Math.floor(minutesAhead / 60);
+      const m = minutesAhead % 60;
+      return { label: m > 0 ? `~${h}h${m}min` : `~${h}h`, minutes: minutesAhead };
+    })() : null;
 
     const card = document.createElement('div');
-    card.className = `order-card order-card--${order.status}`;
+
+    // Cards no histórico recebem classe adicional de opacidade reduzida
+    const isInHistory = OrdersProgress.isInactiveStatus(order.status);
+    card.className = `order-card order-card--${order.status}${isInHistory ? ' order-card--inactive' : ''}`;
     card.dataset.orderId = order.id;
     card.style.cssText = `--status-color:${cfg.color}; --status-glow:${cfg.glow};`;
 
@@ -188,7 +269,15 @@ const OrdersUI = (() => {
       <!-- Card Header -->
       <div class="order-card-header">
         <div class="order-card-header-left">
-          <div class="order-card-num">${num}</div>
+          <!-- Posição na fila (dinâmica) ou número do pedido (histórico) -->
+          ${position !== null ? `
+            <div class="order-queue-position" title="Posição na fila de atendimento">
+              <span class="order-queue-pos-num">#${position}</span>
+              <span class="order-queue-pos-label">na fila</span>
+            </div>
+          ` : `
+            <div class="order-card-num">${OrdersProgress.formatOrderNumber(order.orderNumber)}</div>
+          `}
           <div class="order-card-nick">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             ${_escHtml(order.nickname)}
@@ -204,6 +293,21 @@ const OrdersUI = (() => {
           <span class="order-card-time">${relTime}</span>
         </div>
       </div>
+
+      <!-- ETA (apenas para pedidos ativos na fila) -->
+      ${eta !== null ? `
+        <div class="order-eta-bar">
+          <div class="order-eta-queue">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span class="order-eta-label">ETA: <strong>${eta.label}</strong></span>
+          </div>
+          <div class="order-eta-position">
+            Posição <strong>${position}</strong> de <strong>${activeQueue.length}</strong> na fila
+          </div>
+        </div>
+      ` : ''}
 
       <!-- Progresso Geral -->
       <div class="order-progress-section">
@@ -228,7 +332,7 @@ const OrdersUI = (() => {
       </div>
       ` : ''}
 
-      <!-- Footer: ações + toggles -->
+      <!-- Footer -->
       <div class="order-card-footer">
         <div class="order-card-footer-left">
           ${isAdmin ? `
@@ -348,7 +452,7 @@ const OrdersUI = (() => {
     `;
   }
 
-  // ── Interações do Usuário ──────────────────────────────────────────────
+  // ── Interações ─────────────────────────────────────────────────────────
 
   function _toggleAdminPanel(orderId) {
     if (_state.expandedPanels.has(orderId)) {
@@ -383,7 +487,7 @@ const OrdersUI = (() => {
     if (!confirm('Deseja cancelar seu pedido? Esta ação não pode ser desfeita.')) return;
 
     OrdersStorage.updateStatus(orderId, 'cancelado', user.nickname);
-    OrdersNotifications.show(`Pedido ${OrdersProgress.formatOrderNumber(order.orderNumber)} cancelado.`, 'cancelado');
+    OrdersNotifications.show(`Pedido cancelado.`, 'cancelado');
     render();
   }
 
@@ -398,15 +502,68 @@ const OrdersUI = (() => {
       .replace(/"/g, '&quot;');
   }
 
-  // ── Estilos da UI ──────────────────────────────────────────────────────
+  // ── Estilos ─────────────────────────────────────────────────────────────
 
   function _injectStyles() {
     if (document.getElementById('orders-ui-styles')) return;
     const style = document.createElement('style');
     style.id = 'orders-ui-styles';
     style.textContent = `
-      /* ─── Pedidos Page Overrides ─────────────────────────────────── */
+      /* ─── Pedidos Page ───────────────────────────────────────────── */
       .pedidos-page { padding: 16px 0 80px; }
+
+      /* ─── Tabs de Fila / Histórico ───────────────────────────────── */
+      .orders-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 16px;
+        padding: 0 4px;
+      }
+      .orders-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        color: rgba(255,255,255,0.45);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: var(--font-body, sans-serif);
+        letter-spacing: 0.3px;
+      }
+      .orders-tab:hover {
+        background: rgba(255,255,255,0.07);
+        color: rgba(255,255,255,0.75);
+      }
+      .orders-tab.active {
+        background: rgba(58,140,255,0.12);
+        border-color: rgba(58,140,255,0.3);
+        color: #60aaff;
+        box-shadow: 0 0 12px rgba(58,140,255,0.1);
+      }
+      .orders-tab-icon { font-size: 13px; }
+      .orders-tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: rgba(58,140,255,0.2);
+        color: #60aaff;
+        font-size: 10px;
+        font-weight: 700;
+        font-family: var(--font-mono, monospace);
+      }
+      .orders-tab-badge--muted {
+        background: rgba(255,255,255,0.07);
+        color: rgba(255,255,255,0.3);
+      }
 
       /* ─── My Filter Button ───────────────────────────────────────── */
       .pedidos-my-filter-btn {
@@ -426,17 +583,8 @@ const OrdersUI = (() => {
         font-family: var(--font-body, sans-serif);
         white-space: nowrap;
       }
-      .pedidos-my-filter-btn:hover {
-        background: rgba(96,170,255,0.1);
-        color: #60aaff;
-        border-color: rgba(96,170,255,0.3);
-      }
-      .pedidos-my-filter-btn.active {
-        background: rgba(96,170,255,0.15);
-        color: #60aaff;
-        border-color: rgba(96,170,255,0.4);
-        box-shadow: 0 0 12px rgba(96,170,255,0.15);
-      }
+      .pedidos-my-filter-btn:hover { background: rgba(96,170,255,0.1); color: #60aaff; border-color: rgba(96,170,255,0.3); }
+      .pedidos-my-filter-btn.active { background: rgba(96,170,255,0.15); color: #60aaff; border-color: rgba(96,170,255,0.4); box-shadow: 0 0 12px rgba(96,170,255,0.15); }
 
       /* ─── Order Card ─────────────────────────────────────────────── */
       #pedidos-lista {
@@ -465,24 +613,85 @@ const OrdersUI = (() => {
         pointer-events: none;
         transition: opacity 0.3s;
       }
-      .order-card:hover {
-        border-color: color-mix(in srgb, var(--status-color, #fff) 30%, rgba(255,255,255,0.1));
-        box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
-        transform: translateY(-1px);
-      }
+      .order-card:hover { border-color: color-mix(in srgb, var(--status-color, #fff) 30%, rgba(255,255,255,0.1)); box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04); transform: translateY(-1px); }
       .order-card:hover::before { opacity: 0.25; }
+      .order-card--inactive { opacity: 0.6; }
+      .order-card--inactive:hover { opacity: 0.8; }
 
       @keyframes card-in {
         from { opacity: 0; transform: translateY(12px); }
         to   { opacity: 1; transform: translateY(0); }
       }
 
-      /* Status borders */
-      .order-card--pendente      { border-left: 3px solid rgba(245,197,66,0.5); }
-      .order-card--em_andamento  { border-left: 3px solid rgba(58,140,255,0.55); }
-      .order-card--parcial       { border-left: 3px solid rgba(168,85,247,0.55); }
-      .order-card--concluido     { border-left: 3px solid rgba(34,197,94,0.55); }
-      .order-card--cancelado     { border-left: 3px solid rgba(239,68,68,0.4); opacity: 0.7; }
+      .order-card--pendente     { border-left: 3px solid rgba(245,197,66,0.5); }
+      .order-card--em_andamento { border-left: 3px solid rgba(58,140,255,0.55); }
+      .order-card--parcial      { border-left: 3px solid rgba(168,85,247,0.55); }
+      .order-card--concluido    { border-left: 3px solid rgba(34,197,94,0.55); }
+      .order-card--cancelado    { border-left: 3px solid rgba(239,68,68,0.4); }
+
+      /* ─── Posição na Fila ─────────────────────────────────────────── */
+      .order-queue-position {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 4px 8px;
+        flex-shrink: 0;
+      }
+      .order-queue-pos-num {
+        font-family: var(--font-mono, monospace);
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--status-color, #fff);
+        text-shadow: 0 0 10px var(--status-glow, transparent);
+        line-height: 1;
+        letter-spacing: -0.5px;
+      }
+      .order-queue-pos-label {
+        font-size: 8px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1;
+        margin-top: 2px;
+      }
+
+      /* ─── ETA Bar ─────────────────────────────────────────────────── */
+      .order-eta-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 12px;
+        border-radius: 9px;
+        background: rgba(58,140,255,0.06);
+        border: 1px solid rgba(58,140,255,0.12);
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .order-eta-queue {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-body, sans-serif);
+        font-size: 11px;
+        color: rgba(255,255,255,0.5);
+      }
+      .order-eta-queue svg { color: #60aaff; flex-shrink: 0; }
+      .order-eta-label { color: rgba(255,255,255,0.6); }
+      .order-eta-label strong { color: #60aaff; }
+      .order-eta-position {
+        font-family: var(--font-mono, monospace);
+        font-size: 10px;
+        color: rgba(255,255,255,0.3);
+      }
+      .order-eta-position strong { color: rgba(255,255,255,0.55); }
 
       /* ─── Card Header ─────────────────────────────────────────────── */
       .order-card-header {
@@ -493,7 +702,7 @@ const OrdersUI = (() => {
         margin-bottom: 14px;
         flex-wrap: wrap;
       }
-      .order-card-header-left { display: flex; align-items: center; gap: 12px; }
+      .order-card-header-left { display: flex; align-items: center; gap: 10px; }
       .order-card-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
       .order-card-num {
@@ -542,6 +751,10 @@ const OrdersUI = (() => {
         animation: badge-pulse 2s ease-in-out infinite;
         font-family: var(--font-mono, monospace);
       }
+      @keyframes badge-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+      }
 
       .order-card-time {
         font-family: var(--font-mono, monospace);
@@ -562,305 +775,113 @@ const OrdersUI = (() => {
         letter-spacing: 0.3px;
         font-family: var(--font-body, sans-serif);
         white-space: nowrap;
-        position: relative;
       }
       .order-status-badge--pendente     { background:rgba(245,197,66,0.12); color:#ffd166; border:1px solid rgba(245,197,66,0.25); }
       .order-status-badge--em_andamento { background:rgba(58,140,255,0.12); color:#60aaff; border:1px solid rgba(58,140,255,0.3); box-shadow:0 0 10px rgba(58,140,255,0.15); }
       .order-status-badge--parcial      { background:rgba(168,85,247,0.12); color:#c084fc; border:1px solid rgba(168,85,247,0.3); box-shadow:0 0 10px rgba(168,85,247,0.15); }
-      .order-status-badge--concluido    { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.3); box-shadow:0 0 10px rgba(34,197,94,0.15); }
+      .order-status-badge--concluido    { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
       .order-status-badge--cancelado    { background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.2); }
 
       .order-status-icon { font-size: 12px; }
 
-      /* Pulsing dot em andamento */
-      .order-status-badge--em_andamento::after {
-        content: '';
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: #60aaff;
-        animation: status-pulse 1.5s ease-in-out infinite;
-        display: none;
-      }
-      @keyframes status-pulse {
-        0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
-        50% { opacity: 0.4; transform: translateY(-50%) scale(0.7); }
-      }
-
       /* ─── Progress Bar ────────────────────────────────────────────── */
       .order-progress-section { margin-bottom: 14px; }
-      .order-progress-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 6px;
-      }
-      .order-progress-label {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: rgba(255,255,255,0.3);
-        font-family: var(--font-mono, monospace);
-      }
-      .order-progress-pct {
-        font-size: 12px;
-        font-weight: 700;
-        font-family: var(--font-mono, monospace);
-        transition: color 0.4s;
-      }
-      .order-progress-bar {
-        height: 5px;
-        border-radius: 3px;
-        background: rgba(255,255,255,0.06);
-        overflow: hidden;
-      }
-      .order-progress-fill {
-        height: 100%;
-        border-radius: 3px;
-        transition: width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.4s;
-        min-width: 3px;
-      }
+      .order-progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+      .order-progress-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.3); font-family: var(--font-mono, monospace); }
+      .order-progress-pct { font-size: 12px; font-weight: 700; font-family: var(--font-mono, monospace); transition: color 0.4s; }
+      .order-progress-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; }
+      .order-progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.4s; min-width: 3px; }
 
       /* ─── Items ────────────────────────────────────────────────────── */
-      .order-items-section {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-        margin-bottom: 14px;
-      }
+      .order-items-section { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
       .order-items-empty { font-size: 12px; color: rgba(255,255,255,0.25); }
-
       .order-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 8px 12px;
-        border-radius: 9px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.05);
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 8px 12px; border-radius: 9px;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
         transition: background 0.3s, border-color 0.3s;
       }
-      .order-item--done {
-        background: rgba(34,197,94,0.06);
-        border-color: rgba(34,197,94,0.12);
-      }
-      .order-item--partial {
-        border-color: rgba(168,85,247,0.12);
-      }
-
-      .order-item-info {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex: 1;
-        min-width: 0;
-      }
-      .order-item-name {
-        font-family: var(--font-body, sans-serif);
-        font-size: 12px;
-        font-weight: 600;
-        color: rgba(255,255,255,0.75);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .order-item--done .order-item-name {
-        color: rgba(34,197,94,0.85);
-        text-decoration: line-through;
-        text-decoration-color: rgba(34,197,94,0.3);
-      }
-
-      .order-item-check-mark {
-        color: #4ade80;
-        font-size: 13px;
-        font-weight: 700;
-        flex-shrink: 0;
-        animation: check-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-        text-shadow: 0 0 8px rgba(74,222,128,0.6);
-      }
-      @keyframes check-pop {
-        from { transform: scale(0) rotate(-45deg); opacity: 0; }
-        to   { transform: scale(1) rotate(0deg); opacity: 1; }
-      }
-
+      .order-item--done { background: rgba(34,197,94,0.06); border-color: rgba(34,197,94,0.12); }
+      .order-item--partial { border-color: rgba(168,85,247,0.12); }
+      .order-item-info { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+      .order-item-name { font-family: var(--font-body, sans-serif); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .order-item--done .order-item-name { color: rgba(34,197,94,0.85); text-decoration: line-through; text-decoration-color: rgba(34,197,94,0.3); }
+      .order-item-check-mark { color: #4ade80; font-size: 13px; font-weight: 700; flex-shrink: 0; animation: check-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both; text-shadow: 0 0 8px rgba(74,222,128,0.6); }
+      @keyframes check-pop { from { transform: scale(0) rotate(-45deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
       .order-item-progress { flex-shrink: 0; }
-      .order-item-bar-wrap {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .order-item-bar {
-        width: 60px;
-        height: 4px;
-        border-radius: 2px;
-        background: rgba(255,255,255,0.06);
-        overflow: hidden;
-      }
-      .order-item-bar-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.5s cubic-bezier(0.4,0,0.2,1), background 0.4s;
-      }
-      .order-item-qty {
-        font-family: var(--font-mono, monospace);
-        font-size: 10px;
-        font-weight: 700;
-        white-space: nowrap;
-        transition: color 0.3s;
-      }
+      .order-item-bar-wrap { display: flex; align-items: center; gap: 7px; }
+      .order-item-bar { width: 60px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; }
+      .order-item-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1), background 0.4s; }
+      .order-item-qty { font-family: var(--font-mono, monospace); font-size: 10px; font-weight: 700; white-space: nowrap; transition: color 0.3s; }
       .order-item-qty--done { color: #4ade80 !important; }
-
-      .order-item-qty-simple {
-        font-family: var(--font-mono, monospace);
-        font-size: 10px;
-        font-weight: 700;
-        white-space: nowrap;
-      }
+      .order-item-qty-simple { font-family: var(--font-mono, monospace); font-size: 10px; font-weight: 700; white-space: nowrap; }
       .order-item-qty-simple.done { color: #4ade80 !important; }
 
       /* ─── Observation ─────────────────────────────────────────────── */
       .order-obs {
-        display: flex;
-        align-items: flex-start;
-        gap: 7px;
-        padding: 9px 12px;
-        border-radius: 9px;
-        background: rgba(255,215,100,0.05);
-        border: 1px solid rgba(255,215,100,0.1);
-        font-family: var(--font-body, sans-serif);
-        font-size: 12px;
-        color: rgba(255,215,100,0.7);
-        line-height: 1.5;
-        margin-bottom: 12px;
+        display: flex; align-items: flex-start; gap: 7px; padding: 9px 12px; border-radius: 9px;
+        background: rgba(255,215,100,0.05); border: 1px solid rgba(255,215,100,0.1);
+        font-family: var(--font-body, sans-serif); font-size: 12px; color: rgba(255,215,100,0.7); line-height: 1.5; margin-bottom: 12px;
       }
       .order-obs svg { flex-shrink: 0; margin-top: 2px; }
 
       /* ─── Card Footer ─────────────────────────────────────────────── */
       .order-card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        flex-wrap: wrap;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;
       }
       .order-card-footer-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .order-card-footer-right { display: flex; align-items: center; gap: 8px; }
-
       .order-card-hist-toggle {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        border-radius: 7px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-        color: rgba(255,255,255,0.4);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-family: var(--font-body, sans-serif);
+        display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 7px;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.4); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+        text-transform: uppercase; cursor: pointer; transition: all 0.2s; font-family: var(--font-body, sans-serif);
       }
       .order-card-hist-toggle:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
       .order-card-hist-toggle.active { background: rgba(96,170,255,0.1); color: #60aaff; border-color: rgba(96,170,255,0.25); }
-
       .order-card-cancel-btn {
-        padding: 5px 12px;
-        border-radius: 7px;
-        background: rgba(239,68,68,0.08);
-        border: 1px solid rgba(239,68,68,0.2);
-        color: #f87171;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-family: var(--font-body, sans-serif);
-        letter-spacing: 0.3px;
+        padding: 5px 12px; border-radius: 7px; background: rgba(239,68,68,0.08);
+        border: 1px solid rgba(239,68,68,0.2); color: #f87171; font-size: 11px; font-weight: 700;
+        cursor: pointer; transition: all 0.2s; font-family: var(--font-body, sans-serif); letter-spacing: 0.3px;
       }
       .order-card-cancel-btn:hover { background: rgba(239,68,68,0.15); box-shadow: 0 0 12px rgba(239,68,68,0.2); }
 
       /* ─── Timeline ────────────────────────────────────────────────── */
-      .order-timeline {
-        margin-top: 14px;
-        padding: 14px;
-        background: rgba(0,0,0,0.15);
-        border-radius: 10px;
-        border: 1px solid rgba(255,255,255,0.05);
-        animation: oa-expand 0.2s ease both;
-      }
-      .order-timeline-title {
-        font-family: var(--font-title, 'Cinzel', serif);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: rgba(255,255,255,0.3);
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
+      .order-timeline { margin-top: 14px; padding: 14px; background: rgba(0,0,0,0.15); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); animation: oa-expand 0.2s ease both; }
+      .order-timeline-title { font-family: var(--font-title, 'Cinzel', serif); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
       .order-timeline-list { display: flex; flex-direction: column; gap: 10px; }
-      .order-timeline-entry {
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-      }
+      .order-timeline-entry { display: flex; gap: 10px; align-items: flex-start; }
       .order-timeline-dot { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
       .order-timeline-content { flex: 1; }
-      .order-timeline-label {
-        font-size: 12px;
-        color: rgba(255,255,255,0.65);
-        font-family: var(--font-body, sans-serif);
-        font-weight: 500;
-        line-height: 1.4;
-      }
+      .order-timeline-label { font-size: 12px; color: rgba(255,255,255,0.65); font-family: var(--font-body, sans-serif); font-weight: 500; line-height: 1.4; }
       .order-timeline-entry.latest .order-timeline-label { color: rgba(255,255,255,0.85); font-weight: 600; }
-      .order-timeline-meta {
-        display: flex;
-        gap: 8px;
-        margin-top: 2px;
-        font-size: 10px;
-        color: rgba(255,255,255,0.25);
-        font-family: var(--font-mono, monospace);
-      }
+      .order-timeline-meta { display: flex; gap: 8px; margin-top: 2px; font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--font-mono, monospace); }
+      @keyframes oa-expand { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
       /* ─── Empty State ─────────────────────────────────────────────── */
       #pedidos-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 60px 20px;
-        color: rgba(255,255,255,0.3);
-        font-family: var(--font-body, sans-serif);
-        text-align: center;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 10px; padding: 60px 20px; color: rgba(255,255,255,0.3); font-family: var(--font-body, sans-serif); text-align: center;
       }
       #pedidos-empty div:first-child { font-size: 44px; }
 
       /* ─── Mobile ──────────────────────────────────────────────────── */
       @media (max-width: 600px) {
-        .order-card { padding: 14px 14px; border-radius: 12px; }
+        .order-card { padding: 14px; border-radius: 12px; }
         .order-card-header { gap: 8px; }
-        .order-card-num { font-size: 12px; }
+        .order-queue-pos-num { font-size: 13px; }
+        .order-queue-position { min-width: 36px; height: 36px; }
         .order-card-nick { font-size: 12px; }
         .order-status-badge { font-size: 10px; padding: 3px 8px; }
         .order-item-bar { width: 44px; }
         .pedidos-topbar-right { gap: 6px; }
         .pedidos-my-filter-btn span { display: none; }
         .pedidos-my-filter-btn { padding: 0 10px; }
-        .order-card-header-right { gap: 5px; }
+        .order-eta-bar { gap: 6px; }
+        .order-eta-position { display: none; }
+        .orders-tabs { gap: 4px; }
+        .orders-tab { padding: 7px 12px; font-size: 11px; }
       }
     `;
     document.head.appendChild(style);
@@ -872,16 +893,14 @@ const OrdersUI = (() => {
     init,
     render,
     refresh: render,
+    _setTab,
     _toggleAdminPanel,
     _toggleHistory,
     _cancelOwnOrder,
   };
 })();
 
-// ── Inicialização do OrdersUI ──────────────────────────────────────────────
-// pedidosCarregar() e pedidosFiltrar() são definidos em pedidos.js (não duplicar aqui)
-// OrdersUI.init() é chamado após o DOM estar pronto
-
+// ── Inicialização ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () {
     try {

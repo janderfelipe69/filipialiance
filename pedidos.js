@@ -73,11 +73,19 @@
     });
 
     // Mapeia status antigo → novo (compatibilidade)
+    // Mapeamento do status do banco → status interno (usado pela fila dinâmica)
+    // ACTIVE_STATUSES: pendente, em_andamento, parcial
+    // INACTIVE_STATUSES: concluido, cancelado
     var statusMap = {
-      pendente:   'pendente',
-      confirmado: 'em_andamento',
-      entregue:   'concluido',
-      cancelado:  'cancelado',
+      pendente:   'pendente',     // → fila ativa
+      confirmado: 'em_andamento', // → fila ativa
+      em_andamento: 'em_andamento', // caso já venha normalizado
+      preparacao: 'parcial',      // → fila ativa
+      parcial:    'parcial',      // → fila ativa
+      entregue:   'concluido',    // → histórico (fora da fila)
+      concluido:  'concluido',    // → histórico
+      cancelado:  'cancelado',    // → histórico (fora da fila)
+      deleted:    'cancelado',    // → histórico
     };
     var status = statusMap[p.status] || p.status || 'pendente';
 
@@ -150,7 +158,7 @@
 
   async function _fetchDoBD() {
     _log('Iniciando fetch do Supabase...');
-    var res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.desc&limit=500', {
+    var res = await fetch(SB_URL + '/rest/v1/pedidos?order=created_at.asc&limit=500', {
       headers: {
         'apikey':        SB_KEY,
         'Authorization': 'Bearer ' + SB_KEY,
@@ -169,6 +177,7 @@
     var statusReverso = {
       pendente:     'pendente',
       em_andamento: 'confirmado',
+      parcial:      'preparacao',
       concluido:    'entregue',
       cancelado:    'cancelado',
     };
