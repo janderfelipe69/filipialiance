@@ -22,6 +22,13 @@ function formatKK(raw) {
   return { label, brl };
 }
 
+function _calcCapturaFinalPrice(poke, ball) {
+  const diveMultiplier = poke.dive ? 1.30 : 1.0;
+  const effectiveBase  = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
+  const rawFinalPrice  = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
+  return (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
+}
+
 const items = [];
 const seen = new Set();
 RAW.forEach(([name, image, price, tier, evo]) => {
@@ -3288,10 +3295,7 @@ function selectBall(ballId) {
   if (currentCapturaIdx !== null) {
     const poke = POKEMONS[currentCapturaIdx];
     const ball = BALLS.find(b => b.id === ballId);
-    const diveMultiplier = poke.dive ? 1.30 : 1.0;
-    const effectiveBase = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
-    const rawFinalPrice = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
-    const finalPrice = (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
+    const finalPrice = _calcCapturaFinalPrice(poke, ball);
     const priceData = formatKK(finalPrice);
     const selBlock = document.getElementById('captura-price-selected');
     const selKk    = document.getElementById('captura-price-sel-kk');
@@ -3308,10 +3312,7 @@ function confirmCaptura() {
   if (!selectedBall || currentCapturaIdx === null) return;
   const poke = POKEMONS[currentCapturaIdx];
   const ball = BALLS.find(b => b.id === selectedBall);
-  const diveMultiplier = poke.dive ? 1.30 : 1.0;
-  const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
-  const rawFinalPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
-  const finalPrice = (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
+  const finalPrice = _calcCapturaFinalPrice(poke, ball);
   const priceData  = formatKK(finalPrice);
   const priceStr   = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
 
