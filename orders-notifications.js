@@ -1,25 +1,21 @@
 // ============================================================
-// orders-notifications.js — v5 — DEDUPLICATION FIX
+// orders-notifications.js — v6 — DEBUG + RENDER FIX
 // PokeAlliance Shop
 //
-// CAUSAS RAIZ corrigidas nesta versão:
+// CAUSAS RAIZ CORRIGIDAS:
 //
-//  5. INIT DUPLICADO  → A arrow function passada para Session.onAuthChange()
-//     era uma nova instância a cada chamada de init(), tornando a verificação
-//     _listeners.includes(callback) ineficaz — cada init() registrava um
-//     listener ADICIONAL. Corrigido com guard _initCalled + callback estável
-//     armazenado em _authChangeHandler.
+//  [FIX E] renderNotifications() com fallback de campos
+//    Cards ficavam vazios se message/title fossem undefined.
+//    Agora usa: message || content || body || text || 'Nova notificação'
 //
-//  6. _onLogin DUPLO  → init() chamava _onLogin(user) diretamente E o
-//     onAuthChange disparava 'login' imediatamente (se já logado), causando
-//     duas chamadas a startRealtime() na mesma execução. Corrigido: o
-//     handler de onAuthChange é a única fonte de _onLogin.
+//  [FIX F] _loadDropdownContent aguarda Session.ready()
+//    Se dropdown abrir antes do JWT estar pronto, fetchMyNotifications
+//    lançava "Usuário não autenticado" e retornava []. Agora aguarda.
 //
-//  7. CACHE LOCAL ILIMITADO  → o dropdown carregava 25 notificações sem
-//     limite; agora o máximo é 30, com deduplicação por ID antes de render.
-//
-//  8. CONTADOR INCORRETO APÓS RELOAD  → countUnread() sempre busca do banco
-//     (fonte única de verdade). Removido qualquer cálculo local do badge.
+//  [FIX G] _onRealtimeNotification atualiza state local imediatamente
+//    Em vez de só chamar _loadDropdownContent() (que faz novo fetch),
+//    injeta o card diretamente no DOM para resposta instantânea,
+//    e agenda um refresh do banco para sincronizar.
 //
 // Depende de: notifications.js, session.js, supabase-client.js
 // ============================================================
@@ -31,10 +27,9 @@ const OrdersNotifications = (() => {
   let _toastContainer    = null;
   let _dropdownOpen      = false;
   let _unreadCount       = 0;
-  let _initCalled        = false;       // guard: init() só executa UMA vez
-  let _authChangeHandler = null;        // referência estável para deregistro
+  let _initCalled        = false;
+  let _authChangeHandler = null;
 
-  // Deduplicação de toasts: IDs já exibidos nesta sessão de página
   const _toastedIds = new Set();
 
   // ── Tipos de notificação ─────────────────────────────────────────────────
@@ -53,21 +48,25 @@ const OrdersNotifications = (() => {
   // ── Init ─────────────────────────────────────────────────────────────────
 
   function init() {
-    // ── CORREÇÃO 5: guard de init único ──────────────────────────────────
     if (_initCalled) {
       console.log('[OrdersNotifications] init() ignorado — já inicializado.');
       return;
     }
     _initCalled = true;
 
+    console.log('[OrdersNotifications] init() executando...');
+
     _injectStyles();
     _ensureToastContainer();
     _injectBell();
 
-    if (typeof Session === 'undefined') return;
+    if (typeof Session === 'undefined') {
+      console.warn('[OrdersNotifications] Session não disponível — realtime não será iniciado.');
+      return;
+    }
 
-    // ── CORREÇÃO 5: callback estável para deregistro correto ─────────────
     _authChangeHandler = function _authHandler(event, user) {
+      console.log('[OrdersNotifications] Auth event:', event, user ? user.id : null);
       if (event === 'login' && user) {
         _onLogin(user);
       } else if (event === 'logout') {
@@ -75,22 +74,23 @@ const OrdersNotifications = (() => {
       }
     };
 
-    // onAuthChange dispara imediatamente se já logado (via session.js v3+)
-    // — isso é a ÚNICA fonte de _onLogin. NÃO chamamos _onLogin diretamente.
     Session.onAuthChange(_authChangeHandler);
   }
 
   // ── Login / Logout ────────────────────────────────────────────────────────
 
   function _onLogin(user) {
-    console.log('[OrdersNotifications] Login detectado, iniciando notificações...');
+    console.log('[OrdersNotifications] _onLogin — user:', user.id, '| role:', user.role);
     _refreshBadge();
     if (typeof NotificationsAPI !== 'undefined') {
       NotificationsAPI.startRealtime(user.id, _onRealtimeNotification);
+    } else {
+      console.error('[OrdersNotifications] NotificationsAPI não encontrado! Verifique a ordem dos scripts.');
     }
   }
 
   function _onLogout() {
+    console.log('[OrdersNotifications] _onLogout');
     if (typeof NotificationsAPI !== 'undefined') {
       NotificationsAPI.stopRealtime();
     }
@@ -104,25 +104,79 @@ const OrdersNotifications = (() => {
   function _onRealtimeNotification(record) {
     if (!record || !record.id) return;
 
-    // ── CORREÇÃO 7: deduplicação de toast por ID ─────────────────────────
+    console.log('[OrdersNotifications] _onRealtimeNotification:', record);
+
     if (_toastedIds.has(record.id)) {
       console.log('[OrdersNotifications] Toast duplicado ignorado:', record.id);
       return;
     }
     _toastedIds.add(record.id);
 
-    console.log('[OrdersNotifications] Nova notificação realtime:', record.id);
+    // [FIX D] Fallback de campos para garantir texto no toast e no card
+    const text =
+      record.message ||
+      record.content ||
+      record.body    ||
+      record.text    ||
+      'Nova notificação';
 
-    // Atualiza badge via banco (fonte única de verdade)
+    const titleText =
+      record.title   ||
+      record.subject ||
+      record.heading ||
+      'Notificação';
+
+    // Atualiza badge via banco
     _refreshBadge();
 
+    // Mostra toast imediatamente
     _showToast({
-      title:   record.title,
-      message: record.message,
+      title:   titleText,
+      message: text,
       type:    record.type || 'info',
     });
 
-    if (_dropdownOpen) _loadDropdownContent();
+    // [FIX G] Se dropdown estiver aberto, injeta card no topo IMEDIATAMENTE
+    // sem precisar de novo fetch (resposta instantânea)
+    if (_dropdownOpen) {
+      _prependRealtimeCard({ ...record, message: text, title: titleText });
+      // Agenda refresh completo do banco após 2s para sincronizar estado
+      setTimeout(() => _loadDropdownContent(), 2000);
+    }
+  }
+
+  /**
+   * [FIX G] Injeta card de notificação realtime no topo do dropdown
+   * sem aguardar novo fetch do banco. Garante aparecimento instantâneo.
+   */
+  function _prependRealtimeCard(record) {
+    const list = document.getElementById('pa-notif-list');
+    if (!list) return;
+
+    // Remove estado "vazio" se existir
+    const empty = list.querySelector('.pa-notif-empty');
+    if (empty) empty.remove();
+
+    const cfg = _cfg(record.type || 'info');
+    const div = document.createElement('div');
+    div.className = 'pa-notif-item unread pa-notif-item--new';
+    div.dataset.id = record.id;
+    div.style.cssText = `--item-color:${cfg.color};--item-border:${cfg.border}`;
+    div.onclick = () => OrdersNotifications._markRead(record.id, div);
+
+    div.innerHTML = `
+      <div class="pa-notif-item-icon" style="color:${cfg.color};box-shadow:0 0 10px ${cfg.glow}">${cfg.icon}</div>
+      <div class="pa-notif-item-body">
+        <div class="pa-notif-item-title">${record.title || ''}</div>
+        <div class="pa-notif-item-msg">${record.message || ''}</div>
+        <div class="pa-notif-item-time">agora mesmo</div>
+      </div>
+      <span class="pa-notif-item-dot"></span>
+    `;
+
+    list.insertBefore(div, list.firstChild);
+
+    console.log('[OrdersNotifications] Card realtime injetado no topo do dropdown');
   }
 
   // ── Sininho ───────────────────────────────────────────────────────────────
@@ -145,6 +199,7 @@ const OrdersNotifications = (() => {
     }
 
     if (!container) {
+      console.log('[OrdersNotifications] Container do sininho não encontrado, tentando em 500ms...');
       setTimeout(_injectBell, 500);
       return;
     }
@@ -163,6 +218,8 @@ const OrdersNotifications = (() => {
     `;
     bell.onclick = _toggleDropdown;
     container.insertBefore(bell, container.firstChild);
+
+    console.log('[OrdersNotifications] Sininho injetado em:', container.className);
   }
 
   // ── Badge ─────────────────────────────────────────────────────────────────
@@ -170,10 +227,11 @@ const OrdersNotifications = (() => {
   async function _refreshBadge() {
     if (typeof NotificationsAPI === 'undefined') return;
     try {
-      // ── CORREÇÃO 8: sempre busca do banco — nunca calcula localmente ───
       const count = await NotificationsAPI.countUnread();
+      console.log('[OrdersNotifications] Badge count do banco:', count);
       _setBadge(count);
-    } catch {
+    } catch (e) {
+      console.warn('[OrdersNotifications] _refreshBadge erro:', e.message);
       _setBadge(0);
     }
   }
@@ -282,12 +340,19 @@ const OrdersNotifications = (() => {
     _dropdownOpen = false;
   }
 
+  /**
+   * [FIX E + FIX F] Carrega e renderiza notificações do banco.
+   * Aguarda Session.ready(), usa fallback de campos, loga tudo.
+   */
   async function _loadDropdownContent() {
     const list = document.getElementById('pa-notif-list');
     if (!list || typeof NotificationsAPI === 'undefined') return;
 
-    // ── CORREÇÃO 7: busca máximo 30, deduplicação garantida na API ───────
+    console.log('[OrdersNotifications] _loadDropdownContent: buscando notificações...');
+
     const rows = await NotificationsAPI.fetchMyNotifications(30);
+
+    console.log('[OrdersNotifications] _loadDropdownContent: rows =', rows);
 
     if (!rows || !rows.length) {
       list.innerHTML = `
@@ -296,14 +361,22 @@ const OrdersNotifications = (() => {
           <span>Nenhuma notificação ainda</span>
         </div>
       `;
+      console.log('[OrdersNotifications] Painel: sem notificações');
       return;
     }
 
     list.innerHTML = rows.map(n => {
-      const cfg        = _cfg(n.type);
-      const ts         = _fmtTime(n.created_at);
-      const unreadCls  = n.read ? '' : 'unread';
-      const dot        = n.read ? '' : '<span class="pa-notif-item-dot"></span>';
+      const cfg       = _cfg(n.type);
+      const ts        = _fmtTime(n.created_at);
+      const unreadCls = n.read ? '' : 'unread';
+      const dot       = n.read ? '' : '<span class="pa-notif-item-dot"></span>';
+
+      // [FIX E] Fallback de campos
+      const msgText =
+        n.message || n.content || n.body || n.text || 'Nova notificação';
+      const titleText =
+        n.title || n.subject || n.heading || 'Notificação';
+
       return `
         <div class="pa-notif-item ${unreadCls}"
              data-id="${n.id}"
@@ -311,8 +384,8 @@ const OrdersNotifications = (() => {
              onclick="OrdersNotifications._markRead('${n.id}', this)">
           <div class="pa-notif-item-icon" style="color:${cfg.color};box-shadow:0 0 10px ${cfg.glow}">${cfg.icon}</div>
           <div class="pa-notif-item-body">
-            <div class="pa-notif-item-title">${n.title || ''}</div>
-            <div class="pa-notif-item-msg">${n.message || ''}</div>
+            <div class="pa-notif-item-title">${titleText}</div>
+            <div class="pa-notif-item-msg">${msgText}</div>
             <div class="pa-notif-item-time">${ts}</div>
           </div>
           ${dot}
@@ -320,7 +393,9 @@ const OrdersNotifications = (() => {
       `;
     }).join('');
 
-    // Marca como lidas após 1.5s visíveis
+    console.log('[OrdersNotifications] Painel: renderizou', rows.length, 'notificações');
+
+    // Marca como lidas após 1.5s de exibição
     const unreadIds = rows.filter(n => !n.read).map(n => n.id);
     if (unreadIds.length) {
       setTimeout(async () => {
@@ -541,11 +616,26 @@ const OrdersNotifications = (() => {
         padding:10px 12px; border-radius:10px;
         background:rgba(255,255,255,0.025);
         border:1px solid transparent;
-        cursor:pointer; transition:background 0.15s,border-color 0.15s;
+        cursor:pointer; transition:background 0.15s,border-color 0.15s,box-shadow 0.15s;
         position:relative;
       }
-      .pa-notif-item:hover{ background:rgba(58,140,255,0.07); border-color:rgba(58,140,255,0.15); }
-      .pa-notif-item.unread{ background:rgba(58,140,255,0.06); border-color:var(--item-border,rgba(58,140,255,0.2)); }
+      .pa-notif-item:hover{
+        background:rgba(58,140,255,0.07);
+        border-color:rgba(58,140,255,0.15);
+        box-shadow:0 0 8px rgba(58,140,255,0.08);
+      }
+      .pa-notif-item.unread{
+        background:rgba(58,140,255,0.06);
+        border-color:var(--item-border,rgba(58,140,255,0.2));
+      }
+      /* Animação para cards novos vindos do realtime */
+      .pa-notif-item--new{
+        animation: notif-slide-in 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+      }
+      @keyframes notif-slide-in {
+        from { opacity:0; transform:translateY(-10px) scale(0.97); }
+        to   { opacity:1; transform:translateY(0) scale(1); }
+      }
 
       .pa-notif-item-icon{
         width:30px; height:30px; border-radius:50%;

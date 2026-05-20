@@ -121,8 +121,18 @@
     async list(limit = 200) {
       const jwt = await _getSessionToken();
 
+      // SELECT ampliado: inclui todos os nomes de coluna possíveis para garantir
+      // compatibilidade independente de como a tabela foi criada no Supabase.
+      // Supabase ignora silenciosamente colunas que não existem — sem erro.
       const url = `${SB_URL}/rest/v1/${TABLE}` +
-        `?select=id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,descricao` +
+        `?select=id,order_id,` +
+        `service_name,pokemon_name,service_type,` +         // nomes canônicos
+        `servico_nome,pokemon_nome,tipo_pedido,` +          // nomes alternativos PT
+        `image_url,proof_urls,screenshot_url,` +            // imagem principal (variantes)
+        `prints,images,` +                                  // array de prints (variantes)
+        `cliente_nick,nick,` +                              // nick do cliente
+        `delivered_by,created_at,concluido_at,` +           // metadados
+        `descricao,description` +                           // descrição (variantes)
         `&order=created_at.desc` +
         `&limit=${limit}`;
 
@@ -135,6 +145,16 @@
 
       const rows = await res.json();
       console.log(`[DeliveryDB] LIST: ${rows.length} registros carregados`);
+
+      // ── DEBUG: exibe o objeto RAW do primeiro registro para diagnóstico ──
+      if (rows.length > 0) {
+        console.log('[ENTREGAS RAW] Primeiro registro (colunas reais do banco):', rows[0]);
+        console.log('[ENTREGAS RAW] Campos presentes:', Object.keys(rows[0]));
+        console.log('[ENTREGAS RAW] image_url:', rows[0].image_url, '| proof_urls:', rows[0].proof_urls, '| prints:', rows[0].prints, '| images:', rows[0].images);
+        console.log('[ENTREGAS RAW] service_name:', rows[0].service_name, '| servico_nome:', rows[0].servico_nome, '| description:', rows[0].description, '| descricao:', rows[0].descricao);
+      }
+      console.log('[ENTREGAS RAW] Todos os registros:', rows);
+
       return rows;
     },
 
@@ -750,7 +770,8 @@
 
       try {
         const data = await DeliveryDB.list(200);
-        DeliveryGallery._data   = data || [];
+        // Normaliza cada registro: resolve variantes de nomes de coluna e formato de prints
+        DeliveryGallery._data   = (data || []).map(e => DeliveryGallery._normalizeEntry(e));
         DeliveryGallery._loaded = true;
         DeliveryGallery._render();
       } catch (err) {
@@ -763,6 +784,86 @@
             <button class="dg-retry-btn" onclick="DeliveryGallery.refresh()">Tentar novamente</button>
           </div>`;
       }
+    },
+
+    // ── Normaliza um registro vindo do Supabase ──────────────────────────────
+    // Resolve divergências entre nomes de colunas (snake_case variantes, PT vs EN)
+    // e garante que prints seja sempre um array de {url} objects.
+    _normalizeEntry(entry) {
+      if (!entry || entry._normalized) return entry;
+
+      // ── 1. IMAGEM PRINCIPAL ───────────────────────────────────────────────
+      // Suporte a: image_url | proof_urls[0] | screenshot_url | images[0] | prints[0]
+      const _firstUrl = (arr) => {
+        if (!Array.isArray(arr) || !arr.length) return null;
+        const item = arr[0];
+        if (typeof item === 'string') return item;         // formato ["url1", ...]
+        if (item && typeof item === 'object') return item.url || item.path || null; // formato [{url:...}]
+        return null;
+      };
+
+      entry.image_url = entry.image_url
+        || _firstUrl(entry.proof_urls)
+        || entry.screenshot_url
+        || _firstUrl(entry.images)
+        || _firstUrl(Array.isArray(entry.prints) ? entry.prints : [])
+        || null;
+
+      // ── 2. ARRAY DE PRINTS (normaliza para [{url}] sempre) ────────────────
+      const rawPrints = entry.prints || entry.images || entry.proof_urls || [];
+      entry.prints = Array.isArray(rawPrints)
+        ? rawPrints.map(p => {
+            if (typeof p === 'string') return { url: p };          // era string pura
+            if (p && typeof p === 'object' && p.url) return p;     // já é {url:...}
+            return null;
+          }).filter(Boolean)
+        : [];
+
+      // Garante que image_url também esteja representado nos prints (para lightbox)
+      if (entry.image_url && !entry.prints.some(p => p.url === entry.image_url)) {
+        entry.prints.unshift({ url: entry.image_url });
+      }
+
+      // ── 3. NOME DO SERVIÇO ────────────────────────────────────────────────
+      entry.service_name = entry.service_name
+        || entry.servico_nome
+        || entry.service
+        || null;
+
+      // ── 4. NOME DO POKÉMON ────────────────────────────────────────────────
+      entry.pokemon_name = entry.pokemon_name
+        || entry.pokemon_nome
+        || entry.pokemon
+        || null;
+
+      // ── 5. TIPO DO SERVIÇO ────────────────────────────────────────────────
+      entry.service_type = entry.service_type
+        || entry.tipo_pedido
+        || entry.tipo
+        || null;
+
+      // ── 6. NICK DO CLIENTE ────────────────────────────────────────────────
+      entry.cliente_nick = entry.cliente_nick
+        || entry.nick
+        || entry.client_nick
+        || null;
+
+      // ── 7. DESCRIÇÃO ──────────────────────────────────────────────────────
+      entry.descricao = entry.descricao
+        || entry.description
+        || entry.desc
+        || null;
+
+      // ── 8. DATA ────────────────────────────────────────────────────────────
+      entry.created_at = entry.created_at || entry.concluido_at || null;
+
+      // Atalhos legados usados no HTML do card
+      entry.servico_nome = entry.service_name;
+      entry.pokemon_nome = entry.pokemon_name;
+      entry.tipo_pedido  = entry.service_type;
+
+      entry._normalized = true;
+      return entry;
     },
 
     _render() {
@@ -784,18 +885,15 @@
 
       DeliveryGallery._lightboxAll = [];
       data.forEach(entry => {
-        // Normaliza campos para compatibilidade com ambos os formatos de coluna
-        const svcName = entry.service_name  || entry.servico_nome  || 'Entrega';
-        const pkName  = entry.pokemon_name  || entry.pokemon_nome  || '';
-        const nick    = entry.cliente_nick  || '';
-        const imgUrl  = entry.image_url     || '';
-        const prints  = Array.isArray(entry.prints) ? entry.prints : [];
-        // Garante que image_url apareça no lightbox mesmo sem prints array
-        const allUrls = imgUrl && !prints.some(p => p.url === imgUrl)
-          ? [{ url: imgUrl }, ...prints]
-          : prints;
-        if (!allUrls.length && imgUrl) allUrls.push({ url: imgUrl });
-        allUrls.forEach(p => {
+        // entry já foi normalizado em refresh(); _normalizeEntry é idempotente
+        DeliveryGallery._normalizeEntry(entry);
+
+        const svcName = entry.service_name || 'Entrega';
+        const pkName  = entry.pokemon_name || '';
+        const nick    = entry.cliente_nick || '';
+
+        // Monta índice do lightbox a partir dos prints normalizados [{url}]
+        entry.prints.forEach(p => {
           if (!p.url) return;
           DeliveryGallery._lightboxAll.push({
             url:     p.url,
@@ -816,20 +914,17 @@
     },
 
     _buildCard(entry, idx, isAdmin) {
-      const prints  = Array.isArray(entry.prints) ? entry.prints : [];
-      // image_url é a fonte primária (campo salvo no INSERT); fallback para prints[0]
-      const mainImg = entry.image_url || prints[0]?.url || '';
-      // Normaliza nomes de campo: aceita tanto o formato antigo quanto o novo
-      const servicoNome = entry.service_name  || entry.servico_nome  || '';
-      const pokemonNome = entry.pokemon_name  || entry.pokemon_nome  || '';
-      const tipoPedido  = entry.service_type  || entry.tipo_pedido   || '';
+      // Garante normalização (idempotente — não refaz se já foi feita em refresh)
+      DeliveryGallery._normalizeEntry(entry);
+
+      const prints      = entry.prints;   // já é [{url}]
+      const mainImg     = entry.image_url || '';
+      const servicoNome = entry.service_name  || '';
+      const pokemonNome = entry.pokemon_name  || '';
+      const tipoPedido  = entry.service_type  || '';
       const clienteNick = entry.cliente_nick  || '';
-      // Substitui os campos no entry para que o restante do código funcione
-      entry.servico_nome = servicoNome;
-      entry.pokemon_nome = pokemonNome;
-      entry.tipo_pedido  = tipoPedido;
-      entry.cliente_nick = clienteNick;
-      const dateRaw = entry.concluido_at || entry.created_at;
+      const descricao   = entry.descricao     || '';
+      const dateRaw = entry.created_at || entry.concluido_at;
       const date    = dateRaw
         ? new Date(dateRaw).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })
         : '—';
@@ -848,7 +943,7 @@
       el.innerHTML = `
         <div class="dg-card-img-wrap" onclick="DeliveryGallery.openLightbox(${mainLbIdx})">
           ${mainImg
-            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${entry.servico_nome || 'Entrega'}">`
+            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${servicoNome || 'Entrega'}" onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('afterbegin','<div class=dg-card-img-placeholder>📷</div>')">`
             : `<div class="dg-card-img-placeholder">📷</div>`
           }
           <div class="dg-card-overlay">
@@ -860,15 +955,16 @@
         ${hasThumbs ? `<div class="dg-thumbs">${thumb2}${thumb3}${more}</div>` : ''}
 
         <div class="dg-card-body">
-          <div class="dg-card-service">${entry.servico_nome || entry.pokemon_nome || '—'}</div>
+          <div class="dg-card-service">${servicoNome || pokemonNome || '—'}</div>
           <div class="dg-card-row">
-            ${entry.pokemon_nome ? `<span class="dg-card-pokemon">⚡ ${entry.pokemon_nome}</span>` : ''}
-            ${entry.tipo_pedido  ? `<span class="dg-card-type">${entry.tipo_pedido}</span>` : ''}
+            ${pokemonNome ? `<span class="dg-card-pokemon">⚡ ${pokemonNome}</span>` : ''}
+            ${tipoPedido  ? `<span class="dg-card-type">${tipoPedido}</span>` : ''}
           </div>
+          ${descricao ? `<div class="dg-card-desc" style="font-size:12px;color:rgba(255,255,255,0.45);margin:4px 0 6px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${descricao}</div>` : ''}
           <div class="dg-card-meta">
             <div class="dg-meta-item">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              ${entry.cliente_nick || '—'}
+              ${clienteNick || '—'}
             </div>
             <div class="dg-meta-item">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -894,14 +990,10 @@
 
     _getLightboxIndex(entry, printIndex) {
       const all    = DeliveryGallery._lightboxAll;
+      // entry.prints é sempre [{url}] após _normalizeEntry()
+      // entry.image_url está garantido como prints[0].url pelo normalizer
       const prints = Array.isArray(entry.prints) ? entry.prints : [];
-      // Para printIndex 0 usa image_url como fonte primária (mais confiável)
-      let url;
-      if (printIndex === 0) {
-        url = entry.image_url || prints[0]?.url || null;
-      } else {
-        url = prints[printIndex]?.url || null;
-      }
+      const url    = (prints[printIndex] || prints[0] || {}).url || entry.image_url || null;
       if (!url) return 0;
       return Math.max(0, all.findIndex(x => x.url === url));
     },

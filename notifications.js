@@ -1,25 +1,37 @@
 // ============================================================
-// notifications.js — v5 — DEDUPLICATION FIX
+// notifications.js — v6 — DEBUG + REALTIME FIX
 // PokeAlliance Shop
 //
-// CAUSAS RAIZ corrigidas nesta versão:
+// CAUSAS RAIZ IDENTIFICADAS E CORRIGIDAS NESTA VERSÃO:
 //
-//  1. SUBSCRIBE DUPLICADO  → _realtimeActive só bloqueava se userId fosse o
-//     mesmo, mas na reconexão automática o guard era bypassado em certas
-//     janelas de race. Agora usa _subscribeRef (inteiro monotônico) +
-//     cancelamento explícito antes de toda nova tentativa.
+//  [BUG A] PAYLOAD REALTIME COM ESTRUTURA INCORRETA
+//    O WebSocket Phoenix (vsn=1.0.0) pode entregar o INSERT em
+//    3 formatos diferentes dependendo da versão do Supabase Realtime:
+//      Formato 1: msg.payload.data.record  (mais comum)
+//      Formato 2: msg.payload.record       (phoenix direto)
+//      Formato 3: msg.payload.new          (alguns builds)
+//    A v5 só checava formato 1. Se o servidor enviar formato 2 ou 3,
+//    o evento é silenciosamente descartado → painel fica vazio.
 //
-//  2. EVENTOS REALTIME DUPLICADOS  → O backend Supabase pode entregar o mesmo
-//     INSERT duas vezes quando há reconexão rápida. Agora mantemos
-//     _seenIds (Set) com os últimos 200 IDs recebidos para descartar dupes.
+//  [BUG B] TABELA SEM REALTIME HABILITADO NO DASHBOARD
+//    O badge incrementa porque usa REST (countUnread via fetch normal).
+//    Mas o WebSocket não recebe nada porque o Supabase precisa que
+//    Realtime esteja HABILITADO explicitamente para a tabela
+//    (Table Editor → Replication → notifications → toggle ON).
+//    Agora emite warning claro quando phx_join responde ok mas
+//    nenhum INSERT chega.
 //
-//  3. RECONEXÃO SEM CLEANUP  → onclose disparava setTimeout que chamava
-//     startRealtime() sem fechar o WebSocket anterior, gerando dois canais
-//     ativos ao mesmo tempo. Agora _stopInternal() é chamado de forma
-//     síncrona antes de qualquer nova tentativa.
+//  [BUG C] RACE CONDITION NO fetchMyNotifications
+//    Se o dropdown abre ANTES do JWT estar pronto (Session.init ainda
+//    assíncrono), _headers() lança "Usuário não autenticado" e retorna [].
+//    Agora aguarda Session.ready() antes de fazer o fetch.
 //
-//  4. read_at ausente  → markNotificationRead agora grava read_at junto
-//     com read: true para persistência definitiva no banco.
+//  [BUG D] FALLBACK DE CAMPOS
+//    renderNotifications() usava apenas n.title e n.message.
+//    Inserções via _insertNotification (orders-admin.js) gravam
+//    { title, message } — correto. Mas se vier via RPC ou outro
+//    path com campo diferente, o card ficava vazio. Adicionado
+//    fallback: message || content || body || text.
 //
 // Depende de: supabase-client.js, session.js
 // ============================================================
@@ -28,15 +40,15 @@ const NotificationsAPI = (() => {
   'use strict';
 
   // ── Estado ───────────────────────────────────────────────────────────────
-  let _ws             = null;       // WebSocket ativo
-  let _wsActive       = false;      // canal confirmado pelo servidor
+  let _ws             = null;
+  let _wsActive       = false;
   let _currentUserId  = null;
   let _onNewCallback  = null;
   let _heartbeat      = null;
   let _reconnectTimer = null;
-  let _subscribeRef   = 0;          // incrementa a cada startRealtime()
-  let _destroyed      = false;      // true após stopRealtime() definitivo
-  const _seenIds      = new Set();  // IDs já processados (dedup realtime)
+  let _subscribeRef   = 0;
+  let _destroyed      = false;
+  const _seenIds      = new Set();
   const SEEN_MAX      = 200;
 
   // ── Headers ──────────────────────────────────────────────────────────────
@@ -83,12 +95,24 @@ const NotificationsAPI = (() => {
 
   /**
    * Busca notificações do usuário logado, deduplicadas por ID.
-   * Nunca retorna mais de 100 registros para manter cache controlado.
+   * [FIX C] Aguarda Session.ready() antes de tentar usar o JWT.
    */
   async function fetchMyNotifications(limit) {
+    // [FIX C] Garante JWT disponível antes de qualquer fetch
+    if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+      try { await Session.ready(); } catch (_) {}
+    }
+
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    if (!user) return [];
+    if (!user) {
+      console.warn('[Notifications] fetchMyNotifications: usuário não logado — retornando []');
+      return [];
+    }
+
     limit = Math.min(limit || 30, 100);
+
+    console.log('[Notifications] Buscando para user_id:', user.id, '| limit:', limit);
+
     try {
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/notifications` +
@@ -98,15 +122,35 @@ const NotificationsAPI = (() => {
         `&select=id,user_id,pedido_id,title,message,type,read,read_at,created_at`,
         { headers: _headers() }
       );
-      if (!res.ok) return [];
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        console.error('[Notifications] HTTP', res.status, txt);
+        return [];
+      }
+
       const rows = await res.json();
-      // Deduplicação defensiva contra banco com duplicatas
+
+      // ── LOG RAW obrigatório ────────────────────────────────────────────
+      console.log('[Notifications] RAW:', rows);
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        console.log('[Notifications] Banco retornou 0 registros para este user_id.');
+        console.log('[Notifications] → Verifique: a notificação foi inserida com user_id =', user.id, '?');
+        return [];
+      }
+
+      // Deduplicação defensiva
       const seen = new Set();
-      return (Array.isArray(rows) ? rows : []).filter(r => {
+      const unique = rows.filter(r => {
         if (!r.id || seen.has(r.id)) return false;
         seen.add(r.id);
         return true;
       });
+
+      console.log('[Notifications] Renderizando:', unique);
+
+      return unique;
     } catch (e) {
       console.warn('[NotificationsAPI] fetchMyNotifications:', e.message);
       return [];
@@ -130,9 +174,6 @@ const NotificationsAPI = (() => {
     }
   }
 
-  /**
-   * Marca uma notificação como lida — persiste read_at no banco.
-   */
   async function markNotificationRead(id) {
     if (!id) return false;
     try {
@@ -153,10 +194,6 @@ const NotificationsAPI = (() => {
     }
   }
 
-  /**
-   * Marca TODAS as notificações do usuário como lidas.
-   * Tenta RPC; fallback para PATCH direto na tabela.
-   */
   async function markAllRead() {
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     if (!user) return false;
@@ -167,7 +204,6 @@ const NotificationsAPI = (() => {
       );
       if (res.ok) return true;
     } catch {}
-    // Fallback PATCH direto
     try {
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/notifications` +
@@ -189,25 +225,24 @@ const NotificationsAPI = (() => {
 
   // ── Realtime — WebSocket nativo (protocolo Phoenix) ──────────────────────
   //
-  // Cada startRealtime() captura myRef = ++_subscribeRef.
-  // Qualquer callback de ciclo anterior (ref desatualizada) é descartado —
-  // isso impede que dois canais existam ao mesmo tempo.
+  // [FIX A] Suporta 3 formatos de payload do Supabase Realtime:
+  //   Formato 1 (mais comum): msg.payload.data.type + msg.payload.data.record
+  //   Formato 2 (phoenix raw): msg.payload.type + msg.payload.record
+  //   Formato 3 (alguns builds): msg.payload.new
 
   function startRealtime(userId, onNew) {
     if (!userId) return;
 
-    // Já conectado e WS aberto para o mesmo user — não reconecta
     if (
       _wsActive &&
       _currentUserId === userId &&
       _ws &&
       _ws.readyState === WebSocket.OPEN
     ) {
-      console.log('[NotificationsAPI] Realtime já ativo para', userId, '— ignorando subscribe duplicado.');
+      console.log('[Realtime] Já ativo para', userId, '— ignorando subscribe duplicado.');
       return;
     }
 
-    // Para o ciclo anterior ANTES de criar um novo
     _stopInternal();
 
     _currentUserId = userId;
@@ -222,12 +257,14 @@ const NotificationsAPI = (() => {
       + '?apikey=' + window.SUPABASE_KEY
       + '&vsn=1.0.0';
 
+    console.log('[Realtime] Iniciando WebSocket (ref=' + myRef + ') para user_id:', userId);
+
     let ws;
     try {
       ws = new WebSocket(wsUrl);
       _ws = ws;
     } catch (e) {
-      console.warn('[NotificationsAPI] WebSocket indisponível:', e.message);
+      console.warn('[Realtime] WebSocket indisponível:', e.message);
       return;
     }
 
@@ -235,9 +272,8 @@ const NotificationsAPI = (() => {
 
     ws.onopen = () => {
       if (myRef !== _subscribeRef) { ws.close(); return; }
-      console.log('[NotificationsAPI] Realtime conectado (ref=' + myRef + ')');
+      console.log('[Realtime] ✅ WebSocket conectado (ref=' + myRef + ')');
 
-      // Heartbeat a cada 25s
       _heartbeat = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
@@ -247,6 +283,8 @@ const NotificationsAPI = (() => {
       }, 25000);
 
       const channel = `realtime:public:notifications:user_id=eq.${userId}`;
+      console.log('[Realtime] Inscrevendo canal:', channel);
+
       ws.send(JSON.stringify({
         topic:   channel,
         event:   'phx_join',
@@ -267,66 +305,122 @@ const NotificationsAPI = (() => {
     };
 
     ws.onmessage = (evt) => {
-      if (myRef !== _subscribeRef) return; // ciclo obsoleto — descarta
+      if (myRef !== _subscribeRef) return;
+
       let msg;
       try { msg = JSON.parse(evt.data); } catch { return; }
 
+      // Log de todos os eventos (pode remover em produção após diagnóstico)
+      console.log('[Realtime] Evento recebido:', JSON.stringify({
+        event:   msg.event,
+        topic:   msg.topic,
+        payload: msg.payload,
+      }));
+
+      // Inscrição confirmada
       if (msg.event === 'phx_reply' && msg.payload?.status === 'ok') {
         _wsActive = true;
-        console.log('[NotificationsAPI] Canal inscrito OK (ref=' + myRef + ')');
+        console.log('[Realtime] ✅ Canal inscrito com sucesso (ref=' + myRef + ')');
+        console.log('[Realtime] 📡 Aguardando INSERTs em public.notifications WHERE user_id =', userId);
+        console.log('%c[Realtime] ⚠️  CHECKLIST SE NADA CHEGAR:', 'color:orange;font-weight:bold');
+        console.log('  1. Supabase Dashboard → Table Editor → notifications → Enable Realtime (toggle)');
+        console.log('  2. Supabase Dashboard → Database → Replication → supabase_realtime publication');
+        console.log('  3. RLS: o admin precisa ter INSERT na tabela notifications');
+        console.log('  4. Confirme user_id do INSERT = ' + userId);
         return;
       }
 
-      if (
-        msg.event === 'postgres_changes' &&
-        msg.payload?.data?.type === 'INSERT'
-      ) {
-        const record = msg.payload.data.record;
-        if (!record || !record.id) return;
-
-        // ── DEDUPLICAÇÃO POR ID ──────────────────────────────
-        if (_seenIds.has(record.id)) {
-          console.log('[NotificationsAPI] Evento duplicado descartado:', record.id);
-          return;
-        }
-        _seenIds.add(record.id);
-        if (_seenIds.size > SEEN_MAX) {
-          const oldest = [..._seenIds].slice(0, 50);
-          oldest.forEach(id => _seenIds.delete(id));
-        }
-
-        console.log('[NotificationsAPI] Nova notificação:', record.id, record.type);
-        if (typeof _onNewCallback === 'function') _onNewCallback(record);
+      // Erro no canal
+      if (msg.event === 'phx_error') {
+        console.error('[Realtime] ❌ phx_error — canal rejeitado:', msg.payload);
+        return;
       }
+
+      // ── [FIX A] Detecta INSERT nos 3 formatos possíveis ───────────────
+      let record = null;
+      let formato = null;
+
+      if (msg.event === 'postgres_changes') {
+        // Formato 1: .payload.data.record
+        if (msg.payload?.data?.type === 'INSERT' && msg.payload?.data?.record) {
+          record  = msg.payload.data.record;
+          formato = 'payload.data.record';
+        }
+        // Formato 2: .payload.record (sem wrapper .data)
+        else if (msg.payload?.type === 'INSERT' && msg.payload?.record) {
+          record  = msg.payload.record;
+          formato = 'payload.record';
+        }
+        // Formato 3: .payload.new
+        else if (msg.payload?.new && Object.keys(msg.payload.new).length) {
+          record  = msg.payload.new;
+          formato = 'payload.new';
+        }
+      }
+
+      if (!record) return;
+
+      console.log('[Realtime] 📥 INSERT detectado (formato=' + formato + '):', record);
+
+      if (!record.id) {
+        console.warn('[Realtime] Record sem ID — ignorando:', record);
+        return;
+      }
+
+      // Valida user_id para evitar vazar dados entre usuários
+      if (record.user_id && record.user_id !== userId) {
+        console.warn('[Realtime] ⚠️  user_id do record (' + record.user_id + ') ≠ usuário logado (' + userId + ') — descartado');
+        return;
+      }
+
+      // Deduplicação
+      if (_seenIds.has(record.id)) {
+        console.log('[Realtime] Duplicado ignorado:', record.id);
+        return;
+      }
+      _seenIds.add(record.id);
+      if (_seenIds.size > SEEN_MAX) {
+        const oldest = [..._seenIds].slice(0, 50);
+        oldest.forEach(id => _seenIds.delete(id));
+      }
+
+      // [FIX D] Normaliza campos — fallback para múltiplos nomes
+      const normalizedRecord = {
+        ...record,
+        message: record.message || record.content || record.body || record.text || 'Nova notificação',
+        title:   record.title   || record.subject || record.heading || 'Notificação',
+      };
+
+      console.log('[Realtime] 🔔 Notificação normalizada:', normalizedRecord);
+
+      if (typeof _onNewCallback === 'function') _onNewCallback(normalizedRecord);
     };
 
-    ws.onerror = () => {
+    ws.onerror = (err) => {
       if (myRef !== _subscribeRef) return;
-      console.warn('[NotificationsAPI] Realtime erro (ref=' + myRef + ')');
+      console.error('[Realtime] ❌ WebSocket erro (ref=' + myRef + '):', err);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (evt) => {
       if (myRef !== _subscribeRef) return;
-      console.log('[NotificationsAPI] Realtime desconectado (ref=' + myRef + ')');
+      console.log('[Realtime] Conexão fechada (ref=' + myRef + ') | code:', evt.code, '| reason:', evt.reason || '(sem motivo)');
       _wsActive = false;
       clearInterval(_heartbeat);
       _heartbeat = null;
 
       if (_destroyed) return;
 
-      // Reconecta em 12s se ainda logado
       _reconnectTimer = setTimeout(() => {
         if (myRef !== _subscribeRef) return;
         const u = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
         if (u && u.id === userId) {
-          console.log('[NotificationsAPI] Reconectando realtime...');
+          console.log('[Realtime] Reconectando...');
           startRealtime(userId, _onNewCallback);
         }
       }, 12000);
     };
   }
 
-  /** Para o WS interno (sem marcar destroyed — para reconexão). */
   function _stopInternal() {
     clearInterval(_heartbeat);
     clearTimeout(_reconnectTimer);
@@ -339,11 +433,10 @@ const NotificationsAPI = (() => {
     }
   }
 
-  /** Para o realtime definitivamente (chamado no logout). */
   function stopRealtime() {
     _destroyed     = true;
     _currentUserId = null;
-    _subscribeRef++;          // invalida todos os callbacks pendentes
+    _subscribeRef++;
     _stopInternal();
     _seenIds.clear();
     console.log('[NotificationsAPI] Realtime parado definitivamente.');
