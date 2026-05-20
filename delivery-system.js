@@ -69,7 +69,7 @@
         headers: { ..._headers(jwt), 'Prefer': 'return=representation' },
         body:    JSON.stringify(payload),
       });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || 'Erro ao salvar entrega'); }
+      if (!res.ok) { const e = await res.json().catch(() => ({})); console.error('[Entrega] ❌ Erro INSERT pedido_entregas:', { status: res.status, message: e.message, hint: e.hint, details: e.details }); throw new Error(e.message || 'Erro ao salvar entrega'); }
       const data = await res.json();
       return Array.isArray(data) ? data[0] : data;
     },
@@ -102,6 +102,20 @@
       // Bucket path: delivery_{pedidoId}_{timestamp}.ext  (no nested folder)
       const path = `delivery_${pedidoId}_${ts}_${rand}.${ext}`;
 
+      // ── Verifica sessão antes do upload ──────────────────────
+      try {
+        const session = JSON.parse(localStorage.getItem('poke_session') || '{}');
+        const userId  = session.user?.id || '(sem user)';
+        const token   = session.access_token ? session.access_token.slice(0, 20) + '…' : '❌ SEM TOKEN';
+        console.log('[Entrega] Auth check — user_id:', userId, '| token:', token);
+        if (!session.access_token) {
+          throw new Error('Sessão expirada ou inválida. Faça login novamente.');
+        }
+      } catch (authErr) {
+        if (authErr.message.includes('Sessão')) throw authErr;
+        console.warn('[Entrega] Não foi possível verificar sessão:', authErr.message);
+      }
+
       console.log('[Entrega] Upload iniciado:', file.name, '→', path);
 
       const res = await fetch(
@@ -120,6 +134,14 @@
 
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
+        console.error('[Entrega] ❌ Erro no upload Storage:', {
+          status:  res.status,
+          message: e.message,
+          error:   e.error,
+          hint:    e.hint,
+          bucket:  BUCKET,
+          path,
+        });
         throw new Error(e.message || `Erro upload (${res.status})`);
       }
 
@@ -502,6 +524,13 @@
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
+        console.error('[Entrega] ❌ Erro UPDATE pedidos:', {
+          status:  res.status,
+          message: e.message,
+          hint:    e.hint,
+          details: e.details,
+          orderId,
+        });
         throw new Error(e.message || `Erro ao atualizar pedido (${res.status})`);
       }
     },
