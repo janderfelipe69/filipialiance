@@ -22,7 +22,137 @@
   const SB_URL = global.SUPABASE_URL || '';
   const SB_KEY = global.SUPABASE_KEY || '';
   const BUCKET = 'delivery-proofs';
-  const TABLE  = 'pedido_entregas';
+  const TABLE  = 'delivery_proofs';   // ← tabela real no Supabase
+
+  // ══════════════════════════════════════════════════════════
+  // HELPERS INTERNOS
+  // ══════════════════════════════════════════════════════════
+
+  /** Monta headers padrão para REST API Supabase */
+  function _headers(jwt) {
+    const h = {
+      'Content-Type':  'application/json',
+      'apikey':        SB_KEY,
+      'Authorization': 'Bearer ' + (jwt || SB_KEY),
+    };
+    return h;
+  }
+
+  /** Atalho para o toast global (não bloqueia se ausente) */
+  function _toast(msg, type, duration) {
+    try {
+      if (typeof showToast === 'function') showToast(msg, type, duration);
+    } catch (_) {}
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // DeliveryDB — CRUD na tabela delivery_proofs
+  // ══════════════════════════════════════════════════════════
+  const DeliveryDB = {
+
+    /**
+     * Insere um registro de entrega.
+     * Garante que todos os campos necessários sejam enviados.
+     * Se algum campo vier null, tenta buscar do pedido original antes de inserir.
+     */
+    async insert(payload) {
+      const jwt = await _ensureValidSession();
+
+      // Resolve campos possivelmente ausentes buscando o pedido original
+      let extraData = {};
+      if (payload.pedido_id && (!payload.servico_nome || !payload.pokemon_nome || !payload.tipo_pedido)) {
+        try {
+          const res = await fetch(
+            `${SB_URL}/rest/v1/pedidos?id=eq.${payload.pedido_id}&select=service_name,pokemon_name,service_type,nick&limit=1`,
+            { headers: _headers(jwt) }
+          );
+          if (res.ok) {
+            const rows = await res.json();
+            if (rows && rows[0]) {
+              extraData = rows[0];
+              console.log('[DeliveryDB] Dados extras do pedido original:', extraData);
+            }
+          }
+        } catch (e) {
+          console.warn('[DeliveryDB] Não foi possível buscar pedido original:', e.message);
+        }
+      }
+
+      // Monta a URL pública da primeira imagem (image_url)
+      const firstPrint = Array.isArray(payload.prints) ? payload.prints[0] : null;
+      const imageUrl   = firstPrint?.url || null;
+
+      const row = {
+        order_id:      payload.pedido_id     || null,
+        service_name:  payload.servico_nome  || extraData.service_name || null,
+        pokemon_name:  payload.pokemon_nome  || extraData.pokemon_name || null,
+        service_type:  payload.tipo_pedido   || extraData.service_type || null,
+        image_url:     imageUrl,
+        prints:        payload.prints        || [],
+        delivered_by:  payload.user_id       || _getCurrentUserId() || null,
+        cliente_nick:  payload.cliente_nick  || extraData.nick       || null,
+        descricao:     payload.descricao     || null,
+        created_at:    payload.concluido_at  || new Date().toISOString(),
+      };
+
+      console.log('[DeliveryDB] INSERT payload:', row);
+
+      const res = await fetch(`${SB_URL}/rest/v1/${TABLE}`, {
+        method:  'POST',
+        headers: { ..._headers(jwt), 'Prefer': 'return=representation' },
+        body:    JSON.stringify(row),
+      });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        console.error('[DeliveryDB] ❌ INSERT falhou:', { status: res.status, error: e });
+        throw new Error(e.message || e.error || `Erro ao salvar entrega (HTTP ${res.status})`);
+      }
+
+      const result = await res.json().catch(() => []);
+      console.log('[DeliveryDB] ✅ INSERT OK:', result);
+      return result;
+    },
+
+    /**
+     * Lista entregas ordenadas por data (mais recentes primeiro).
+     * Traz todos os campos necessários para os cards.
+     */
+    async list(limit = 200) {
+      const jwt = await _getSessionToken();
+
+      const url = `${SB_URL}/rest/v1/${TABLE}` +
+        `?select=id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,descricao` +
+        `&order=created_at.desc` +
+        `&limit=${limit}`;
+
+      const res = await fetch(url, { headers: _headers(jwt) });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.message || `Erro ao carregar entregas (HTTP ${res.status})`);
+      }
+
+      const rows = await res.json();
+      console.log(`[DeliveryDB] LIST: ${rows.length} registros carregados`);
+      return rows;
+    },
+
+    /**
+     * Remove uma entrega pelo ID (apenas admins devem chamar).
+     */
+    async delete(id) {
+      const jwt = await _ensureValidSession();
+      const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
+        method:  'DELETE',
+        headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.message || `Erro ao remover entrega (HTTP ${res.status})`);
+      }
+    },
+  };
 
   // ══════════════════════════════════════════════════════════
   // AUTH HELPERS
@@ -467,7 +597,7 @@
         if (progressFill) progressFill.style.width = '65%';
 
         // ── PASSO 2: INSERT em pedido_entregas ───────────────
-        console.log('[Entrega] PASSO 2 — Salvando em pedido_entregas...');
+        console.log('[Entrega] PASSO 2 — Salvando em delivery_proofs...');
         const payload = {
           pedido_id:    Number(orderId),
           user_id:      _getCurrentUserId(),
@@ -480,7 +610,7 @@
           concluido_at: new Date().toISOString(),
         };
         await DeliveryDB.insert(payload);
-        console.log('[Entrega] PASSO 2 — ✅ Entrega salva.');
+        console.log('[Entrega] PASSO 2 — ✅ Entrega salva em delivery_proofs.');
 
         if (progressFill) progressFill.style.width = '75%';
 
@@ -654,11 +784,22 @@
 
       DeliveryGallery._lightboxAll = [];
       data.forEach(entry => {
-        const prints = Array.isArray(entry.prints) ? entry.prints : [];
-        prints.forEach(p => {
+        // Normaliza campos para compatibilidade com ambos os formatos de coluna
+        const svcName = entry.service_name  || entry.servico_nome  || 'Entrega';
+        const pkName  = entry.pokemon_name  || entry.pokemon_nome  || '';
+        const nick    = entry.cliente_nick  || '';
+        const imgUrl  = entry.image_url     || '';
+        const prints  = Array.isArray(entry.prints) ? entry.prints : [];
+        // Garante que image_url apareça no lightbox mesmo sem prints array
+        const allUrls = imgUrl && !prints.some(p => p.url === imgUrl)
+          ? [{ url: imgUrl }, ...prints]
+          : prints;
+        if (!allUrls.length && imgUrl) allUrls.push({ url: imgUrl });
+        allUrls.forEach(p => {
+          if (!p.url) return;
           DeliveryGallery._lightboxAll.push({
             url:     p.url,
-            caption: `${entry.servico_nome || entry.pokemon_nome || 'Entrega'} — ${entry.cliente_nick || ''}`,
+            caption: `${svcName}${pkName ? ' — ' + pkName : ''} ${nick ? '• ' + nick : ''}`.trim(),
           });
         });
       });
@@ -676,10 +817,22 @@
 
     _buildCard(entry, idx, isAdmin) {
       const prints  = Array.isArray(entry.prints) ? entry.prints : [];
-      const mainImg = prints[0]?.url || '';
-      const date    = entry.concluido_at
-        ? new Date(entry.concluido_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })
-        : new Date(entry.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+      // image_url é a fonte primária (campo salvo no INSERT); fallback para prints[0]
+      const mainImg = entry.image_url || prints[0]?.url || '';
+      // Normaliza nomes de campo: aceita tanto o formato antigo quanto o novo
+      const servicoNome = entry.service_name  || entry.servico_nome  || '';
+      const pokemonNome = entry.pokemon_name  || entry.pokemon_nome  || '';
+      const tipoPedido  = entry.service_type  || entry.tipo_pedido   || '';
+      const clienteNick = entry.cliente_nick  || '';
+      // Substitui os campos no entry para que o restante do código funcione
+      entry.servico_nome = servicoNome;
+      entry.pokemon_nome = pokemonNome;
+      entry.tipo_pedido  = tipoPedido;
+      entry.cliente_nick = clienteNick;
+      const dateRaw = entry.concluido_at || entry.created_at;
+      const date    = dateRaw
+        ? new Date(dateRaw).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })
+        : '—';
 
       const thumb2   = prints[1] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 1)}"><img data-src="${prints[1].url}" class="dg-lazy" alt="print 2"></div>` : '';
       const thumb3   = prints[2] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 2)}"><img data-src="${prints[2].url}" class="dg-lazy" alt="print 3"></div>` : '';
@@ -740,8 +893,15 @@
     },
 
     _getLightboxIndex(entry, printIndex) {
-      const all = DeliveryGallery._lightboxAll;
-      const url = Array.isArray(entry.prints) ? entry.prints[printIndex]?.url : null;
+      const all    = DeliveryGallery._lightboxAll;
+      const prints = Array.isArray(entry.prints) ? entry.prints : [];
+      // Para printIndex 0 usa image_url como fonte primária (mais confiável)
+      let url;
+      if (printIndex === 0) {
+        url = entry.image_url || prints[0]?.url || null;
+      } else {
+        url = prints[printIndex]?.url || null;
+      }
       if (!url) return 0;
       return Math.max(0, all.findIndex(x => x.url === url));
     },
@@ -805,9 +965,7 @@
 
     async _deleteEntry(id, e) {
       if (e) e.stopPropagation();
-      const confirmed = typeof showConfirmModal === 'function'
-        ? await showConfirmModal({ title: 'Remover Entrega', message: 'Remover esta entrega? Os prints não serão deletados do Storage.', confirmText: 'Remover', cancelText: 'Cancelar', type: 'danger' })
-        : confirm('Remover esta entrega?');
+      const confirmed = await showConfirmModal({ title: 'Remover Entrega', message: 'Remover esta entrega? Os prints não serão deletados do Storage.', confirmText: 'Remover', cancelText: 'Cancelar', type: 'danger' });
       if (!confirmed) return;
       try {
         await DeliveryDB.delete(id);
