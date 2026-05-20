@@ -1,11 +1,22 @@
 // ============================================================
-// orders-storage.js — Camada de persistência de pedidos
+// orders-storage.js — Camada de CACHE de pedidos (v4)
 // PokeAlliance Shop — Sistema de Rastreamento de Pedidos
 //
-// ARQUITETURA: única camada que toca localStorage para pedidos.
-// Preparada para migração ao Supabase: basta reimplementar mantendo a API pública.
+// ⚠️ MUDANÇA v4 — PAPEL ALTERADO:
+//   ANTES: fonte oficial de pedidos (fonte de verdade).
+//   AGORA: cache local — espelho do Supabase (public.pedidos).
 //
-// Ordem de pedido (estrutura completa):
+// FONTE OFICIAL: Supabase (public.pedidos)
+// CACHE:         localStorage via OrdersStorage
+//
+// O cache é populado por pedidosCarregar() → _sincronizarComOrdersStorage()
+// em pedidos.js. NÃO crie pedidos diretamente via OrdersStorage.createOrder()
+// para fluxos de CAPTURA ou ITENS — use _salvarPedidoSupabase() (app.js).
+//
+// A API pública abaixo é mantida para compatibilidade com OrdersUI,
+// OrdersAdmin (leitura/renderização local) e migração de legados.
+//
+// Estrutura de pedido (cache local):
 // {
 //   id, userId, nickname, createdAt, status,
 //   items: [{ id, name, qtdTotal, qtdEntregue, concluido }],

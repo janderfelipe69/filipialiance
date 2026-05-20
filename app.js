@@ -3234,10 +3234,19 @@ function selectBall(ballId) {
   selectedBall = ballId;
 }
 
-function confirmCaptura() {
+// ── confirmCaptura — v4 — Fonte oficial: Supabase ────────────────────────────
+// ANTES (quebrado): salvava APENAS no OrdersStorage/localStorage.
+// AGORA (correto):  INSERT direto em public.pedidos no Supabase.
+//   1. Usuário logado obrigatório
+//   2. Payload completo montado com todos os campos obrigatórios
+//   3. INSERT no Supabase via _salvarPedidoSupabase()
+//   4. localStorage atualizado como CACHE via pedidosCarregar() (não fonte)
+//   5. Fila/admin/SLA passam a enxergar o pedido imediatamente
+// ──────────────────────────────────────────────────────────────────────────────
+async function confirmCaptura() {
   if (currentCapturaIdx === null) return;
 
-  // ── Sessão obrigatória ──
+  // ── 1. Sessão obrigatória ─────────────────────────────────────────────────
   const user = (typeof Session !== 'undefined' && Session.isLoggedIn())
     ? Session.getCurrentUser() : null;
   if (!user) {
@@ -3245,8 +3254,7 @@ function confirmCaptura() {
     return;
   }
 
-  const poke = BALLS[0]; // Ultra Ball — única opção
-  const ball = BALLS[0];
+  const ball    = BALLS[0]; // Ultra Ball — única opção
   const pokeData = POKEMONS[currentCapturaIdx];
   const finalPrice = _calcCapturaFinalPrice(pokeData, ball);
   const priceData  = formatKK(finalPrice);
@@ -3254,60 +3262,112 @@ function confirmCaptura() {
 
   const nick = (user.nickname || user.email) || 'Anônimo';
 
-  // ── Item normalizado ──
-  const orderItem = {
-    name:      pokeData.name + ' (Ultra Ball)',
-    qtdTotal:  1,
-    type:      'capture',
-    pokemon:   pokeData.name,
-    tier:      pokeData.tag || '',
-    ball:      'Ultra Ball',
-    price_raw: finalPrice || 0,
-    price_kk:  priceData ? priceData.label : '—',
-    price_brl: priceData ? priceData.brl   : '—',
-    drops:     drops.map(d => d.name),
+  // ── 2. Detecta se é Pokémon SR (45 dias/unidade) ou normal (7 dias/pacote) ─
+  const tag = (pokeData.tag || '').toLowerCase();
+  const isSR = (tag === 'super-raro' || tag === 'sr');
+  const serviceType = isSR ? 'pokemon_sr' : 'normal_package';
+
+  // ── 3. Monta item normalizado para o campo itens (JSONB) ─────────────────
+  const itemSupabase = {
+    nome:           pokeData.name + ' (Ultra Ball)',
+    quantidade:     1,
+    type:           'capture',
+    pokemon:        pokeData.name,
+    tier:           pokeData.tag || '',
+    ball:           'Ultra Ball',
+    preco_unit_raw: finalPrice || 0,
+    preco_unit_kk:  priceData ? priceData.label : '—',
+    preco_unit_brl: priceData ? priceData.brl   : '—',
+    drops:          drops.map(d => d.name),
   };
 
-  console.log('[CAPTURA] Pedido enviado');
-  console.log('[CAPTURA] Payload:', { nick, item: orderItem });
+  // ── 4. Payload completo para public.pedidos ───────────────────────────────
+  const subtotalRaw = finalPrice || 0;
+  const subtotalKK  = priceData ? priceData.label : '—';
+  const subtotalBRL = subtotalRaw > 0
+    ? (subtotalRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : '—';
 
-  // ── Registra no OrdersStorage ──
-  let order = null;
-  if (typeof OrdersStorage !== 'undefined') {
-    const result = OrdersStorage.createOrder({
-      userId:   user.id || null,
-      nickname: nick,
-      items:    [orderItem],
-    });
-    if (result && result.success) {
-      order = result.order;
-      console.log('[CAPTURA] Pedido registrado:', order);
-      if (typeof OrdersUI !== 'undefined') setTimeout(() => OrdersUI.refresh(), 400);
-      if (typeof OrdersNotifications !== 'undefined') {
-        const num = (typeof OrdersProgress !== 'undefined')
-          ? OrdersProgress.formatOrderNumber(order.orderNumber)
-          : '#' + order.orderNumber;
-        OrdersNotifications.show(`Pedido ${num} criado! Aguarde confirmação.`, 'pendente', 6000);
-      }
-    }
-  }
+  const payload = {
+    user_id:          user.id || null,
+    nick_jogo:        nick,
+    status:           'pendente',
+    status_v3:        'waiting_queue',
+    tipo_servico:     serviceType,      // campo legível
+    service_type:     serviceType,      // campo usado pelo start_service RPC
+    service_quantity: 1,               // 1 pokémon por pedido de captura
+    // started_at, sla_min_days, sla_max_days ficam NULL → preenchidos pelo start_service()
+    started_at:       null,
+    sla_min_days:     null,
+    sla_max_days:     null,
+    itens:            [itemSupabase],
+    subtotal_kk:      subtotalKK,
+    subtotal_brl:     subtotalBRL,
+    total_kk:         subtotalKK,
+    total_brl:        subtotalBRL,
+    taxa_servico:     false,
+  };
 
-  // ── Feedback visual ──
+  console.log('[CAPTURA v4] Salvando no Supabase...', payload);
+
+  // ── 5. UI: bloqueia botão durante o envio ─────────────────────────────────
   const btn = document.getElementById('captura-confirm-btn');
   const msg = document.getElementById('captura-success-msg');
-  const priceStr = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
-  if (msg) {
-    const txtEl = document.getElementById('captura-success-text');
-    if (txtEl) txtEl.textContent = `${pokeData.name} adicionado aos pedidos${priceStr}!`;
-    msg.classList.add('show');
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Registrando...'; }
+
+  try {
+    // ── 6. INSERT no Supabase (fonte oficial) ─────────────────────────────
+    const saved = await _salvarPedidoSupabase(payload);
+    const pedidoId = saved?.id ? ' #' + String(saved.id).padStart(4, '0') : '';
+    console.log('[CAPTURA v4] ✅ Pedido salvo no Supabase:', saved);
+
+    // ── 7. Notificação de sucesso ─────────────────────────────────────────
+    if (typeof OrdersNotifications !== 'undefined') {
+      OrdersNotifications.show(
+        `Pedido${pedidoId} criado! Aguarde confirmação.`,
+        'pendente',
+        6000
+      );
+    }
+
+    // ── 8. Recarrega a fila do banco (atualiza localStorage como cache) ───
+    if (typeof pedidosCarregar === 'function') {
+      setTimeout(() => pedidosCarregar(), 300);
+    } else if (typeof OrdersUI !== 'undefined') {
+      setTimeout(() => OrdersUI.refresh(), 300);
+    }
+
+    // ── 9. Feedback visual de sucesso ────────────────────────────────────
+    const priceStr = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
+    if (msg) {
+      const txtEl = document.getElementById('captura-success-text');
+      if (txtEl) txtEl.textContent = `${pokeData.name} adicionado aos pedidos${priceStr}!`;
+      msg.classList.add('show');
+    }
+    if (btn) {
+      btn.innerHTML = '<span>✓ Adicionado aos Pedidos</span>';
+      btn.style.borderColor = 'rgba(37,211,102,0.5)';
+      btn.style.color = '#25d366';
+    }
+    setTimeout(() => closeCapturaModal(), 2200);
+
+  } catch (err) {
+    console.error('[CAPTURA v4] ❌ Falha ao salvar no Supabase:', err);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '⬟ Tentar Novamente';
+      btn.style.borderColor = 'rgba(255,80,80,0.5)';
+      btn.style.color = '#ff5050';
+    }
+    if (typeof OrdersNotifications !== 'undefined') {
+      OrdersNotifications.show(
+        'Erro ao registrar pedido. Verifique sua conexão.',
+        'cancelado',
+        5000
+      );
+    }
+    alert('Erro ao salvar pedido: ' + err.message);
   }
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span>✓ Adicionado aos Pedidos</span>';
-    btn.style.borderColor = 'rgba(37,211,102,0.5)';
-    btn.style.color = '#25d366';
-  }
-  setTimeout(() => closeCapturaModal(), 2200);
 }
 
 function closeCapturaModal() {
