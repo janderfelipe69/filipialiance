@@ -97,10 +97,13 @@ const OrdersAdmin = (() => {
       if (typeof OrdersNotifications !== 'undefined') {
         OrdersNotifications.show(
           `✅ Serviço #${supabaseOrderId} iniciado! SLA: ${data.sla_days || data.sla_min_days} dias.`,
-          'success',
+          'em_andamento',
           4000
         );
       }
+
+      // Notifica o dono do pedido via tabela public.notifications
+      _insertNotification(supabaseOrderId, 'em_andamento', 'Pedido iniciado', 'Seu pedido entrou em andamento.');
 
       // Recarrega a lista para refletir o novo status
       if (typeof pedidosCarregar === 'function') pedidosCarregar();
@@ -151,12 +154,39 @@ const OrdersAdmin = (() => {
         return { success: false, error: err };
       }
 
-      if (typeof OrdersNotifications !== 'undefined') {
-        OrdersNotifications.show(`✅ Pedido #${supabaseOrderId} concluído!`, 'success', 3000);
+      if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
+        OrdersNotifications.show(`✅ Pedido #${supabaseOrderId} concluído!`, 'concluido', 3000);
       }
+
+      // Notifica o dono do pedido via tabela public.notifications
+      _insertNotification(supabaseOrderId, 'concluido', 'Pedido concluído', 'Seu pedido foi concluído.');
 
       if (typeof pedidosCarregar === 'function') pedidosCarregar();
       else if (typeof OrdersUI !== 'undefined') OrdersUI.render();
+
+      // ── Abre modal de comprovante de entrega ─────────────────────────────
+      setTimeout(() => {
+        if (window.DeliveryAdmin && typeof DeliveryAdmin.openModal === 'function') {
+          // Tenta recuperar dados do pedido para desnormalizar
+          let orderData = {};
+          try {
+            const allOrders = (window.OrdersStorage && OrdersStorage.getAll) ? OrdersStorage.getAll() : [];
+            const order = allOrders.find(o => {
+              const sid = o._supabaseId || o.orderNumber;
+              return String(sid) === String(supabaseOrderId);
+            });
+            if (order) {
+              orderData = {
+                nick:    order.userNickname || order.nick || '—',
+                service: (order.items && order.items.map ? order.items.map(i => i.name || i.item).join(', ') : null) || order.service_type || '—',
+                pokemon: (order.items && order.items[0]) ? (order.items[0].pokemon || order.items[0].name || '') : '',
+                tipo:    order.service_type || order.type || '—',
+              };
+            }
+          } catch (_) {}
+          DeliveryAdmin.openModal(supabaseOrderId, orderData);
+        }
+      }, 600);
 
       return { success: true, data };
 
@@ -174,6 +204,13 @@ const OrdersAdmin = (() => {
     if (!confirmed) return;
 
     await _patchStatus(supabaseOrderId, 'cancelled');
+
+    // Notifica o dono do pedido via tabela public.notifications
+    _insertNotification(supabaseOrderId, 'cancelado', 'Pedido cancelado', 'Seu pedido foi cancelado.');
+
+    if (typeof OrdersNotifications !== 'undefined') {
+      OrdersNotifications.show(`Pedido #${supabaseOrderId} cancelado.`, 'cancelado', 3000);
+    }
   }
 
   // ── Mudança de status genérica (para outros status permitidos) ────────────
@@ -505,6 +542,48 @@ const OrdersAdmin = (() => {
     } catch (e) {
       console.error('[OrdersAdmin] Falha ao atualizar status:', e);
       alert('Erro ao atualizar status: ' + e.message);
+    }
+  }
+
+  // ── Helper: insere notificação no Supabase para o dono do pedido ──────────
+  // Busca o user_id do pedido na tabela e insere em public.notifications.
+  // Falha silenciosa — não interrompe o fluxo principal se der erro.
+  async function _insertNotification(supabaseOrderId, type, title, message) {
+    try {
+      const jwt = _getJWT();
+      if (!jwt) return; // sem sessão, não pode inserir
+
+      // Busca o user_id do pedido
+      const userRes = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseOrderId}&select=user_id`,
+        {
+          headers: {
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + jwt,
+          },
+        }
+      );
+      if (!userRes.ok) return;
+      const rows = await userRes.json();
+      const userId = rows && rows[0] && rows[0].user_id;
+      if (!userId) return;
+
+      // Insere a notificação
+      await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        window.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + jwt,
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify({ user_id: userId, type, title, message }),
+        }
+      );
+    } catch (e) {
+      console.warn('[OrdersAdmin] _insertNotification falhou silenciosamente:', e.message);
     }
   }
 

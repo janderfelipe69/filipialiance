@@ -347,110 +347,12 @@
 
 <!-- TAB: ENTREGAS -->
 <div class="tab-content" id="tab-entregas">
-  <div class="entregas-header">
-    <div class="entregas-header-info">
-      <div class="entregas-title">📦 Serviços Concluídos</div>
-      <div class="entregas-subtitle">Fotos das entregas realizadas</div>
-    </div>
-  </div>
-  <div class="entregas-count-bar">
-    <span class="count-label" id="entregas-count-label">0 entregas</span>
-  </div>
-  <div class="entregas-grid" id="entregas-grid" style="display:flex;flex-direction:column;gap:0;">
-    <div class="entregas-empty" id="entregas-empty">
-      <div class="entregas-empty-icon">📷</div>
-      <div class="entregas-empty-text">Nenhuma entrega postada ainda</div>
-      <div class="entregas-empty-sub">Clique em "Postar Foto" para adicionar fotos das entregas</div>
-    </div>
-  </div>
+  <!-- Conteúdo montado dinamicamente por DeliveryGallery.init() em delivery-system.js -->
 </div>
 
-<style>
-/* ── Entregas: Grupos por Data ── */
-.entregas-date-group {
-  width: 100%;
-  margin-bottom: 36px;
-}
 
-.entregas-date-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-  padding: 0 4px;
-}
 
-.entregas-date-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(58,140,255,0.3), transparent);
-}
 
-.entregas-date-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(58,140,255,0.08);
-  border: 1px solid rgba(58,140,255,0.25);
-  border-radius: 30px;
-  padding: 7px 16px 7px 12px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.entregas-date-icon {
-  font-size: 13px;
-  line-height: 1;
-}
-
-.entregas-date-text {
-  font-family: var(--font-title, 'Cinzel', serif);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: rgba(96,170,255,0.95);
-}
-
-.entregas-date-count {
-  font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.07);
-  border-radius: 20px;
-  padding: 2px 8px;
-  letter-spacing: 0.5px;
-}
-
-.entregas-date-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-@media (max-width: 600px) {
-  .entregas-date-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-  }
-  .entregas-date-text {
-    font-size: 10px;
-    letter-spacing: 1px;
-  }
-}
-</style>
-
-<!-- MODAL DE FOTO DE ENTREGA -->
-<div class="entrega-lightbox" id="entrega-lightbox" onclick="closeEntregaLightbox(event)">
-  <div class="entrega-lightbox-inner">
-    <button class="close-btn entrega-lightbox-close" onclick="closeEntregaLightbox()">&#x2715;</button>
-    <button class="entrega-lightbox-nav entrega-lightbox-prev" onclick="navEntregaLightbox(-1)">&#x2039;</button>
-    <img class="entrega-lightbox-img" id="entrega-lightbox-img" src="" alt="" />
-    <button class="entrega-lightbox-nav entrega-lightbox-next" onclick="navEntregaLightbox(1)">&#x203a;</button>
-    <div class="entrega-lightbox-caption" id="entrega-lightbox-caption"></div>
-  </div>
-</div>
 
 <!-- TAB: WIKI -->
 <div class="tab-content" id="tab-wiki">
@@ -2205,6 +2107,7 @@
 <script src="notifications.js"></script>
 <script src="orders-notifications.js"></script>
 <script src="orders-admin.js"></script>
+<script src="delivery-system.js"></script>
 
 <!-- ── Kanban (novos arquivos) ── -->
 <link rel="stylesheet" href="orders-kanban.css">
