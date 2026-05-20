@@ -1,112 +1,101 @@
 /* ============================================================
-   INSTRUÇÕES DE INTEGRAÇÃO — orders-integration-patch.js
+   orders-integration-patch.js
    PokeAlliance Shop — Sistema de Rastreamento de Pedidos
    ============================================================
 
-   COMO INTEGRAR NO index.html:
-   Adicione estas tags <script> APÓS o bloco do sistema de autenticação
-   (após login.js), e ANTES dos outros scripts de wiki/mobile:
+   Intercepta sendToWhatsApp() — ponto único de saída de TODOS
+   os pedidos (itens, pacotes e captura) — e registra no
+   OrdersStorage antes de enviar ao Supabase.
 
-   <!-- ── Sistema de Pedidos v2 ────────────────────────────── -->
-   <!-- Ordem importa: storage → progress → notifications → admin → ui -->
-   <script src="orders-storage.js"></script>
-   <script src="orders-progress.js"></script>
-   <script src="orders-notifications.js"></script>
-   <script src="orders-admin.js"></script>
-   <script src="orders-ui.js"></script>
+   Carregue APÓS orders-storage.js, orders-ui.js e app.js.
+   ============================================================ */
 
-   Esses arquivos devem ser colocados na MESMA pasta que os outros .js do site.
+(function () {
+  'use strict';
 
-   ============================================================
-   SUBSTITUIÇÃO DA FUNÇÃO submitPedido / sendPedido:
-   ============================================================
+  // ── Aguarda app.js definir sendToWhatsApp ──────────────────
+  // O patch roda após DOMContentLoaded; sendToWhatsApp já existe.
 
-   A função abaixo substitui/complementa a lógica de envio do carrinho
-   para também registrar o pedido no localStorage (sistema de tracking).
+  const _origSendToWhatsApp = window.sendToWhatsApp;
 
-   Cole o bloco abaixo no index.html, APÓS a carga dos scripts de pedidos,
-   OU adicione-o a um arquivo pedidos.js existente.
-*/
+  window.sendToWhatsApp = async function () {
+    // ── 1. Dados da sessão ────────────────────────────────────
+    const user = (typeof Session !== 'undefined' && Session.isLoggedIn())
+      ? Session.getCurrentUser()
+      : null;
+    const nick = (user && (user.nickname || user.email)) || 'Anônimo';
 
-// ── Patch: Integração carrinho → sistema de pedidos v2 ──────────────────────
-// Esta função é chamada quando o usuário confirma o pedido.
-// Ela registra o pedido no OrdersStorage antes de enviar pelo canal existente.
-
-(function() {
-  // Guarda a função original se existir
-  const _origSendPedido = window.sendPedido || null;
-  const _origSubmitPedido = window.submitPedido || null;
-
-  /**
-   * Hook que intercepta o envio do pedido e registra no sistema de tracking.
-   * Compatível com sendToWhatsApp() existente.
-   */
-  window.submitPedido = async function() {
-    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    const nickInput = document.getElementById('cart-nick-input');
-    const nick = (nickInput && nickInput.value.trim()) || (user && user.nickname) || 'Anônimo';
-
-    // Coleta itens do carrinho
-    // Compatível com múltiplos formatos de carrinho (array de strings, objetos)
-    let cartItems = [];
+    // ── 2. Normaliza itens do carrinho ────────────────────────
+    // cart  = { [itemIndex]: quantidade }
+    // items = array global de produtos (inclui capturas dinâmicas)
+    let orderItems = [];
     try {
-      // Tenta obter do carrinho atual (variável global ou localStorage)
-      if (typeof cart !== 'undefined' && Array.isArray(cart)) {
-        cartItems = cart.map(item => ({
-          name: item.name || item.item || String(item),
-          qtdTotal: parseInt(item.quantity || item.qty || item.qtd || 1, 10),
-        }));
-      } else {
-        // Tenta ler do DOM do carrinho
-        document.querySelectorAll('.cart-item, .pedido-item').forEach(el => {
-          const name = el.querySelector('.cart-item-name, .item-name')?.textContent?.trim() || 'Item';
-          const qty = parseInt(el.querySelector('.cart-item-qty, .item-qty')?.textContent?.trim() || '1', 10);
-          cartItems.push({ name, qtdTotal: qty });
-        });
+      if (typeof cart !== 'undefined' && typeof items !== 'undefined') {
+        orderItems = Object.keys(cart)
+          .filter(k => cart[k] > 0)
+          .map(k => {
+            const src  = items[k] || {};
+            const qty  = cart[k];
+            const name = src.name || ('Item ' + k);
+            // Captura: nome descritivo já vem montado em confirmCaptura()
+            // Ex: "Charizard (Alliance Ball)"
+            return {
+              name:     name,
+              qtdTotal: qty,
+            };
+          });
       }
-    } catch(e) {
-      console.warn('[orders-patch] Falha ao ler carrinho:', e);
+    } catch (e) {
+      console.warn('[CAPTURA] Falha ao ler carrinho:', e);
     }
 
-    // Registra o pedido no sistema de tracking
-    if (cartItems.length > 0 && typeof OrdersStorage !== 'undefined') {
-      const result = OrdersStorage.createOrder({
-        userId: user ? user.id : null,
+    // ── 3. Registra no OrdersStorage ─────────────────────────
+    if (orderItems.length > 0 && typeof OrdersStorage !== 'undefined') {
+      const payload = {
+        userId:   user ? (user.id || null) : null,
         nickname: nick,
-        items: cartItems,
-      });
+        items:    orderItems,
+      };
 
-      if (result.success) {
-        console.log('[orders-patch] Pedido registrado:', result.order.id);
-        // Atualiza a UI de pedidos
+      console.log('[CAPTURA] Pedido enviado');
+      console.log('[CAPTURA] Payload:', payload);
+
+      const result = OrdersStorage.createOrder(payload);
+
+      if (result && result.success) {
+        console.log('[CAPTURA] Pedido registrado:', result.order);
+
+        // Atualiza aba Pedidos
         if (typeof OrdersUI !== 'undefined') {
-          setTimeout(() => OrdersUI.refresh(), 500);
+          setTimeout(() => OrdersUI.refresh(), 600);
         }
-        // Notificação de confirmação
+
+        // Notificação visual
         if (typeof OrdersNotifications !== 'undefined') {
+          const num = (typeof OrdersProgress !== 'undefined')
+            ? OrdersProgress.formatOrderNumber(result.order.orderNumber)
+            : '#' + result.order.orderNumber;
           OrdersNotifications.show(
-            `Pedido ${typeof OrdersProgress !== 'undefined'
-              ? OrdersProgress.formatOrderNumber(result.order.orderNumber)
-              : '#' + result.order.orderNumber} criado! Aguarde confirmação.`,
+            `Pedido ${num} criado! Aguarde confirmação.`,
             'pendente',
             6000
           );
         }
+      } else {
+        console.warn('[CAPTURA] OrdersStorage.createOrder falhou:', result);
       }
     }
 
-    // Chama a função original de envio (WhatsApp, etc.)
-    if (typeof sendToWhatsApp === 'function') {
-      return sendToWhatsApp();
-    } else if (_origSubmitPedido) {
-      return _origSubmitPedido();
-    } else if (_origSendPedido) {
-      return _origSendPedido();
+    // ── 4. Chama o fluxo original (Supabase + limpa carrinho) ─
+    if (typeof _origSendToWhatsApp === 'function') {
+      return _origSendToWhatsApp();
     }
   };
 
-  // Alias para compatibilidade
-  window.sendPedido = window.submitPedido;
+  // Mantém aliases existentes apontando para o mesmo hook
+  window.sendPedido   = window.sendToWhatsApp;
+  window.submitPedido = window.sendToWhatsApp;
+  window.sendToDiscord = window.sendToWhatsApp;
 
-  console.log('[orders-patch] Hook de pedidos instalado.');
+  console.log('[orders-patch] Hook sendToWhatsApp instalado (cobre itens + pacotes + captura).');
 })();
