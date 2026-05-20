@@ -438,10 +438,9 @@ const OrdersUI = (() => {
                 </span>
               </div>
             ` : `
-              ${isDone
-                ? \`<span class="order-item-qty-simple done" style="color:#4ade80">✓ entregue</span>\`
-                : \`<span class="order-item-waiting-label">Aguardando início</span>\`
-              }
+              <span class="${isDone ? 'order-item-qty-simple done' : 'order-item-waiting-label'}" style="${isDone ? 'color:#4ade80' : ''}">
+                ${isDone ? '✓ entregue' : 'Aguardando início'}
+              </span>
             `}
           </div>
         </div>
