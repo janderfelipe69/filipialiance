@@ -34,9 +34,15 @@
   }
 
   function _getJwt() {
+    // Usa Session.getAccessToken() — fonte oficial do token (session.js)
+    // Chave correta no localStorage: pa_sb_access_token (não poke_session)
+    if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
+      const token = Session.getAccessToken();
+      if (token) return token;
+    }
+    // Fallback: lê direto das chaves corretas do session.js
     try {
-      const s = JSON.parse(localStorage.getItem('poke_session') || '{}');
-      return s.access_token || null;
+      return localStorage.getItem('pa_sb_access_token') || null;
     } catch (_) { return null; }
   }
 
@@ -103,17 +109,16 @@
       const path = `delivery_${pedidoId}_${ts}_${rand}.${ext}`;
 
       // ── Verifica sessão antes do upload ──────────────────────
-      try {
-        const session = JSON.parse(localStorage.getItem('poke_session') || '{}');
-        const userId  = session.user?.id || '(sem user)';
-        const token   = session.access_token ? session.access_token.slice(0, 20) + '…' : '❌ SEM TOKEN';
-        console.log('[Entrega] Auth check — user_id:', userId, '| token:', token);
-        if (!session.access_token) {
+      {
+        const token  = _getJwt();
+        const userId = (typeof Session !== 'undefined' && Session.getCurrentUser)
+          ? (Session.getCurrentUser()?.id || '(sem user)')
+          : '(Session indisponível)';
+        const tokenPreview = token ? token.slice(0, 20) + '…' : '❌ SEM TOKEN';
+        console.log('[Entrega] Auth check — user_id:', userId, '| token:', tokenPreview);
+        if (!token) {
           throw new Error('Sessão expirada ou inválida. Faça login novamente.');
         }
-      } catch (authErr) {
-        if (authErr.message.includes('Sessão')) throw authErr;
-        console.warn('[Entrega] Não foi possível verificar sessão:', authErr.message);
       }
 
       console.log('[Entrega] Upload iniciado:', file.name, '→', path);

@@ -93,7 +93,9 @@ const Session = (() => {
 
   function _scheduleRefresh(expiresInSeconds) {
     if (_refreshTimer) clearTimeout(_refreshTimer);
-    const delay = Math.max((expiresInSeconds - 120) * 1000, 30_000);
+    // Renova a 75% do tempo de vida (ex: token 1h → renova em 45min)
+    // Mínimo de 30s para não travar em tokens curtos
+    const delay = Math.max(expiresInSeconds * 0.75 * 1000, 30_000);
     _refreshTimer = setTimeout(_doRefresh, delay);
     console.log(`[Session] ⏱ Token será renovado em ${Math.round(delay / 60000)} min.`);
   }
@@ -101,14 +103,21 @@ const Session = (() => {
   async function _doRefresh() {
     if (!_refreshToken) return;
     console.log('[Session] 🔄 Renovando token de sessão...');
-    try {
-      const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
-      _saveTokens(data.access_token, data.refresh_token, data.expires_in);
-      console.log('[Session] ✅ Token renovado com sucesso.');
-    } catch (e) {
-      console.warn('[Session] ⚠️ Falha ao renovar token. Fazendo logout:', e.message);
-      await logout();
+    let attempts = 0;
+    while (attempts < 2) {
+      try {
+        const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
+        _saveTokens(data.access_token, data.refresh_token, data.expires_in);
+        console.log('[Session] ✅ Token renovado com sucesso.');
+        return;
+      } catch (e) {
+        attempts++;
+        console.warn(`[Session] ⚠️ Falha ao renovar token (tentativa ${attempts}/2):`, e.message);
+        if (attempts < 2) await new Promise(r => setTimeout(r, 3000)); // aguarda 3s antes de retry
+      }
     }
+    console.warn('[Session] ❌ Refresh esgotado. Fazendo logout.');
+    await logout();
   }
 
   // ── Carregamento de Perfil ───────────────────────────────────────────────
@@ -146,16 +155,20 @@ const Session = (() => {
       return;
     }
 
+    // Se o token expirou, tenta renovar com o refresh_token.
+    // Se o refresh também falhar, tenta usar o access_token mesmo assim
+    // (o servidor é o árbitro final — pode ainda ser válido).
     if (_isTokenExpired()) {
       console.log('[Session] 🔄 Token expirado, tentando renovar...');
-      try {
-        const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
-        _saveTokens(data.access_token, data.refresh_token, data.expires_in);
-      } catch (e) {
-        console.warn('[Session] ⚠️ Não foi possível renovar sessão:', e.message);
-        _clearTokens();
-        _renderLoggedOut();
-        return;
+      if (_refreshToken) {
+        try {
+          const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
+          _saveTokens(data.access_token, data.refresh_token, data.expires_in);
+          console.log('[Session] ✅ Token renovado via refresh_token.');
+        } catch (e) {
+          console.warn('[Session] ⚠️ Refresh falhou, tentando token existente:', e.message);
+          // Não limpa ainda — deixa getUser() decidir se o token ainda serve
+        }
       }
     }
 
@@ -163,10 +176,26 @@ const Session = (() => {
     try {
       authUser = await SupabaseClient.Auth.getUser(_accessToken);
     } catch (e) {
-      console.warn('[Session] ⚠️ Token inválido:', e.message);
-      _clearTokens();
-      _renderLoggedOut();
-      return;
+      // Token realmente inválido — tenta uma última vez via refresh antes de deslogar
+      console.warn('[Session] ⚠️ Token rejeitado pelo servidor:', e.message);
+      if (_refreshToken) {
+        try {
+          console.log('[Session] 🔄 Última tentativa de refresh...');
+          const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
+          _saveTokens(data.access_token, data.refresh_token, data.expires_in);
+          authUser = await SupabaseClient.Auth.getUser(_accessToken);
+          console.log('[Session] ✅ Sessão recuperada via refresh de emergência.');
+        } catch (e2) {
+          console.warn('[Session] ❌ Não foi possível recuperar sessão:', e2.message);
+          _clearTokens();
+          _renderLoggedOut();
+          return;
+        }
+      } else {
+        _clearTokens();
+        _renderLoggedOut();
+        return;
+      }
     }
 
     const profile = await _loadProfile(authUser.id, _accessToken);
@@ -176,6 +205,15 @@ const Session = (() => {
       console.warn('[Session] ⚠️ Perfil não encontrado em public.users. Usando fallback básico.');
     } else {
       _currentUser = profile;
+    }
+
+    // Agenda renovação automática baseada no tempo restante do token
+    try {
+      const expiry = parseInt(localStorage.getItem('pa_sb_token_expiry') || '0', 10);
+      const remainingSec = Math.max(Math.floor((expiry - Date.now()) / 1000), 60);
+      _scheduleRefresh(remainingSec);
+    } catch (_) {
+      _scheduleRefresh(3600); // fallback: renova em 45min
     }
 
     _renderLoggedIn(_currentUser);
