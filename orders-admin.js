@@ -43,16 +43,18 @@ const OrdersAdmin = (() => {
       return { success: false, error: 'Apenas admins podem iniciar serviços.' };
     }
 
-    const confirmed = confirm(
-      `⚡ Iniciar serviço #${supabaseOrderId}?\n\n` +
-      `O countdown do cliente começa AGORA.\n` +
-      `Você confirma que está pronto para executar este serviço?`
-    );
+    const confirmed = await showConfirmModal({
+      title: `Iniciar Serviço #${supabaseOrderId}`,
+      message: 'O countdown do cliente começa AGORA. Você confirma que está pronto para executar este serviço?',
+      confirmText: 'Iniciar Serviço',
+      cancelText: 'Cancelar',
+      type: 'warning'
+    });
     if (!confirmed) return { success: false, cancelled: true };
 
     try {
       const jwt = _getJWT();
-      if (!jwt) { alert('Sessão expirada. Faça login novamente.'); return { success: false, error: 'NO_JWT' }; }
+      if (!jwt) { if (typeof showToast === 'function') showToast('Sessão expirada. Faça login novamente.', 'error'); return { success: false, error: 'NO_JWT' }; }
       console.log('[START SERVICE] payload', { p_order_id: supabaseOrderId });
       console.log('[START SERVICE] url', `${window.SUPABASE_URL}/rest/v1/rpc/start_service`);
       console.log('[START SERVICE] jwt', jwt ? jwt.slice(0, 20) + '…' : 'null');
@@ -85,10 +87,7 @@ const OrdersAdmin = (() => {
       if (!res.ok || (data && data.success === false)) {
         const err = (data && (data.message || data.error || data.hint)) || raw || `HTTP ${res.status}`;
         console.error('[OrdersAdmin] Falha ao iniciar serviço:', err);
-        alert(
-          (data && (data.message || data.error)) || raw ||
-          `Erro ao iniciar serviço (${res.status})`
-        );
+        if (typeof showToast === 'function') showToast((data && (data.message || data.error)) || raw || `Erro ao iniciar serviço (${res.status})`, 'error');
         return { success: false, error: err };
       }
 
@@ -113,7 +112,7 @@ const OrdersAdmin = (() => {
 
     } catch (e) {
       console.error('[OrdersAdmin] Erro de rede ao iniciar serviço:', e);
-      alert('Erro de rede: ' + e.message);
+      if (typeof showToast === 'function') showToast('Erro de rede: ' + e.message, 'error');
       return { success: false, error: e.message };
     }
   }
@@ -123,14 +122,18 @@ const OrdersAdmin = (() => {
   async function completeService(supabaseOrderId, adminNotes) {
     if (!isCurrentUserAdmin()) return;
 
-    const confirmed = confirm(
-      `✅ Concluir serviço #${supabaseOrderId}?\n\nO pedido sairá da fila principal.`
-    );
+    const confirmed = await showConfirmModal({
+      title: `Concluir Serviço #${supabaseOrderId}`,
+      message: 'O pedido sairá da fila principal.',
+      confirmText: 'Concluir',
+      cancelText: 'Cancelar',
+      type: 'success'
+    });
     if (!confirmed) return { success: false, cancelled: true };
 
     try {
       const jwt = _getJWT();
-      if (!jwt) { alert('Sessão expirada. Faça login novamente.'); return { success: false, error: 'NO_JWT' }; }
+      if (!jwt) { if (typeof showToast === 'function') showToast('Sessão expirada. Faça login novamente.', 'error'); return { success: false, error: 'NO_JWT' }; }
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/complete_service`,
         {
@@ -150,7 +153,7 @@ const OrdersAdmin = (() => {
       const data = await res.json();
       if (!res.ok || (data && data.success === false)) {
         const err = (data && data.error) || `HTTP ${res.status}`;
-        alert('Erro ao concluir: ' + err);
+        if (typeof showToast === 'function') showToast('Erro ao concluir: ' + err, 'error');
         return { success: false, error: err };
       }
 
@@ -191,7 +194,7 @@ const OrdersAdmin = (() => {
       return { success: true, data };
 
     } catch (e) {
-      alert('Erro de rede: ' + e.message);
+      if (typeof showToast === 'function') showToast('Erro de rede: ' + e.message, 'error');
       return { success: false, error: e.message };
     }
   }
@@ -200,7 +203,13 @@ const OrdersAdmin = (() => {
 
   async function cancelOrder(supabaseOrderId) {
     if (!isCurrentUserAdmin()) return;
-    const confirmed = confirm(`Cancelar pedido #${supabaseOrderId}? Esta ação não pode ser desfeita.`);
+    const confirmed = await showConfirmModal({
+      title: `Cancelar Pedido #${supabaseOrderId}`,
+      message: 'Esta ação não pode ser desfeita.',
+      confirmText: 'Cancelar Pedido',
+      cancelText: 'Voltar',
+      type: 'danger'
+    });
     if (!confirmed) return;
 
     await _patchStatus(supabaseOrderId, 'cancelled');
@@ -259,7 +268,13 @@ const OrdersAdmin = (() => {
 
   async function deleteOrder(orderId) {
     if (!isCurrentUserAdmin()) return;
-    const confirmed = confirm('Excluir pedido permanentemente? Esta ação não pode ser desfeita.');
+    const confirmed = await showConfirmModal({
+      title: 'Excluir Pedido',
+      message: 'Excluir pedido permanentemente? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    });
     if (!confirmed) return;
 
     // Remove do storage local
@@ -541,7 +556,7 @@ const OrdersAdmin = (() => {
       if (typeof pedidosCarregar === 'function') pedidosCarregar();
     } catch (e) {
       console.error('[OrdersAdmin] Falha ao atualizar status:', e);
-      alert('Erro ao atualizar status: ' + e.message);
+      if (typeof showToast === 'function') showToast('Erro ao atualizar status: ' + e.message, 'error');
     }
   }
 

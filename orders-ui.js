@@ -509,7 +509,7 @@ const OrdersUI = (() => {
     render();
   }
 
-  function _cancelOwnOrder(orderId) {
+  async function _cancelOwnOrder(orderId) {
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     if (!user) return;
 
@@ -523,7 +523,14 @@ const OrdersUI = (() => {
       return;
     }
 
-    if (!confirm('Deseja cancelar seu pedido? Esta ação não pode ser desfeita.')) return;
+    const confirmed = await showConfirmModal({
+      title: 'Cancelar Pedido',
+      message: 'Deseja cancelar seu pedido? Esta ação não pode ser desfeita.',
+      confirmText: 'Cancelar Pedido',
+      cancelText: 'Voltar',
+      type: 'danger'
+    });
+    if (!confirmed) return;
 
     OrdersStorage.updateStatus(orderId, 'cancelado', user.nickname);
     if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {

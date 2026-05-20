@@ -2101,6 +2101,9 @@
 <!-- ── Feature flag kanban (remover esta linha = rollback instantâneo) ── -->
 <script>window.PA_KANBAN_ENABLED = true;</script>
 
+<script src="toast.js"></script>
+<script src="confirm-modal.js"></script>
+
 <!-- ── Sistema de Pedidos v2 ── -->
 <script src="orders-storage.js"></script>
 <script src="orders-progress.js"></script>
@@ -2224,7 +2227,7 @@ function enviarPedido() {
   } else if (typeof sendPedido === 'function') {
     sendPedido();
   } else {
-    alert('Erro: funcao de envio nao encontrada em pedidos.js');
+    if (typeof showToast === 'function') showToast('Erro: função de envio não encontrada em pedidos.js', 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Pedido'; }
   }
 }
@@ -2267,7 +2270,7 @@ function enviarPedido() {
       }
     });
   } else {
-    alert('Erro: pedidos.js nao carregado');
+    if (typeof showToast === 'function') showToast('Erro: pedidos.js não carregado', 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Enviar Pedido'; }
   }
 }

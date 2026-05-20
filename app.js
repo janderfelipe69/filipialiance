@@ -345,16 +345,16 @@ function _showToastMsg(titulo, msg) {
 }
 
 async function _salvarPedidoSupabase(payload) {
+  const token = (typeof Session !== 'undefined' && Session.isLoggedIn())
+    ? Session.getAccessToken()
+    : null;
+  if (!token) throw new Error('Usuário não autenticado — faça login antes de enviar um pedido.');
   const res = await fetch(`${SUPABASE_URL}/rest/v1/pedidos`, {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
       'apikey':        SUPABASE_KEY,
-      'Authorization': 'Bearer ' + (
-        (typeof Session !== 'undefined' && Session.isLoggedIn())
-          ? Session.getAccessToken()
-          : SUPABASE_KEY
-      ),
+      'Authorization': 'Bearer ' + token,
       'Prefer':        'return=representation',
     },
     body: JSON.stringify(payload),
@@ -3366,7 +3366,7 @@ async function confirmCaptura() {
         5000
       );
     }
-    alert('Erro ao salvar pedido: ' + err.message);
+    if (typeof showToast === 'function') showToast('Erro ao salvar pedido: ' + err.message, 'error');
   }
 }
 

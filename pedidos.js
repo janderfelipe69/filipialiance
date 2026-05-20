@@ -144,16 +144,14 @@
   }
 
   // ── JWT Helper ─────────────────────────────────────────────────────────
-  // PATCH 5.1: usa Session.getAccessToken() — nunca mais anon key no Authorization.
-  // Se não houver sessão, retorna a anon key como fallback de último recurso
-  // (o banco bloqueia via RLS de qualquer forma, mas evitamos 401 no cliente).
+  // PATCH 5.2: aborta se não houver sessão — nunca envia anon key como Authorization.
+  // Retorna null para que chamadores possam interromper o fetch antes de enviar.
   function _getJWT() {
     if (typeof Session !== 'undefined' && Session.getAccessToken) {
       var token = Session.getAccessToken();
       if (token) return token;
     }
-    _warn('Nenhum JWT de sessão ativa — usando anon key como fallback.');
-    return SB_KEY;
+    return null; // sem sessão → chamador deve abortar
   }
 
   // ── Fetch do Supabase ──────────────────────────────────────────────────
@@ -161,6 +159,11 @@
   // Ordenado por created_at ASC — fonte de verdade da fila.
 
   async function _fetchDoBD() {
+    var jwt = _getJWT();
+    if (!jwt) {
+      _warn('Sem JWT — abortando fetch de pedidos. Faça login.');
+      throw new Error('Usuário não autenticado');
+    }
     _log('Buscando pedidos do Supabase...');
     var url = SB_URL + '/rest/v1/pedidos' +
       '?order=created_at.asc' +
@@ -174,7 +177,7 @@
     var res = await fetch(url, {
       headers: {
         'apikey':        SB_KEY,
-        'Authorization': 'Bearer ' + _getJWT(), // PATCH 5.1: JWT real do usuário
+        'Authorization': 'Bearer ' + jwt, // PATCH 5.2: JWT real, sem fallback anon
       },
     });
     if (!res.ok) throw new Error('Supabase: HTTP ' + res.status);
@@ -288,7 +291,7 @@
       }
     } catch (e) {
       _error('Falha ao atualizar status:', e.message);
-      alert('Erro: ' + e.message);
+      if (typeof showToast === 'function') showToast('Erro: ' + e.message, 'error');
     }
   };
 

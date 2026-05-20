@@ -766,13 +766,20 @@
 
     async _deleteEntry(id, e) {
       if (e) e.stopPropagation();
-      if (!confirm('Remover esta entrega? Os prints não serão deletados do Storage.')) return;
+      const confirmed = await showConfirmModal({
+        title: 'Remover Entrega',
+        message: 'Remover esta entrega? Os prints não serão deletados do Storage.',
+        confirmText: 'Remover',
+        cancelText: 'Cancelar',
+        type: 'danger'
+      });
+      if (!confirmed) return;
       try {
         await DeliveryDB.delete(id);
         DeliveryGallery._data = DeliveryGallery._data.filter(x => x.id !== id);
         DeliveryGallery._render();
       } catch (err) {
-        alert('Erro ao remover: ' + err.message);
+        if (typeof showToast === 'function') showToast('Erro ao remover: ' + err.message, 'error');
       }
     },
 
