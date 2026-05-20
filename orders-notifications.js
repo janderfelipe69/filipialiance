@@ -779,10 +779,13 @@ const OrdersNotifications = (() => {
   return {
     init,
     show,
-    closeDropdown: _closeDropdown,
-    refreshBell:   _refreshBadge,
+    closeDropdown:             _closeDropdown,
+    refreshBell:               _refreshBadge,
     // Exposto para onclick inline no dropdown
     _markRead,
+    // Legacy no-ops — exportados para compatibilidade com orders-ui.js
+    flushUnreadNotifications:  flushUnreadNotifications,
+    notifyStatusChange:        notifyStatusChange,
   };
 })();
 

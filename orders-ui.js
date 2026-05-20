@@ -58,7 +58,7 @@ const OrdersUI = (() => {
       });
     }
 
-    if (typeof OrdersNotifications !== 'undefined') {
+    if (window.OrdersNotifications && typeof OrdersNotifications.init === 'function') {
       OrdersNotifications.init();
     }
 
@@ -106,7 +106,7 @@ const OrdersUI = (() => {
         } else {
           render();
         }
-        if (typeof OrdersNotifications !== 'undefined') {
+        if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
           OrdersNotifications.show('Lista de pedidos atualizada.', 'info', 2500);
         }
       };
@@ -222,7 +222,7 @@ const OrdersUI = (() => {
       const el = _renderCard(order, user, isAdmin, activeQueue, existingCards.get(order.id));
       frag.appendChild(el);
       existingCards.delete(order.id);
-      if (typeof OrdersNotifications !== 'undefined') {
+      if (window.OrdersNotifications && typeof OrdersNotifications.flushUnreadNotifications === 'function') {
         OrdersNotifications.flushUnreadNotifications(order);
       }
     });
@@ -517,14 +517,18 @@ const OrdersUI = (() => {
     if (!order) return;
 
     if (!OrdersProgress.canUserCancel(order, user.id)) {
-      OrdersNotifications.show('Não é possível cancelar este pedido.', 'cancelado', 3000);
+      if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
+        OrdersNotifications.show('Não é possível cancelar este pedido.', 'cancelado', 3000);
+      }
       return;
     }
 
     if (!confirm('Deseja cancelar seu pedido? Esta ação não pode ser desfeita.')) return;
 
     OrdersStorage.updateStatus(orderId, 'cancelado', user.nickname);
-    OrdersNotifications.show(`Pedido cancelado.`, 'cancelado');
+    if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
+      OrdersNotifications.show(`Pedido cancelado.`, 'cancelado');
+    }
     render();
   }
 
