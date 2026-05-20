@@ -57,6 +57,9 @@ const OrdersAdmin = (() => {
       console.log('[START SERVICE] url', `${window.SUPABASE_URL}/rest/v1/rpc/start_service`);
       console.log('[START SERVICE] jwt', jwt ? jwt.slice(0, 20) + '…' : 'null');
 
+      const orderId = Number(supabaseOrderId);
+      console.log('[START SERVICE]', typeof orderId, orderId);
+
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/start_service`,
         {
@@ -65,11 +68,9 @@ const OrdersAdmin = (() => {
             'Content-Type':  'application/json',
             'apikey':        window.SUPABASE_KEY,
             'Authorization': 'Bearer ' + jwt,
-            // Resolve HTTP 300 (ambiguidade de overload no PostgREST):
-            // força seleção da função pelo objeto JSON exato enviado no body.
-            'Prefer':        'params=single-object',
           },
-          body: JSON.stringify({ p_order_id: supabaseOrderId }),
+          // p_order_id como Number garante bigint — evita HTTP 300 com a versão uuid
+          body: JSON.stringify({ p_order_id: orderId }),
         }
       );
 
@@ -85,7 +86,7 @@ const OrdersAdmin = (() => {
         const err = (data && (data.message || data.error || data.hint)) || raw || `HTTP ${res.status}`;
         console.error('[OrdersAdmin] Falha ao iniciar serviço:', err);
         alert(
-          data?.message || data?.error || raw ||
+          (data && (data.message || data.error)) || raw ||
           `Erro ao iniciar serviço (${res.status})`
         );
         return { success: false, error: err };
@@ -95,7 +96,7 @@ const OrdersAdmin = (() => {
 
       if (typeof OrdersNotifications !== 'undefined') {
         OrdersNotifications.show(
-          `✅ Serviço #${supabaseOrderId} iniciado! SLA: ${data.sla_min_days}~${data.sla_max_days} dias.`,
+          `✅ Serviço #${supabaseOrderId} iniciado! SLA: ${data.sla_days || data.sla_min_days} dias.`,
           'success',
           4000
         );
@@ -332,11 +333,11 @@ const OrdersAdmin = (() => {
           <div class="oa-service-grid">
             <button class="oa-service-opt ${(order.service_type || 'normal_package') === 'normal_package' ? 'active' : ''}"
                     onclick="OrdersAdmin.setServiceType('${order.id}', ${supabaseId}, 'normal_package')">
-              📦 Pacote Normal<br><small>4~7 dias/pacote</small>
+              📦 Pacote Normal<br><small>7 dias por pacote</small>
             </button>
             <button class="oa-service-opt ${order.service_type === 'pokemon_sr' ? 'active' : ''}"
                     onclick="OrdersAdmin.setServiceType('${order.id}', ${supabaseId}, 'pokemon_sr')">
-              ✨ Pokémon SR<br><small>25~40 dias/unit</small>
+              ✨ Pokémon SR<br><small>45 dias por unidade</small>
             </button>
           </div>
           <div class="oa-qty-row">

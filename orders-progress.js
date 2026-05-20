@@ -37,20 +37,24 @@ const OrdersProgress = (() => {
 
   // ── SLA por tipo de serviço ────────────────────────────────────────────
   // Fonte de verdade para cálculos de ETA. Espelha a função calc_sla_days() do banco.
+  // ── Dias fixos por tipo — fonte única de verdade ──────────────────────
+  const NORMAL_DAYS_PER_PACKAGE = 7;   // 1 pacote = 7 dias
+  const SR_DAYS_PER_UNIT        = 45;  // 1 SR = 45 dias
+
   const SLA_CONFIG = {
     normal_package: {
       label:       'Pacote Normal',
-      minPerUnit:  4,   // dias mínimos por pacote
-      maxPerUnit:  7,   // dias máximos por pacote
+      minPerUnit:  NORMAL_DAYS_PER_PACKAGE,
+      maxPerUnit:  NORMAL_DAYS_PER_PACKAGE,
       icon:        '📦',
-      description: '4~7 dias por pacote',
+      description: '7 dias por pacote',
     },
     pokemon_sr: {
       label:       'Pokémon SR',
-      minPerUnit:  25,  // dias mínimos por unidade
-      maxPerUnit:  40,  // dias máximos por unidade
+      minPerUnit:  SR_DAYS_PER_UNIT,
+      maxPerUnit:  SR_DAYS_PER_UNIT,
       icon:        '✨',
-      description: '25~40 dias por unidade',
+      description: '45 dias por unidade',
     },
   };
 
@@ -138,19 +142,18 @@ const OrdersProgress = (() => {
    * @returns {{ minDays: number, maxDays: number, label: string }}
    *
    * Exemplos:
-   *   normal_package, qty=1 → { minDays:4,  maxDays:7,  label:"4~7 dias" }
-   *   normal_package, qty=3 → { minDays:12, maxDays:21, label:"12~21 dias" }
-   *   pokemon_sr, qty=2     → { minDays:50, maxDays:80, label:"50~80 dias" }
+   *   normal_package, qty=1 → { minDays:7,  maxDays:7,  label:"7 dias" }
+   *   normal_package, qty=3 → { minDays:21, maxDays:21, label:"21 dias" }
+   *   pokemon_sr, qty=2     → { minDays:90, maxDays:90, label:"90 dias" }
    */
   function calcSLA(serviceType, qty) {
     const cfg = SLA_CONFIG[serviceType] || SLA_CONFIG.normal_package;
     const n = Math.max(1, parseInt(qty, 10) || 1);
-    const minDays = cfg.minPerUnit * n;
-    const maxDays = cfg.maxPerUnit * n;
+    const days = cfg.minPerUnit * n; // fixo — min === max
     return {
-      minDays,
-      maxDays,
-      label: `${minDays}~${maxDays} dias`,
+      minDays: days,
+      maxDays: days,
+      label: `${days} dias`,
     };
   }
 

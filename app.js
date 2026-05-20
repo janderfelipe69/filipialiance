@@ -3079,8 +3079,8 @@ const BALLS = [
 
 // ── Regras de ETA por raridade (captura) ────────────────────────────────────
 const CAPTURE_ETA_RULES = {
-  default:    { minDays: 4,  maxDays: 7  },
-  super_rare: { minDays: 25, maxDays: 45 },
+  default:    { minDays: 7,  maxDays: 7  },  // 7 dias fixos por pacote
+  super_rare: { minDays: 45, maxDays: 45 },  // 45 dias fixos por unidade
 };
 
 function _getCapturaEta(poke) {
@@ -3215,7 +3215,7 @@ function openCapturaModal(idx) {
       const eta = _getCapturaEta(poke);
       return `<div class="captura-sla-info">
         <span class="captura-sla-icon">⏱</span>
-        <span>Tempo estimado: <strong>${eta.minDays} a ${eta.maxDays} dias</strong> após início do serviço</span>
+        <span>Tempo estimado: <strong>${eta.minDays === eta.maxDays ? eta.minDays + ' dias' : eta.minDays + ' a ' + eta.maxDays + ' dias'}</strong> após início do serviço</span>
       </div>`;
     })()}
     <div class="captura-success-msg" id="captura-success-msg">
