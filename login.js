@@ -19,6 +19,9 @@ const AuthModal = (() => {
   let _serverConfirmed = false;
   let _nickCheckTimer = null;
   let _isSubmitting = false;
+  let _lastLoginAt = 0;
+  let _lastRegisterAt = 0;
+  const DEBOUNCE_MS = 2000;
 
   // ── Injeção do HTML do modal ─────────────────────────────────────────────
   // O modal é criado dinamicamente para não poluir o HTML principal
@@ -474,75 +477,89 @@ const AuthModal = (() => {
   async function _submitLogin() {
     if (_isSubmitting) return;
 
+    const now = Date.now();
+    if (now - _lastLoginAt < DEBOUNCE_MS) return;
+    _lastLoginAt = now;
+
     const email = (document.getElementById('auth-login-email') || {}).value || '';
     const password = (document.getElementById('auth-login-pass') || {}).value || '';
 
+    _isSubmitting = true;
     _setLoading('auth-login-submit', true);
     _clearError('auth-login-error');
-    _isSubmitting = true;
 
-    const result = await Auth.login({ email, password });
-    _isSubmitting = false;
-    _setLoading('auth-login-submit', false);
+    try {
+      const result = await Auth.login({ email, password });
 
-    if (!result.success) {
-      if (result.field === 'email') {
-        _setFieldError('auth-login-email', result.message);
-      } else if (result.field === 'password') {
-        _setFieldError('auth-login-pass', result.message);
-      } else {
-        _setError('auth-login-error', result.message);
+      if (!result.success) {
+        if (result.field === 'email') {
+          _setFieldError('auth-login-email', result.message);
+        } else if (result.field === 'password') {
+          _setFieldError('auth-login-pass', result.message);
+        } else {
+          _setError('auth-login-error', result.message);
+        }
+        _shakeModal();
+        return;
       }
-      // Vibração sutil no modal para indicar erro
-      _shakeModal();
-      return;
-    }
 
-    // Sucesso
-    _showSuccess(`Olá, ${result.user.nickname}! Bem-vindo de volta.`);
-    setTimeout(() => close(), 1800);
+      // Sucesso
+      _showSuccess(`Olá, ${result.user.nickname}! Bem-vindo de volta.`);
+      setTimeout(() => close(), 1800);
+
+    } finally {
+      _isSubmitting = false;
+      _setLoading('auth-login-submit', false);
+    }
   }
 
   // ── Submissão de Cadastro ────────────────────────────────────────────────
   async function _submitRegister() {
     if (_isSubmitting) return;
 
+    const now = Date.now();
+    if (now - _lastRegisterAt < DEBOUNCE_MS) return;
+    _lastRegisterAt = now;
+
     const nickname        = (document.getElementById('auth-reg-nick')  || {}).value || '';
     const email           = (document.getElementById('auth-reg-email') || {}).value || '';
     const password        = (document.getElementById('auth-reg-pass')  || {}).value || '';
     const confirmPassword = (document.getElementById('auth-reg-conf')  || {}).value || '';
 
+    _isSubmitting = true;
     _setLoading('auth-reg-submit', true);
     _clearError('auth-reg-error');
-    _isSubmitting = true;
 
-    const result = await Auth.register({
-      nickname, email, password, confirmPassword,
-      serverConfirmed: _serverConfirmed,
-    });
+    try {
+      const result = await Auth.register({
+        nickname, email, password, confirmPassword,
+        serverConfirmed: _serverConfirmed,
+      });
 
-    _isSubmitting = false;
-    _setLoading('auth-reg-submit', false);
-
-    if (!result.success) {
-      const fieldMap = {
-        nickname:        'auth-reg-nick',
-        email:           'auth-reg-email',
-        password:        'auth-reg-pass',
-        confirmPassword: 'auth-reg-conf',
-      };
-      if (result.field && fieldMap[result.field]) {
-        _setFieldError(fieldMap[result.field], result.message);
-      } else {
-        _setError('auth-reg-error', result.message);
+      if (!result.success) {
+        const fieldMap = {
+          nickname:        'auth-reg-nick',
+          email:           'auth-reg-email',
+          password:        'auth-reg-pass',
+          confirmPassword: 'auth-reg-conf',
+        };
+        if (result.field && fieldMap[result.field]) {
+          _setFieldError(fieldMap[result.field], result.message);
+        } else {
+          _setError('auth-reg-error', result.message);
+        }
+        _shakeModal();
+        return;
       }
-      _shakeModal();
-      return;
-    }
 
-    // Sucesso
-    _showSuccess(`Conta criada! Bem-vindo ao PokeAlliance, ${result.user.nickname}!`);
-    setTimeout(() => close(), 2000);
+      // Sucesso
+      _showSuccess(`Conta criada! Bem-vindo ao PokeAlliance, ${result.user.nickname}!`);
+      setTimeout(() => close(), 2000);
+
+    } finally {
+      _isSubmitting = false;
+      _setLoading('auth-reg-submit', false);
+    }
   }
 
   // ── Modal: Minha Conta ───────────────────────────────────────────────────
