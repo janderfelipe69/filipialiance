@@ -3077,6 +3077,17 @@ const BALLS = [
   { id: "ultra", name: "Ultra Ball", emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)", mult: 1.0 },
 ];
 
+// ── Regras de ETA por raridade (captura) ────────────────────────────────────
+const CAPTURE_ETA_RULES = {
+  default:    { minDays: 4,  maxDays: 7  },
+  super_rare: { minDays: 25, maxDays: 45 },
+};
+
+function _getCapturaEta(poke) {
+  if (poke && poke.tag === 'super-raro') return CAPTURE_ETA_RULES.super_rare;
+  return CAPTURE_ETA_RULES.default;
+}
+
 let currentCapturaIdx = null;
 let selectedBall = null;
 
@@ -3200,10 +3211,13 @@ function openCapturaModal(idx) {
       </div>` : '<div class="captura-modal-price-block" style="color:var(--muted)">Preço a definir</div>'}
     </div>
     ${buildDropsHtml(poke.name, typeColor)}
-    <div class="captura-sla-info">
-      <span class="captura-sla-icon">⏱</span>
-      <span>Tempo estimado: <strong>4 a 7 dias</strong> após início do serviço</span>
-    </div>
+    ${(function() {
+      const eta = _getCapturaEta(poke);
+      return `<div class="captura-sla-info">
+        <span class="captura-sla-icon">⏱</span>
+        <span>Tempo estimado: <strong>${eta.minDays} a ${eta.maxDays} dias</strong> após início do serviço</span>
+      </div>`;
+    })()}
     <div class="captura-success-msg" id="captura-success-msg">
       <span>🎉</span>
       <span id="captura-success-text">Pedido registrado!</span>
