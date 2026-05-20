@@ -282,12 +282,8 @@ function updateTotalPrice(i, rawVal) {
 }
 
 
-function onNickInput() {
-  const wrap = document.getElementById('nick-field-wrap');
-  const err  = document.getElementById('nick-error');
-  if (wrap) wrap.classList.remove('error');
-  if (err)  err.classList.remove('visible');
-}
+// onNickInput removida — campo de nick removido do formulário (etapa 2)
+// nickname vem automaticamente de Session.getCurrentUser().nickname
 
 // ============================================================
 // Supabase — configuração
@@ -297,23 +293,8 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // ── helpers compartilhados pelas duas funções ─────────────────────────────────
 
-function _getCartNick() {
-  const el = document.getElementById('cart-nick-input');
-  return el ? el.value.trim() : '';
-}
-
-function _validateNick() {
-  const nick = _getCartNick();
-  if (!nick) {
-    const wrap = document.getElementById('nick-field-wrap');
-    const err  = document.getElementById('nick-error');
-    if (wrap) { wrap.classList.remove('error'); void wrap.offsetWidth; wrap.classList.add('error'); }
-    if (err)  err.classList.add('visible');
-    const el = document.getElementById('cart-nick-input');
-    if (el) el.focus();
-  }
-  return nick;
-}
+// _getCartNick e _validateNick removidas — campo de nick removido do formulário (etapa 2)
+// nick vem de Session.getCurrentUser() em sendToWhatsApp()
 
 function _calcTotais(keys) {
   const TAXA_THRESHOLD = 10000000;
@@ -369,7 +350,11 @@ async function _salvarPedidoSupabase(payload) {
     headers: {
       'Content-Type':  'application/json',
       'apikey':        SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Authorization': 'Bearer ' + (
+        (typeof Session !== 'undefined' && Session.isLoggedIn())
+          ? Session.getAccessToken()
+          : SUPABASE_KEY
+      ),
       'Prefer':        'return=representation',
     },
     body: JSON.stringify(payload),
@@ -394,8 +379,17 @@ async function sendToWhatsApp() {
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
   if (!keys.length) return;
 
-  const nick = _validateNick();
-  if (!nick) return;
+  // ── Validação de sessão (v3) ─────────────────────────────────────────
+  // Bloqueia pedido se usuário não estiver logado.
+  // Session.isLoggedIn() checa _currentUser + _accessToken ao mesmo tempo.
+  if (typeof Session === 'undefined' || !Session.isLoggedIn()) {
+    console.warn('[sendToWhatsApp] Nao autenticado — abrindo modal de login.');
+    if (typeof AuthModal !== 'undefined') AuthModal.open('login');
+    return;
+  }
+  // Fallback seguro: se nickname nao vier do perfil, usa email como identificador
+  const _sessionUser = Session.getCurrentUser();
+  const nick = (_sessionUser && (_sessionUser.nickname || _sessionUser.email)) || '—';
 
   const { grandTotalRaw, grandTotalFinal, hasTaxa, TAXA_VALOR } = _calcTotais(keys);
 
@@ -439,6 +433,8 @@ async function sendToWhatsApp() {
     pagamento_kk,
     pagamento_brl,
     status:         'pendente',
+    status_v3:      'waiting_queue',
+    user_id:        _sessionUser ? (_sessionUser.id || null) : null,
   };
 
   // Desabilita botão durante o envio
@@ -554,6 +550,12 @@ function updateCartBadge() {
 }
 
 function openCart() {
+  // Popula o display do nick com o nickname da conta logada
+  const _nickEl = document.getElementById('cart-nick-display');
+  if (_nickEl) {
+    const _u = (typeof Session !== 'undefined') ? Session.getCurrentUser() : null;
+    _nickEl.textContent = (_u && (_u.nickname || _u.email)) ? (_u.nickname || _u.email) : '— faça login para pedir';
+  }
   renderCart();
   document.getElementById('cart-overlay').classList.add('open');
 }

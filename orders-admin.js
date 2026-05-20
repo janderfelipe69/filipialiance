@@ -51,6 +51,8 @@ const OrdersAdmin = (() => {
     if (!confirmed) return { success: false, cancelled: true };
 
     try {
+      const jwt = _getJWT();
+      if (!jwt) { alert('Sessão expirada. Faça login novamente.'); return { success: false, error: 'NO_JWT' }; }
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/start_service`,
         {
@@ -58,7 +60,7 @@ const OrdersAdmin = (() => {
           headers: {
             'Content-Type':  'application/json',
             'apikey':        window.SUPABASE_KEY,
-            'Authorization': 'Bearer ' + _getJWT(),
+            'Authorization': 'Bearer ' + jwt,
           },
           body: JSON.stringify({ p_order_id: supabaseOrderId }),
         }
@@ -107,6 +109,8 @@ const OrdersAdmin = (() => {
     if (!confirmed) return { success: false, cancelled: true };
 
     try {
+      const jwt = _getJWT();
+      if (!jwt) { alert('Sessão expirada. Faça login novamente.'); return { success: false, error: 'NO_JWT' }; }
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/complete_service`,
         {
@@ -114,7 +118,7 @@ const OrdersAdmin = (() => {
           headers: {
             'Content-Type':  'application/json',
             'apikey':        window.SUPABASE_KEY,
-            'Authorization': 'Bearer ' + _getJWT(),
+            'Authorization': 'Bearer ' + jwt,
           },
           body: JSON.stringify({
             p_order_id:    supabaseOrderId,
@@ -444,9 +448,14 @@ const OrdersAdmin = (() => {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function _getJWT() {
-    // Tenta pegar o JWT do Session
-    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    return (user && user.jwt) || window.SUPABASE_KEY;
+    // PATCH 5.1: usa Session.getAccessToken() — token JWT real do usuário logado.
+    // Se não houver sessão ativa, aborta (não faz sentido chamar ações admin sem login).
+    if (typeof Session !== 'undefined' && Session.getAccessToken) {
+      var token = Session.getAccessToken();
+      if (token) return token;
+    }
+    console.warn('[OrdersAdmin] ⛔ Nenhum JWT de sessão ativa.');
+    return null; // Chamadores devem checar null antes de disparar o fetch
   }
 
   function _extractSupabaseId(orderId) {

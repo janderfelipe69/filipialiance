@@ -108,7 +108,7 @@
       progress: (statusV3 === 'completed') ? 100 : 0,
       notifications: [],
       history: [{ at: p.created_at, event: 'created', label: 'Pedido criado', by: p.nick_jogo }],
-      cancelledAt:  p.status === 'cancelado' ? p.updated_at : null,
+      cancelledAt:  (p.status === 'cancelado' || (p.status_v3 === 'cancelled')) ? p.created_at : null,
       completedAt:  p.completed_at || null,
       observations: p.admin_notes || '',
 
@@ -143,6 +143,19 @@
     }
   }
 
+  // ── JWT Helper ─────────────────────────────────────────────────────────
+  // PATCH 5.1: usa Session.getAccessToken() — nunca mais anon key no Authorization.
+  // Se não houver sessão, retorna a anon key como fallback de último recurso
+  // (o banco bloqueia via RLS de qualquer forma, mas evitamos 401 no cliente).
+  function _getJWT() {
+    if (typeof Session !== 'undefined' && Session.getAccessToken) {
+      var token = Session.getAccessToken();
+      if (token) return token;
+    }
+    _warn('Nenhum JWT de sessão ativa — usando anon key como fallback.');
+    return SB_KEY;
+  }
+
   // ── Fetch do Supabase ──────────────────────────────────────────────────
   // Busca todos os campos necessários para o sistema v3, incluindo os novos.
   // Ordenado por created_at ASC — fonte de verdade da fila.
@@ -152,7 +165,7 @@
     var url = SB_URL + '/rest/v1/pedidos' +
       '?order=created_at.asc' +
       '&limit=500' +
-      '&select=id,nick_jogo,status,status_v3,created_at,updated_at,' +
+      '&select=id,nick_jogo,status,status_v3,created_at,' +
               'started_at,completed_at,service_type,service_quantity,' +
               'sla_min_days,sla_max_days,itens,total_kk,total_brl,' +
               'subtotal_kk,subtotal_brl,pagamento_modo,pagamento_kk,' +
@@ -161,7 +174,7 @@
     var res = await fetch(url, {
       headers: {
         'apikey':        SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
+        'Authorization': 'Bearer ' + _getJWT(), // PATCH 5.1: JWT real do usuário
       },
     });
     if (!res.ok) throw new Error('Supabase: HTTP ' + res.status);
@@ -180,7 +193,7 @@
       headers: {
         'Content-Type':  'application/json',
         'apikey':        SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
+        'Authorization': 'Bearer ' + _getJWT(), // PATCH 5.1: JWT real do usuário
         'Prefer':        'return=minimal',
       },
       body: JSON.stringify({ status_v3: novoStatus }),
@@ -290,7 +303,9 @@
     // Só mostra pedidos ativos na fila principal
     var ativos = lista.filter(function (p) {
       var s = p.status_v3 || p.status || '';
-      return s === 'waiting_queue' || s === 'in_progress' || s === 'pendente' || s === 'confirmado' || s === 'em_andamento';
+      return typeof OrdersProgress !== 'undefined'
+        ? OrdersProgress.isActiveStatus(s)
+        : (s === 'waiting_queue' || s === 'in_progress');
     }).sort(function (a, b) {
       return new Date(a.created_at) - new Date(b.created_at);
     });

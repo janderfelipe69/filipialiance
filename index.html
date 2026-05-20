@@ -792,11 +792,10 @@
         </div>
         <select id="pedidos-status-filter" onchange="pedidosFiltrar()">
           <option value="all">Todos status</option>
-          <option value="pendente">⏳ Pendente</option>
-          <option value="em_andamento">⚡ Em Andamento</option>
-          <option value="parcial">🔮 Parcial</option>
-          <option value="concluido">✅ Concluído</option>
-          <option value="cancelado">✕ Cancelado</option>
+          <option value="waiting_queue">⏳ Na Fila</option>
+          <option value="in_progress">⚡ Em Andamento</option>
+          <option value="completed">✅ Concluído</option>
+          <option value="cancelled">✕ Cancelado</option>
         </select>
         <button class="pedidos-refresh-btn" onclick="pedidosCarregar()" title="Atualizar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -1185,12 +1184,11 @@
         </div>
       </div>
       <div class="nick-field-wrap" id="nick-field-wrap">
-        <label class="nick-field-label" for="cart-nick-input">
+        <div class="nick-field-label">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Nick no jogo <span class="nick-required">*obrigatório</span>
-        </label>
-        <input type="text" id="cart-nick-input" class="nick-input" placeholder="Seu nick no jogo..." oninput="onNickInput()" />
-        <div class="nick-error" id="nick-error">⚠ Informe seu nick no jogo antes de enviar!</div>
+          Conta vinculada
+        </div>
+        <div class="nick-display" id="cart-nick-display">—</div>
       </div>
       <div class="contact-btns-row">
         <button class="send-order-btn" id="send-order-btn" onclick="enviarPedido()">
@@ -2198,11 +2196,19 @@
 <script src="session.js"></script>
 <script src="auth.js"></script>
 <script src="login.js"></script>
+<!-- ── Feature flag kanban (remover esta linha = rollback instantâneo) ── -->
+<script>window.PA_KANBAN_ENABLED = true;</script>
+
 <!-- ── Sistema de Pedidos v2 ── -->
 <script src="orders-storage.js"></script>
 <script src="orders-progress.js"></script>
 <script src="orders-notifications.js"></script>
 <script src="orders-admin.js"></script>
+
+<!-- ── Kanban (novos arquivos) ── -->
+<link rel="stylesheet" href="orders-kanban.css">
+<script src="orders-kanban.js"></script>
+
 <script src="orders-ui.js"></script>
 <script src="orders-integration-patch.js"></script>
 <script src="pedidos.js"></script>
@@ -2304,14 +2310,6 @@ window.addEventListener('load', function() {
 </style>
 <script>
 function enviarPedido() {
-  var nick = (document.getElementById('cart-nick-input') || {}).value || '';
-  if (!nick.trim()) {
-    var errEl = document.getElementById('nick-error');
-    if (errEl) errEl.style.display = 'block';
-    var nickInput = document.getElementById('cart-nick-input');
-    if (nickInput) { nickInput.focus(); nickInput.classList.add('error'); }
-    return;
-  }
   var btn = document.getElementById('send-order-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   if (typeof submitPedido === 'function') {
@@ -2352,14 +2350,6 @@ function enviarPedido() {
 </style>
 <script>
 function enviarPedido() {
-  var nick = (document.getElementById('cart-nick-input') || {}).value || '';
-  if (!nick.trim()) {
-    var errEl = document.getElementById('nick-error');
-    if (errEl) errEl.style.display = 'block';
-    var nickInput = document.getElementById('cart-nick-input');
-    if (nickInput) { nickInput.focus(); nickInput.classList.add('error'); }
-    return;
-  }
   var btn = document.getElementById('send-order-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   if (typeof sendToWhatsApp === 'function') {

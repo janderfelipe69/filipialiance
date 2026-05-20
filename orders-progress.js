@@ -169,11 +169,15 @@ const OrdersProgress = (() => {
     return allOrders
       .filter(o => isActiveStatus(normalizeStatus(o.status_v3 || o.status)))
       .sort((a, b) => {
-        // Ordenação por created_at com precisão de milissegundo
+        // Nível 1: milissegundos — cobre 99.99% dos casos
         const ta = new Date(a.createdAt || a.created_at).getTime();
         const tb = new Date(b.createdAt || b.created_at).getTime();
         if (ta !== tb) return ta - tb;
-        // Desempate por ID (estável se mesmo milissegundo — improvável mas seguro)
+        // Nível 2: string ISO completa — captura microssegundos se o banco gravar com precisão >3
+        const sa = String(a.createdAt || a.created_at || '');
+        const sb = String(b.createdAt || b.created_at || '');
+        if (sa !== sb) return sa < sb ? -1 : 1;
+        // Nível 3: ID lexicográfico — desempate determinístico, nunca aleatório
         return String(a.id).localeCompare(String(b.id));
       });
   }

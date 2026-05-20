@@ -1045,24 +1045,11 @@ select:focus { border-color: var(--blue); }
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: rgba(58,140,255,0.06);
-  border: 1px solid rgba(58,140,255,0.25);
+  border: 1px solid rgba(58,140,255,0.2);
   border-radius: var(--radius);
   margin: 0 0 10px;
-  transition: border-color 0.2s;
-}
-.nick-field-wrap.error {
-  border-color: rgba(255,80,80,0.6);
-  background: rgba(255,60,60,0.06);
-  animation: nickShake 0.4s ease;
-}
-@keyframes nickShake {
-  0%,100% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  40% { transform: translateX(5px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
 }
 .nick-field-label {
   font-family: var(--font-title);
@@ -1075,45 +1062,14 @@ select:focus { border-color: var(--blue); }
   align-items: center;
   gap: 6px;
 }
-.nick-required {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 400;
-  color: rgba(255,120,120,0.85);
-  letter-spacing: 0.5px;
-  text-transform: lowercase;
-  background: rgba(255,80,80,0.12);
-  border: 1px solid rgba(255,80,80,0.25);
-  border-radius: 4px;
-  padding: 1px 5px;
-}
-.nick-input {
-  width: 100%;
-  background: var(--surface3);
-  border: 1px solid rgba(58,140,255,0.3);
-  border-radius: 8px;
-  color: var(--text);
+.nick-display {
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
-  padding: 9px 12px;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--text);
   letter-spacing: 0.5px;
+  padding: 2px 0;
 }
-.nick-input:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(58,140,255,0.12);
-}
-.nick-input::placeholder { color: var(--muted); font-weight: 400; }
-.nick-error {
-  display: none;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: rgba(255,110,110,0.9);
-  letter-spacing: 0.5px;
-}
-.nick-error.visible { display: block; }
 
 /* ===================== TOAST SEM PREÇO ===================== */
 #no-price-toast {

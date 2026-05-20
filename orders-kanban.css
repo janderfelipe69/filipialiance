@@ -1,0 +1,286 @@
+/* ============================================================
+   orders-kanban.css — v1 — Painel Kanban Operacional
+   PokeAlliance Shop
+
+   DEPLOY SEGURO:
+   Remover o <link> tag = rollback instantâneo.
+   Não sobrescreve nenhum estilo existente.
+   Usa prefixo .kb- em tudo — zero conflito com orders-ui.js.
+   ============================================================ */
+
+/* ── Container principal do kanban ─────────────────────────── */
+
+#pedidos-kanban {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px 0 80px;
+  align-items: start;
+}
+
+/* ── Coluna ─────────────────────────────────────────────────── */
+
+.kb-column {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 120px;
+}
+
+.kb-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kb-col-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-family: var(--font-mono, monospace);
+}
+
+.kb-col-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+
+.kb-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+/* ── Empty state da coluna ───────────────────────────────────── */
+
+.kb-empty {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+  padding: 20px 0;
+  font-family: var(--font-body, sans-serif);
+  letter-spacing: 0.3px;
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+
+.kb-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 12px;
+  border-left: 3px solid var(--col-color, rgba(255,255,255,0.2));
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  animation: kb-card-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes kb-card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.kb-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+/* Status-specific card borders (fallback se --col-color não funcionar) */
+.kb-card--waiting_queue { border-left-color: rgba(245, 197, 66, 0.7); }
+.kb-card--in_progress   { border-left-color: rgba(58, 140, 255, 0.7); }
+.kb-card--completed     { border-left-color: rgba(34, 197, 94, 0.7); }
+.kb-card--cancelled     { border-left-color: rgba(239, 68, 68, 0.6); opacity: 0.7; }
+
+/* ── Header do card ─────────────────────────────────────────── */
+
+.kb-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.kb-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.kb-pos-badge {
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: var(--col-color, rgba(255, 255, 255, 0.5));
+  flex-shrink: 0;
+}
+
+.kb-card-nick {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--font-body, sans-serif);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-you-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(96, 170, 255, 0.15);
+  color: #60aaff;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+.kb-card-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Corpo do card ──────────────────────────────────────────── */
+
+.kb-card-service {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: var(--font-body, sans-serif);
+  margin-bottom: 8px;
+}
+
+.kb-card-sla {
+  font-size: 10px;
+  color: rgba(96, 170, 255, 0.7);
+  font-family: var(--font-mono, monospace);
+  background: rgba(58, 140, 255, 0.07);
+  border: 1px solid rgba(58, 140, 255, 0.15);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+}
+
+/* ── Ações ───────────────────────────────────────────────────── */
+
+.kb-card-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body, sans-serif);
+  transition: background 0.15s, border-color 0.15s;
+  letter-spacing: 0.3px;
+}
+
+.kb-btn--start {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+  flex: 1;
+  justify-content: center;
+}
+.kb-btn--start:hover {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.kb-btn--complete {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+  flex: 1;
+  justify-content: center;
+}
+.kb-btn--complete:hover {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.kb-btn--cancel {
+  background: rgba(239, 68, 68, 0.07);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+.kb-btn--cancel:hover {
+  background: rgba(239, 68, 68, 0.14);
+}
+
+/* ── Toggle kanban/lista (adicionado pelo orders-ui.js) ─────── */
+
+.kb-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body, sans-serif);
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.kb-view-toggle:hover {
+  background: rgba(96, 170, 255, 0.1);
+  color: #60aaff;
+  border-color: rgba(96, 170, 255, 0.3);
+}
+
+.kb-view-toggle.active {
+  background: rgba(96, 170, 255, 0.14);
+  color: #60aaff;
+  border-color: rgba(96, 170, 255, 0.35);
+}
+
+/* ── Responsivo ─────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  #pedidos-kanban {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  #pedidos-kanban {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .kb-card { padding: 10px; }
+}

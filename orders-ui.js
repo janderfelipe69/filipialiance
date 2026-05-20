@@ -19,6 +19,8 @@ const OrdersUI = (() => {
     search: '',
     expandedPanels: new Set(),
     expandedHistory: new Set(),
+    // PATCH 5.3: view mode — 'list' mantém comportamento existente; 'kanban' delega ao OrdersKanban
+    viewMode: 'list',
   };
 
   // ── Inicialização ──────────────────────────────────────────────────────
@@ -27,10 +29,33 @@ const OrdersUI = (() => {
     OrdersAdmin.injectStyles();
     _injectStyles();
     _setupTopbar();
+
+    // PATCH 5.4: kanban só para admin, só se OrdersKanban estiver carregado
+    // Feature flag: window.PA_KANBAN_ENABLED = true (setado externamente ou aqui)
+    // Para habilitar: adicionar <script>window.PA_KANBAN_ENABLED=true;</script> antes dos scripts
+    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+    const kanbanAvailable = typeof OrdersKanban !== 'undefined';
+    const flagEnabled = !!window.PA_KANBAN_ENABLED;
+
+    if (kanbanAvailable && flagEnabled && isAdmin) {
+      _state.viewMode = 'kanban';
+      OrdersKanban.init();
+      console.log('[OrdersUI] 🗂 Modo kanban ativado para admin.');
+    }
+
+    _ensureKanbanContainer();
+    _injectViewToggle();
     render();
 
     if (typeof Session !== 'undefined') {
-      Session.onAuthChange(() => render());
+      Session.onAuthChange(() => {
+        // Re-avalia acesso ao kanban quando sessão muda
+        const nowAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+        if (!nowAdmin && _state.viewMode === 'kanban') {
+          _state.viewMode = 'list';
+        }
+        render();
+      });
     }
 
     if (typeof OrdersNotifications !== 'undefined') {
@@ -91,7 +116,26 @@ const OrdersUI = (() => {
   // ── Render Principal ───────────────────────────────────────────────────
 
   function render() {
+    // PATCH 5.3: se modo kanban estiver ativo, delega e retorna
+    if (_state.viewMode === 'kanban' && typeof OrdersKanban !== 'undefined') {
+      const kanbanEl = document.getElementById('pedidos-kanban');
+      const listaEl  = document.getElementById('pedidos-lista');
+      const loadingEl = document.getElementById('pedidos-loading');
+      const emptyEl  = document.getElementById('pedidos-empty');
+      if (kanbanEl)  kanbanEl.style.display  = '';
+      if (listaEl)   listaEl.style.display   = 'none';
+      if (loadingEl) loadingEl.style.display  = 'none';
+      if (emptyEl)   emptyEl.style.display    = 'none';
+      OrdersKanban.render();
+      return;
+    }
+
+    // ── Modo lista (comportamento original — não alterado) ───────────────
     const lista = document.getElementById('pedidos-lista');
+    const kanbanEl = document.getElementById('pedidos-kanban');
+    if (kanbanEl) kanbanEl.style.display = 'none';
+    if (lista) lista.style.display = '';
+
     const loading = document.getElementById('pedidos-loading');
     const empty = document.getElementById('pedidos-empty');
     const erro = document.getElementById('pedidos-erro');
@@ -112,7 +156,7 @@ const OrdersUI = (() => {
 
     // ── Histórico: pedidos inativos (concluídos, cancelados) ─────────────
     const historyOrders = allOrders
-      .filter(o => OrdersProgress.isInactiveStatus(o.status))
+      .filter(o => OrdersProgress.isInactiveStatus(o.status_v3 || o.status))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     // ── Seleciona qual lista renderizar conforme a aba ativa ─────────────
@@ -124,7 +168,9 @@ const OrdersUI = (() => {
       baseList = baseList.filter(o => o.userId === user.id || o.nickname === user.nickname);
     }
     if (_state.status !== 'all') {
-      baseList = baseList.filter(o => o.status === _state.status);
+      baseList = baseList.filter(o =>
+        OrdersProgress.normalizeStatus(o.status_v3 || o.status) === _state.status
+      );
     }
     if (_state.search.trim()) {
       const q = _state.search.trim().toLowerCase();
@@ -228,7 +274,7 @@ const OrdersUI = (() => {
   // ── Renderização de Card ───────────────────────────────────────────────
 
   function _renderCard(order, user, isAdmin, activeQueue, existingEl) {
-    const cfg = OrdersProgress.getStatusConfig(order.status);
+    const cfg = OrdersProgress.getStatusConfig(order.status_v3 || order.status);
     const progress = OrdersProgress.calcOrderProgress(order);
     const relTime = OrdersProgress.formatRelativeTime(order.createdAt);
     const isOwner = user && (order.userId === user.id);
@@ -237,31 +283,22 @@ const OrdersUI = (() => {
     const unreadCount = order.notifications ? order.notifications.filter(n => !n.read && isOwner).length : 0;
     const canCancel = user && OrdersProgress.canUserCancel(order, user.id);
 
-    // ── Posição dinâmica na fila (NÃO usa ID do banco) ────────────────
-    const queuePos = OrdersProgress.calcQueuePosition(order.id, activeQueue.concat(
-      // incluímos os inativos apenas para que calcQueuePosition os ignore corretamente
-      // (a função já filtra por isActiveStatus internamente)
-      []
-    ));
-    // Recalcula diretamente pela fila ativa já filtrada
-    const posIdx = activeQueue.findIndex(o => o.id === order.id);
+    // ── Posição na fila — fonte única de verdade ──────────────────────
+    // activeQueue já está ordenado por created_at ASC pelo getActiveQueue().
+    // Nunca usar ID do banco como proxy de ordem.
+    const posIdx   = activeQueue.findIndex(o => o.id === order.id);
     const position = posIdx !== -1 ? posIdx + 1 : null;
 
-    // ── ETA ────────────────────────────────────────────────────────────
-    const eta = position !== null ? (() => {
-      const minutesAhead = posIdx * OrdersProgress.AVG_MINUTES_PER_ORDER;
-      if (position === 1) return { label: 'Próximo', minutes: 0 };
-      if (minutesAhead < 60) return { label: `~${minutesAhead}min`, minutes: minutesAhead };
-      const h = Math.floor(minutesAhead / 60);
-      const m = minutesAhead % 60;
-      return { label: m > 0 ? `~${h}h${m}min` : `~${h}h`, minutes: minutesAhead };
-    })() : null;
+    // ETA por posição não implementado nesta etapa (aguarda Etapa SLA).
+    // Mostramos apenas a posição na fila para waiting_queue.
+    const eta = null;
 
     const card = document.createElement('div');
 
     // Cards no histórico recebem classe adicional de opacidade reduzida
-    const isInHistory = OrdersProgress.isInactiveStatus(order.status);
-    card.className = `order-card order-card--${order.status}${isInHistory ? ' order-card--inactive' : ''}`;
+    const isInHistory = OrdersProgress.isInactiveStatus(order.status_v3 || order.status);
+    const statusKey = OrdersProgress.normalizeStatus(order.status_v3 || order.status);
+    card.className = `order-card order-card--${statusKey}${isInHistory ? ' order-card--inactive' : ''}`;
     card.dataset.orderId = order.id;
     card.style.cssText = `--status-color:${cfg.color}; --status-glow:${cfg.glow};`;
 
@@ -286,7 +323,7 @@ const OrdersUI = (() => {
         </div>
         <div class="order-card-header-right">
           ${unreadCount > 0 ? `<span class="order-card-notif-dot">${unreadCount}</span>` : ''}
-          <span class="order-status-badge order-status-badge--${order.status}">
+          <span class="order-status-badge order-status-badge--${statusKey}">
             <span class="order-status-icon">${cfg.icon}</span>
             <span>${cfg.label}</span>
           </span>
@@ -502,6 +539,64 @@ const OrdersUI = (() => {
       .replace(/"/g, '&quot;');
   }
 
+  // ── PATCH 5.3: Kanban helpers ──────────────────────────────────────────
+
+  // Cria o container #pedidos-kanban no DOM se ainda não existir.
+  // Inserido logo antes de #pedidos-lista — sem remover nada do HTML.
+  function _ensureKanbanContainer() {
+    if (document.getElementById('pedidos-kanban')) return;
+    const lista = document.getElementById('pedidos-lista');
+    if (!lista) return;
+    const kanban = document.createElement('div');
+    kanban.id = 'pedidos-kanban';
+    kanban.style.display = 'none'; // começa oculto; render() decide o que mostrar
+    lista.parentNode.insertBefore(kanban, lista);
+  }
+
+  // Injeta o botão de alternância kanban/lista na topbar existente.
+  // Só aparece para admins com OrdersKanban disponível e flag ativa.
+  function _injectViewToggle() {
+    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+    if (!isAdmin || typeof OrdersKanban === 'undefined' || !window.PA_KANBAN_ENABLED) return;
+    if (document.getElementById('kb-view-toggle')) return;
+
+    const topbarRight = document.querySelector('.pedidos-topbar-right');
+    if (!topbarRight) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'kb-view-toggle';
+    btn.className = 'kb-view-toggle' + (_state.viewMode === 'kanban' ? ' active' : '');
+    btn.title = 'Alternar entre lista e kanban';
+    btn.innerHTML = _state.viewMode === 'kanban'
+      ? '☰ Lista'
+      : '⊞ Kanban';
+    btn.onclick = () => _toggleViewMode();
+
+    // Insere antes do botão de refresh
+    const refreshBtn = topbarRight.querySelector('.pedidos-refresh-btn');
+    if (refreshBtn) {
+      topbarRight.insertBefore(btn, refreshBtn);
+    } else {
+      topbarRight.appendChild(btn);
+    }
+  }
+
+  function _toggleViewMode() {
+    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+    if (!isAdmin) return; // segurança extra
+
+    _state.viewMode = _state.viewMode === 'kanban' ? 'list' : 'kanban';
+
+    // Atualiza o botão
+    const btn = document.getElementById('kb-view-toggle');
+    if (btn) {
+      btn.classList.toggle('active', _state.viewMode === 'kanban');
+      btn.innerHTML = _state.viewMode === 'kanban' ? '☰ Lista' : '⊞ Kanban';
+    }
+
+    render();
+  }
+
   // ── Estilos ─────────────────────────────────────────────────────────────
 
   function _injectStyles() {
@@ -628,6 +723,11 @@ const OrdersUI = (() => {
       .order-card--parcial      { border-left: 3px solid rgba(168,85,247,0.55); }
       .order-card--concluido    { border-left: 3px solid rgba(34,197,94,0.55); }
       .order-card--cancelado    { border-left: 3px solid rgba(239,68,68,0.4); }
+      /* status_v3 — fonte de verdade */
+      .order-card--waiting_queue { border-left: 3px solid rgba(245,197,66,0.5); }
+      .order-card--in_progress   { border-left: 3px solid rgba(58,140,255,0.55); }
+      .order-card--completed     { border-left: 3px solid rgba(34,197,94,0.55); }
+      .order-card--cancelled     { border-left: 3px solid rgba(239,68,68,0.4); }
 
       /* ─── Posição na Fila ─────────────────────────────────────────── */
       .order-queue-position {
@@ -781,6 +881,11 @@ const OrdersUI = (() => {
       .order-status-badge--parcial      { background:rgba(168,85,247,0.12); color:#c084fc; border:1px solid rgba(168,85,247,0.3); box-shadow:0 0 10px rgba(168,85,247,0.15); }
       .order-status-badge--concluido    { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
       .order-status-badge--cancelado    { background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.2); }
+      /* status_v3 — fonte de verdade */
+      .order-status-badge--waiting_queue { background:rgba(245,197,66,0.12); color:#ffd166; border:1px solid rgba(245,197,66,0.25); }
+      .order-status-badge--in_progress   { background:rgba(58,140,255,0.12); color:#60aaff; border:1px solid rgba(58,140,255,0.3); box-shadow:0 0 10px rgba(58,140,255,0.15); }
+      .order-status-badge--completed     { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
+      .order-status-badge--cancelled     { background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.2); }
 
       .order-status-icon { font-size: 12px; }
 
@@ -897,6 +1002,7 @@ const OrdersUI = (() => {
     _toggleAdminPanel,
     _toggleHistory,
     _cancelOwnOrder,
+    _toggleViewMode, // PATCH 5.3: exposto para uso externo se necessário
   };
 })();
 
