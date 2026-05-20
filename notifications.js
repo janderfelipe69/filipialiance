@@ -114,25 +114,28 @@ const NotificationsAPI = (() => {
     console.log('[Notifications] Buscando para user_id:', user.id, '| limit:', limit);
 
     try {
-      const res = await fetch(
-        `${window.SUPABASE_URL}/rest/v1/notifications` +
+      // COLUNAS CONFIRMADAS NA TABELA: id, user_id, pedido_id, title, message, type, read, created_at
+      // REMOVIDO 'read_at' — coluna inexistente, causava HTTP 400
+      const url = `${window.SUPABASE_URL}/rest/v1/notifications` +
         `?user_id=eq.${user.id}` +
         `&order=created_at.desc` +
         `&limit=${limit}` +
-        `&select=id,user_id,pedido_id,title,message,type,read,read_at,created_at`,
-        { headers: _headers() }
-      );
+        `&select=id,user_id,pedido_id,title,message,type,read,created_at`;
+
+      console.log('[Notifications] query url:', url);
+
+      const res = await fetch(url, { headers: _headers() });
 
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
-        console.error('[Notifications] HTTP', res.status, txt);
+        console.error('[Notifications] query error', res.status, txt);
         return [];
       }
 
       const rows = await res.json();
 
       // ── LOG RAW obrigatório ────────────────────────────────────────────
-      console.log('[Notifications] RAW:', rows);
+      console.log('[Notifications] query result', rows);
 
       if (!Array.isArray(rows) || rows.length === 0) {
         console.log('[Notifications] Banco retornou 0 registros para este user_id.');
@@ -182,10 +185,8 @@ const NotificationsAPI = (() => {
         {
           method:  'PATCH',
           headers: { ..._headers(), 'Prefer': 'return=minimal' },
-          body: JSON.stringify({
-            read:    true,
-            read_at: new Date().toISOString(),
-          }),
+          // REMOVIDO 'read_at' — coluna inexistente na tabela
+          body: JSON.stringify({ read: true }),
         }
       );
       return res.ok;
@@ -211,10 +212,7 @@ const NotificationsAPI = (() => {
         {
           method:  'PATCH',
           headers: { ..._headers(), 'Prefer': 'return=minimal' },
-          body: JSON.stringify({
-            read:    true,
-            read_at: new Date().toISOString(),
-          }),
+          body: JSON.stringify({ read: true }),
         }
       );
       return res.ok;
