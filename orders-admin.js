@@ -53,6 +53,10 @@ const OrdersAdmin = (() => {
     try {
       const jwt = _getJWT();
       if (!jwt) { alert('Sessão expirada. Faça login novamente.'); return { success: false, error: 'NO_JWT' }; }
+      console.log('[START SERVICE] payload', { p_order_id: supabaseOrderId });
+      console.log('[START SERVICE] url', `${window.SUPABASE_URL}/rest/v1/rpc/start_service`);
+      console.log('[START SERVICE] jwt', jwt ? jwt.slice(0, 20) + '…' : 'null');
+
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/start_service`,
         {
@@ -61,17 +65,29 @@ const OrdersAdmin = (() => {
             'Content-Type':  'application/json',
             'apikey':        window.SUPABASE_KEY,
             'Authorization': 'Bearer ' + jwt,
+            // Resolve HTTP 300 (ambiguidade de overload no PostgREST):
+            // força seleção da função pelo objeto JSON exato enviado no body.
+            'Prefer':        'params=single-object',
           },
           body: JSON.stringify({ p_order_id: supabaseOrderId }),
         }
       );
 
-      const data = await res.json();
+      console.log('[START SERVICE] status', res.status);
+      const raw = await res.text();
+      console.log('[START SERVICE] raw response', raw);
+
+      let data = null;
+      try { data = JSON.parse(raw); } catch(e) { console.error('[START SERVICE] JSON parse fail', e); }
+      console.log('[START SERVICE] parsed', data);
 
       if (!res.ok || (data && data.success === false)) {
-        const err = (data && data.error) || `HTTP ${res.status}`;
+        const err = (data && (data.message || data.error || data.hint)) || raw || `HTTP ${res.status}`;
         console.error('[OrdersAdmin] Falha ao iniciar serviço:', err);
-        alert('Erro ao iniciar serviço: ' + err);
+        alert(
+          data?.message || data?.error || raw ||
+          `Erro ao iniciar serviço (${res.status})`
+        );
         return { success: false, error: err };
       }
 
