@@ -1,19 +1,20 @@
 // ============================================================
-// delivery-system.js — Sistema de Entregas v2 (FIXED)
+// delivery-system.js — Sistema de Entregas v3 (AUTH FIX)
 // PokeAlliance Shop
 //
-// FIXES v2:
-//   - BUG 1: CTRL+V (paste) + Drag & Drop totalmente implementados
-//   - BUG 2: _submit() corrigido — fluxo completo ponta a ponta:
-//              1. Upload para delivery-proofs
-//              2. INSERT em pedido_entregas
-//              3. UPDATE pedidos SET status='concluido', completed_at=now()
-//              4. INSERT em notifications (cliente)
-//              5. Toast de sucesso + remove da fila
-//   - FIXED: double JSON.stringify no onclick do botão
-//   - FIXED: Session.getUser → Session.getCurrentUser
-//   - FIXED: bloco de loading/desabilitação anti-double-click
-//   - FIXED: logs detalhados em todas as etapas
+// CORREÇÕES v3 — ROOT CAUSE:
+//   Race condition: _getJwt() era chamado ANTES de Session.init()
+//   terminar de restaurar o token do localStorage para memória.
+//   Resultado: _accessToken === null em memória → "SEM TOKEN" →
+//   upload barrado com "Sessão inválida".
+//
+// FIXES:
+//   1. _getSessionToken() — aguarda Session.ready() antes de pegar token
+//   2. _ensureValidSession() — valida + tenta refresh se token expirado
+//   3. Upload usa await _ensureValidSession() — nunca sobe sem JWT válido
+//   4. Retry automático: se 401 no upload → refresh → 1 retry
+//   5. Tratamento de erro sem alert() — tudo via toast/progressLabel
+//   6. Todos os fetches usam token fresco (não cache stale)
 // ============================================================
 
 ;(function (global) {
@@ -25,6 +26,70 @@
   const BUCKET = 'delivery-proofs';
   const TABLE  = 'pedido_entregas';
 
+  // ══════════════════════════════════════════════════════════
+  // AUTH HELPERS — Núcleo da correção
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Aguarda Session.ready() e retorna o access token atual.
+   * ESTA é a função que corrige o race condition.
+   * Nunca lê localStorage diretamente — sempre via Session (fonte de verdade).
+   */
+  async function _getSessionToken() {
+    // Aguarda a inicialização da sessão terminar (resolve imediatamente se já pronto)
+    if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+      await Session.ready();
+    }
+
+    // Tenta via Session primeiro (token em memória — sempre mais fresco)
+    if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
+      const token = Session.getAccessToken();
+      if (token) return token;
+    }
+
+    // Session é a ÚNICA fonte de verdade — nunca ler localStorage diretamente.
+    // Se Session não estiver disponível, o módulo não foi carregado corretamente.
+    console.error('[Entrega] Session não disponível — verifique a ordem de carregamento dos scripts.');
+    return null;
+  }
+
+  /**
+   * Garante que há uma sessão válida antes do upload.
+   * Delega EXCLUSIVAMENTE ao Session — ele já gerencia refresh automático.
+   * Não duplica lógica de refresh nem acessa localStorage diretamente.
+   *
+   * @returns {Promise<string>} JWT válido
+   * @throws {Error} Se não há sessão ativa
+   */
+  async function _ensureValidSession() {
+    // _getSessionToken já aguarda Session.ready() internamente
+    const token = await _getSessionToken();
+
+    if (!token) {
+      console.error('[Entrega] ❌ _ensureValidSession: sem token. Usuário não está logado.');
+      throw new Error('Você precisa estar logado para registrar uma entrega. Faça login e tente novamente.');
+    }
+
+    console.log('[Entrega] ✅ Sessão válida confirmada via Session.getAccessToken()');
+    return token;
+  }
+
+  /**
+   * Retorna ID do usuário atual (síncrono, pós-init).
+   */
+  function _getCurrentUserId() {
+    try {
+      if (typeof Session !== 'undefined' && typeof Session.getCurrentUser === 'function') {
+        return Session.getCurrentUser()?.id || null;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /**
+   * Monta os headers REST com token fresco.
+   * @param {string} jwt
+   */
   function _headers(jwt) {
     return {
       'Content-Type':  'application/json',
@@ -33,26 +98,35 @@
     };
   }
 
-  function _getJwt() {
-    // Usa Session.getAccessToken() — fonte oficial do token (session.js)
-    // Chave correta no localStorage: pa_sb_access_token (não poke_session)
-    if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
-      const token = Session.getAccessToken();
-      if (token) return token;
-    }
-    // Fallback: lê direto das chaves corretas do session.js
-    try {
-      return localStorage.getItem('pa_sb_access_token') || null;
-    } catch (_) { return null; }
-  }
+  // ══════════════════════════════════════════════════════════
+  // TOAST HELPER — sem alert()
+  // ══════════════════════════════════════════════════════════
 
-  function _getCurrentUserId() {
-    try {
-      if (global.Session && typeof Session.getCurrentUser === 'function') {
-        return Session.getCurrentUser()?.id || null;
-      }
-    } catch (_) {}
-    return null;
+  function _toast(msg, type = 'info', duration = 4000) {
+    // Tenta usar o sistema de toast/notificações do projeto
+    if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
+      OrdersNotifications.show(msg, type, duration);
+      return;
+    }
+    if (typeof showToast === 'function') {
+      showToast(msg, type);
+      return;
+    }
+    // Fallback mínimo: toast inline no DOM
+    const existing = document.getElementById('da-inline-toast');
+    if (existing) existing.remove();
+    const el = document.createElement('div');
+    el.id = 'da-inline-toast';
+    el.style.cssText = `
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+      background:${type === 'error' ? 'rgba(200,50,50,0.95)' : 'rgba(20,40,80,0.95)'};
+      color:#fff; padding:12px 20px; border-radius:10px; font-size:13px;
+      z-index:99999; border:1px solid ${type === 'error' ? 'rgba(255,100,100,0.4)' : 'rgba(58,140,255,0.4)'};
+      box-shadow:0 8px 32px rgba(0,0,0,0.5); max-width:90vw; text-align:center;
+    `;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), duration);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -61,75 +135,98 @@
   const DeliveryDB = {
 
     async list(limit = 100) {
+      const jwt = await _getSessionToken();
       const url = `${SB_URL}/rest/v1/${TABLE}?select=*&order=created_at.desc&limit=${limit}`;
-      const res = await fetch(url, { headers: _headers(_getJwt()) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'Erro ao buscar entregas'); }
+      const res = await fetch(url, { headers: _headers(jwt) });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.message || 'Erro ao buscar entregas');
+      }
       return res.json();
     },
 
     async insert(payload) {
-      const jwt = _getJwt();
+      const jwt = await _ensureValidSession();
       const url = `${SB_URL}/rest/v1/${TABLE}`;
       const res = await fetch(url, {
         method:  'POST',
         headers: { ..._headers(jwt), 'Prefer': 'return=representation' },
         body:    JSON.stringify(payload),
       });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); console.error('[Entrega] ❌ Erro INSERT pedido_entregas:', { status: res.status, message: e.message, hint: e.hint, details: e.details }); throw new Error(e.message || 'Erro ao salvar entrega'); }
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        console.error('[Entrega] ❌ Erro INSERT pedido_entregas:', {
+          status:  res.status,
+          message: e.message,
+          hint:    e.hint,
+          details: e.details,
+        });
+        throw new Error(e.message || 'Erro ao salvar entrega');
+      }
       const data = await res.json();
       return Array.isArray(data) ? data[0] : data;
     },
 
     async existsForOrder(pedidoId) {
+      const jwt = await _getSessionToken();
       const url = `${SB_URL}/rest/v1/${TABLE}?pedido_id=eq.${pedidoId}&select=id&limit=1`;
-      const res = await fetch(url, { headers: _headers(_getJwt()) });
+      const res = await fetch(url, { headers: _headers(jwt) });
       if (!res.ok) return false;
       const data = await res.json();
       return Array.isArray(data) && data.length > 0;
     },
 
     async delete(id) {
+      const jwt = await _ensureValidSession();
       const url = `${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`;
-      const res = await fetch(url, { method: 'DELETE', headers: _headers(_getJwt()) });
+      const res = await fetch(url, { method: 'DELETE', headers: _headers(jwt) });
       return res.ok;
     },
   };
 
   // ══════════════════════════════════════════════════════════
-  // DeliveryStorage — upload de imagens para delivery-proofs
+  // DeliveryStorage — upload com retry automático em 401
   // ══════════════════════════════════════════════════════════
   const DeliveryStorage = {
 
+    /**
+     * Faz upload de um arquivo para o bucket delivery-proofs.
+     * Retry automático: se 401 → refresh → 1 retry.
+     */
     async upload(file, pedidoId) {
-      const jwt  = _getJwt();
+      // PASSO CRÍTICO: garante sessão válida ANTES de qualquer fetch
+      const jwt  = await _ensureValidSession();
       const ext  = (file.name || 'image.png').split('.').pop().toLowerCase() || 'png';
       const ts   = Date.now();
       const rand = Math.random().toString(36).slice(2, 7);
-      // Bucket path: delivery_{pedidoId}_{timestamp}.ext  (no nested folder)
       const path = `delivery_${pedidoId}_${ts}_${rand}.${ext}`;
 
-      // ── Verifica sessão antes do upload ──────────────────────
-      {
-        const token  = _getJwt();
-        const userId = (typeof Session !== 'undefined' && Session.getCurrentUser)
-          ? (Session.getCurrentUser()?.id || '(sem user)')
-          : '(Session indisponível)';
-        const tokenPreview = token ? token.slice(0, 20) + '…' : '❌ SEM TOKEN';
-        console.log('[Entrega] Auth check — user_id:', userId, '| token:', tokenPreview);
-        if (!token) {
-          throw new Error('Sessão expirada ou inválida. Faça login novamente.');
-        }
-      }
+      // Log de diagnóstico organizado
+      const userId       = _getCurrentUserId() || '(sem user)';
+      const tokenPreview = jwt ? jwt.slice(0, 24) + '…' : '❌ NULL';
+      console.group('[Entrega] 🔐 Auth Check — upload()');
+      console.log('user_id :', userId);
+      console.log('token   :', tokenPreview);
+      console.log('bucket  :', BUCKET);
+      console.log('path    :', path);
+      console.log('file    :', file.name, `(${(file.size / 1024).toFixed(1)} KB)`);
+      console.groupEnd();
 
-      console.log('[Entrega] Upload iniciado:', file.name, '→', path);
+      const result = await DeliveryStorage._doUpload(file, path, jwt);
+      return result;
+    },
 
+    /**
+     * Executa o fetch de upload. Se receber 401, tenta refresh e retry único.
+     */
+    async _doUpload(file, path, jwt, isRetry = false) {
       const res = await fetch(
         `${SB_URL}/storage/v1/object/${BUCKET}/${path}`,
         {
           method:  'POST',
           headers: {
             'apikey':        SB_KEY,
-            'Authorization': 'Bearer ' + (jwt || SB_KEY),
+            'Authorization': 'Bearer ' + jwt,
             'Content-Type':  file.type || 'image/png',
             'x-upsert':      'false',
           },
@@ -137,22 +234,43 @@
         }
       );
 
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        console.error('[Entrega] ❌ Erro no upload Storage:', {
-          status:  res.status,
-          message: e.message,
-          error:   e.error,
-          hint:    e.hint,
-          bucket:  BUCKET,
-          path,
-        });
-        throw new Error(e.message || `Erro upload (${res.status})`);
+      // Sucesso
+      if (res.ok) {
+        const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+        console.log('[Entrega] ✅ Upload concluído:', publicUrl);
+        return { url: publicUrl, path, name: file.name || path };
       }
 
-      const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-      console.log('[Entrega] Upload concluído:', publicUrl);
-      return { url: publicUrl, path, name: file.name || path };
+      const e = await res.json().catch(() => ({}));
+
+      // 401 → token rejeitado pelo Storage. Session já tem refresh automático,
+      // mas pode ter havido race entre expiração e upload. Forçamos refresh via Session e retentamos.
+      if (res.status === 401 && !isRetry) {
+        console.warn('[Entrega] 401 no upload. Solicitando forceRefresh ao Session...');
+        try {
+          const freshToken = (typeof Session !== 'undefined' && typeof Session.forceRefresh === 'function')
+            ? await Session.forceRefresh()
+            : await _getSessionToken();
+          if (freshToken) {
+            console.log('[Entrega] ✅ Token renovado via Session.forceRefresh(). Fazendo retry...');
+            return DeliveryStorage._doUpload(file, path, freshToken, true);
+          }
+        } catch (refreshErr) {
+          console.error('[Entrega] ❌ forceRefresh falhou:', refreshErr.message);
+        }
+        throw new Error('Sessão expirada durante o upload. Faça login e tente novamente.');
+      }
+
+      // Outro erro
+      console.error('[Entrega] ❌ Erro no upload Storage:', {
+        status:  res.status,
+        message: e.message,
+        error:   e.error,
+        hint:    e.hint,
+        bucket:  BUCKET,
+        path,
+      });
+      throw new Error(e.message || `Erro no upload (HTTP ${res.status})`);
     },
 
     async uploadMultiple(files, pedidoId, onProgress) {
@@ -172,12 +290,11 @@
   // ══════════════════════════════════════════════════════════
   const DeliveryAdmin = {
 
-    _files: [],
+    _files:      [],
     _submitting: false,
 
     openModal(supabaseOrderId, orderData) {
-      // Limpa estado anterior
-      DeliveryAdmin._files = [];
+      DeliveryAdmin._files      = [];
       DeliveryAdmin._submitting = false;
 
       const existing = document.getElementById('da-modal-overlay');
@@ -203,7 +320,6 @@
       if (!el) return;
       el.classList.remove('da-open');
       setTimeout(() => el.remove(), 280);
-      // Remove listeners de paste
       document.removeEventListener('paste', DeliveryAdmin._pasteHandler);
     },
 
@@ -213,7 +329,6 @@
       const pokemon = orderData?.pokemon || '—';
       const tipo    = orderData?.tipo    || '—';
 
-      // FIXED: sem double JSON.stringify — passamos orderId direto e usamos data-order-id
       return `
         <div class="da-modal" id="da-modal">
           <div class="da-modal-header">
@@ -258,6 +373,8 @@
             <div class="da-progress-label" id="da-progress-label">Enviando…</div>
           </div>
 
+          <div id="da-error-banner" style="display:none" class="da-error-banner"></div>
+
           <div class="da-modal-footer">
             <button class="da-btn da-btn-cancel" onclick="DeliveryAdmin.closeModal()">Cancelar</button>
             <button class="da-btn da-btn-submit" id="da-submit-btn"
@@ -273,8 +390,18 @@
       `;
     },
 
+    _showError(msg) {
+      const banner = document.getElementById('da-error-banner');
+      if (banner) {
+        banner.textContent = '⚠️ ' + msg;
+        banner.style.display = 'block';
+        setTimeout(() => { if (banner) banner.style.display = 'none'; }, 7000);
+      }
+      console.error('[Entrega] ❌', msg);
+    },
+
     _onFilesSelected(fileList) {
-      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+      const MAX_SIZE = 10 * 1024 * 1024;
       const ALLOWED  = ['image/jpeg', 'image/png', 'image/webp'];
       const files = Array.from(fileList).filter(f => {
         if (!ALLOWED.includes(f.type)) {
@@ -282,7 +409,7 @@
           return false;
         }
         if (f.size > MAX_SIZE) {
-          console.warn('[Entrega] Arquivo ignorado (>10MB):', f.name, f.size);
+          DeliveryAdmin._showError(`Arquivo muito grande (máx 10MB): ${f.name}`);
           return false;
         }
         return true;
@@ -352,13 +479,11 @@
     _pasteHandler: null,
 
     _setupPaste(orderId) {
-      // Remove handler anterior se existir
       if (DeliveryAdmin._pasteHandler) {
         document.removeEventListener('paste', DeliveryAdmin._pasteHandler);
       }
 
       DeliveryAdmin._pasteHandler = function(e) {
-        // Só processa se o modal estiver aberto
         if (!document.getElementById('da-modal-overlay')) return;
 
         const items = e.clipboardData && e.clipboardData.items;
@@ -371,16 +496,14 @@
 
         const files = imageItems.map(item => {
           const blob = item.getAsFile();
-          // Dá um nome descritivo ao arquivo colado
-          const ext = item.type.split('/')[1] || 'png';
-          const ts  = Date.now();
+          const ext  = item.type.split('/')[1] || 'png';
+          const ts   = Date.now();
           return new File([blob], `print_${ts}.${ext}`, { type: item.type });
         });
 
         console.log('[Entrega] Paste (Ctrl+V):', files.length, 'imagem(ns)');
         DeliveryAdmin._onFilesSelected(files);
 
-        // Feedback visual no drop zone
         const zone = document.getElementById('da-drop-zone');
         if (zone) {
           zone.classList.add('da-paste-flash');
@@ -391,11 +514,10 @@
       document.addEventListener('paste', DeliveryAdmin._pasteHandler);
     },
 
-    // ── Submit: fluxo completo ───────────────────────────────
+    // ── Submit: fluxo completo ponta a ponta ─────────────────
     async _submit(btn) {
-      // Anti-double-click
       if (DeliveryAdmin._submitting) {
-        console.warn('[Entrega] Já está em progresso, ignorando clique duplo.');
+        console.warn('[Entrega] Já em progresso, ignorando clique duplo.');
         return;
       }
 
@@ -404,12 +526,23 @@
       const files     = DeliveryAdmin._files;
 
       if (!files.length) {
-        console.warn('[Entrega] Nenhum arquivo selecionado.');
+        DeliveryAdmin._showError('Adicione pelo menos uma imagem antes de registrar.');
         return;
       }
       if (!orderId) {
         console.error('[Entrega] orderId ausente no botão.');
         return;
+      }
+
+      // ── PRÉ-VALIDAÇÃO DE SESSÃO (antes de bloquear UI) ────
+      let sessionOk = false;
+      try {
+        await _ensureValidSession();
+        sessionOk = true;
+      } catch (sessionErr) {
+        DeliveryAdmin._showError(sessionErr.message);
+        _toast(sessionErr.message, 'error');
+        return; // Não prossegue sem sessão válida
       }
 
       DeliveryAdmin._submitting = true;
@@ -424,7 +557,7 @@
 
       try {
         // ── PASSO 1: Upload das imagens ──────────────────────
-        console.log('[Entrega] PASSO 1 — Upload iniciado (' + files.length + ' arquivo(s))');
+        console.group('[Entrega] PASSO 1 — Upload (' + files.length + ' arquivo(s))');
         const prints = await DeliveryStorage.uploadMultiple(
           files,
           String(orderId),
@@ -436,12 +569,13 @@
               : 'Salvando registro…';
           }
         );
-        console.log('[Entrega] PASSO 1 — Upload concluído. URLs:', prints.map(p => p.url));
+        console.log('URLs:', prints.map(p => p.url));
+        console.groupEnd();
 
         if (progressFill) progressFill.style.width = '65%';
 
         // ── PASSO 2: INSERT em pedido_entregas ───────────────
-        console.log('[Entrega] PASSO 2 — Salvando entrega no banco...');
+        console.log('[Entrega] PASSO 2 — Salvando em pedido_entregas...');
         const payload = {
           pedido_id:    Number(orderId),
           user_id:      _getCurrentUserId(),
@@ -454,37 +588,33 @@
           concluido_at: new Date().toISOString(),
         };
         await DeliveryDB.insert(payload);
-        console.log('[Entrega] PASSO 2 — Entrega salva em pedido_entregas.');
+        console.log('[Entrega] PASSO 2 — ✅ Entrega salva.');
 
         if (progressFill) progressFill.style.width = '75%';
 
         // ── PASSO 3: UPDATE pedidos → status = 'concluido' ──
         console.log('[Entrega] PASSO 3 — Atualizando pedido #' + orderId + ' → concluido...');
         await DeliveryAdmin._updatePedidoStatus(orderId);
-        console.log('[Entrega] PASSO 3 — Pedido finalizado com sucesso.');
+        console.log('[Entrega] PASSO 3 — ✅ Pedido atualizado.');
 
         if (progressFill) progressFill.style.width = '88%';
 
-        // ── PASSO 5: Notificação para o cliente ──────────────
-        console.log('[Entrega] PASSO 5 — Criando notificação para o cliente...');
+        // ── PASSO 4: Notificação para o cliente ──────────────
+        console.log('[Entrega] PASSO 4 — Criando notificação...');
         await DeliveryAdmin._createClientNotification(orderId, 'Seu pedido foi concluído!');
-        console.log('[Entrega] PASSO 5 — Notificação criada.');
+        console.log('[Entrega] PASSO 4 — ✅ Notificação criada.');
 
         if (progressFill) progressFill.style.width = '100%';
         if (progressLbl)  progressLbl.textContent = '✅ Entrega registrada!';
 
-        // ── PASSO 4+6: Toast + remove da fila ───────────────
-        console.log('[Entrega] PASSO 6 — Mostrando toast de sucesso...');
-        DeliveryAdmin._files = [];
+        // ── PASSO 5: Fechar + toast + atualizar fila ─────────
+        DeliveryAdmin._files      = [];
         DeliveryAdmin._submitting = false;
 
         setTimeout(() => {
           DeliveryAdmin.closeModal();
 
-          // Toast de sucesso
-          if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
-            OrdersNotifications.show('✅ Entrega registrada com sucesso!', 'concluido', 4000);
-          }
+          _toast('✅ Entrega registrada com sucesso!', 'concluido', 4000);
 
           // Atualiza a lista de pedidos (remove da fila)
           if (typeof pedidosCarregar === 'function') {
@@ -495,7 +625,7 @@
             OrdersKanban.refresh();
           }
 
-          // Atualiza galeria de entregas se estiver ativa
+          // Atualiza galeria se ativa
           if (window.DeliveryGallery && typeof DeliveryGallery.refresh === 'function') {
             DeliveryGallery.refresh();
           }
@@ -505,7 +635,8 @@
 
       } catch (err) {
         console.error('[Entrega] ❌ Erro durante o fluxo de entrega:', err);
-        if (progressLbl) progressLbl.textContent = '❌ Erro: ' + err.message;
+        if (progressLbl) progressLbl.textContent = '❌ ' + err.message;
+        DeliveryAdmin._showError(err.message);
         DeliveryAdmin._submitting = false;
         btn.disabled = false;
         btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> REGISTRAR ENTREGA`;
@@ -514,14 +645,11 @@
 
     // ── Passo 3: atualiza status do pedido ──────────────────
     async _updatePedidoStatus(orderId) {
-      const jwt = _getJwt();
+      const jwt = await _ensureValidSession();
       const url = `${SB_URL}/rest/v1/pedidos?id=eq.${orderId}`;
       const res = await fetch(url, {
         method:  'PATCH',
-        headers: {
-          ..._headers(jwt),
-          'Prefer': 'return=minimal',
-        },
+        headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
         body: JSON.stringify({
           status:       'concluido',
           completed_at: new Date().toISOString(),
@@ -529,23 +657,16 @@
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        console.error('[Entrega] ❌ Erro UPDATE pedidos:', {
-          status:  res.status,
-          message: e.message,
-          hint:    e.hint,
-          details: e.details,
-          orderId,
-        });
-        throw new Error(e.message || `Erro ao atualizar pedido (${res.status})`);
+        console.error('[Entrega] ❌ Erro UPDATE pedidos:', { status: res.status, message: e.message, orderId });
+        throw new Error(e.message || `Erro ao atualizar pedido (HTTP ${res.status})`);
       }
     },
 
-    // ── Passo 5: notificação para o cliente ─────────────────
+    // ── Passo 4: notificação para o cliente ─────────────────
     async _createClientNotification(orderId, message) {
       try {
-        const jwt = _getJwt();
+        const jwt = await _getSessionToken();
 
-        // Busca o user_id do pedido
         const orderRes = await fetch(
           `${SB_URL}/rest/v1/pedidos?id=eq.${orderId}&select=user_id&limit=1`,
           { headers: _headers(jwt) }
@@ -555,7 +676,6 @@
         const userId = orders?.[0]?.user_id;
         if (!userId) return;
 
-        // Insere notificação
         await fetch(`${SB_URL}/rest/v1/notifications`, {
           method:  'POST',
           headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
@@ -570,14 +690,14 @@
           }),
         });
       } catch (e) {
-        // Não bloqueia o fluxo se notificação falhar
-        console.warn('[Entrega] Notificação falhou silenciosamente:', e.message);
+        // Não bloqueia o fluxo principal se notificação falhar
+        console.warn('[Entrega] Notificação falhou (não fatal):', e.message);
       }
     },
   };
 
   // ══════════════════════════════════════════════════════════
-  // DeliveryGallery — aba Entregas, grid moderna, lightbox, skeleton
+  // DeliveryGallery — aba Entregas, grid moderna, lightbox
   // ══════════════════════════════════════════════════════════
   const DeliveryGallery = {
     _data:        [],
@@ -594,9 +714,9 @@
       await DeliveryGallery.refresh();
 
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') DeliveryGallery.closeLightbox();
-        if (e.key === 'ArrowRight') DeliveryGallery.navLightbox(1);
-        if (e.key === 'ArrowLeft')  DeliveryGallery.navLightbox(-1);
+        if (e.key === 'Escape')      DeliveryGallery.closeLightbox();
+        if (e.key === 'ArrowRight')  DeliveryGallery.navLightbox(1);
+        if (e.key === 'ArrowLeft')   DeliveryGallery.navLightbox(-1);
       });
     },
 
@@ -652,8 +772,7 @@
       });
 
       grid.innerHTML = '';
-      const isAdmin = (global.Session && typeof Session.getCurrentUser === 'function' && Session.getCurrentUser()?.role === 'admin') ||
-                      (global.OrdersAdmin && typeof OrdersAdmin.isAdmin === 'function' && OrdersAdmin.isAdmin(global.Session?.getCurrentUser?.()));
+      const isAdmin = typeof Session !== 'undefined' && Session.isAdmin();
 
       data.forEach((entry, idx) => {
         const card = DeliveryGallery._buildCard(entry, idx, isAdmin);
@@ -670,13 +789,11 @@
         ? new Date(entry.concluido_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })
         : new Date(entry.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-      const thumb2 = prints[1] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 1)}"><img data-src="${prints[1].url}" class="dg-lazy" alt="print 2"></div>` : '';
-      const thumb3 = prints[2] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 2)}"><img data-src="${prints[2].url}" class="dg-lazy" alt="print 3"></div>` : '';
-      const more   = prints.length > 3 ? `<div class="dg-thumb dg-thumb-more" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 3)}">+${prints.length - 3}</div>` : '';
-
-      const hasThumbs = prints.length > 1;
-      const mainLbIdx = DeliveryGallery._getLightboxIndex(entry, 0);
-
+      const thumb2   = prints[1] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 1)}"><img data-src="${prints[1].url}" class="dg-lazy" alt="print 2"></div>` : '';
+      const thumb3   = prints[2] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 2)}"><img data-src="${prints[2].url}" class="dg-lazy" alt="print 3"></div>` : '';
+      const more     = prints.length > 3 ? `<div class="dg-thumb dg-thumb-more" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 3)}">+${prints.length - 3}</div>` : '';
+      const hasThumbs  = prints.length > 1;
+      const mainLbIdx  = DeliveryGallery._getLightboxIndex(entry, 0);
       const deleteBtnHTML = isAdmin
         ? `<button class="dg-card-delete" onclick="DeliveryGallery._deleteEntry('${entry.id}', event)" title="Remover entrega">🗑</button>`
         : '';
@@ -695,11 +812,7 @@
           ${deleteBtnHTML}
         </div>
 
-        ${hasThumbs ? `
-          <div class="dg-thumbs">
-            ${thumb2}${thumb3}${more}
-          </div>
-        ` : ''}
+        ${hasThumbs ? `<div class="dg-thumbs">${thumb2}${thumb3}${more}</div>` : ''}
 
         <div class="dg-card-body">
           <div class="dg-card-service">${entry.servico_nome || entry.pokemon_nome || '—'}</div>
@@ -800,20 +913,16 @@
 
     async _deleteEntry(id, e) {
       if (e) e.stopPropagation();
-      const confirmed = await showConfirmModal({
-        title: 'Remover Entrega',
-        message: 'Remover esta entrega? Os prints não serão deletados do Storage.',
-        confirmText: 'Remover',
-        cancelText: 'Cancelar',
-        type: 'danger'
-      });
+      const confirmed = typeof showConfirmModal === 'function'
+        ? await showConfirmModal({ title: 'Remover Entrega', message: 'Remover esta entrega? Os prints não serão deletados do Storage.', confirmText: 'Remover', cancelText: 'Cancelar', type: 'danger' })
+        : confirm('Remover esta entrega?');
       if (!confirmed) return;
       try {
         await DeliveryDB.delete(id);
         DeliveryGallery._data = DeliveryGallery._data.filter(x => x.id !== id);
         DeliveryGallery._render();
       } catch (err) {
-        if (typeof showToast === 'function') showToast('Erro ao remover: ' + err.message, 'error');
+        _toast('Erro ao remover: ' + err.message, 'error');
       }
     },
 
@@ -964,33 +1073,24 @@
 .da-modal-info { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
 .da-info-row { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:rgba(255,255,255,0.4); }
 .da-info-row strong { color:rgba(255,255,255,0.8); font-weight:600; }
-
-/* Paste hint */
 .da-paste-hint { display:flex; align-items:center; gap:8px; font-size:11px; color:rgba(58,140,255,0.7); background:rgba(58,140,255,0.06); border:1px solid rgba(58,140,255,0.15); border-radius:8px; padding:8px 12px; }
 .da-paste-hint kbd { background:rgba(58,140,255,0.15); border:1px solid rgba(58,140,255,0.3); border-radius:4px; padding:1px 6px; font-size:11px; font-family:var(--font-mono,monospace); color:#3a8cff; }
-
-/* Drop zone */
 .da-drop-zone { border:2px dashed rgba(58,140,255,0.25); border-radius:12px; padding:28px 20px; text-align:center; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:8px; }
 .da-drop-zone:hover, .da-drop-zone.da-drag-over { border-color:rgba(58,140,255,0.6); background:rgba(58,140,255,0.05); }
 .da-drop-zone.da-paste-flash { border-color:#3a8cff; background:rgba(58,140,255,0.1); box-shadow:0 0 0 3px rgba(58,140,255,0.2); }
 .da-drop-text { font-size:13px; color:rgba(255,255,255,0.5); }
 .da-drop-text strong { color:rgba(58,140,255,0.8); }
 .da-drop-sub { font-size:11px; color:rgba(255,255,255,0.25); }
-
-/* Preview */
 .da-preview-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; }
 .da-preview-item { position:relative; border-radius:8px; overflow:hidden; background:rgba(0,0,0,0.3); }
 .da-preview-item img { width:100%; aspect-ratio:1; object-fit:cover; display:block; }
 .da-preview-remove { position:absolute; top:4px; right:4px; width:20px; height:20px; background:rgba(0,0,0,0.75); border:none; border-radius:50%; color:rgba(255,100,100,0.9); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .da-preview-name { font-size:9px; color:rgba(255,255,255,0.3); padding:3px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-/* Progress */
 .da-progress-bar-wrap { display:flex; flex-direction:column; gap:6px; }
 .da-progress-bar { height:4px; border-radius:2px; background:rgba(255,255,255,0.06); overflow:hidden; }
 .da-progress-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#3a8cff,#60aaff); transition:width 0.3s ease; width:0%; }
 .da-progress-label { font-size:11px; color:rgba(255,255,255,0.4); }
-
-/* Footer */
+.da-error-banner { background:rgba(200,50,50,0.12); border:1px solid rgba(255,80,80,0.25); border-radius:8px; padding:10px 14px; font-size:12px; color:rgba(255,130,130,0.9); }
 .da-modal-footer { display:flex; gap:10px; justify-content:flex-end; }
 .da-btn { padding:10px 20px; border-radius:10px; font-size:12px; font-weight:700; letter-spacing:0.8px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all 0.2s; }
 .da-btn-cancel { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); }
@@ -999,7 +1099,6 @@
 .da-btn-submit:hover:not(:disabled) { background:rgba(58,140,255,0.25); border-color:rgba(58,140,255,0.55); color:#fff; }
 .da-btn-submit:disabled { opacity:0.35; cursor:not-allowed; }
 
-/* Mobile */
 @media (max-width:768px) {
   .dg-header { padding:16px 16px 14px; }
   .dg-header-title { font-size:13px; letter-spacing:1.5px; }

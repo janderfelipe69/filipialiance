@@ -2125,8 +2125,12 @@
 <script>
   // Inicializa a sessão assim que o DOM estiver pronto.
   // Session.init() recupera sessão persistida e atualiza o header automaticamente.
+  // É async — o .catch() garante que erros críticos não fiquem silenciosos.
+  // Módulos que dependem do JWT podem aguardar com: await Session.ready()
   document.addEventListener("DOMContentLoaded", function() {
-    Session.init();
+    Session.init().catch(function(err) {
+      console.error('[App] Erro crítico na inicialização da sessão:', err);
+    });
   });
 </script>
 

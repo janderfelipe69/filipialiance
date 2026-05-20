@@ -373,7 +373,11 @@
     _initialized = true;
     var tabPedidos = document.getElementById('tab-pedidos');
     if (tabPedidos && tabPedidos.classList.contains('active')) {
-      global.pedidosCarregar();
+      // Aguarda Session restaurar sessão antes de buscar pedidos (evita race condition)
+      var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
+        ? Session.ready()
+        : Promise.resolve();
+      sessionReady.then(function () { global.pedidosCarregar(); });
     }
   }
 
