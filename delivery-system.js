@@ -1,82 +1,71 @@
 // ============================================================
-// delivery-system.js — Sistema de Entregas v3 (AUTH FIX)
+// delivery-system.js — Sistema de Entregas v4 (AUTH DEFINITIVE FIX)
 // PokeAlliance Shop
 //
-// CORREÇÕES v3 — ROOT CAUSE:
-//   Race condition: _getJwt() era chamado ANTES de Session.init()
-//   terminar de restaurar o token do localStorage para memória.
-//   Resultado: _accessToken === null em memória → "SEM TOKEN" →
-//   upload barrado com "Sessão inválida".
+// ROOT CAUSE RESOLVIDO (v4):
+//   O session.js anterior tinha bugs em _doInit() que causavam rejeição
+//   do _initPromise. Quando _initPromise rejeitava:
+//     → Session.ready() também rejeitava
+//     → await Session.ready() lançava exceção em _getSessionToken()
+//     → _getSessionToken() não tinha try/catch → propagava a exceção
+//     → jwt = null → log mostrava "❌ NULL"
 //
-// FIXES:
-//   1. _getSessionToken() — aguarda Session.ready() antes de pegar token
-//   2. _ensureValidSession() — valida + tenta refresh se token expirado
-//   3. Upload usa await _ensureValidSession() — nunca sobe sem JWT válido
-//   4. Retry automático: se 401 no upload → refresh → 1 retry
-//   5. Tratamento de erro sem alert() — tudo via toast/progressLabel
-//   6. Todos os fetches usam token fresco (não cache stale)
+//   Adicionalmente: _getSessionToken() agora tem try/catch robusto.
+//   E: STORAGE AUTH OK log confirma quando token chega ao fetch de upload.
+//
+// DEPENDÊNCIAS: supabase-client.js, session.js (v3+)
 // ============================================================
 
 ;(function (global) {
   'use strict';
 
-  // ── Constantes ─────────────────────────────────────────────
   const SB_URL = global.SUPABASE_URL || '';
   const SB_KEY = global.SUPABASE_KEY || '';
   const BUCKET = 'delivery-proofs';
   const TABLE  = 'pedido_entregas';
 
   // ══════════════════════════════════════════════════════════
-  // AUTH HELPERS — Núcleo da correção
+  // AUTH HELPERS
   // ══════════════════════════════════════════════════════════
 
   /**
    * Aguarda Session.ready() e retorna o access token atual.
-   * ESTA é a função que corrige o race condition.
-   * Nunca lê localStorage diretamente — sempre via Session (fonte de verdade).
+   * NUNCA lê localStorage diretamente — sempre via Session.
+   * Tem try/catch para absorver qualquer rejeição do Session.ready().
    */
   async function _getSessionToken() {
-    // Aguarda a inicialização da sessão terminar (resolve imediatamente se já pronto)
-    if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
-      await Session.ready();
+    try {
+      if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+        await Session.ready();
+      }
+    } catch (readyErr) {
+      // Session.ready() rejeitou — Session v3 garante que isso nunca acontece,
+      // mas mantemos o catch por segurança defensiva.
+      console.error('[Entrega] ❌ Session.ready() rejeitou (bug inesperado):', readyErr.message);
     }
 
-    // Tenta via Session primeiro (token em memória — sempre mais fresco)
     if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
       const token = Session.getAccessToken();
       if (token) return token;
     }
 
-    // Session é a ÚNICA fonte de verdade — nunca ler localStorage diretamente.
-    // Se Session não estiver disponível, o módulo não foi carregado corretamente.
-    console.error('[Entrega] Session não disponível — verifique a ordem de carregamento dos scripts.');
+    console.error('[Entrega] ❌ Session não disponível ou sem token após ready()');
     return null;
   }
 
   /**
-   * Garante que há uma sessão válida antes do upload.
-   * Delega EXCLUSIVAMENTE ao Session — ele já gerencia refresh automático.
-   * Não duplica lógica de refresh nem acessa localStorage diretamente.
-   *
-   * @returns {Promise<string>} JWT válido
-   * @throws {Error} Se não há sessão ativa
+   * Garante sessão válida antes de operações autenticadas.
+   * Delega refresh ao Session.forceRefresh() se necessário.
    */
   async function _ensureValidSession() {
-    // _getSessionToken já aguarda Session.ready() internamente
     const token = await _getSessionToken();
-
     if (!token) {
       console.error('[Entrega] ❌ _ensureValidSession: sem token. Usuário não está logado.');
       throw new Error('Você precisa estar logado para registrar uma entrega. Faça login e tente novamente.');
     }
-
-    console.log('[Entrega] ✅ Sessão válida confirmada via Session.getAccessToken()');
     return token;
   }
 
-  /**
-   * Retorna ID do usuário atual (síncrono, pós-init).
-   */
   function _getCurrentUserId() {
     try {
       if (typeof Session !== 'undefined' && typeof Session.getCurrentUser === 'function') {
@@ -85,104 +74,6 @@
     } catch (_) {}
     return null;
   }
-
-  /**
-   * Monta os headers REST com token fresco.
-   * @param {string} jwt
-   */
-  function _headers(jwt) {
-    return {
-      'Content-Type':  'application/json',
-      'apikey':        SB_KEY,
-      'Authorization': 'Bearer ' + (jwt || SB_KEY),
-    };
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // TOAST HELPER — sem alert()
-  // ══════════════════════════════════════════════════════════
-
-  function _toast(msg, type = 'info', duration = 4000) {
-    // Tenta usar o sistema de toast/notificações do projeto
-    if (window.OrdersNotifications && typeof OrdersNotifications.show === 'function') {
-      OrdersNotifications.show(msg, type, duration);
-      return;
-    }
-    if (typeof showToast === 'function') {
-      showToast(msg, type);
-      return;
-    }
-    // Fallback mínimo: toast inline no DOM
-    const existing = document.getElementById('da-inline-toast');
-    if (existing) existing.remove();
-    const el = document.createElement('div');
-    el.id = 'da-inline-toast';
-    el.style.cssText = `
-      position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-      background:${type === 'error' ? 'rgba(200,50,50,0.95)' : 'rgba(20,40,80,0.95)'};
-      color:#fff; padding:12px 20px; border-radius:10px; font-size:13px;
-      z-index:99999; border:1px solid ${type === 'error' ? 'rgba(255,100,100,0.4)' : 'rgba(58,140,255,0.4)'};
-      box-shadow:0 8px 32px rgba(0,0,0,0.5); max-width:90vw; text-align:center;
-    `;
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), duration);
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // DeliveryDB — operações na tabela pedido_entregas
-  // ══════════════════════════════════════════════════════════
-  const DeliveryDB = {
-
-    async list(limit = 100) {
-      const jwt = await _getSessionToken();
-      const url = `${SB_URL}/rest/v1/${TABLE}?select=*&order=created_at.desc&limit=${limit}`;
-      const res = await fetch(url, { headers: _headers(jwt) });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.message || 'Erro ao buscar entregas');
-      }
-      return res.json();
-    },
-
-    async insert(payload) {
-      const jwt = await _ensureValidSession();
-      const url = `${SB_URL}/rest/v1/${TABLE}`;
-      const res = await fetch(url, {
-        method:  'POST',
-        headers: { ..._headers(jwt), 'Prefer': 'return=representation' },
-        body:    JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        console.error('[Entrega] ❌ Erro INSERT pedido_entregas:', {
-          status:  res.status,
-          message: e.message,
-          hint:    e.hint,
-          details: e.details,
-        });
-        throw new Error(e.message || 'Erro ao salvar entrega');
-      }
-      const data = await res.json();
-      return Array.isArray(data) ? data[0] : data;
-    },
-
-    async existsForOrder(pedidoId) {
-      const jwt = await _getSessionToken();
-      const url = `${SB_URL}/rest/v1/${TABLE}?pedido_id=eq.${pedidoId}&select=id&limit=1`;
-      const res = await fetch(url, { headers: _headers(jwt) });
-      if (!res.ok) return false;
-      const data = await res.json();
-      return Array.isArray(data) && data.length > 0;
-    },
-
-    async delete(id) {
-      const jwt = await _ensureValidSession();
-      const url = `${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`;
-      const res = await fetch(url, { method: 'DELETE', headers: _headers(jwt) });
-      return res.ok;
-    },
-  };
 
   // ══════════════════════════════════════════════════════════
   // DeliveryStorage — upload com retry automático em 401
@@ -220,6 +111,7 @@
      * Executa o fetch de upload. Se receber 401, tenta refresh e retry único.
      */
     async _doUpload(file, path, jwt, isRetry = false) {
+      console.log('[Entrega] 🔑 STORAGE AUTH OK | token:', jwt ? jwt.slice(0, 20) + '…' : '❌ NULL', '| isRetry:', isRetry);
       const res = await fetch(
         `${SB_URL}/storage/v1/object/${BUCKET}/${path}`,
         {

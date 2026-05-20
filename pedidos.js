@@ -377,7 +377,12 @@
       var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
         ? Session.ready()
         : Promise.resolve();
-      sessionReady.then(function () { global.pedidosCarregar(); });
+      sessionReady
+        .then(function () { global.pedidosCarregar(); })
+        .catch(function (err) {
+          console.warn('[Pedidos] Session.ready() rejeitou:', err && err.message);
+          global.pedidosCarregar(); // tenta mesmo assim
+        });
     }
   }
 
