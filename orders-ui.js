@@ -438,9 +438,10 @@ const OrdersUI = (() => {
                 </span>
               </div>
             ` : `
-              <span class="order-item-qty-simple ${isDone ? 'done' : ''}" style="color:${isDone ? '#4ade80' : 'rgba(255,255,255,0.5)'}">
-                ${isDone ? '✓ entregue' : 'aguardando'}
-              </span>
+              ${isDone
+                ? \`<span class="order-item-qty-simple done" style="color:#4ade80">✓ entregue</span>\`
+                : \`<span class="order-item-waiting-label">Aguardando início</span>\`
+              }
             `}
           </div>
         </div>
@@ -921,6 +922,7 @@ const OrdersUI = (() => {
       .order-item-qty--done { color: #4ade80 !important; }
       .order-item-qty-simple { font-family: var(--font-mono, monospace); font-size: 10px; font-weight: 700; white-space: nowrap; }
       .order-item-qty-simple.done { color: #4ade80 !important; }
+      .order-item-waiting-label { font-size: 10px; font-weight: 400; color: rgba(255,255,255,0.32); font-style: italic; white-space: nowrap; letter-spacing: 0.01em; }
 
       /* ─── Observation ─────────────────────────────────────────────── */
       .order-obs {
