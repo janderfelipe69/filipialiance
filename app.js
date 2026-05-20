@@ -3074,9 +3074,7 @@ POKEMONS.forEach(p => {
 });
 
 const BALLS = [
-  { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 1.0 },
-  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 0.8, minPrice: 1000 },
-  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",        mult: 0.8, minPrice: 1000 },
+  { id: "ultra", name: "Ultra Ball", emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)", mult: 1.0 },
 ];
 
 let currentCapturaIdx = null;
@@ -3171,11 +3169,16 @@ function renderCaptura() {
 
 function openCapturaModal(idx) {
   currentCapturaIdx = idx;
-  selectedBall = null;
+  selectedBall = 'ultra'; // única ball disponível — pré-selecionada
   const poke = POKEMONS[idx];
+  const ball = BALLS[0]; // Ultra Ball
   const diveMultiplier = poke.dive ? 1.30 : 1.0;
   const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
-  const priceData = formatKK(effectiveBasePrice);
+  const finalPrice = _calcCapturaFinalPrice(poke, ball);
+  const priceData = formatKK(finalPrice);
+  const pokeType = getTypeFromBanner(poke.bannerImage);
+  const typeColor = pokeType && TYPE_COLORS[pokeType] ? TYPE_COLORS[pokeType] : '#ffd166';
+
   document.getElementById('captura-modal-title').textContent = poke.name;
   const body = document.getElementById('captura-modal-body');
   body.innerHTML = `
@@ -3188,170 +3191,109 @@ function openCapturaModal(idx) {
         ${poke.tag ? getCapturaTagHtml(poke.tag) : ''}
         ${poke.dive ? getCapturaTagHtml('dive') : ''}
       </div>
-      ${poke.dive ? `<div style="margin-top:6px;font-family:var(--font-body);font-size:11px;color:#00e5ff;opacity:0.8;letter-spacing:1px;text-align:center"><img src="https://i.imgur.com/zpRe43i.png" style="height:12px;vertical-align:middle;margin-right:4px;"> Pokémon em Dive — +30% aplicado</div>` : ''}
+      ${poke.dive ? `<div style="margin-top:8px;font-family:var(--font-body);font-size:11px;color:#00e5ff;opacity:0.8;letter-spacing:1px;text-align:center"><img src="https://i.imgur.com/zpRe43i.png" style="height:12px;vertical-align:middle;margin-right:4px;"> Pokémon em Dive — +30% aplicado</div>` : ''}
       ${priceData ? `
       <div class="captura-modal-price-block">
         <span class="captura-modal-price-kk">${priceData.label}</span>
         <span class="captura-modal-price-sep">·</span>
         <span class="captura-modal-price-brl">${priceData.brl}</span>
-      </div>` : ''}
+      </div>` : '<div class="captura-modal-price-block" style="color:var(--muted)">Preço a definir</div>'}
     </div>
-    <div class="captura-ball-section">
-      <div class="captura-ball-label">Escolha a Poké Ball</div>
-      <div class="captura-ball-options">
-        ${BALLS.map(ball => {
-          const rawBallPrice = effectiveBasePrice ? Math.round(effectiveBasePrice * ball.mult) : 0;
-          const ballPrice = (ball.minPrice && rawBallPrice > 0) ? Math.max(rawBallPrice, ball.minPrice) : rawBallPrice;
-          const ballPriceData = formatKK(ballPrice);
-          const multLabel = '';
-          return `
-          <button class="captura-ball-btn" data-ball="${ball.id}" onclick="selectBall('${ball.id}')">
-            <span class="captura-ball-check" style="color:${ball.color}">✓</span>
-            <span class="captura-ball-icon">${ball.emoji}</span>
-            <span class="captura-ball-name">${ball.name}</span>
-            ${multLabel}
-            ${ballPriceData ? `<span class="ball-price-kk" style="color:${ball.color}">${ballPriceData.label}</span>
-            <span class="ball-price-brl">${ballPriceData.brl}</span>` : ''}
-          </button>`;
-        }).join('')}
-      </div>
-    </div>
-    <div id="captura-ball-aviso" style="
-      margin: 10px 0 6px;
-      background: linear-gradient(135deg, rgba(255,180,0,0.10) 0%, rgba(255,100,0,0.08) 100%);
-      border: 1.5px solid rgba(255,180,0,0.40);
-      border-left: 4px solid #ffb300;
-      border-radius: 10px;
-      padding: 12px 14px;
-      display: none;
-      align-items: flex-start;
-      gap: 10px;
-      box-shadow: 0 0 18px rgba(255,160,0,0.12), inset 0 1px 0 rgba(255,200,80,0.08);
-    ">
-      <span style="font-size:20px;line-height:1;flex-shrink:0;margin-top:1px;">⚠️</span>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <span style="
-          font-family:var(--font-title,inherit);
-          font-size:13px;
-          font-weight:700;
-          color:#ffcc44;
-          letter-spacing:0.6px;
-          text-transform:uppercase;
-          text-shadow:0 0 10px rgba(255,180,0,0.5);
-        ">As Poké Balls são por sua conta!</span>
-        <span style="
-          font-size:11.5px;
-          color:rgba(255,255,255,0.72);
-          line-height:1.55;
-          font-family:var(--font-body,inherit);
-        ">
-          Premier Ball e Alliance Ball exigem <span style="
-            background:rgba(255,180,0,0.18);
-            border:1px solid rgba(255,180,0,0.45);
-            border-radius:5px;
-            padding:1px 6px;
-            color:#ffcc44;
-            font-weight:700;
-            font-size:11px;
-          ">mínimo 1k por captura</span>.
-          Se acabar as balls, você precisa repor para continuar capturando.
-        </span>
-      </div>
-    </div>
-    ${(function() {
-      const pokeType = getTypeFromBanner(poke.bannerImage);
-      const typeColor = pokeType && TYPE_COLORS[pokeType] ? TYPE_COLORS[pokeType] : '#ffd166';
-      return buildDropsHtml(poke.name, typeColor);
-    })()}
-    <div class="captura-modal-price-selected" id="captura-price-selected" style="display:none">
-      <span class="captura-price-sel-label">Total com ball selecionada</span>
-      <div class="captura-price-sel-vals">
-        <span class="captura-price-sel-kk" id="captura-price-sel-kk">—</span>
-        <span class="captura-price-sel-brl" id="captura-price-sel-brl">—</span>
-      </div>
+    ${buildDropsHtml(poke.name, typeColor)}
+    <div class="captura-sla-info">
+      <span class="captura-sla-icon">⏱</span>
+      <span>Tempo estimado: <strong>4 a 7 dias</strong> após início do serviço</span>
     </div>
     <div class="captura-success-msg" id="captura-success-msg">
       <span>🎉</span>
-      <span id="captura-success-text">Captura confirmada!</span>
+      <span id="captura-success-text">Pedido registrado!</span>
     </div>
-    <button class="captura-confirm-btn" id="captura-confirm-btn" onclick="confirmCaptura()" disabled>
-      <span>⬟ Confirmar Captura</span>
+    <button class="captura-confirm-btn" id="captura-confirm-btn" onclick="confirmCaptura()">
+      <span>⬟ Adicionar aos Pedidos</span>
     </button>
   `;
   document.getElementById('captura-overlay').classList.add('open');
 }
 
 function selectBall(ballId) {
+  // Ultra Ball apenas — mantido para compatibilidade de chamadas antigas
   selectedBall = ballId;
-  document.querySelectorAll('.captura-ball-btn').forEach(b => {
-    b.classList.toggle('selected', b.dataset.ball === ballId);
-  });
-  const confirmBtn = document.getElementById('captura-confirm-btn');
-  if (confirmBtn) confirmBtn.disabled = false;
-  const msg = document.getElementById('captura-success-msg');
-  if (msg) msg.classList.remove('show');
-  const aviso = document.getElementById('captura-ball-aviso');
-  if (aviso) aviso.style.display = (ballId === 'premier' || ballId === 'alliance') ? 'flex' : 'none';
-
-  // Atualiza bloco de preço final
-  if (currentCapturaIdx !== null) {
-    const poke = POKEMONS[currentCapturaIdx];
-    const ball = BALLS.find(b => b.id === ballId);
-    const finalPrice = _calcCapturaFinalPrice(poke, ball);
-    const priceData = formatKK(finalPrice);
-    const selBlock = document.getElementById('captura-price-selected');
-    const selKk    = document.getElementById('captura-price-sel-kk');
-    const selBrl   = document.getElementById('captura-price-sel-brl');
-    if (selBlock && priceData) {
-      selKk.textContent  = priceData.label;
-      selBrl.textContent = priceData.brl;
-      selBlock.style.display = 'flex';
-    }
-  }
 }
 
 function confirmCaptura() {
-  if (!selectedBall || currentCapturaIdx === null) return;
-  const poke = POKEMONS[currentCapturaIdx];
-  const ball = BALLS.find(b => b.id === selectedBall);
-  const finalPrice = _calcCapturaFinalPrice(poke, ball);
-  const priceData  = formatKK(finalPrice);
-  const priceStr   = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
+  if (currentCapturaIdx === null) return;
 
-  // ── Adiciona ao carrinho ──
-  // Monta um nome descritivo: "Shiny Charizard (Alliance Ball)"
-  const cartItemName = `${poke.name} (${ball.name})`;
-  // Verifica se já existe um item idêntico no array items
-  let cartKey = items.findIndex(it => it._capturaId === `${currentCapturaIdx}_${selectedBall}`);
-  if (cartKey === -1) {
-    // Cria novo item dinâmico no array items
-    items.push({
-      name: cartItemName,
-      price: finalPrice,
-      image: poke.image,
-      _capturaId: `${currentCapturaIdx}_${selectedBall}`,
-      _ballEmoji: ball.emoji,
-      _ballName: ball.name,
-    });
-    cartKey = items.length - 1;
+  // ── Sessão obrigatória ──
+  const user = (typeof Session !== 'undefined' && Session.isLoggedIn())
+    ? Session.getCurrentUser() : null;
+  if (!user) {
+    if (typeof AuthModal !== 'undefined') AuthModal.open('login');
+    return;
   }
-  cart[cartKey] = (cart[cartKey] || 0) + 1;
-  updateCartBadge();
-  if (!finalPrice) showNoPriceToast(cartItemName);
 
-  const msg = document.getElementById('captura-success-msg');
+  const poke = BALLS[0]; // Ultra Ball — única opção
+  const ball = BALLS[0];
+  const pokeData = POKEMONS[currentCapturaIdx];
+  const finalPrice = _calcCapturaFinalPrice(pokeData, ball);
+  const priceData  = formatKK(finalPrice);
+  const drops = (typeof getPokeDrops === 'function') ? getPokeDrops(pokeData.name) : [];
+
+  const nick = (user.nickname || user.email) || 'Anônimo';
+
+  // ── Item normalizado ──
+  const orderItem = {
+    name:      pokeData.name + ' (Ultra Ball)',
+    qtdTotal:  1,
+    type:      'capture',
+    pokemon:   pokeData.name,
+    tier:      pokeData.tag || '',
+    ball:      'Ultra Ball',
+    price_raw: finalPrice || 0,
+    price_kk:  priceData ? priceData.label : '—',
+    price_brl: priceData ? priceData.brl   : '—',
+    drops:     drops.map(d => d.name),
+  };
+
+  console.log('[CAPTURA] Pedido enviado');
+  console.log('[CAPTURA] Payload:', { nick, item: orderItem });
+
+  // ── Registra no OrdersStorage ──
+  let order = null;
+  if (typeof OrdersStorage !== 'undefined') {
+    const result = OrdersStorage.createOrder({
+      userId:   user.id || null,
+      nickname: nick,
+      items:    [orderItem],
+    });
+    if (result && result.success) {
+      order = result.order;
+      console.log('[CAPTURA] Pedido registrado:', order);
+      if (typeof OrdersUI !== 'undefined') setTimeout(() => OrdersUI.refresh(), 400);
+      if (typeof OrdersNotifications !== 'undefined') {
+        const num = (typeof OrdersProgress !== 'undefined')
+          ? OrdersProgress.formatOrderNumber(order.orderNumber)
+          : '#' + order.orderNumber;
+        OrdersNotifications.show(`Pedido ${num} criado! Aguarde confirmação.`, 'pendente', 6000);
+      }
+    }
+  }
+
+  // ── Feedback visual ──
   const btn = document.getElementById('captura-confirm-btn');
+  const msg = document.getElementById('captura-success-msg');
+  const priceStr = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
   if (msg) {
-    msg.querySelector('#captura-success-text').textContent = `${poke.name} capturado com ${ball.name}${priceStr}!`;
+    const txtEl = document.getElementById('captura-success-text');
+    if (txtEl) txtEl.textContent = `${pokeData.name} adicionado aos pedidos${priceStr}!`;
     msg.classList.add('show');
   }
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span>✓ Captura Registrada</span>`;
+    btn.innerHTML = '<span>✓ Adicionado aos Pedidos</span>';
     btn.style.borderColor = 'rgba(37,211,102,0.5)';
     btn.style.color = '#25d366';
   }
-  setTimeout(() => closeCapturaModal(), 2600);
+  setTimeout(() => closeCapturaModal(), 2200);
 }
 
 function closeCapturaModal() {
@@ -7752,4 +7694,3 @@ function closeHeldModalBtn() {
   if (root) root.innerHTML = '';
   document.body.style.overflow = '';
 }
-
