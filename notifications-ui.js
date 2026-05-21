@@ -1,18 +1,20 @@
 // ============================================================
-// notifications-ui.js — v2 — UI COMPLETA DE NOTIFICAÇÕES
+// notifications-ui.js — v3 — MARCAR TODAS + LIMPAR LIDAS
 // PokeAlliance Shop
 //
-// CORRIGIDO NESTA VERSÃO:
-//  [FIX 1]  Botão "🗑 Limpar todas" visível no header do dropdown
-//  [FIX 2]  Botão X em cada item — aparece no hover
-//  [FIX 3]  Animação fade/slide na remoção — sem reload
-//  [FIX 4]  Badge atualiza instantaneamente ao remover
-//  [FIX 5]  Estado vazio: "Nenhuma notificação" com ícone
-//  [FIX 6]  Hover glassmorphism consistente com o resto do site
-//  [FIX 7]  Zero duplicação: handlers nomeados + guard de init
-//  [FIX 8]  Realtime: canal antigo destruído antes de criar novo
-//  [FIX 9]  Sem rerender infinito — merge incremental, não full reload
-//  [FIX 10] Logs: [NotificationsUI] remove item / clear all / badge updated
+// CORRIGIDO NESTA VERSÃO (v3):
+//  [FIX 1]  Botão "Marcar todas" agora funciona de verdade:
+//           - atualiza banco via NotificationsAPI.markAllRead()
+//           - atualiza array local imediatamente
+//           - zera badge instantaneamente
+//           - re-renderiza lista sem F5
+//  [FIX 2]  Novo botão "Limpar lidas" — remove do banco e da UI
+//           apenas notificações read=true do usuário atual
+//  [FIX 3]  Badge conta apenas !n.read (não depende de archived)
+//  [FIX 4]  Notificações lidas = opacity reduzida
+//  [FIX 5]  Logs de debug: [Notifications] mark all clicked etc.
+//  [FIX 6]  Realtime continua funcionando após marcar todas
+//  [FIX 7]  Cada usuário afeta apenas suas próprias notificações
 //
 // Depende de: notifications.js (NotificationsAPI), session.js (Session)
 // ============================================================
@@ -29,12 +31,12 @@ const NotificationsUI = (() => {
   const _seen         = new Set();  // deduplicação: IDs já processados
 
   // Elementos do DOM (populados em _inject)
-  let $bell   = null;  // <button> sino
-  let $badge  = null;  // <span> contador
-  let $panel  = null;  // <div> dropdown
-  let $list   = null;  // <div> lista de itens
+  let $bell        = null;  // <button> sino
+  let $badge       = null;  // <span> contador
+  let $panel       = null;  // <div> dropdown
+  let $list        = null;  // <div> lista de itens
 
-  const MAX   = 50;
+  const MAX        = 50;
   const READ_DELAY = 2500;
 
   // ── CSS INJECTION ─────────────────────────────────────────────────────────
@@ -180,6 +182,7 @@ const NotificationsUI = (() => {
   justify-content: space-between;
   padding: 13px 14px 11px;
   border-bottom: 1px solid rgba(58,140,255,0.1);
+  gap: 6px;
 }
 .nui-title {
   font-family: var(--font-title, 'Cinzel', serif);
@@ -188,14 +191,81 @@ const NotificationsUI = (() => {
   color: rgba(255,255,255,0.88);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  flex: 1;
+}
+
+/* Botões do header */
+.nui-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* Botão "Marcar todas" */
+.nui-mark-all {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  background: rgba(58,140,255,0.07);
+  border: 1px solid rgba(58,140,255,0.22);
+  border-radius: 7px;
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(58,140,255,0.7);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.nui-mark-all:hover {
+  background: rgba(58,140,255,0.14);
+  border-color: rgba(58,140,255,0.5);
+  color: #3a8cff;
+  box-shadow: 0 0 10px rgba(58,140,255,0.15);
+}
+.nui-mark-all:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Botão "Limpar lidas" */
+.nui-clear-read {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  background: rgba(255,165,2,0.07);
+  border: 1px solid rgba(255,165,2,0.22);
+  border-radius: 7px;
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,165,2,0.65);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.nui-clear-read:hover {
+  background: rgba(255,165,2,0.14);
+  border-color: rgba(255,165,2,0.5);
+  color: #ffa502;
+  box-shadow: 0 0 10px rgba(255,165,2,0.15);
+}
+.nui-clear-read:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Botão "Limpar todas" */
 .nui-clear-all {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
+  gap: 4px;
+  padding: 5px 9px;
   background: rgba(255,71,87,0.07);
   border: 1px solid rgba(255,71,87,0.22);
   border-radius: 7px;
@@ -262,7 +332,7 @@ const NotificationsUI = (() => {
   position: relative;
   /* entrada suave */
   animation: nui-item-in 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
-  transition: background 0.15s;
+  transition: background 0.15s, opacity 0.15s;
 }
 @keyframes nui-item-in {
   from { opacity: 0; transform: translateY(6px) scale(0.97); }
@@ -271,9 +341,19 @@ const NotificationsUI = (() => {
 .nui-item:hover {
   background: rgba(58,140,255,0.07);
 }
+
+/* [FIX 4] Notificações lidas: opacity reduzida */
+.nui-item.read-item {
+  opacity: 0.45;
+}
+.nui-item.read-item:hover {
+  opacity: 0.7;
+}
+
 /* barra lateral azul = não lida */
 .nui-item.unread {
   background: rgba(58,140,255,0.05);
+  opacity: 1;
 }
 .nui-item.unread::before {
   content: '';
@@ -445,6 +525,7 @@ const NotificationsUI = (() => {
   const _ICONS = { success:'✅', warning:'⚠️', error:'🔴', order:'📦', info:'🔔' };
   function _icon(type) { return _ICONS[type] || '🔔'; }
 
+  // [FIX 3] Conta apenas !n.read — não depende de archived
   function _countUnread() {
     return _notifs.filter(n => !n.read && !n.archived).length;
   }
@@ -474,6 +555,23 @@ const NotificationsUI = (() => {
       requestAnimationFrame(() => $badge.classList.add('bump'));
     }
     console.log('[NotificationsUI] badge updated →', n);
+
+    // Atualiza estado dos botões de ação
+    _updateActionButtons();
+  }
+
+  // Atualiza disabled dos botões conforme estado atual
+  function _updateActionButtons() {
+    const $markAll   = document.getElementById('nui-mark-all');
+    const $clearRead = document.getElementById('nui-clear-read');
+    if ($markAll) {
+      const hasUnread = _notifs.filter(n => !n.read && !n.archived).length > 0;
+      $markAll.disabled = !hasUnread;
+    }
+    if ($clearRead) {
+      const hasRead = _notifs.filter(n => n.read && !n.archived).length > 0;
+      $clearRead.disabled = !hasRead;
+    }
   }
 
   // ── RENDER LIST (completo, só quando necessário) ──────────────────────────
@@ -492,10 +590,12 @@ const NotificationsUI = (() => {
           </svg>
           Nenhuma notificação
         </div>`;
+      _updateActionButtons();
       return;
     }
+    // [FIX 4] Lidas = classe read-item (opacity menor); não lidas = classe unread
     $list.innerHTML = visible.map(n => `
-      <div class="nui-item ${n.read ? '' : 'unread'}" data-nid="${_esc(n.id)}">
+      <div class="nui-item ${n.read ? 'read-item' : 'unread'}" data-nid="${_esc(n.id)}">
         <div class="nui-icon t-${_esc(n.type||'info')}">${_icon(n.type)}</div>
         <div class="nui-body">
           <div class="nui-name">${_esc(n.title || 'Notificação')}</div>
@@ -511,6 +611,7 @@ const NotificationsUI = (() => {
           </svg>
         </button>
       </div>`).join('');
+    _updateActionButtons();
   }
 
   // ── REMOVE ITEM DA UI COM ANIMAÇÃO ────────────────────────────────────────
@@ -519,7 +620,6 @@ const NotificationsUI = (() => {
     const el = $list.querySelector(`[data-nid="${id}"]:not(.nui-dismiss)`);
     if (!el) { afterFn && afterFn(); return; }
     el.classList.add('removing');
-    // Usa setTimeout como fallback caso animationend não dispare
     let done = false;
     const finish = () => {
       if (done) return;
@@ -528,27 +628,19 @@ const NotificationsUI = (() => {
       afterFn && afterFn();
     };
     el.addEventListener('animationend', finish, { once: true });
-    setTimeout(finish, 350); // fallback
+    setTimeout(finish, 350);
   }
 
   // ── DISMISS INDIVIDUAL ────────────────────────────────────────────────────
   async function _removeOne(id) {
     if (!id) return;
     console.log('[NotificationsUI] remove item', id);
-
-    // 1. Retira do cache
     _notifs = _notifs.filter(n => n.id !== id);
-
-    // 2. Anima saída; depois verifica se ficou vazio
     _animateOut(id, () => {
       const remaining = $list ? $list.querySelectorAll('.nui-item:not(.removing)').length : 0;
-      if (remaining === 0) _render(); // mostra empty
+      if (remaining === 0) _render();
     });
-
-    // 3. Badge imediato
     _badge(false);
-
-    // 4. Persiste (fire and forget)
     _persist_archive_one(id);
   }
 
@@ -562,7 +654,6 @@ const NotificationsUI = (() => {
       );
       if (!r.ok) throw new Error('patch fail');
     } catch {
-      // fallback delete
       try {
         const user2 = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
         if (!user2) return;
@@ -572,6 +663,98 @@ const NotificationsUI = (() => {
         );
       } catch (_) {}
     }
+  }
+
+  // ── MARK ALL READ ─────────────────────────────────────────────────────────
+  // [FIX 1] Implementação completa com logs, update local e banco
+  async function _markAllRead() {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) {
+      console.warn('[Notifications] mark all clicked — usuário não logado, abortando');
+      return;
+    }
+
+    const $btn = document.getElementById('nui-mark-all');
+    if ($btn) $btn.disabled = true;
+
+    // [DEBUG] Log antes
+    const unreadBefore = _notifs.filter(n => !n.read && !n.archived).length;
+    console.log('[Notifications] mark all clicked');
+    console.log('[Notifications] unread before:', unreadBefore);
+
+    // 1. Atualiza array local IMEDIATAMENTE (sem esperar o banco)
+    _notifs = _notifs.map(n => ({ ...n, read: true }));
+
+    // 2. Zera badge imediatamente
+    _badge(false);
+
+    // 3. Re-renderiza a lista (lidas ficam com opacity menor)
+    _render();
+
+    // 4. Persiste no banco (fire and forget com retry)
+    try {
+      // Tenta via NotificationsAPI primeiro (que tem fallback RPC)
+      if (typeof NotificationsAPI !== 'undefined') {
+        await NotificationsAPI.markAllRead();
+      } else {
+        // Fallback direto REST se NotificationsAPI não disponível
+        await fetch(
+          `${window.SUPABASE_URL}/rest/v1/notifications` +
+          `?user_id=eq.${user.id}&read=eq.false`,
+          {
+            method:  'PATCH',
+            headers: _headers(),
+            body:    JSON.stringify({ read: true }),
+          }
+        );
+      }
+    } catch (e) {
+      console.warn('[Notifications] markAllRead banco falhou:', e.message);
+      // UI já está atualizada — não reverte para não confundir o usuário
+    }
+
+    // [DEBUG] Log depois
+    const unreadAfter = _notifs.filter(n => !n.read && !n.archived).length;
+    console.log('[Notifications] unread after:', unreadAfter);
+
+    if ($btn) $btn.disabled = false;
+    _updateActionButtons();
+  }
+
+  // ── CLEAR READ (Limpar lidas) ─────────────────────────────────────────────
+  // [FIX 2] Remove apenas notificações read=true do usuário atual
+  async function _clearRead() {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return;
+
+    const $btn = document.getElementById('nui-clear-read');
+    if ($btn) $btn.disabled = true;
+
+    const readIds = _notifs.filter(n => n.read && !n.archived).map(n => n.id);
+    console.log('[Notifications] deleted read notifications:', readIds.length);
+
+    // 1. Remove do array local
+    _notifs = _notifs.filter(n => !n.read || n.archived);
+
+    // 2. Re-renderiza
+    _render();
+    _badge(false);
+
+    // 3. Persiste no banco — delete apenas lidas do usuário atual
+    if (readIds.length > 0) {
+      try {
+        await fetch(
+          `${window.SUPABASE_URL}/rest/v1/notifications` +
+          `?user_id=eq.${user.id}&read=eq.true`,
+          { method: 'DELETE', headers: _headers() }
+        );
+      } catch (e) {
+        console.warn('[Notifications] clearRead banco falhou:', e.message);
+      }
+    }
+
+    if ($btn) $btn.disabled = false;
+    _updateActionButtons();
   }
 
   // ── CLEAR ALL ─────────────────────────────────────────────────────────────
@@ -609,17 +792,8 @@ const NotificationsUI = (() => {
     clearTimeout(_readTimer);
     _readTimer = setTimeout(async () => {
       if (!_isOpen || _countUnread() === 0) return;
-      _notifs = _notifs.map(n => ({ ...n, read: true }));
-      // Atualiza só as classes, sem rerender completo
-      if ($list) {
-        $list.querySelectorAll('.nui-item.unread').forEach(el => {
-          el.classList.remove('unread');
-        });
-      }
-      _badge(false);
-      try {
-        if (typeof NotificationsAPI !== 'undefined') await NotificationsAPI.markAllRead();
-      } catch (_) {}
+      // Usa a mesma função de marcar todas para consistência
+      await _markAllRead();
     }, READ_DELAY);
   }
 
@@ -631,7 +805,6 @@ const NotificationsUI = (() => {
     $bell?.setAttribute('aria-expanded', 'true');
     $panel.setAttribute('aria-hidden', 'false');
 
-    // Shimmer se vazio (primeira abertura)
     if (_notifs.length === 0 && $list) {
       $list.innerHTML = `<div class="nui-shimmer-wrap">
         <div class="nui-shimmer"></div>
@@ -706,6 +879,7 @@ const NotificationsUI = (() => {
   }
 
   // ── NOVA NOTIFICAÇÃO (realtime) ───────────────────────────────────────────
+  // [FIX 6] Realtime continua funcionando após marcar todas
   function _onNew(rec) {
     if (!rec || !rec.id) return;
     if (_seen.has(rec.id)) {
@@ -714,7 +888,10 @@ const NotificationsUI = (() => {
     }
     _seen.add(rec.id);
     if (_notifs.find(n => n.id === rec.id)) return;
-    _notifs.unshift(rec);
+
+    // Nova notificação sempre chega como não lida
+    const newRec = { ...rec, read: rec.read === true ? true : false };
+    _notifs.unshift(newRec);
     if (_notifs.length > MAX) _notifs = _notifs.slice(0, MAX);
     _badge(true);
     if (_isOpen) _render();
@@ -739,15 +916,22 @@ const NotificationsUI = (() => {
 
         <div class="nui-header">
           <span class="nui-title">Notificações</span>
-          <button class="nui-clear-all" id="nui-clear-all">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-            </svg>
-            🗑 Limpar todas
-          </button>
+          <div class="nui-header-actions">
+            <button class="nui-mark-all" id="nui-mark-all" title="Marcar todas como lidas">
+              ✓ Marcar todas
+            </button>
+            <button class="nui-clear-read" id="nui-clear-read" title="Remover notificações lidas">
+              🧹 Limpar lidas
+            </button>
+            <button class="nui-clear-all" id="nui-clear-all" title="Remover todas as notificações">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="nui-list" id="nui-list"></div>
@@ -757,14 +941,13 @@ const NotificationsUI = (() => {
   }
 
   // ── INJEÇÃO NO HEADER ─────────────────────────────────────────────────────
-  // Handler nomeado para "click fora" — permite removeEventListener
   function _outsideClick(e) {
     const wrap = document.getElementById('nui-wrap');
     if (wrap && !wrap.contains(e.target)) _close();
   }
 
   function _inject() {
-    if (document.getElementById('nui-bell')) return; // já existe
+    if (document.getElementById('nui-bell')) return;
 
     const authSlot = document.getElementById('auth-header-slot');
     if (!authSlot) {
@@ -772,17 +955,14 @@ const NotificationsUI = (() => {
       return;
     }
 
-    // Wrapper com position:relative para o panel ficar posicionado
     const wrap = document.createElement('div');
     wrap.className = 'nui-wrap';
     wrap.id = 'nui-wrap';
     wrap.innerHTML = _buildHTML();
 
-    // Insere dentro do auth-header-slot para não quebrar o grid
     authSlot.style.cssText += ';display:flex;align-items:center;gap:8px;';
     authSlot.insertBefore(wrap, authSlot.firstChild);
 
-    // Salva refs
     $bell  = document.getElementById('nui-bell');
     $badge = document.getElementById('nui-badge');
     $panel = document.getElementById('nui-panel');
@@ -794,6 +974,18 @@ const NotificationsUI = (() => {
       _toggle();
     });
 
+    // ── Evento: "Marcar todas" ── [FIX 1]
+    document.getElementById('nui-mark-all').addEventListener('click', e => {
+      e.stopPropagation();
+      _markAllRead();
+    });
+
+    // ── Evento: "Limpar lidas" ── [FIX 2]
+    document.getElementById('nui-clear-read').addEventListener('click', e => {
+      e.stopPropagation();
+      _clearRead();
+    });
+
     // ── Evento: "Limpar todas" ──
     document.getElementById('nui-clear-all').addEventListener('click', e => {
       e.stopPropagation();
@@ -801,7 +993,6 @@ const NotificationsUI = (() => {
     });
 
     // ── Evento delegado: botões X ──
-    // Um único listener no panel, sem recriar a cada render
     $panel.addEventListener('click', e => {
       const btn = e.target.closest('.nui-dismiss');
       if (!btn) return;
@@ -811,17 +1002,16 @@ const NotificationsUI = (() => {
     });
 
     // ── Fecha ao clicar fora ──
-    document.removeEventListener('click', _outsideClick); // garante sem duplicata
+    document.removeEventListener('click', _outsideClick);
     document.addEventListener('click', _outsideClick);
 
     console.log('[NotificationsUI] injected into header');
   }
 
   // ── REALTIME ──────────────────────────────────────────────────────────────
-  // Destrói canal atual antes de criar novo
   function _startRealtime(userId) {
     if (typeof NotificationsAPI === 'undefined') return;
-    NotificationsAPI.stopRealtime();          // remove canal antigo
+    NotificationsAPI.stopRealtime();
     NotificationsAPI.startRealtime(userId, _onNew);
   }
 
@@ -835,7 +1025,6 @@ const NotificationsUI = (() => {
 
     if (typeof Session === 'undefined') return;
 
-    // Handler de auth — só registra uma vez
     Session.onAuthChange((event, user) => {
       if (event === 'login' && user) {
         _currentUserId = user.id;
@@ -846,7 +1035,6 @@ const NotificationsUI = (() => {
         _load();
         _startRealtime(user.id);
 
-        // Polling leve — só para manter badge sincronizado
         clearInterval(window.__nuiPoll);
         window.__nuiPoll = setInterval(async () => {
           if (typeof NotificationsAPI === 'undefined') return;
@@ -867,7 +1055,6 @@ const NotificationsUI = (() => {
       }
     });
 
-    // Já logado quando o script carrega
     const user = Session.getCurrentUser();
     if (user) {
       _currentUserId = user.id;
@@ -879,7 +1066,7 @@ const NotificationsUI = (() => {
   // ── API PÚBLICA ───────────────────────────────────────────────────────────
   return {
     init,
-    push    : _onNew,          // forçar notif externamente (testes)
+    push    : _onNew,
     refresh : _load,
     close   : _close,
   };

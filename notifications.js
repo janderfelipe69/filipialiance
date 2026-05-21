@@ -292,13 +292,25 @@ const NotificationsAPI = (() => {
   async function markAllRead() {
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     if (!user) return false;
+
+    console.log('[Notifications] mark all clicked');
+
+    // Conta não lidas antes
+    let unreadBefore = 0;
     try {
-      const res = await fetch(
-        `${window.SUPABASE_URL}/rest/v1/rpc/mark_all_notifications_read`,
-        { method: 'POST', headers: _headers(), body: JSON.stringify({}) }
+      const countRes = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications` +
+        `?user_id=eq.${user.id}&read=eq.false&select=id`,
+        { headers: _headers() }
       );
-      if (res.ok) return true;
+      if (countRes.ok) {
+        const rows = await countRes.json();
+        unreadBefore = Array.isArray(rows) ? rows.length : 0;
+      }
     } catch {}
+    console.log('[Notifications] unread before:', unreadBefore);
+
+    // [FIX] REST direto primeiro — não depende de RPC inexistente
     try {
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/notifications` +
@@ -309,10 +321,26 @@ const NotificationsAPI = (() => {
           body: JSON.stringify({ read: true }),
         }
       );
-      return res.ok;
-    } catch {
-      return false;
-    }
+      if (res.ok) {
+        console.log('[Notifications] unread after: 0');
+        return true;
+      }
+    } catch {}
+
+    // Fallback: RPC (se o banco tiver a função)
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/rpc/mark_all_notifications_read`,
+        { method: 'POST', headers: _headers(), body: JSON.stringify({}) }
+      );
+      if (res.ok) {
+        console.log('[Notifications] unread after: 0');
+        return true;
+      }
+    } catch {}
+
+    console.warn('[Notifications] markAllRead falhou em todas as tentativas');
+    return false;
   }
 
   // ── Realtime — WebSocket nativo (protocolo Phoenix) ──────────────────────
