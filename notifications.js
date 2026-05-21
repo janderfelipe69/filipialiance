@@ -1,5 +1,5 @@
 // ============================================================
-// notifications.js — v6 — DEBUG + REALTIME FIX
+// notifications.js — v7 — ISOLAMENTO POR USUÁRIO + LOGS PADRONIZADOS
 // PokeAlliance Shop
 //
 // CAUSAS RAIZ IDENTIFICADAS E CORRIGIDAS NESTA VERSÃO:
@@ -34,6 +34,36 @@
 //    fallback: message || content || body || text.
 //
 // Depende de: supabase-client.js, session.js
+//
+// ISOLAMENTO POR USUÁRIO (v7):
+//   Cada camada adiciona uma barreira independente:
+//   1. RLS no banco (SELECT/INSERT/UPDATE apenas para auth.uid() = user_id)
+//   2. Query com ?user_id=eq.${user.id} (filtro explícito no REST)
+//   3. Filtro de defesa no frontend após receber a resposta
+//   4. Canal realtime com filter: user_id=eq.${userId} (somente INSERTs do próprio usuário)
+//   5. Validação de user_id no onmessage antes de chamar o callback
+//
+// POLICIES RLS RECOMENDADAS (rodar no SQL Editor do Supabase):
+//   -- SELECT: usuário só lê as próprias notificações
+//   CREATE POLICY "notif_select_own" ON notifications
+//     FOR SELECT USING (auth.uid() = user_id);
+//
+//   -- INSERT: admin pode inserir para qualquer user_id (via service_role ou role check)
+//   CREATE POLICY "notif_insert_admin" ON notifications
+//     FOR INSERT WITH CHECK (
+//       EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+//       OR auth.uid() = user_id
+//     );
+//
+//   -- UPDATE: usuário só atualiza as próprias (para marcar como lido)
+//   CREATE POLICY "notif_update_own" ON notifications
+//     FOR UPDATE USING (auth.uid() = user_id);
+//
+//   -- DELETE: somente admins
+//   CREATE POLICY "notif_delete_admin" ON notifications
+//     FOR DELETE USING (
+//       EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+//     );
 // ============================================================
 
 const NotificationsAPI = (() => {
@@ -65,7 +95,60 @@ const NotificationsAPI = (() => {
 
   // ── CRUD ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Cria uma notificação diretamente na tabela (sem RPC).
+   * SEMPRE exige user_id explícito — nunca usa o usuário logado como destino.
+   * Isso garante que admins não recebam notificações de clientes e vice-versa.
+   */
   async function createNotification({ user_id, pedido_id, title, message, type }) {
+    // Validação de isolamento: user_id é obrigatório
+    if (!user_id) {
+      console.error('[Notifications] createNotification: user_id ausente — abortando. Notificações DEVEM ter destinatário explícito.');
+      return null;
+    }
+
+    const currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    console.log('[Notifications] criando notificação — destinatário user_id:', user_id,
+      '| pedido_id:', pedido_id || null,
+      '| tipo:', type || 'info',
+      '| criado por:', currentUser?.id || '(sistema)');
+
+    const payload = {
+      user_id:    user_id,          // DESTINATÁRIO: sempre o dono do pedido
+      pedido_id:  pedido_id || null,
+      title:      title || 'Notificação',
+      message:    message || '',
+      type:       type || 'info',
+      read:       false,
+      created_at: new Date().toISOString(),
+    };
+
+    try {
+      // Tenta via REST direto (mais confiável que RPC para garantir todos os campos)
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications`,
+        {
+          method:  'POST',
+          headers: { ..._headers(), 'Prefer': 'return=minimal' },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        console.error('[Notifications] createNotification falhou (REST):', res.status, txt);
+        // Fallback: tenta via RPC
+        return await _createViaRPC(user_id, pedido_id, title, message, type);
+      }
+      console.log('[Notifications] notificação criada para user_id:', user_id);
+      return { ok: true };
+    } catch (e) {
+      console.warn('[Notifications] createNotification erro:', e.message);
+      return null;
+    }
+  }
+
+  /** Fallback RPC para createNotification */
+  async function _createViaRPC(user_id, pedido_id, title, message, type) {
     try {
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/create_notification`,
@@ -75,7 +158,7 @@ const NotificationsAPI = (() => {
           body: JSON.stringify({
             p_user_id:   user_id,
             p_pedido_id: pedido_id || null,
-            p_title:     title,
+            p_title:     title || 'Notificação',
             p_message:   message || '',
             p_type:      type || 'info',
           }),
@@ -83,12 +166,12 @@ const NotificationsAPI = (() => {
       );
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
-        console.error('[NotificationsAPI] createNotification falhou:', res.status, txt);
+        console.error('[Notifications] createNotification fallback RPC falhou:', res.status, txt);
         return null;
       }
       return res.json();
     } catch (e) {
-      console.warn('[NotificationsAPI] createNotification erro:', e.message);
+      console.warn('[Notifications] _createViaRPC erro:', e.message);
       return null;
     }
   }
@@ -111,18 +194,18 @@ const NotificationsAPI = (() => {
 
     limit = Math.min(limit || 30, 100);
 
-    console.log('[Notifications] Buscando para user_id:', user.id, '| limit:', limit);
+    // [ISOLAMENTO] Filtra SEMPRE pelo user_id do usuário logado.
+    // Mesmo que RLS esteja mal configurado, o query tem a cláusula explícita.
+    console.log('[Notifications] carregando do user:', user.id, '| limit:', limit);
 
     try {
-      // COLUNAS CONFIRMADAS NA TABELA: id, user_id, pedido_id, title, message, type, read, created_at
-      // REMOVIDO 'read_at' — coluna inexistente, causava HTTP 400
+      // COLUNAS: id, user_id, pedido_id, title, message, type, read, created_at
+      // FILTRO user_id=eq. garante isolamento no query, além do RLS no banco.
       const url = `${window.SUPABASE_URL}/rest/v1/notifications` +
-        `?user_id=eq.${user.id}` +
+        `?user_id=eq.${user.id}` +       // [ISOLAMENTO] filtro obrigatório
         `&order=created_at.desc` +
         `&limit=${limit}` +
         `&select=id,user_id,pedido_id,title,message,type,read,created_at`;
-
-      console.log('[Notifications] query url:', url);
 
       const res = await fetch(url, { headers: _headers() });
 
@@ -134,28 +217,34 @@ const NotificationsAPI = (() => {
 
       const rows = await res.json();
 
-      // ── LOG RAW obrigatório ────────────────────────────────────────────
-      console.log('[Notifications] query result', rows);
-
       if (!Array.isArray(rows) || rows.length === 0) {
-        console.log('[Notifications] Banco retornou 0 registros para este user_id.');
-        console.log('[Notifications] → Verifique: a notificação foi inserida com user_id =', user.id, '?');
+        console.log('[Notifications] total carregado: 0 — nenhuma notificação para user_id:', user.id);
         return [];
       }
 
-      // Deduplicação defensiva
+      // [ISOLAMENTO] Filtro de defesa no frontend: descarta registros de outros usuários
+      // caso o banco retorne algo inesperado (RLS mal configurado).
+      const own = rows.filter(r => {
+        if (r.user_id && r.user_id !== user.id) {
+          console.warn('[Notifications] ⚠️ registro de outro user descartado no frontend — id:', r.id, '| user_id:', r.user_id, '!= esperado:', user.id);
+          return false;
+        }
+        return true;
+      });
+
+      // Deduplicação por ID
       const seen = new Set();
-      const unique = rows.filter(r => {
+      const unique = own.filter(r => {
         if (!r.id || seen.has(r.id)) return false;
         seen.add(r.id);
         return true;
       });
 
-      console.log('[Notifications] Renderizando:', unique);
+      console.log('[Notifications] total carregado:', unique.length, '| user_id:', user.id);
 
       return unique;
     } catch (e) {
-      console.warn('[NotificationsAPI] fetchMyNotifications:', e.message);
+      console.warn('[Notifications] fetchMyNotifications erro:', e.message);
       return [];
     }
   }
@@ -164,6 +253,7 @@ const NotificationsAPI = (() => {
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     if (!user) return 0;
     try {
+      // [ISOLAMENTO] Filtra por user_id=eq. + read=eq.false — dupla garantia
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/notifications` +
         `?user_id=eq.${user.id}&read=eq.false&select=id`,
@@ -171,7 +261,9 @@ const NotificationsAPI = (() => {
       );
       if (!res.ok) return 0;
       const rows = await res.json();
-      return Array.isArray(rows) ? rows.length : 0;
+      // [ISOLAMENTO] Filtro de defesa: conta apenas registros do próprio usuário
+      const own = Array.isArray(rows) ? rows.filter(r => !r.user_id || r.user_id === user.id) : [];
+      return own.length;
     } catch {
       return 0;
     }
@@ -179,13 +271,15 @@ const NotificationsAPI = (() => {
 
   async function markNotificationRead(id) {
     if (!id) return false;
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return false;
     try {
+      // [ISOLAMENTO] Filtra por id=eq. E user_id=eq. para impedir marcar notif de outro usuário
       const res = await fetch(
-        `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`,
+        `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user.id}`,
         {
           method:  'PATCH',
           headers: { ..._headers(), 'Prefer': 'return=minimal' },
-          // REMOVIDO 'read_at' — coluna inexistente na tabela
           body: JSON.stringify({ read: true }),
         }
       );
@@ -255,7 +349,7 @@ const NotificationsAPI = (() => {
       + '?apikey=' + window.SUPABASE_KEY
       + '&vsn=1.0.0';
 
-    console.log('[Realtime] Iniciando WebSocket (ref=' + myRef + ') para user_id:', userId);
+    console.log('[Notifications] realtime user:', userId, '| iniciando WebSocket (ref=' + myRef + ')');
 
     let ws;
     try {
@@ -318,8 +412,8 @@ const NotificationsAPI = (() => {
       // Inscrição confirmada
       if (msg.event === 'phx_reply' && msg.payload?.status === 'ok') {
         _wsActive = true;
-        console.log('[Realtime] ✅ Canal inscrito com sucesso (ref=' + myRef + ')');
-        console.log('[Realtime] 📡 Aguardando INSERTs em public.notifications WHERE user_id =', userId);
+        console.log('[Notifications] realtime user:', userId, '| canal conectado (ref=' + myRef + ')');
+        console.log('[Notifications] realtime user:', userId, '| escutando INSERTs WHERE user_id =', userId);
         console.log('%c[Realtime] ⚠️  CHECKLIST SE NADA CHEGAR:', 'color:orange;font-weight:bold');
         console.log('  1. Supabase Dashboard → Table Editor → notifications → Enable Realtime (toggle)');
         console.log('  2. Supabase Dashboard → Database → Replication → supabase_realtime publication');
@@ -437,7 +531,102 @@ const NotificationsAPI = (() => {
     _subscribeRef++;
     _stopInternal();
     _seenIds.clear();
-    console.log('[NotificationsAPI] Realtime parado definitivamente.');
+    console.log('[Notifications] realtime user:', _currentUserId || '(nenhum)', '| canal removido definitivamente.');
+  }
+
+  // ── Archive / Delete ─────────────────────────────────────────────────────
+
+  /**
+   * Arquiva uma notificação (soft delete: archived=true, read=true).
+   * Fallback: DELETE direto se PATCH falhar (coluna archived inexistente).
+   */
+  async function archiveNotification(id) {
+    if (!id) return false;
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return false;
+    console.log('[Notifications] removida id:', id);
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user.id}`,
+        {
+          method:  'PATCH',
+          headers: { ..._headers(), 'Prefer': 'return=minimal' },
+          body:    JSON.stringify({ archived: true, read: true }),
+        }
+      );
+      if (res.ok) return true;
+    } catch {}
+    // Fallback DELETE
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user.id}`,
+        { method: 'DELETE', headers: _headers() }
+      );
+      return res.ok;
+    } catch { return false; }
+  }
+
+  /**
+   * Arquiva TODAS as notificações do usuário (soft delete).
+   * Fallback: DELETE direto se PATCH falhar.
+   */
+  async function archiveAll() {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return false;
+    console.log('[Notifications] todas limpas');
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}`,
+        {
+          method:  'PATCH',
+          headers: { ..._headers(), 'Prefer': 'return=minimal' },
+          body:    JSON.stringify({ archived: true, read: true }),
+        }
+      );
+      if (res.ok) return true;
+    } catch {}
+    // Fallback DELETE
+    try {
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}`,
+        { method: 'DELETE', headers: _headers() }
+      );
+      return res.ok;
+    } catch { return false; }
+  }
+
+  /**
+   * Deleta notificações antigas além do limite (para limpeza automática).
+   * Mantém as N mais recentes por data.
+   */
+  async function pruneOld(keepCount = 50) {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return;
+    try {
+      // Busca todas as IDs ordenadas por data desc
+      const res = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications` +
+        `?user_id=eq.${user.id}` +
+        `&order=created_at.desc` +
+        `&select=id`,
+        { headers: _headers() }
+      );
+      if (!res.ok) return;
+      const rows = await res.json();
+      if (!Array.isArray(rows) || rows.length <= keepCount) return;
+
+      const toDelete = rows.slice(keepCount).map(r => r.id);
+      console.log('[Notifications] poda automática — removendo', toDelete.length, 'antigas');
+
+      // Deleta em batch por in(id1,id2,...)
+      const idList = toDelete.join(',');
+      await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?id=in.(${idList})&user_id=eq.${user.id}`,
+        { method: 'DELETE', headers: _headers() }
+      );
+    } catch (e) {
+      console.warn('[Notifications] pruneOld erro:', e.message);
+    }
   }
 
   // ── Exporta API Pública ──────────────────────────────────────────────────
@@ -447,6 +636,9 @@ const NotificationsAPI = (() => {
     countUnread,
     markNotificationRead,
     markAllRead,
+    archiveNotification,
+    archiveAll,
+    pruneOld,
     startRealtime,
     stopRealtime,
   };

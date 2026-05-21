@@ -610,9 +610,18 @@ const OrdersAdmin = (() => {
             'Authorization': 'Bearer ' + jwt,
             'Prefer':        'return=minimal',
           },
-          body: JSON.stringify({ user_id: userId, type, title, message }),
+          body: JSON.stringify({
+            user_id:    userId,         // DESTINATÁRIO: dono do pedido, não o admin
+            pedido_id:  Number(supabaseOrderId),
+            type:       type,
+            title:      title,
+            message:    message,
+            read:       false,
+            created_at: new Date().toISOString(),
+          }),
         }
       );
+      console.log('[Notifications] notificação criada para user_id:', userId, '| pedido_id:', supabaseOrderId, '| tipo:', type);
     } catch (e) {
       console.warn('[OrdersAdmin] _insertNotification falhou silenciosamente:', e.message);
     }
