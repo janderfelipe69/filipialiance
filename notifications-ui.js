@@ -1,18 +1,18 @@
 // ============================================================
-// notifications-ui.js — v1 — Sistema de Notificações UI
+// notifications-ui.js — v2 — UI COMPLETA DE NOTIFICAÇÕES
 // PokeAlliance Shop
 //
-// FEATURES:
-//  [1] Botão "Limpar todas" — remove todas da UI + banco
-//  [2] Botão X individual — remove notificação por ID
-//  [3] Remoção instantânea da UI + badge atualizado
-//  [4] Sistema read=true / archived=true (soft delete)
-//  [5] Badge mostra apenas não lidas
-//  [6] Abre dropdown → marca como lidas após 2s
-//  [7] Máximo 50 notificações por usuário (limpeza automática)
-//  [8] Animações: fade, slide, glassmorphism consistente
-//  [9] Deduplicação robusta (seenIds + Set local)
-// [10] Logs padronizados [Notifications]
+// CORRIGIDO NESTA VERSÃO:
+//  [FIX 1]  Botão "🗑 Limpar todas" visível no header do dropdown
+//  [FIX 2]  Botão X em cada item — aparece no hover
+//  [FIX 3]  Animação fade/slide na remoção — sem reload
+//  [FIX 4]  Badge atualiza instantaneamente ao remover
+//  [FIX 5]  Estado vazio: "Nenhuma notificação" com ícone
+//  [FIX 6]  Hover glassmorphism consistente com o resto do site
+//  [FIX 7]  Zero duplicação: handlers nomeados + guard de init
+//  [FIX 8]  Realtime: canal antigo destruído antes de criar novo
+//  [FIX 9]  Sem rerender infinito — merge incremental, não full reload
+//  [FIX 10] Logs: [NotificationsUI] remove item / clear all / badge updated
 //
 // Depende de: notifications.js (NotificationsAPI), session.js (Session)
 // ============================================================
@@ -20,776 +20,812 @@
 const NotificationsUI = (() => {
   'use strict';
 
-  // ── Estado ───────────────────────────────────────────────────────────────
-  let _notifications  = [];         // cache local
+  // ── Estado global (singleton) ─────────────────────────────────────────────
+  let _notifs         = [];         // cache local [{id, title, message, type, read, archived, created_at}]
   let _isOpen         = false;
-  let _readTimer      = null;       // timer p/ marcar como lidas ao abrir
-  let _badgeEl        = null;
-  let _panelEl        = null;
-  let _bellEl         = null;
+  let _readTimer      = null;
   let _initialized    = false;
   let _currentUserId  = null;
-  const _localSeen    = new Set();  // deduplicação adicional no frontend
+  const _seen         = new Set();  // deduplicação: IDs já processados
 
-  const MAX_NOTIFICATIONS = 50;
-  const READ_DELAY_MS     = 2000;  // 2s após abrir dropdown
+  // Elementos do DOM (populados em _inject)
+  let $bell   = null;  // <button> sino
+  let $badge  = null;  // <span> contador
+  let $panel  = null;  // <div> dropdown
+  let $list   = null;  // <div> lista de itens
 
-  // ── Injeção de CSS ───────────────────────────────────────────────────────
+  const MAX   = 50;
+  const READ_DELAY = 2500;
 
+  // ── CSS INJECTION ─────────────────────────────────────────────────────────
   function _injectStyles() {
-    if (document.getElementById('notif-ui-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'notif-ui-styles';
-    style.textContent = `
-/* ── Bell Button ─────────────────────────────────────────────────────────── */
-.notif-bell-btn {
+    if (document.getElementById('nui-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'nui-styles';
+    s.textContent = `
+
+/* ═══════════════════════════════════════════════════
+   WRAPPER — mantém panel posicionado relativo ao bell
+   ═══════════════════════════════════════════════════ */
+.nui-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   BOTÃO SINO
+   ═══════════════════════════════════════════════════ */
+.nui-bell {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: rgba(58,140,255,0.08);
-  border: 1.5px solid rgba(58,140,255,0.2);
+  padding: 0;
+  background: rgba(58,140,255,0.07);
+  border: 1.5px solid rgba(58,140,255,0.18);
   border-radius: 10px;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.55);
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
   flex-shrink: 0;
 }
-.notif-bell-btn:hover {
-  background: rgba(58,140,255,0.15);
-  border-color: rgba(58,140,255,0.45);
+.nui-bell:hover {
+  background: rgba(58,140,255,0.14);
+  border-color: rgba(58,140,255,0.4);
   color: #fff;
-  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(58,140,255,0.2);
 }
-.notif-bell-btn.has-unread {
-  border-color: rgba(58,140,255,0.5);
-  color: rgba(255,255,255,0.9);
+.nui-bell.is-unread {
+  border-color: rgba(58,140,255,0.45);
+  color: rgba(255,255,255,0.85);
+  box-shadow: 0 0 10px rgba(58,140,255,0.15);
 }
-.notif-bell-btn.has-unread svg {
-  animation: notif-bell-ring 0.6s ease 0.3s both;
+.nui-bell.is-unread .nui-bell-icon {
+  animation: nui-ring 0.7s ease 0.2s both;
 }
-@keyframes notif-bell-ring {
-  0%,100% { transform: rotate(0); }
-  20%      { transform: rotate(-12deg); }
-  40%      { transform: rotate(12deg); }
-  60%      { transform: rotate(-8deg); }
-  80%      { transform: rotate(8deg); }
+@keyframes nui-ring {
+  0%,100% { transform: rotate(0deg); }
+  15%     { transform: rotate(-14deg); }
+  35%     { transform: rotate(14deg); }
+  55%     { transform: rotate(-9deg); }
+  75%     { transform: rotate(9deg); }
 }
 
-/* ── Badge ───────────────────────────────────────────────────────────────── */
-.notif-badge {
+/* ═══════════════════════════════════════════════════
+   BADGE (bolinha vermelha)
+   ═══════════════════════════════════════════════════ */
+.nui-badge {
   position: absolute;
   top: -5px;
   right: -5px;
-  min-width: 16px;
-  height: 16px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 4px;
   background: linear-gradient(135deg, #ff4757 0%, #c0392b 100%);
-  border: 2px solid #040810;
-  border-radius: 8px;
+  border: 2.5px solid #040810;
+  border-radius: 9px;
   font-family: var(--font-body, 'Rajdhani', sans-serif);
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
-  opacity: 0;
-  transform: scale(0.5);
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
   pointer-events: none;
+  /* escondido por padrão */
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
 }
-.notif-badge.visible {
+.nui-badge.show {
   opacity: 1;
   transform: scale(1);
 }
-.notif-badge.bump {
-  animation: notif-badge-bump 0.3s cubic-bezier(0.34,1.56,0.64,1);
+.nui-badge.bump {
+  animation: nui-bump 0.32s cubic-bezier(0.34,1.56,0.64,1);
 }
-@keyframes notif-badge-bump {
+@keyframes nui-bump {
   0%   { transform: scale(1); }
-  50%  { transform: scale(1.4); }
+  45%  { transform: scale(1.45); }
   100% { transform: scale(1); }
 }
 
-/* ── Dropdown Panel ──────────────────────────────────────────────────────── */
-.notif-panel {
+/* ═══════════════════════════════════════════════════
+   DROPDOWN PANEL — glassmorphism
+   ═══════════════════════════════════════════════════ */
+.nui-panel {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
   width: 340px;
-  max-width: calc(100vw - 24px);
-  background: linear-gradient(145deg, rgba(13,30,61,0.97) 0%, rgba(4,8,16,0.98) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  max-width: calc(100vw - 20px);
+  background: linear-gradient(145deg,
+    rgba(13,30,61,0.96) 0%,
+    rgba(6,14,32,0.97) 55%,
+    rgba(4,8,16,0.98) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(58,140,255,0.2);
   border-radius: 14px;
   box-shadow:
-    0 24px 64px rgba(0,0,0,0.7),
-    0 0 0 1px rgba(58,140,255,0.04) inset,
-    0 1px 0 rgba(58,140,255,0.12) inset;
+    0 0 0 1px rgba(58,140,255,0.05) inset,
+    0 2px 0 rgba(58,140,255,0.1) inset,
+    0 20px 60px rgba(0,0,0,0.65),
+    0 4px 20px rgba(0,0,0,0.4);
   z-index: 10001;
-  opacity: 0;
-  transform: translateY(-10px) scale(0.97);
-  pointer-events: none;
-  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
   overflow: hidden;
+  /* fechado */
+  opacity: 0;
+  transform: translateY(-10px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
 }
-.notif-panel.open {
+.nui-panel.open {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: all;
 }
 
-/* ── Panel Header ────────────────────────────────────────────────────────── */
-.notif-panel-header {
+/* ═══════════════════════════════════════════════════
+   HEADER DO DROPDOWN
+   ═══════════════════════════════════════════════════ */
+.nui-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 14px 10px;
+  padding: 13px 14px 11px;
   border-bottom: 1px solid rgba(58,140,255,0.1);
 }
-.notif-panel-title {
+.nui-title {
   font-family: var(--font-title, 'Cinzel', serif);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  color: rgba(255,255,255,0.9);
-  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.88);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.notif-clear-all-btn {
+
+/* Botão "Limpar todas" */
+.nui-clear-all {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
-  background: rgba(255,71,87,0.08);
-  border: 1px solid rgba(255,71,87,0.2);
-  border-radius: 6px;
+  padding: 5px 11px;
+  background: rgba(255,71,87,0.07);
+  border: 1px solid rgba(255,71,87,0.22);
+  border-radius: 7px;
   font-family: var(--font-body, 'Rajdhani', sans-serif);
   font-size: 11px;
-  font-weight: 600;
-  color: rgba(255,71,87,0.7);
+  font-weight: 700;
+  color: rgba(255,71,87,0.65);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
   white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.notif-clear-all-btn:hover {
-  background: rgba(255,71,87,0.15);
-  border-color: rgba(255,71,87,0.45);
+.nui-clear-all:hover {
+  background: rgba(255,71,87,0.14);
+  border-color: rgba(255,71,87,0.5);
   color: #ff4757;
+  box-shadow: 0 0 10px rgba(255,71,87,0.15);
 }
-.notif-clear-all-btn svg { flex-shrink: 0; }
 
-/* ── List Container ──────────────────────────────────────────────────────── */
-.notif-list {
-  max-height: 380px;
+/* ═══════════════════════════════════════════════════
+   LISTA SCROLLÁVEL
+   ═══════════════════════════════════════════════════ */
+.nui-list {
+  max-height: 370px;
   overflow-y: auto;
-  padding: 6px;
+  padding: 5px 5px 5px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(58,140,255,0.3) transparent;
+  scrollbar-color: rgba(58,140,255,0.25) transparent;
 }
-.notif-list::-webkit-scrollbar { width: 4px; }
-.notif-list::-webkit-scrollbar-track { background: transparent; }
-.notif-list::-webkit-scrollbar-thumb { background: rgba(58,140,255,0.3); border-radius: 2px; }
+.nui-list::-webkit-scrollbar       { width: 4px; }
+.nui-list::-webkit-scrollbar-track { background: transparent; }
+.nui-list::-webkit-scrollbar-thumb { background: rgba(58,140,255,0.25); border-radius: 2px; }
 
-/* ── Empty State ─────────────────────────────────────────────────────────── */
-.notif-empty {
+/* ═══════════════════════════════════════════════════
+   ESTADO VAZIO
+   ═══════════════════════════════════════════════════ */
+.nui-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 36px 20px;
-  color: rgba(255,255,255,0.2);
+  gap: 10px;
+  padding: 38px 20px;
+  color: rgba(255,255,255,0.18);
   font-family: var(--font-body, 'Rajdhani', sans-serif);
   font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
 }
-.notif-empty svg { opacity: 0.3; }
+.nui-empty-icon {
+  opacity: 0.25;
+}
 
-/* ── Notification Item ───────────────────────────────────────────────────── */
-.notif-item {
+/* ═══════════════════════════════════════════════════
+   ITEM DE NOTIFICAÇÃO
+   ═══════════════════════════════════════════════════ */
+.nui-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 10px;
-  border-radius: 10px;
+  padding: 9px 8px 9px 12px;
+  border-radius: 9px;
   cursor: default;
   position: relative;
-  overflow: hidden;
+  /* entrada suave */
+  animation: nui-item-in 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
   transition: background 0.15s;
-
-  /* entrada */
-  animation: notif-item-in 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
 }
-@keyframes notif-item-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)  scale(1);    }
+@keyframes nui-item-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)  scale(1); }
 }
-.notif-item:hover { background: rgba(58,140,255,0.06); }
-.notif-item.unread {
+.nui-item:hover {
+  background: rgba(58,140,255,0.07);
+}
+/* barra lateral azul = não lida */
+.nui-item.unread {
   background: rgba(58,140,255,0.05);
 }
-.notif-item.unread::before {
+.nui-item.unread::before {
   content: '';
   position: absolute;
-  left: 0; top: 6px; bottom: 6px;
+  left: 0; top: 7px; bottom: 7px;
   width: 2.5px;
   background: linear-gradient(to bottom, #3a8cff, #60aaff);
   border-radius: 2px;
 }
 
-/* saída (slide + fade) */
-.notif-item.removing {
-  animation: notif-item-out 0.25s ease forwards;
+/* ── Saída (fade + slide) ── */
+.nui-item.removing {
   pointer-events: none;
+  animation: nui-item-out 0.22s ease forwards;
+  overflow: hidden;
 }
-@keyframes notif-item-out {
-  from { opacity: 1; transform: translateX(0)    scale(1);    max-height: 100px; margin-bottom: 0; }
-  to   { opacity: 0; transform: translateX(30px) scale(0.95); max-height: 0;   margin-bottom: 0; padding-top: 0; padding-bottom: 0; }
+@keyframes nui-item-out {
+  0%   {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    max-height: 120px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+    margin-bottom: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(28px) scale(0.95);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
 }
 
-/* ── Item Icon ───────────────────────────────────────────────────────────── */
-.notif-item-icon {
+/* ═══════════════════════════════════════════════════
+   ÍCONE TIPO
+   ═══════════════════════════════════════════════════ */
+.nui-icon {
   width: 30px;
   height: 30px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
-.notif-item-icon.type-info    { background: rgba(58,140,255,0.15); }
-.notif-item-icon.type-success { background: rgba(46,213,115,0.15); }
-.notif-item-icon.type-warning { background: rgba(255,165,2,0.15);  }
-.notif-item-icon.type-error   { background: rgba(255,71,87,0.15);  }
+.nui-icon.t-info    { background: rgba(58,140,255,0.13); }
+.nui-icon.t-success { background: rgba(46,213,115,0.13); }
+.nui-icon.t-warning { background: rgba(255,165,2,0.13);  }
+.nui-icon.t-error   { background: rgba(255,71,87,0.13);  }
+.nui-icon.t-order   { background: rgba(255,214,102,0.12); }
 
-/* ── Item Content ────────────────────────────────────────────────────────── */
-.notif-item-body { flex: 1; min-width: 0; }
-.notif-item-title {
+/* ═══════════════════════════════════════════════════
+   CONTEÚDO TEXTO
+   ═══════════════════════════════════════════════════ */
+.nui-body  { flex: 1; min-width: 0; }
+.nui-name  {
   font-family: var(--font-body, 'Rajdhani', sans-serif);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255,255,255,0.88);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 2px;
 }
-.notif-item-msg {
+.nui-msg {
   font-family: var(--font-body, 'Rajdhani', sans-serif);
-  font-size: 12px;
-  color: rgba(255,255,255,0.45);
-  line-height: 1.4;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.42);
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.notif-item-time {
+.nui-time {
   font-family: var(--font-body, 'Rajdhani', sans-serif);
   font-size: 10px;
-  color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.2);
   margin-top: 4px;
 }
 
-/* ── Item Dismiss (X) ────────────────────────────────────────────────────── */
-.notif-item-dismiss {
+/* ═══════════════════════════════════════════════════
+   BOTÃO X (dismiss individual)
+   ═══════════════════════════════════════════════════ */
+.nui-dismiss {
   width: 22px;
   height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   background: none;
   border: none;
   border-radius: 6px;
-  color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.18);
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 2px;
-  transition: background 0.15s, color 0.15s;
+  margin-top: 3px;
+  /* aparece só no hover do item pai */
   opacity: 0;
+  transition: background 0.14s, color 0.14s, opacity 0.14s;
 }
-.notif-item:hover .notif-item-dismiss { opacity: 1; }
-.notif-item-dismiss:hover {
-  background: rgba(255,71,87,0.12);
+.nui-item:hover .nui-dismiss {
+  opacity: 1;
+}
+.nui-dismiss:hover {
+  background: rgba(255,71,87,0.13);
   color: #ff4757;
 }
 
-/* ── Panel Footer ────────────────────────────────────────────────────────── */
-.notif-panel-footer {
-  padding: 8px 14px 12px;
-  border-top: 1px solid rgba(58,140,255,0.08);
+/* ═══════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════ */
+.nui-footer {
+  padding: 7px 14px 11px;
+  border-top: 1px solid rgba(58,140,255,0.07);
   font-family: var(--font-body, 'Rajdhani', sans-serif);
   font-size: 10px;
-  color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.15);
   text-align: center;
 }
 
-/* ── Wrapper posicionado ─────────────────────────────────────────────────── */
-.notif-bell-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-/* ── Loading shimmer ─────────────────────────────────────────────────────── */
-.notif-loading {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.notif-shimmer {
-  height: 52px;
-  border-radius: 10px;
+/* ═══════════════════════════════════════════════════
+   LOADING SHIMMER
+   ═══════════════════════════════════════════════════ */
+.nui-shimmer-wrap { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.nui-shimmer {
+  height: 54px;
+  border-radius: 9px;
   background: linear-gradient(90deg,
     rgba(58,140,255,0.04) 25%,
     rgba(58,140,255,0.09) 50%,
     rgba(58,140,255,0.04) 75%);
   background-size: 200% 100%;
-  animation: notif-shimmer 1.4s infinite;
+  animation: nui-shimmer-anim 1.5s ease-in-out infinite;
 }
-@keyframes notif-shimmer {
+@keyframes nui-shimmer-anim {
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
 }
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(s);
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  function _typeIcon(type) {
-    const icons = {
-      success: '✅',
-      warning: '⚠️',
-      error:   '🔴',
-      info:    '🔔',
-    };
-    return icons[type] || '🔔';
-  }
-
-  function _relativeTime(dateStr) {
-    if (!dateStr) return '';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1)  return 'agora';
-    if (m < 60) return `${m}min atrás`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h atrás`;
-    const d = Math.floor(h / 24);
-    return `${d}d atrás`;
-  }
-
-  function _unreadCount() {
-    return _notifications.filter(n => !n.read && !n.archived).length;
-  }
-
-  // ── Badge ────────────────────────────────────────────────────────────────
-
-  function _updateBadge(animate) {
-    if (!_badgeEl) return;
-    const count = _unreadCount();
-    _badgeEl.textContent = count > 99 ? '99+' : String(count);
-    const visible = count > 0;
-    _badgeEl.classList.toggle('visible', visible);
-    if (!visible) _badgeEl.classList.remove('bump');
-    if (_bellEl) _bellEl.classList.toggle('has-unread', visible);
-    if (animate && visible) {
-      _badgeEl.classList.remove('bump');
-      requestAnimationFrame(() => _badgeEl.classList.add('bump'));
-    }
-    console.log('[Notifications] badge atualizado →', count, 'não lidas');
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  function _renderList() {
-    if (!_panelEl) return;
-    const list = _panelEl.querySelector('.notif-list');
-    if (!list) return;
-
-    const visible = _notifications.filter(n => !n.archived);
-
-    if (visible.length === 0) {
-      list.innerHTML = `
-        <div class="notif-empty">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0"/>
-          </svg>
-          <span>Sem notificações</span>
-        </div>`;
-      return;
-    }
-
-    list.innerHTML = visible.map(n => `
-      <div class="notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
-        <div class="notif-item-icon type-${n.type || 'info'}">${_typeIcon(n.type)}</div>
-        <div class="notif-item-body">
-          <div class="notif-item-title">${_escHtml(n.title || 'Notificação')}</div>
-          <div class="notif-item-msg">${_escHtml(n.message || '')}</div>
-          <div class="notif-item-time">${_relativeTime(n.created_at)}</div>
-        </div>
-        <button class="notif-item-dismiss" data-dismiss-id="${n.id}" title="Remover" aria-label="Remover notificação">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-          </svg>
-        </button>
-      </div>`
-    ).join('');
-  }
-
-  function _escHtml(str) {
-    return String(str)
+  // ── HELPERS ───────────────────────────────────────────────────────────────
+  function _esc(s) {
+    return String(s||'')
       .replace(/&/g,'&amp;')
       .replace(/</g,'&lt;')
       .replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;');
   }
 
-  // ── Dismiss individual ────────────────────────────────────────────────────
-
-  async function _dismissOne(id) {
-    if (!id) return;
-    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    if (!user) return;
-
-    // Remove da UI instantaneamente
-    const el = _panelEl?.querySelector(`[data-id="${id}"]`);
-    if (el) {
-      el.classList.add('removing');
-      el.addEventListener('animationend', () => {
-        el.remove();
-        // Mostra empty se necessário
-        const remaining = _panelEl?.querySelectorAll('.notif-item:not(.removing)');
-        if (remaining && remaining.length === 0) _renderList();
-      }, { once: true });
-    }
-
-    // Remove do cache local
-    _notifications = _notifications.filter(n => n.id !== id);
-    _updateBadge(false);
-    console.log('[Notifications] removida id:', id);
-
-    // Persiste no banco (archived = true)
-    try {
-      const res = await fetch(
-        `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user.id}`,
-        {
-          method:  'PATCH',
-          headers: _headers(),
-          body:    JSON.stringify({ archived: true, read: true }),
-        }
-      );
-      if (!res.ok) {
-        // Fallback: DELETE direto
-        await fetch(
-          `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user.id}`,
-          { method: 'DELETE', headers: _headers() }
-        );
-      }
-    } catch (e) {
-      console.warn('[Notifications] erro ao persistir remoção:', e.message);
-    }
+  function _ago(dateStr) {
+    if (!dateStr) return '';
+    const m = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+    if (m < 1)   return 'agora';
+    if (m < 60)  return `${m}min atrás`;
+    const h = Math.floor(m / 60);
+    if (h < 24)  return `${h}h atrás`;
+    return `${Math.floor(h/24)}d atrás`;
   }
 
-  // ── Clear all ─────────────────────────────────────────────────────────────
+  const _ICONS = { success:'✅', warning:'⚠️', error:'🔴', order:'📦', info:'🔔' };
+  function _icon(type) { return _ICONS[type] || '🔔'; }
 
-  async function _clearAll() {
-    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    if (!user) return;
-
-    // Remove tudo da UI instantaneamente
-    _notifications = [];
-    _renderList();
-    _updateBadge(false);
-    console.log('[Notifications] todas limpas');
-
-    // Persiste no banco
-    try {
-      const res = await fetch(
-        `${window.SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}`,
-        {
-          method:  'PATCH',
-          headers: _headers(),
-          body:    JSON.stringify({ archived: true, read: true }),
-        }
-      );
-      if (!res.ok) {
-        // Fallback: DELETE
-        await fetch(
-          `${window.SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}`,
-          { method: 'DELETE', headers: _headers() }
-        );
-      }
-    } catch (e) {
-      console.warn('[Notifications] erro ao limpar todas:', e.message);
-    }
+  function _countUnread() {
+    return _notifs.filter(n => !n.read && !n.archived).length;
   }
-
-  // ── Mark all read (ao abrir dropdown) ─────────────────────────────────────
-
-  function _scheduleMarkRead() {
-    clearTimeout(_readTimer);
-    _readTimer = setTimeout(async () => {
-      if (!_isOpen) return;
-      const had = _unreadCount();
-      if (had === 0) return;
-
-      // Marca lidas no cache
-      _notifications = _notifications.map(n => ({ ...n, read: true }));
-      _updateBadge(false);
-      _renderList();
-
-      // Persiste
-      try {
-        if (typeof NotificationsAPI !== 'undefined') {
-          await NotificationsAPI.markAllRead();
-        }
-      } catch (_) {}
-    }, READ_DELAY_MS);
-  }
-
-  // ── Enforce max 50 ────────────────────────────────────────────────────────
-
-  async function _enforceMax() {
-    if (_notifications.length <= MAX_NOTIFICATIONS) return;
-    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    if (!user) return;
-
-    // Ordena por data (mais antigas primeiro) e remove excedente
-    const sorted  = [..._notifications].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    const toDelete = sorted.slice(0, _notifications.length - MAX_NOTIFICATIONS);
-    _notifications = sorted.slice(_notifications.length - MAX_NOTIFICATIONS);
-
-    console.log('[Notifications] limpeza automática — removidas', toDelete.length, 'antigas');
-
-    for (const n of toDelete) {
-      try {
-        await fetch(
-          `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${n.id}&user_id=eq.${user.id}`,
-          { method: 'DELETE', headers: _headers() }
-        );
-      } catch (_) {}
-    }
-  }
-
-  // ── Headers ───────────────────────────────────────────────────────────────
 
   function _headers() {
-    const token = typeof Session !== 'undefined' ? Session.getAccessToken() : null;
-    if (!token) throw new Error('Usuário não autenticado');
+    const tok = typeof Session !== 'undefined' ? Session.getAccessToken() : null;
+    if (!tok) throw new Error('sem token');
     return {
-      'Content-Type':  'application/json',
-      'apikey':        window.SUPABASE_KEY,
-      'Authorization': 'Bearer ' + token,
-      'Prefer':        'return=minimal',
+      'Content-Type' : 'application/json',
+      'apikey'       : window.SUPABASE_KEY,
+      'Authorization': 'Bearer ' + tok,
+      'Prefer'       : 'return=minimal',
     };
   }
 
-  // ── Open / Close ──────────────────────────────────────────────────────────
-
-  function _openPanel() {
-    if (!_panelEl) return;
-    _isOpen = true;
-    _panelEl.classList.add('open');
-
-    // Mostra loading e carrega
-    const list = _panelEl.querySelector('.notif-list');
-    if (list && _notifications.length === 0) {
-      list.innerHTML = `<div class="notif-loading">
-        <div class="notif-shimmer"></div>
-        <div class="notif-shimmer"></div>
-        <div class="notif-shimmer"></div>
-      </div>`;
+  // ── BADGE ─────────────────────────────────────────────────────────────────
+  function _badge(bump) {
+    if (!$badge) return;
+    const n = _countUnread();
+    $badge.textContent = n > 99 ? '99+' : String(n);
+    const show = n > 0;
+    $badge.classList.toggle('show', show);
+    if ($bell) $bell.classList.toggle('is-unread', show);
+    if (!show) $badge.classList.remove('bump');
+    if (bump && show) {
+      $badge.classList.remove('bump');
+      requestAnimationFrame(() => $badge.classList.add('bump'));
     }
-
-    _loadAndRender();
-    _scheduleMarkRead();
+    console.log('[NotificationsUI] badge updated →', n);
   }
 
-  function _closePanel() {
-    if (!_panelEl) return;
+  // ── RENDER LIST (completo, só quando necessário) ──────────────────────────
+  function _render() {
+    if (!$list) return;
+    const visible = _notifs.filter(n => !n.archived);
+    if (visible.length === 0) {
+      $list.innerHTML = `
+        <div class="nui-empty">
+          <svg class="nui-empty-icon" width="34" height="34" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="1.4"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+            <line x1="4" y1="4" x2="20" y2="20" stroke-width="1.8"/>
+          </svg>
+          Nenhuma notificação
+        </div>`;
+      return;
+    }
+    $list.innerHTML = visible.map(n => `
+      <div class="nui-item ${n.read ? '' : 'unread'}" data-nid="${_esc(n.id)}">
+        <div class="nui-icon t-${_esc(n.type||'info')}">${_icon(n.type)}</div>
+        <div class="nui-body">
+          <div class="nui-name">${_esc(n.title || 'Notificação')}</div>
+          <div class="nui-msg">${_esc(n.message || n.content || '')}</div>
+          <div class="nui-time">${_ago(n.created_at)}</div>
+        </div>
+        <button class="nui-dismiss" data-nid="${_esc(n.id)}"
+                title="Remover" aria-label="Remover notificação">
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="1" y1="1" x2="8" y2="8"/>
+            <line x1="8" y1="1" x2="1" y2="8"/>
+          </svg>
+        </button>
+      </div>`).join('');
+  }
+
+  // ── REMOVE ITEM DA UI COM ANIMAÇÃO ────────────────────────────────────────
+  function _animateOut(id, afterFn) {
+    if (!$list) { afterFn && afterFn(); return; }
+    const el = $list.querySelector(`[data-nid="${id}"]:not(.nui-dismiss)`);
+    if (!el) { afterFn && afterFn(); return; }
+    el.classList.add('removing');
+    // Usa setTimeout como fallback caso animationend não dispare
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      el.remove();
+      afterFn && afterFn();
+    };
+    el.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 350); // fallback
+  }
+
+  // ── DISMISS INDIVIDUAL ────────────────────────────────────────────────────
+  async function _removeOne(id) {
+    if (!id) return;
+    console.log('[NotificationsUI] remove item', id);
+
+    // 1. Retira do cache
+    _notifs = _notifs.filter(n => n.id !== id);
+
+    // 2. Anima saída; depois verifica se ficou vazio
+    _animateOut(id, () => {
+      const remaining = $list ? $list.querySelectorAll('.nui-item:not(.removing)').length : 0;
+      if (remaining === 0) _render(); // mostra empty
+    });
+
+    // 3. Badge imediato
+    _badge(false);
+
+    // 4. Persiste (fire and forget)
+    _persist_archive_one(id);
+  }
+
+  async function _persist_archive_one(id) {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return;
+    try {
+      const r = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user.id}`,
+        { method: 'PATCH', headers: _headers(), body: JSON.stringify({ archived: true, read: true }) }
+      );
+      if (!r.ok) throw new Error('patch fail');
+    } catch {
+      // fallback delete
+      try {
+        const user2 = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+        if (!user2) return;
+        await fetch(
+          `${window.SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&user_id=eq.${user2.id}`,
+          { method: 'DELETE', headers: _headers() }
+        );
+      } catch (_) {}
+    }
+  }
+
+  // ── CLEAR ALL ─────────────────────────────────────────────────────────────
+  async function _clearAll() {
+    console.log('[NotificationsUI] clear all');
+    _notifs = [];
+    _render();
+    _badge(false);
+    _persist_archive_all();
+  }
+
+  async function _persist_archive_all() {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return;
+    try {
+      const r = await fetch(
+        `${window.SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user.id}`,
+        { method: 'PATCH', headers: _headers(), body: JSON.stringify({ archived: true, read: true }) }
+      );
+      if (!r.ok) throw new Error('patch fail');
+    } catch {
+      try {
+        const user2 = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+        if (!user2) return;
+        await fetch(
+          `${window.SUPABASE_URL}/rest/v1/notifications?user_id=eq.${user2.id}`,
+          { method: 'DELETE', headers: _headers() }
+        );
+      } catch (_) {}
+    }
+  }
+
+  // ── MARK ALL READ (após 2.5s com dropdown aberto) ─────────────────────────
+  function _scheduleRead() {
+    clearTimeout(_readTimer);
+    _readTimer = setTimeout(async () => {
+      if (!_isOpen || _countUnread() === 0) return;
+      _notifs = _notifs.map(n => ({ ...n, read: true }));
+      // Atualiza só as classes, sem rerender completo
+      if ($list) {
+        $list.querySelectorAll('.nui-item.unread').forEach(el => {
+          el.classList.remove('unread');
+        });
+      }
+      _badge(false);
+      try {
+        if (typeof NotificationsAPI !== 'undefined') await NotificationsAPI.markAllRead();
+      } catch (_) {}
+    }, READ_DELAY);
+  }
+
+  // ── OPEN / CLOSE ──────────────────────────────────────────────────────────
+  function _open() {
+    if (!$panel) return;
+    _isOpen = true;
+    $panel.classList.add('open');
+    $bell?.setAttribute('aria-expanded', 'true');
+    $panel.setAttribute('aria-hidden', 'false');
+
+    // Shimmer se vazio (primeira abertura)
+    if (_notifs.length === 0 && $list) {
+      $list.innerHTML = `<div class="nui-shimmer-wrap">
+        <div class="nui-shimmer"></div>
+        <div class="nui-shimmer"></div>
+        <div class="nui-shimmer"></div>
+      </div>`;
+    }
+    _load();
+    _scheduleRead();
+  }
+
+  function _close() {
+    if (!$panel) return;
     _isOpen = false;
-    _panelEl.classList.remove('open');
+    $panel.classList.remove('open');
+    $bell?.setAttribute('aria-expanded', 'false');
+    $panel.setAttribute('aria-hidden', 'true');
     clearTimeout(_readTimer);
   }
 
-  function _toggle() {
-    _isOpen ? _closePanel() : _openPanel();
-  }
+  function _toggle() { _isOpen ? _close() : _open(); }
 
-  // ── Load ──────────────────────────────────────────────────────────────────
-
-  async function _loadAndRender() {
+  // ── LOAD FROM API ─────────────────────────────────────────────────────────
+  async function _load() {
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!user) return;
     try {
-      if (typeof NotificationsAPI === 'undefined') return;
+      const tok = Session.getAccessToken();
+      const url = `${window.SUPABASE_URL}/rest/v1/notifications`
+        + `?user_id=eq.${user.id}`
+        + `&or=(archived.is.null,archived.eq.false)`
+        + `&order=created_at.desc`
+        + `&limit=${MAX}`
+        + `&select=id,user_id,pedido_id,title,message,type,read,archived,created_at`;
 
-      // Busca incluindo arquivadas? Não — só ativas
-      const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-      if (!user) return;
-
-      // Filtra archived=false no query
-      const token = Session.getAccessToken();
-      const url = `${window.SUPABASE_URL}/rest/v1/notifications` +
-        `?user_id=eq.${user.id}` +
-        `&or=(archived.is.null,archived.eq.false)` +
-        `&order=created_at.desc` +
-        `&limit=${MAX_NOTIFICATIONS}` +
-        `&select=id,user_id,pedido_id,title,message,type,read,archived,created_at`;
-
-      const res = await fetch(url, {
+      const r = await fetch(url, {
         headers: {
-          'Content-Type':  'application/json',
-          'apikey':        window.SUPABASE_KEY,
-          'Authorization': 'Bearer ' + token,
+          'Content-Type' : 'application/json',
+          'apikey'       : window.SUPABASE_KEY,
+          'Authorization': 'Bearer ' + tok,
         }
       });
 
-      if (!res.ok) {
-        // Fallback para API
-        const rows = await NotificationsAPI.fetchMyNotifications(MAX_NOTIFICATIONS);
-        _mergeNotifications(rows.filter(n => !n.archived));
-      } else {
-        const rows = await res.json();
-        if (Array.isArray(rows)) {
-          _mergeNotifications(rows.filter(r => !r.archived));
-        }
+      if (r.ok) {
+        const rows = await r.json();
+        if (Array.isArray(rows)) _merge(rows.filter(x => !x.archived));
+      } else if (typeof NotificationsAPI !== 'undefined') {
+        const rows = await NotificationsAPI.fetchMyNotifications(MAX);
+        _merge(rows.filter(x => !x.archived));
       }
-
     } catch (e) {
-      console.warn('[Notifications] _loadAndRender erro:', e.message);
+      console.warn('[NotificationsUI] load error:', e.message);
+      if (typeof NotificationsAPI !== 'undefined') {
+        try {
+          const rows = await NotificationsAPI.fetchMyNotifications(MAX);
+          _merge(rows.filter(x => !x.archived));
+        } catch (_) {}
+      }
     }
-
-    await _enforceMax();
-    _renderList();
-    _updateBadge(false);
+    _render();
+    _badge(false);
   }
 
-  function _mergeNotifications(rows) {
-    const map = new Map(_notifications.map(n => [n.id, n]));
+  function _merge(rows) {
+    const map = new Map(_notifs.map(n => [n.id, n]));
     for (const r of rows) {
-      if (r.id) map.set(r.id, r);
+      if (r.id) { _seen.add(r.id); map.set(r.id, r); }
     }
-    _notifications = [...map.values()].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    _notifs = [...map.values()]
+      .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, MAX);
   }
 
-  // ── Add nova notificação (via realtime) ───────────────────────────────────
-
-  function _onNewNotification(record) {
-    if (!record || !record.id) return;
-    if (_localSeen.has(record.id)) {
-      console.log('[Notifications] duplicado ignorado (localSeen):', record.id);
+  // ── NOVA NOTIFICAÇÃO (realtime) ───────────────────────────────────────────
+  function _onNew(rec) {
+    if (!rec || !rec.id) return;
+    if (_seen.has(rec.id)) {
+      console.log('[NotificationsUI] dedup ignored:', rec.id);
       return;
     }
-    _localSeen.add(record.id);
-
-    // Impede duplicata no array
-    if (_notifications.find(n => n.id === record.id)) return;
-
-    _notifications.unshift(record);
-    _enforceMax();
-    _updateBadge(true);
-
-    if (_isOpen) _renderList();
+    _seen.add(rec.id);
+    if (_notifs.find(n => n.id === rec.id)) return;
+    _notifs.unshift(rec);
+    if (_notifs.length > MAX) _notifs = _notifs.slice(0, MAX);
+    _badge(true);
+    if (_isOpen) _render();
   }
 
-  // ── Build DOM ─────────────────────────────────────────────────────────────
-
-  function _buildBell() {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'notif-bell-wrapper';
-
-    wrapper.innerHTML = `
-      <button class="notif-bell-btn" id="notif-bell-btn" aria-label="Notificações" aria-haspopup="true" aria-expanded="false">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  // ── BUILD DOM ─────────────────────────────────────────────────────────────
+  function _buildHTML() {
+    return `
+      <button class="nui-bell" id="nui-bell"
+              aria-label="Notificações" aria-haspopup="true" aria-expanded="false">
+        <svg class="nui-bell-icon" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 01-3.46 0"/>
         </svg>
-        <span class="notif-badge" id="notif-badge" aria-live="polite" aria-label="notificações não lidas"></span>
+        <span class="nui-badge" id="nui-badge" aria-live="polite"></span>
       </button>
 
-      <div class="notif-panel" id="notif-panel" role="menu" aria-hidden="true">
-        <div class="notif-panel-header">
-          <span class="notif-panel-title">Notificações</span>
-          <button class="notif-clear-all-btn" id="notif-clear-all-btn" title="Limpar todas as notificações">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+      <div class="nui-panel" id="nui-panel" role="dialog"
+           aria-label="Notificações" aria-hidden="true">
+
+        <div class="nui-header">
+          <span class="nui-title">Notificações</span>
+          <button class="nui-clear-all" id="nui-clear-all">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
             </svg>
-            Limpar todas
+            🗑 Limpar todas
           </button>
         </div>
-        <div class="notif-list" id="notif-list"></div>
-        <div class="notif-panel-footer" id="notif-footer">máx. ${MAX_NOTIFICATIONS} notificações</div>
-      </div>
-    `;
 
-    return wrapper;
+        <div class="nui-list" id="nui-list"></div>
+
+        <div class="nui-footer">máx. ${MAX} notificações por usuário</div>
+      </div>`;
   }
 
-  // ── Injeção no header ────────────────────────────────────────────────────
+  // ── INJEÇÃO NO HEADER ─────────────────────────────────────────────────────
+  // Handler nomeado para "click fora" — permite removeEventListener
+  function _outsideClick(e) {
+    const wrap = document.getElementById('nui-wrap');
+    if (wrap && !wrap.contains(e.target)) _close();
+  }
 
   function _inject() {
-    // Injeta o bell dentro do auth-header-slot (flex row)
+    if (document.getElementById('nui-bell')) return; // já existe
+
     const authSlot = document.getElementById('auth-header-slot');
     if (!authSlot) {
-      console.warn('[Notifications] auth-header-slot não encontrado — tentando novamente em 500ms');
-      setTimeout(_inject, 500);
+      setTimeout(_inject, 400);
       return;
     }
 
-    // Evita duplicar
-    if (document.getElementById('notif-bell-btn')) return;
+    // Wrapper com position:relative para o panel ficar posicionado
+    const wrap = document.createElement('div');
+    wrap.className = 'nui-wrap';
+    wrap.id = 'nui-wrap';
+    wrap.innerHTML = _buildHTML();
 
-    // Torna o slot um flex row para bell + widget lado a lado
-    authSlot.style.display    = 'flex';
-    authSlot.style.alignItems = 'center';
-    authSlot.style.gap        = '8px';
+    // Insere dentro do auth-header-slot para não quebrar o grid
+    authSlot.style.cssText += ';display:flex;align-items:center;gap:8px;';
+    authSlot.insertBefore(wrap, authSlot.firstChild);
 
-    const wrapper = _buildBell();
-    authSlot.insertBefore(wrapper, authSlot.firstChild);
+    // Salva refs
+    $bell  = document.getElementById('nui-bell');
+    $badge = document.getElementById('nui-badge');
+    $panel = document.getElementById('nui-panel');
+    $list  = document.getElementById('nui-list');
 
-    _bellEl  = document.getElementById('notif-bell-btn');
-    _badgeEl = document.getElementById('notif-badge');
-    _panelEl = document.getElementById('notif-panel');
-
-    // Eventos
-    _bellEl.addEventListener('click', (e) => {
+    // ── Evento: toggle ao clicar no sino ──
+    $bell.addEventListener('click', e => {
       e.stopPropagation();
       _toggle();
-      _bellEl.setAttribute('aria-expanded', _isOpen ? 'true' : 'false');
-      _panelEl.setAttribute('aria-hidden', _isOpen ? 'false' : 'true');
     });
 
-    document.getElementById('notif-clear-all-btn').addEventListener('click', (e) => {
+    // ── Evento: "Limpar todas" ──
+    document.getElementById('nui-clear-all').addEventListener('click', e => {
       e.stopPropagation();
       _clearAll();
     });
 
-    // Delegação de cliques nos botões X
-    _panelEl.addEventListener('click', (e) => {
-      const dismissBtn = e.target.closest('[data-dismiss-id]');
-      if (dismissBtn) {
-        e.stopPropagation();
-        _dismissOne(dismissBtn.dataset.dismissId);
-      }
+    // ── Evento delegado: botões X ──
+    // Um único listener no panel, sem recriar a cada render
+    $panel.addEventListener('click', e => {
+      const btn = e.target.closest('.nui-dismiss');
+      if (!btn) return;
+      e.stopPropagation();
+      const id = btn.dataset.nid;
+      if (id) _removeOne(id);
     });
 
-    // Fecha ao clicar fora
-    document.addEventListener('click', (e) => {
-      const wrapper = _bellEl?.closest('.notif-bell-wrapper');
-      if (wrapper && !wrapper.contains(e.target)) _closePanel();
-    }, { passive: true });
+    // ── Fecha ao clicar fora ──
+    document.removeEventListener('click', _outsideClick); // garante sem duplicata
+    document.addEventListener('click', _outsideClick);
 
-    console.log('[Notifications] UI injetada no header');
+    console.log('[NotificationsUI] injected into header');
   }
 
-  // ── Init ──────────────────────────────────────────────────────────────────
+  // ── REALTIME ──────────────────────────────────────────────────────────────
+  // Destrói canal atual antes de criar novo
+  function _startRealtime(userId) {
+    if (typeof NotificationsAPI === 'undefined') return;
+    NotificationsAPI.stopRealtime();          // remove canal antigo
+    NotificationsAPI.startRealtime(userId, _onNew);
+  }
 
+  // ── INIT ──────────────────────────────────────────────────────────────────
   function init() {
     if (_initialized) return;
     _initialized = true;
@@ -797,63 +833,60 @@ const NotificationsUI = (() => {
     _injectStyles();
     _inject();
 
-    // Escuta login/logout
-    if (typeof Session !== 'undefined') {
-      Session.onAuthChange((event, user) => {
-        if (event === 'login' && user) {
-          _currentUserId = user.id;
-          _notifications  = [];
-          _localSeen.clear();
-          _updateBadge(false);
-          _loadAndRender();
+    if (typeof Session === 'undefined') return;
 
-          // Inicia realtime com deduplicação
-          NotificationsAPI.startRealtime(user.id, _onNewNotification);
-
-          // Polling de badge a cada 60s (fallback)
-          clearInterval(window._notifPollInterval);
-          window._notifPollInterval = setInterval(async () => {
-            if (typeof NotificationsAPI === 'undefined') return;
-            const count = await NotificationsAPI.countUnread();
-            // Recalcula baseado no cache local — se divergir, recarrega
-            if (count !== _unreadCount()) {
-              await _loadAndRender();
-            }
-          }, 60000);
-
-        } else if (event === 'logout') {
-          _currentUserId = null;
-          _notifications  = [];
-          _localSeen.clear();
-          _updateBadge(false);
-          if (_isOpen) _closePanel();
-          clearInterval(window._notifPollInterval);
-          NotificationsAPI.stopRealtime();
-        }
-      });
-
-      // Se já logado ao inicializar
-      const user = Session.getCurrentUser();
-      if (user) {
+    // Handler de auth — só registra uma vez
+    Session.onAuthChange((event, user) => {
+      if (event === 'login' && user) {
         _currentUserId = user.id;
-        _loadAndRender();
-        NotificationsAPI.startRealtime(user.id, _onNewNotification);
+        _notifs = [];
+        _seen.clear();
+        _badge(false);
+        if (_isOpen) _render();
+        _load();
+        _startRealtime(user.id);
+
+        // Polling leve — só para manter badge sincronizado
+        clearInterval(window.__nuiPoll);
+        window.__nuiPoll = setInterval(async () => {
+          if (typeof NotificationsAPI === 'undefined') return;
+          try {
+            const serverCount = await NotificationsAPI.countUnread();
+            if (serverCount !== _countUnread()) _load();
+          } catch (_) {}
+        }, 60_000);
+
+      } else if (event === 'logout') {
+        _currentUserId = null;
+        _notifs = [];
+        _seen.clear();
+        _badge(false);
+        if (_isOpen) { _close(); _render(); }
+        clearInterval(window.__nuiPoll);
+        if (typeof NotificationsAPI !== 'undefined') NotificationsAPI.stopRealtime();
       }
+    });
+
+    // Já logado quando o script carrega
+    const user = Session.getCurrentUser();
+    if (user) {
+      _currentUserId = user.id;
+      _load();
+      _startRealtime(user.id);
     }
   }
 
-  // ── API Pública ───────────────────────────────────────────────────────────
+  // ── API PÚBLICA ───────────────────────────────────────────────────────────
   return {
     init,
-    addNotification: _onNewNotification,  // para forçar do exterior (testes)
-    refresh:         _loadAndRender,
-    updateBadge:     () => _updateBadge(false),
-    close:           _closePanel,
+    push    : _onNew,          // forçar notif externamente (testes)
+    refresh : _load,
+    close   : _close,
   };
 
 })();
 
-// ── Auto-init ─────────────────────────────────────────────────────────────
+// ── AUTO-INIT ─────────────────────────────────────────────────────────────
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => NotificationsUI.init());
 } else {
