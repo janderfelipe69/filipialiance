@@ -1149,9 +1149,7 @@
       el.innerHTML = `
         <div class="dg-card-img-wrap" onclick="DeliveryGallery.openLightbox(${mainLbIdx})">
           ${mainImg
-            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${servicoNome || 'Entrega'}"
-                 onload="this.classList.add('dg-loaded');console.log('[Entregas] imagem carregada:','${mainImg}'.slice(0,60))"
-                 onerror="console.warn('[Entregas] erro imagem — tentando fallback. url:','${mainImg}'.slice(0,80));this.style.display='none';this.parentNode.querySelector('.dg-card-overlay') && (this.parentNode.querySelector('.dg-card-overlay').style.display='none');var ph=document.createElement('div');ph.className='dg-card-img-placeholder';ph.textContent='📷';this.parentNode.insertBefore(ph,this.parentNode.firstChild);">`
+            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${servicoNome || 'Entrega'}">`
             : `<div class="dg-card-img-placeholder">📷</div>`
           }
           <div class="dg-card-overlay">
@@ -1213,93 +1211,128 @@
     },
 
     _setupLazyLoad() {
+      // ── [IMG-LOOP-FIX] Lazy loader sem retry infinito ──────────────────────
+      // Cada imagem tenta: 1) URL pública → 2) Signed URL (fallback único).
+      // Após qualquer falha final: dataset.failed='1', placeholder, sem re-observe.
+      // O IntersectionObserver NÃO re-observa imagens com dataset.failed='1'.
+      // ─────────────────────────────────────────────────────────────────────────
+
+      function _applyPlaceholder(img) {
+        img.style.display = 'none';
+        const wrap = img.closest('.dg-card-img-wrap, .dg-thumb');
+        if (wrap && !wrap.querySelector('.dg-card-img-placeholder')) {
+          const ph = document.createElement('div');
+          ph.className = 'dg-card-img-placeholder';
+          ph.textContent = '📷';
+          wrap.insertBefore(ph, wrap.firstChild);
+        }
+        const overlay = img.parentNode && img.parentNode.querySelector('.dg-card-overlay');
+        if (overlay) overlay.style.display = 'none';
+      }
+
+      function _loadImgFinal(img, signedSrc) {
+        // Signed URL — última tentativa. Remove onerror para evitar loop.
+        img.onload  = () => { img.classList.add('dg-loaded'); };
+        img.onerror = () => {
+          img.dataset.failed = '1';
+          img.onerror = null;
+          img.onload  = null;
+          console.error('[SIGNED_URL_FAIL] Signed URL também falhou. FILE_NOT_FOUND ou CORS_BLOCKED:', signedSrc.slice(0, 120));
+          console.error('[FILE_NOT_FOUND] Verifique: Supabase Storage → delivery-proofs → arquivo existe? Path correto?');
+          _applyPlaceholder(img);
+        };
+        img.src = signedSrc;
+      }
+
+      function _loadImgWithFallback(img, publicSrc) {
+        img.onload  = () => { img.classList.add('dg-loaded'); };
+        img.onerror = () => {
+          // Limpa imediatamente para não re-disparar
+          img.onerror = null;
+          img.onload  = null;
+
+          const isPublic = publicSrc.includes('/object/public/');
+          const isSign   = publicSrc.includes('/object/sign/');
+
+          if (isPublic) {
+            console.warn('[PUBLIC_URL_FAIL] URL pública falhou — tentando Signed URL:', publicSrc.slice(0, 120));
+          } else if (!isSign) {
+            console.warn('[PUBLIC_URL_FAIL] URL inválida (sem /public/ ou /sign/):', publicSrc.slice(0, 120));
+          }
+
+          // Tenta Signed URL UMA única vez
+          const canSign = isPublic &&
+            typeof window.SUPABASE_URL !== 'undefined' &&
+            typeof window.SUPABASE_KEY !== 'undefined';
+
+          if (canSign) {
+            const pathMatch = publicSrc.match(/\/object\/public\/delivery-proofs\/(.+)$/);
+            if (pathMatch) {
+              const filePath = pathMatch[1];
+              const token = (typeof Session !== 'undefined' && Session.getAccessToken)
+                ? Session.getAccessToken() : window.SUPABASE_KEY;
+              fetch(`${window.SUPABASE_URL}/storage/v1/object/sign/delivery-proofs/${filePath}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': window.SUPABASE_KEY,
+                  'Authorization': 'Bearer ' + token,
+                },
+                body: JSON.stringify({ expiresIn: 3600 }),
+              })
+              .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+              .then(data => {
+                if (data && data.signedURL) {
+                  const signed = data.signedURL.startsWith('http')
+                    ? data.signedURL
+                    : `${window.SUPABASE_URL}${data.signedURL}`;
+                  _loadImgFinal(img, signed);
+                } else {
+                  throw new Error('signedURL ausente na resposta');
+                }
+              })
+              .catch(err => {
+                img.dataset.failed = '1';
+                console.error('[SIGNED_URL_FAIL] Falha ao obter Signed URL:', err.message, '| path:', filePath);
+                _applyPlaceholder(img);
+              });
+              return; // aguarda fetch — não aplica placeholder ainda
+            }
+          }
+
+          // Sem possibilidade de Signed URL → falha definitiva
+          img.dataset.failed = '1';
+          const reason = isPublic ? 'CORS_BLOCKED ou FILE_NOT_FOUND' : 'URL fora do padrão /object/public/';
+          console.error('[PUBLIC_URL_FAIL]', reason, publicSrc.slice(0, 120));
+          _applyPlaceholder(img);
+        };
+        img.src = publicSrc;
+      }
+
       if (!('IntersectionObserver' in window)) {
         document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => {
-          if (img.dataset.src) { img.src = img.dataset.src; img.classList.add('dg-loaded'); }
+          if (img.dataset.failed === '1') return;
+          if (img.dataset.src) _loadImgWithFallback(img, img.dataset.src);
         });
         return;
       }
+
       const obs = new IntersectionObserver((entries) => {
         entries.forEach(e => {
-          if (e.isIntersecting) {
-            const img = e.target;
-            if (img.dataset.src) {
-              const src = img.dataset.src;
-              // [FIX IMG-CACHE] Registra onload/onerror ANTES de atribuir src.
-              // Se a imagem já está em cache do browser, o evento 'load' dispara
-              // SINCRONAMENTE no momento de img.src = src — antes de qualquer
-              // atribuição posterior. Registrar antes garante que dg-loaded
-              // seja sempre adicionada, mesmo com hit de cache.
-              img.onload  = () => {
-                img.classList.add('dg-loaded');
-                console.log('[IMG TRACE] ✅ carregada (lazy):', src.slice(0, 80));
-              };
-              img.src = src;
-              // [FIX IMG-4] onerror com diagnóstico claro do tipo de falha
-              img.onerror = () => {
-                img.classList.add('dg-error-img');
-                const isPrivateBucket = src.includes('/storage/v1/object/') &&
-                  !src.includes('/object/public/') && !src.includes('/object/sign/');
-                const isPublicBucket  = src.includes('/object/public/');
-                if (isPrivateBucket) {
-                  console.error('[Entregas] ❌ Falha ao carregar imagem — bucket PRIVADO. URL sem /public/:', src.slice(0, 100));
-                  console.error('[Entregas] Fix: Supabase Dashboard → Storage → delivery-proofs → Make Public');
-                } else if (isPublicBucket) {
-                  console.error('[Entregas] ❌ Falha ao carregar imagem — bucket público mas arquivo não encontrado ou CORS bloqueado. URL:', src.slice(0, 100));
-                  console.error('[Entregas] Verifique: 1) arquivo existe no bucket, 2) URL correta, 3) CORS no bucket');
-                } else {
-                  console.error('[Entregas] ❌ Falha ao carregar imagem — URL inválida ou erro de rede:', src.slice(0, 100));
-                }
-                // [FIX IMG-4] Tenta Signed URL como último recurso se a URL pública falhar
-                if (isPublicBucket && typeof window.SUPABASE_URL !== 'undefined' && typeof window.SUPABASE_KEY !== 'undefined') {
-                  const pathMatch = src.match(/\/object\/public\/delivery-proofs\/(.+)$/);
-                  if (pathMatch) {
-                    const filePath = pathMatch[1];
-                    console.log('[Entregas] Tentando Signed URL para:', filePath);
-                    fetch(`${window.SUPABASE_URL}/storage/v1/object/sign/delivery-proofs/${filePath}`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': window.SUPABASE_KEY,
-                        'Authorization': 'Bearer ' + (typeof Session !== 'undefined' && Session.getAccessToken ? Session.getAccessToken() : window.SUPABASE_KEY),
-                      },
-                      body: JSON.stringify({ expiresIn: 3600 }),
-                    })
-                    .then(r => r.ok ? r.json() : null)
-                    .then(data => {
-                      if (data && data.signedURL) {
-                        const signed = data.signedURL.startsWith('http')
-                          ? data.signedURL
-                          : `${window.SUPABASE_URL}${data.signedURL}`;
-                        console.log('[Entregas] Signed URL obtida — tentando carregar');
-                        img.classList.remove('dg-error-img');
-                        img.src = signed;
-                      }
-                    })
-                    .catch(err => console.warn('[Entregas] Signed URL falhou:', err.message));
-                  }
-                }
-              };
-              console.log('[IMG TRACE] observer disparou ✅ | img.src atribuído =', src.slice(0, 100),
-                '| img.complete:', img.complete, '| img.naturalWidth:', img.naturalWidth);
-              obs.unobserve(img);
-            }
-          }
+          if (!e.isIntersecting) return;
+          const img = e.target;
+          obs.unobserve(img); // sempre remove antes de carregar
+          if (img.dataset.failed === '1') return; // imagem já marcada como falha — para aqui
+          if (!img.dataset.src) return;
+          _loadImgWithFallback(img, img.dataset.src);
         });
       }, { rootMargin: '200px' });
 
-      const _lazyImgs = document.querySelectorAll('#dg-grid .dg-lazy');
-      console.log('[IMG TRACE] _setupLazyLoad: imagens lazy encontradas:', _lazyImgs.length,
-        '| IntersectionObserver disponível:', 'IntersectionObserver' in window);
-      _lazyImgs.forEach((img, i) => {
-        const rect = img.getBoundingClientRect();
-        console.log('[IMG TRACE]   img[' + i + '] data-src:', (img.dataset.src || '').slice(0, 80),
-          '| rect:', Math.round(rect.width) + 'x' + Math.round(rect.height),
-          '| offsetParent:', img.offsetParent ? img.offsetParent.tagName : 'null (hidden!)',
-          '| computed display:', getComputedStyle(img).display,
-          '| computed opacity:', getComputedStyle(img).opacity);
+      document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => {
+        if (img.dataset.failed === '1') return; // não observa imagens já falhadas
+        obs.observe(img);
       });
-      document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => obs.observe(img));
+      console.log('[LazyLoad] Observer ativo —', document.querySelectorAll('#dg-grid .dg-lazy').length, 'imagens registradas');
     },
 
     openLightbox(idx) {
