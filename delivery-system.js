@@ -144,14 +144,14 @@
       // [SchemaAudit] Usa introspecção assíncrona do schema real.
       // SchemaCompat.resolveSelect() faz SELECT * limit=1 no primeiro call,
       // lê as colunas reais e cruza com DESIRED_COLUMNS.
-      // Nunca usa colunas hardcoded — nunca inclui status/delivered_at/concluido_at.
+      // Nunca usa colunas hardcoded — nunca inclui status/concluido_at (delivered_at agora é coluna real).
       let _selectCols;
       if (typeof SchemaCompat !== 'undefined' && typeof SchemaCompat.resolveSelect === 'function') {
         _selectCols = await SchemaCompat.resolveSelect();
       } else {
         // Fallback estritamente mínimo — sem nenhuma coluna com histórico de HTTP 400.
-        // NÃO inclui: status, delivered_at, concluido_at, servico_nome, pokemon_nome, tipo_pedido
-        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,descricao';
+        // NÃO inclui: status, concluido_at, servico_nome, pokemon_nome, tipo_pedido (delivered_at reabilitada)
+        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,delivered_at,descricao';
         console.warn('[SchemaAudit] SchemaCompat indisponível — usando fallback mínimo:', _selectCols);
       }
 

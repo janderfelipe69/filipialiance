@@ -48,7 +48,7 @@
    *             status, _normalized }}
    * @note 'status' é campo COMPUTADO de display (sempre 'concluido').
    *       Não existe como coluna em delivery_proofs — não é lido via SELECT.
-   * @note 'delivered_at' REMOVIDO — não existe na tabela.
+   * @note 'delivered_at' existe na tabela como nullable timestamptz.
    */
   function normalizeDeliveryProof(record) {
     // Guarda defensivo: registro nulo ou já normalizado
@@ -113,7 +113,7 @@
 
     // ── 6. created_at ──────────────────────────────────────────────────
     // concluido_at é alias PT legado — nunca vai ao banco, só usado aqui como fallback.
-    // delivered_at foi removido: não existe em delivery_proofs.
+    // delivered_at: coluna real (nullable timestamptz) — reabilitada.
     const created_at =
       record.created_at     ||
       record.concluido_at   ||   // fallback PT legado — leitura somente, nunca escrita
@@ -142,6 +142,7 @@
       descricao,
       image_url,
       created_at,
+      delivered_at: record.delivered_at || null,   // coluna real — nullable timestamptz
       status,   // computado de display — não é coluna do banco
       prints,
 
@@ -279,7 +280,7 @@
       id: null, order_id: null, delivered_by: null,
       service_name: null, pokemon_name: null, service_type: null,
       cliente_nick: null, descricao: null, image_url: null,
-      created_at: null, status: 'concluido', prints: [],
+      created_at: null, delivered_at: null, status: 'concluido', prints: [],
       _normalized: true, _partial: true,
     };
   }
@@ -380,7 +381,7 @@
   //   4. Fallback: DESIRED_COLUMNS sem banidas se introspecção falhar.
   //
   // BANIDAS PERMANENTEMENTE — nunca entram em SELECT desta tabela:
-  //   status, delivered_at, concluido_at, servico_nome,
+  //   status, concluido_at, servico_nome,
   //   pokemon_nome, tipo_pedido
   // ══════════════════════════════════════════════════════════
 
@@ -397,13 +398,13 @@
     'cliente_nick',
     'delivered_by',
     'created_at',
+    'delivered_at',  // coluna adicionada — existe na tabela (nullable timestamptz)
     'descricao',
   ];
 
   // Nunca podem entrar num SELECT de delivery_proofs.
   const BANNED_FROM_SELECT = [
     'status',       // não existe em delivery_proofs
-    'delivered_at', // não existe em delivery_proofs
     'concluido_at', // campo legado PT — não é coluna real
     'servico_nome', // alias PT legado
     'pokemon_nome', // alias PT legado
@@ -827,7 +828,7 @@
         const out = normalizeDeliveryProof(input);
         // Validações mínimas — apenas campos que EXISTEM no banco ou são computados obrigatórios.
         // 'status' é computado (sempre 'concluido') e está no output — pode permanecer.
-        // 'delivered_at' REMOVIDO — não existe na tabela delivery_proofs.
+        // 'delivered_at' presente no output — coluna real do banco.
         const hasId = out.id !== undefined;
         const hasShape = ['service_name', 'pokemon_name', 'service_type',
                           'cliente_nick', 'descricao', 'image_url',
