@@ -21,7 +21,6 @@
 
   const SB_URL = global.SUPABASE_URL || '';
   const SB_KEY = global.SUPABASE_KEY || '';
-  const BUCKET = 'delivery-proofs';
   const TABLE  = 'delivery_proofs';   // ← tabela real no Supabase
 
   // ══════════════════════════════════════════════════════════
@@ -86,13 +85,9 @@
         }
       }
 
-      // Monta a URL pública da primeira imagem (image_url)
+      // image_url vem direto de prints[0].url (já é data: URL ou URL externa)
       const firstPrint = Array.isArray(payload.prints) ? payload.prints[0] : null;
-      let imageUrl = firstPrint?.url || null;
-      if (imageUrl && !imageUrl.startsWith('http')) {
-        imageUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${imageUrl}`;
-        console.log('[DeliveryDB] image_url convertida para URL completa:', imageUrl);
-      }
+      const imageUrl = firstPrint?.url || null;
 
       // [SchemaAudit] Colunas reais de delivery_proofs — SOMENTE nomes EN canônicos.
       // Nunca enviar servico_nome / pokemon_nome / tipo_pedido ao Supabase.
@@ -187,106 +182,34 @@
       const rows = await res.json();
       console.log(`[Entregas] dados carregados — ${rows.length} registros`);
 
-      // ── Diagnóstico do primeiro registro ────────────────────────────────────
-      if (rows.length > 0) {
-        const r0 = rows[0];
-        console.group('[SchemaAudit] delivery_proofs — estrutura do banco (primeiro registro)');
-        console.log('[SchemaAudit] delivery_proofs columns:', Object.keys(r0));
-        console.log('[SchemaAudit] image_url:', r0.image_url);
-        console.log('[SchemaAudit] prints:', r0.prints);
-        console.log('[SchemaAudit] service_name:', r0.service_name);
-        console.log('[SchemaAudit] pokemon_name:', r0.pokemon_name);
-        console.log('[SchemaAudit] service_type:', r0.service_type);
-        console.log('[SchemaAudit] descricao:', r0.descricao);
-        console.log('[SchemaAudit] cliente_nick:', r0.cliente_nick);
-        console.groupEnd();
-
-        // ── [IMG TRACE] Rastreamento completo do pipeline de imagem ────────────
-        console.group('[IMG TRACE] Pipeline completo de imagem — id:', r0.id);
-        console.log('[IMG TRACE] 1. VALOR EXATO DO BANCO:');
-        console.log('[IMG TRACE]    image_url  =', JSON.stringify(r0.image_url),
-          '| tipo:', typeof r0.image_url);
-        console.log('[IMG TRACE]    prints     =', JSON.stringify(r0.prints),
-          '| tipo:', typeof r0.prints, '| isArray:', Array.isArray(r0.prints));
-
-        const _traceNormalized = typeof normalizeDeliveryProof === 'function'
-          ? normalizeDeliveryProof({ ...r0 })
-          : null;
-        if (_traceNormalized) {
-          console.log('[IMG TRACE] 2. APÓS normalizeDeliveryProof():');
-          console.log('[IMG TRACE]    image_url  =', JSON.stringify(_traceNormalized.image_url));
-          console.log('[IMG TRACE]    prints     =', JSON.stringify(_traceNormalized.prints));
-          console.log('[IMG TRACE]    _partial   =', _traceNormalized._partial);
-
-          if (_traceNormalized.image_url) {
-            const _traceUrl = _traceNormalized.image_url;
-            console.log('[IMG TRACE] 3. TESTANDO URL HTTP:', _traceUrl.slice(0, 120));
-            const _isBucketPublic = _traceUrl.includes('/object/public/');
-            const _isBucketPrivate = _traceUrl.includes('/storage/v1/object/') &&
-              !_traceUrl.includes('/object/public/') && !_traceUrl.includes('/object/sign/');
-            console.log('[IMG TRACE]    bucket público?:', _isBucketPublic,
-              '| bucket privado?:', _isBucketPrivate);
-            fetch(_traceUrl, { method: 'HEAD' })
-              .then(r => console.log('[IMG TRACE]    HEAD', _traceUrl.slice(0, 80),
-                '→ HTTP', r.status, r.statusText,
-                _isBucketPrivate && r.status === 400 ? '← BUCKET PRIVADO! Fix: tornar público no Supabase Dashboard' : ''))
-              .catch(e => console.warn('[IMG TRACE]    HEAD falhou (rede/CORS):', e.message));
-          } else {
-            console.warn('[IMG TRACE] 3. image_url é NULL após normalize — sem imagem para testar');
-          }
-        } else {
-          console.warn('[IMG TRACE] normalizeDeliveryProof não disponível — schema-compat.js carregado?');
-        }
-        console.groupEnd();
-        // ── [/IMG TRACE] ────────────────────────────────────────────────────────
-      } else {
+      if (!rows.length) {
         console.warn('[Entregas] Banco retornou 0 registros — verifique RLS e tabela:', TABLE);
       }
 
-      // ── Resolução de image_url com diagnóstico aprofundado ──────────────────
-      // [FIX IMG-4] Testa se a URL da primeira imagem é acessível.
-      // Se retornar 400/403 → bucket é privado → gera Signed URL como fallback.
-      const resolvedRows = await Promise.all(rows.map(async (row) => {
-        // Já tem URL pública completa? → usa como está
-        if (row.image_url && row.image_url.startsWith('http')) {
-          return row;
-        }
-
-        // image_url parece um path relativo? → monta URL pública
-        if (row.image_url && !row.image_url.startsWith('http')) {
-          const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${row.image_url}`;
-          console.log('[Entregas] Convertendo path relativo para URL pública:', publicUrl);
-          row.image_url = publicUrl;
-          return row;
-        }
-
-        // Sem image_url mas com prints[]? → extrai do primeiro print
-        if (!row.image_url) {
-          // [FIX IMG-1] prints pode ser string JSON se coluna for TEXT no Supabase
-          let rawPrints = row.prints || row.images || row.proof_urls || [];
-          if (typeof rawPrints === 'string') {
-            try {
-              rawPrints = JSON.parse(rawPrints);
-              console.log('[Entregas] prints era string JSON — parseado em list()');
-            } catch (_) {
-              console.warn('[Entregas] prints é string inválida — ignorando:', String(rawPrints).slice(0, 60));
-              rawPrints = [];
-            }
+      // ── Fix 1: garante que prints seja sempre Array (Supabase pode retornar TEXT) ──
+      rows.forEach(row => {
+        if (typeof row.prints === 'string') {
+          try {
+            row.prints = JSON.parse(row.prints);
+          } catch (_) {
+            row.prints = [];
           }
-          if (Array.isArray(rawPrints) && rawPrints.length) {
-            const first = rawPrints[0];
-            const firstUrl = (typeof first === 'string') ? first : (first && first.url ? first.url : null);
-            if (firstUrl) {
-              row.image_url = firstUrl.startsWith('http')
-                ? firstUrl
-                : `${SB_URL}/storage/v1/object/public/${BUCKET}/${firstUrl}`;
-              console.log('[Entregas] image_url extraída de prints[0]:', row.image_url);
-            }
-          }
+        }
+      });
+
+      // ── Resolução de image_url a partir de prints[0].url ou image_url ──────
+      const resolvedRows = rows.map(row => {
+        // Fix 2: prioridade — prints[0].url → image_url → null
+        const firstPrintUrl = Array.isArray(row.prints) && row.prints[0]
+          ? (row.prints[0].url || null)
+          : null;
+
+        if (!row.image_url && firstPrintUrl) {
+          row.image_url = firstPrintUrl;
         }
 
         return row;
-      }));
+      });
 
       return resolvedRows;
     },
@@ -358,122 +281,17 @@
     return null;
   }
 
-  // ══════════════════════════════════════════════════════════
-  // DeliveryStorage — upload com retry automático em 401
-  // ══════════════════════════════════════════════════════════
-  const DeliveryStorage = {
-
-    /**
-     * Faz upload de um arquivo para o bucket delivery-proofs.
-     * Retry automático: se 401 → refresh → 1 retry.
-     */
-    async upload(file, pedidoId) {
-      // PASSO CRÍTICO: garante sessão válida ANTES de qualquer fetch
-      const jwt  = await _ensureValidSession();
-      const ext  = (file.name || 'image.png').split('.').pop().toLowerCase() || 'png';
-      const ts   = Date.now();
-      const rand = Math.random().toString(36).slice(2, 7);
-      const path = `delivery_${pedidoId}_${ts}_${rand}.${ext}`;
-
-      // Log de diagnóstico organizado
-      const userId       = _getCurrentUserId() || '(sem user)';
-      const tokenPreview = jwt ? jwt.slice(0, 24) + '…' : '❌ NULL';
-      console.group('[Entrega] 🔐 Auth Check — upload()');
-      console.log('user_id :', userId);
-      console.log('token   :', tokenPreview);
-      console.log('bucket  :', BUCKET);
-      console.log('path    :', path);
-      console.log('file    :', file.name, `(${(file.size / 1024).toFixed(1)} KB)`);
-      console.groupEnd();
-
-      const result = await DeliveryStorage._doUpload(file, path, jwt);
-      return result;
-    },
-
-    /**
-     * Executa o fetch de upload. Se receber 401, tenta refresh e retry único.
-     */
-    async _doUpload(file, path, jwt, isRetry = false) {
-      console.log('[Entrega] 🔑 STORAGE AUTH OK | token:', jwt ? jwt.slice(0, 20) + '…' : '❌ NULL', '| isRetry:', isRetry);
-      const res = await fetch(
-        `${SB_URL}/storage/v1/object/${BUCKET}/${path}`,
-        {
-          method:  'POST',
-          headers: {
-            'apikey':        SB_KEY,
-            'Authorization': 'Bearer ' + jwt,
-            'Content-Type':  file.type || 'image/png',
-            'x-upsert':      'false',
-          },
-          body: file,
-        }
-      );
-
-      // Sucesso
-      if (res.ok) {
-        const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-        console.log('[Entrega] ✅ Upload concluído:', publicUrl);
-        // [FIX IMG-3] Avisa se o bucket pode ser privado
-        // (verificar: se a imagem não carregar na galeria, o bucket está privado)
-        console.log('[Entrega] ℹ️ Se imagens não aparecerem na galeria, verifique:');
-        console.log('[Entrega]    Supabase Dashboard → Storage → delivery-proofs → Policies → "Enable public access"');
-        return { url: publicUrl, path, name: file.name || path };
-      }
-
-      const e = await res.json().catch(() => ({}));
-
-      // 401 → token rejeitado pelo Storage. Session já tem refresh automático,
-      // mas pode ter havido race entre expiração e upload. Forçamos refresh via Session e retentamos.
-      if (res.status === 401 && !isRetry) {
-        console.warn('[Entrega] 401 no upload. Solicitando forceRefresh ao Session...');
-        try {
-          const freshToken = (typeof Session !== 'undefined' && typeof Session.forceRefresh === 'function')
-            ? await Session.forceRefresh()
-            : await _getSessionToken();
-          if (freshToken) {
-            console.log('[Entrega] ✅ Token renovado via Session.forceRefresh(). Fazendo retry...');
-            return DeliveryStorage._doUpload(file, path, freshToken, true);
-          }
-        } catch (refreshErr) {
-          console.error('[Entrega] ❌ forceRefresh falhou:', refreshErr.message);
-        }
-        throw new Error('Sessão expirada durante o upload. Faça login e tente novamente.');
-      }
-
-      // Outro erro
-      console.error('[Entrega] ❌ Erro no upload Storage:', {
-        status:  res.status,
-        message: e.message,
-        error:   e.error,
-        hint:    e.hint,
-        bucket:  BUCKET,
-        path,
-      });
-      throw new Error(e.message || `Erro no upload (HTTP ${res.status})`);
-    },
-
-    async uploadMultiple(files, pedidoId, onProgress) {
-      const results = [];
-      for (let i = 0; i < files.length; i++) {
-        if (onProgress) onProgress(i, files.length, files[i].name);
-        const r = await DeliveryStorage.upload(files[i], pedidoId);
-        results.push(r);
-      }
-      if (onProgress) onProgress(files.length, files.length, '');
-      return results;
-    },
-  };
 
   // ══════════════════════════════════════════════════════════
   // DeliveryAdmin — modal comprovante
   // ══════════════════════════════════════════════════════════
   const DeliveryAdmin = {
 
-    _files:      [],
+    _imgurLink:  '',
     _submitting: false,
 
     openModal(supabaseOrderId, orderData) {
-      DeliveryAdmin._files      = [];
+      DeliveryAdmin._imgurLink  = '';
       DeliveryAdmin._submitting = false;
 
       const existing = document.getElementById('da-modal-overlay');
@@ -488,9 +306,6 @@
         if (e.target === overlay) DeliveryAdmin.closeModal();
       });
 
-      DeliveryAdmin._setupDrop(supabaseOrderId);
-      DeliveryAdmin._setupPaste(supabaseOrderId);
-
       requestAnimationFrame(() => overlay.classList.add('da-open'));
     },
 
@@ -499,14 +314,41 @@
       if (!el) return;
       el.classList.remove('da-open');
       setTimeout(() => el.remove(), 280);
-      document.removeEventListener('paste', DeliveryAdmin._pasteHandler);
     },
 
     _buildModalHTML(orderId, orderData) {
-      const nick    = orderData?.nick    || '—';
-      const service = orderData?.service || '—';
-      const pokemon = orderData?.pokemon || '—';
-      const tipo    = orderData?.tipo    || '—';
+      // [DELIVERY_MODAL] logs temporários de diagnóstico
+      console.log('[DELIVERY_MODAL] orderData', orderData);
+
+      // Normaliza: suporte a campos EN canônicos e aliases PT
+      const normalized = {
+        nick:    orderData?.nick         || orderData?.nickname      || '—',
+        service: orderData?.service      || orderData?.service_name  || orderData?.servico_nome  || '—',
+        pokemon: orderData?.pokemon      || orderData?.pokemon_name  || orderData?.pokemon_nome  || '—',
+        tipo:    orderData?.tipo         || orderData?.service_type  || orderData?.tipo_pedido   || '—',
+        created_at: orderData?.created_at || orderData?.createdAt    || null,
+      };
+      console.log('[DELIVERY_MODAL] normalized', normalized);
+
+      const nick    = normalized.nick;
+      const service = normalized.service;
+      const pokemon = normalized.pokemon;
+      const tipo    = normalized.tipo;
+
+      // Tempo desde created_at
+      let tempoStr = '—';
+      if (normalized.created_at) {
+        try {
+          const diffMs  = Date.now() - new Date(normalized.created_at).getTime();
+          const diffMin = Math.floor(diffMs / 60000);
+          const diffH   = Math.floor(diffMin / 60);
+          const diffD   = Math.floor(diffH / 24);
+          if (diffD > 0)       tempoStr = `${diffD}d ${diffH % 24}h atrás`;
+          else if (diffH > 0)  tempoStr = `${diffH}h ${diffMin % 60}min atrás`;
+          else if (diffMin > 0) tempoStr = `${diffMin}min atrás`;
+          else                 tempoStr = 'agora mesmo';
+        } catch (_) { tempoStr = '—'; }
+      }
 
       return `
         <div class="da-modal" id="da-modal">
@@ -528,22 +370,27 @@
             <div class="da-info-row"><span>Serviço</span><strong>${service}</strong></div>
             <div class="da-info-row"><span>Pokémon</span><strong>${pokemon}</strong></div>
             <div class="da-info-row"><span>Tipo</span><strong>${tipo}</strong></div>
+            <div class="da-info-row"><span>Pedido feito</span><strong>${tempoStr}</strong></div>
           </div>
 
-          <div class="da-paste-hint" id="da-paste-hint">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            Pressione <kbd>Ctrl+V</kbd> para colar um print da área de transferência
+          <div class="da-imgur-field">
+            <label class="da-imgur-label" for="da-imgur-input">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Link da imagem (Imgur)
+            </label>
+            <input
+              type="text"
+              id="da-imgur-input"
+              class="da-imgur-input"
+              placeholder="https://i.imgur.com/abc123.png"
+              oninput="DeliveryAdmin._onImgurInput(this.value)"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <div class="da-imgur-preview-wrap" id="da-imgur-preview-wrap" style="display:none">
+              <img id="da-imgur-preview-img" src="" alt="Preview" class="da-imgur-preview-img">
+            </div>
           </div>
-
-          <div class="da-drop-zone" id="da-drop-zone" onclick="document.getElementById('da-file-input').click()">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(58,140,255,0.5)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <div class="da-drop-text">Arraste aqui, clique ou <strong>Ctrl+V</strong></div>
-            <div class="da-drop-sub">JPEG, PNG, WebP — até 10MB cada</div>
-            <input type="file" id="da-file-input" accept="image/*" multiple style="display:none"
-              onchange="DeliveryAdmin._onFilesSelected(event.target.files)">
-          </div>
-
-          <div class="da-preview-grid" id="da-preview-grid"></div>
 
           <div class="da-progress-bar-wrap" id="da-progress-wrap" style="display:none">
             <div class="da-progress-bar">
@@ -579,118 +426,28 @@
       console.error('[Entrega] ❌', msg);
     },
 
-    _onFilesSelected(fileList) {
-      const MAX_SIZE = 10 * 1024 * 1024;
-      const ALLOWED  = ['image/jpeg', 'image/png', 'image/webp'];
-      const files = Array.from(fileList).filter(f => {
-        if (!ALLOWED.includes(f.type)) {
-          console.warn('[Entrega] Arquivo ignorado (tipo não suportado):', f.name, f.type);
-          return false;
+    // ── Campo de link Imgur ──────────────────────────────────
+    _onImgurInput(value) {
+      const trimmed = value.trim();
+      DeliveryAdmin._imgurLink = trimmed;
+
+      const btn     = document.getElementById('da-submit-btn');
+      const preview = document.getElementById('da-imgur-preview-wrap');
+      const img     = document.getElementById('da-imgur-preview-img');
+
+      const isValid = /^https?:\/\/(i\.)?imgur\.com\/\S+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(trimmed);
+
+      if (btn) btn.disabled = !isValid;
+
+      if (preview && img) {
+        if (isValid) {
+          img.src = trimmed;
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
+          img.src = '';
         }
-        if (f.size > MAX_SIZE) {
-          DeliveryAdmin._showError(`Arquivo muito grande (máx 10MB): ${f.name}`);
-          return false;
-        }
-        return true;
-      });
-      DeliveryAdmin._files = DeliveryAdmin._files.concat(files);
-      DeliveryAdmin._renderPreviews();
-    },
-
-    _renderPreviews() {
-      const grid = document.getElementById('da-preview-grid');
-      const btn  = document.getElementById('da-submit-btn');
-      const hint = document.getElementById('da-paste-hint');
-      if (!grid) return;
-
-      grid.innerHTML = '';
-      DeliveryAdmin._files.forEach((f, i) => {
-        const url = URL.createObjectURL(f);
-        const el  = document.createElement('div');
-        el.className = 'da-preview-item';
-        el.innerHTML = `
-          <img src="${url}" alt="${f.name}" loading="lazy">
-          <button class="da-preview-remove" onclick="DeliveryAdmin._removeFile(${i})" title="Remover">✕</button>
-          <div class="da-preview-name">${f.name.length > 16 ? f.name.slice(0,14)+'…' : f.name}</div>
-        `;
-        grid.appendChild(el);
-      });
-
-      if (btn) btn.disabled = DeliveryAdmin._files.length === 0;
-      if (hint) hint.style.display = DeliveryAdmin._files.length > 0 ? 'none' : '';
-    },
-
-    _removeFile(index) {
-      DeliveryAdmin._files.splice(index, 1);
-      DeliveryAdmin._renderPreviews();
-    },
-
-    // ── Drag & Drop ──────────────────────────────────────────
-    _setupDrop(orderId) {
-      const zone = document.getElementById('da-drop-zone');
-      if (!zone) return;
-
-      zone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        zone.classList.add('da-drag-over');
-      });
-      zone.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        zone.classList.add('da-drag-over');
-      });
-      zone.addEventListener('dragleave', (e) => {
-        if (!zone.contains(e.relatedTarget)) zone.classList.remove('da-drag-over');
-      });
-      zone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        zone.classList.remove('da-drag-over');
-        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-        if (files.length) {
-          console.log('[Entrega] Drop:', files.length, 'arquivo(s)');
-          DeliveryAdmin._onFilesSelected(files);
-        }
-      });
-    },
-
-    // ── Paste (Ctrl+V) ──────────────────────────────────────
-    _pasteHandler: null,
-
-    _setupPaste(orderId) {
-      if (DeliveryAdmin._pasteHandler) {
-        document.removeEventListener('paste', DeliveryAdmin._pasteHandler);
       }
-
-      DeliveryAdmin._pasteHandler = function(e) {
-        if (!document.getElementById('da-modal-overlay')) return;
-
-        const items = e.clipboardData && e.clipboardData.items;
-        if (!items) return;
-
-        const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'));
-        if (!imageItems.length) return;
-
-        e.preventDefault();
-
-        const files = imageItems.map(item => {
-          const blob = item.getAsFile();
-          const ext  = item.type.split('/')[1] || 'png';
-          const ts   = Date.now();
-          return new File([blob], `print_${ts}.${ext}`, { type: item.type });
-        });
-
-        console.log('[Entrega] Paste (Ctrl+V):', files.length, 'imagem(ns)');
-        DeliveryAdmin._onFilesSelected(files);
-
-        const zone = document.getElementById('da-drop-zone');
-        if (zone) {
-          zone.classList.add('da-paste-flash');
-          setTimeout(() => zone.classList.remove('da-paste-flash'), 600);
-        }
-      };
-
-      document.addEventListener('paste', DeliveryAdmin._pasteHandler);
     },
 
     // ── Submit: fluxo completo ponta a ponta ─────────────────
@@ -702,10 +459,10 @@
 
       const orderId   = btn.dataset.orderId;
       const orderData = JSON.parse(decodeURIComponent(btn.dataset.orderData || '{}'));
-      const files     = DeliveryAdmin._files;
+      const imgurLink = DeliveryAdmin._imgurLink;
 
-      if (!files.length) {
-        DeliveryAdmin._showError('Adicione pelo menos uma imagem antes de registrar.');
+      if (!imgurLink) {
+        DeliveryAdmin._showError('Insira o link da imagem do Imgur antes de registrar.');
         return;
       }
       if (!orderId) {
@@ -735,21 +492,9 @@
       if (progressWrap) progressWrap.style.display = 'block';
 
       try {
-        // ── PASSO 1: Upload das imagens ──────────────────────
-        console.group('[Entrega] PASSO 1 — Upload (' + files.length + ' arquivo(s))');
-        const prints = await DeliveryStorage.uploadMultiple(
-          files,
-          String(orderId),
-          (done, total, name) => {
-            const pct = total > 0 ? Math.round((done / total) * 60) : 0;
-            if (progressFill) progressFill.style.width = pct + '%';
-            if (progressLbl) progressLbl.textContent = done < total
-              ? `Enviando ${done + 1}/${total}: ${name}`
-              : 'Salvando registro…';
-          }
-        );
-        console.log('URLs:', prints.map(p => p.url));
-        console.groupEnd();
+        // ── PASSO 1: Usar link Imgur como comprovante ────────
+        console.log('[Entrega] PASSO 1 — Link Imgur:', imgurLink);
+        const prints = [{ url: imgurLink, name: 'imgur' }];
 
         if (progressFill) progressFill.style.width = '65%';
 
@@ -791,7 +536,7 @@
         if (progressLbl)  progressLbl.textContent = '✅ Entrega registrada!';
 
         // ── PASSO 5: Fechar + toast + atualizar fila ─────────
-        DeliveryAdmin._files      = [];
+        DeliveryAdmin._imgurLink  = '';
         DeliveryAdmin._submitting = false;
 
         setTimeout(() => {
@@ -1116,14 +861,11 @@
     _buildCard(entry, idx, isAdmin) {
       // Garante normalização (idempotente — não refaz se já foi feita em refresh)
       DeliveryGallery._normalizeEntry(entry);
-      console.log('[IMG TRACE] card #' + idx,
-        '| service:', entry.service_name,
-        '| image_url (valor exato que vai em data-src):', JSON.stringify(entry.image_url),
-        '| prints.length:', entry.prints ? entry.prints.length : 'N/A',
-        '| prints[0].url:', entry.prints && entry.prints[0] ? JSON.stringify(entry.prints[0].url) : '(vazio)');
-
-      const prints      = entry.prints;   // já é [{url}]
-      const mainImg     = entry.image_url || '';
+      const prints  = entry.prints;   // já é [{url}]
+      // Fix 3: prioridade de imagem — prints[0].url → image_url → ''
+      const mainImg = (Array.isArray(prints) && prints[0] && prints[0].url)
+        ? prints[0].url
+        : (entry.image_url || '');
       // [SafeRender] Usa safe() para toda renderização — nunca acessa campo direto
       const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
       const servicoNome = _s(entry.service_name, '');
@@ -1213,7 +955,6 @@
 
     _setupLazyLoad() {
       // ── [IMG-LOOP-FIX v2] Lazy loader anti-loop definitivo ────────────────
-      // Cada URL pode ser tentada no MÁXIMO 2 vezes (1x pública + 1x Signed).
       // _failedUrls persiste no objeto DeliveryGallery — sobrevive a re-renders.
       // dataset.failed protege o elemento DOM atual.
       // Qualquer falha definitiva: URL → _failedUrls, placeholder, fim.
@@ -1241,95 +982,40 @@
         if (overlay) overlay.style.display = 'none';
       }
 
-      function _loadImgFinal(img, signedSrc, originalUrl) {
-        // Última tentativa: Signed URL. onerror já nulo antes de atribuir src.
-        img.onerror = null; // limpa ANTES de atribuir src — nunca re-dispara handler antigo
+      function _loadImgFinal(img, src, originalUrl) {
+        // Aplica a URL final na imagem.
+        img.onerror = null;
         img.onload  = null;
         img.onload  = () => { img.classList.add('dg-loaded'); };
         img.onerror = () => {
+          img.onerror = null;
+          img.onload  = null;
           _markFailed(img, originalUrl);
-          console.error('[SIGNED_URL_FAIL] Signed URL falhou — arquivo inexistente ou CORS:', signedSrc.slice(0, 120));
-          console.error('[FILE_NOT_FOUND] Supabase Storage → delivery-proofs → arquivo existe com esse path?');
+          img.classList.add('dg-error');
           _applyPlaceholder(img);
         };
-        img.src = signedSrc;
+        img.src = src;
       }
 
       function _loadImgWithFallback(img, publicSrc) {
+        // ── Guards: nunca re-tenta se já falhou ──────────────────────────────────
         if (_failed.has(publicSrc)) {
-          // URL já conhecida como falha (re-render) — aplica placeholder direto, sem log
           img.dataset.failed = '1';
           _applyPlaceholder(img);
           return;
         }
-        if (img.dataset.retryAttempted === '1') return; // guard extra por elemento
+        if (img.dataset.retryAttempted === '1') return;
 
-        img.onerror = null; // limpa handler anterior ANTES de atribuir src
+        img.onerror = null;
         img.onload  = null;
         img.onload  = () => { img.classList.add('dg-loaded'); };
         img.onerror = () => {
-          img.onerror = null; // trava imediata — impede qualquer re-disparo
+          img.onerror = null;
           img.onload  = null;
           img.dataset.retryAttempted = '1';
-
-          const isPublic = publicSrc.includes('/object/public/');
-
-          if (isPublic) {
-            console.warn('[PUBLIC_URL_FAIL] URL pública falhou — tentando Signed URL:', publicSrc.slice(0, 120));
-          } else {
-            // Não é URL pública nem signed → falha definitiva sem fallback
-            _markFailed(img, publicSrc);
-            console.error('[PUBLIC_URL_FAIL] URL fora do padrão /object/public/:', publicSrc.slice(0, 120));
-            _applyPlaceholder(img);
-            return;
-          }
-
-          const canSign = typeof window.SUPABASE_URL !== 'undefined' &&
-                          typeof window.SUPABASE_KEY !== 'undefined';
-          if (!canSign) {
-            _markFailed(img, publicSrc);
-            console.error('[SIGNED_URL_FAIL] SUPABASE_URL/KEY indisponíveis — sem fallback');
-            _applyPlaceholder(img);
-            return;
-          }
-
-          const pathMatch = publicSrc.match(/\/object\/public\/delivery-proofs\/(.+)$/);
-          if (!pathMatch) {
-            _markFailed(img, publicSrc);
-            console.error('[PUBLIC_URL_FAIL] Path não encontrado na URL:', publicSrc.slice(0, 120));
-            _applyPlaceholder(img);
-            return;
-          }
-
-          const filePath = pathMatch[1];
-          const token = (typeof Session !== 'undefined' && Session.getAccessToken)
-            ? Session.getAccessToken() : window.SUPABASE_KEY;
-
-          fetch(`${window.SUPABASE_URL}/storage/v1/object/sign/delivery-proofs/${filePath}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': window.SUPABASE_KEY,
-              'Authorization': 'Bearer ' + token,
-            },
-            body: JSON.stringify({ expiresIn: 3600 }),
-          })
-          .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-          .then(data => {
-            if (data && data.signedURL) {
-              const signed = data.signedURL.startsWith('http')
-                ? data.signedURL
-                : `${window.SUPABASE_URL}${data.signedURL}`;
-              _loadImgFinal(img, signed, publicSrc);
-            } else {
-              throw new Error('signedURL ausente na resposta');
-            }
-          })
-          .catch(err => {
-            _markFailed(img, publicSrc);
-            console.error('[SIGNED_URL_FAIL] Falha ao obter Signed URL:', err.message, '| path:', filePath);
-            _applyPlaceholder(img);
-          });
+          _markFailed(img, publicSrc);
+          img.classList.add('dg-error');
+          _applyPlaceholder(img);
         };
         img.src = publicSrc;
       }
@@ -1370,7 +1056,6 @@
         obs.observe(img);
         observed++;
       });
-      console.log('[LazyLoad] Observer ativo —', observed, 'imagens | já falhadas (cache):', _failed.size);
     },
 
     openLightbox(idx) {
@@ -1566,19 +1251,13 @@
 .da-modal-info { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
 .da-info-row { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:rgba(255,255,255,0.4); }
 .da-info-row strong { color:rgba(255,255,255,0.8); font-weight:600; }
-.da-paste-hint { display:flex; align-items:center; gap:8px; font-size:11px; color:rgba(58,140,255,0.7); background:rgba(58,140,255,0.06); border:1px solid rgba(58,140,255,0.15); border-radius:8px; padding:8px 12px; }
-.da-paste-hint kbd { background:rgba(58,140,255,0.15); border:1px solid rgba(58,140,255,0.3); border-radius:4px; padding:1px 6px; font-size:11px; font-family:var(--font-mono,monospace); color:#3a8cff; }
-.da-drop-zone { border:2px dashed rgba(58,140,255,0.25); border-radius:12px; padding:28px 20px; text-align:center; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:8px; }
-.da-drop-zone:hover, .da-drop-zone.da-drag-over { border-color:rgba(58,140,255,0.6); background:rgba(58,140,255,0.05); }
-.da-drop-zone.da-paste-flash { border-color:#3a8cff; background:rgba(58,140,255,0.1); box-shadow:0 0 0 3px rgba(58,140,255,0.2); }
-.da-drop-text { font-size:13px; color:rgba(255,255,255,0.5); }
-.da-drop-text strong { color:rgba(58,140,255,0.8); }
-.da-drop-sub { font-size:11px; color:rgba(255,255,255,0.25); }
-.da-preview-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; }
-.da-preview-item { position:relative; border-radius:8px; overflow:hidden; background:rgba(0,0,0,0.3); }
-.da-preview-item img { width:100%; aspect-ratio:1; object-fit:cover; display:block; }
-.da-preview-remove { position:absolute; top:4px; right:4px; width:20px; height:20px; background:rgba(0,0,0,0.75); border:none; border-radius:50%; color:rgba(255,100,100,0.9); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.da-preview-name { font-size:9px; color:rgba(255,255,255,0.3); padding:3px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.da-imgur-field { display:flex; flex-direction:column; gap:8px; }
+.da-imgur-label { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:0.8px; color:rgba(255,255,255,0.45); text-transform:uppercase; }
+.da-imgur-input { width:100%; box-sizing:border-box; background:rgba(255,255,255,0.04); border:1px solid rgba(58,140,255,0.25); border-radius:10px; padding:11px 14px; font-size:13px; color:rgba(255,255,255,0.85); outline:none; transition:border-color 0.2s, box-shadow 0.2s; font-family:var(--font-mono,monospace); }
+.da-imgur-input::placeholder { color:rgba(255,255,255,0.2); }
+.da-imgur-input:focus { border-color:rgba(58,140,255,0.6); box-shadow:0 0 0 3px rgba(58,140,255,0.12); }
+.da-imgur-preview-wrap { border-radius:10px; overflow:hidden; border:1px solid rgba(58,140,255,0.2); background:rgba(0,0,0,0.3); }
+.da-imgur-preview-img { display:block; max-width:100%; max-height:200px; margin:0 auto; object-fit:contain; }
 .da-progress-bar-wrap { display:flex; flex-direction:column; gap:6px; }
 .da-progress-bar { height:4px; border-radius:2px; background:rgba(255,255,255,0.06); overflow:hidden; }
 .da-progress-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#3a8cff,#60aaff); transition:width 0.3s ease; width:0%; }
@@ -1601,8 +1280,7 @@
   .dg-lb-img { max-height:75vh; }
   .da-modal { padding:16px; gap:14px; }
   .da-modal-title { font-size:11px; letter-spacing:1.5px; }
-  .da-drop-zone { padding:20px; }
-  .da-paste-hint { font-size:10px; }
+  .da-imgur-input { font-size:12px; padding:9px 12px; }
 }
       `;
       document.head.appendChild(s);
@@ -1611,7 +1289,6 @@
 
   // ── Expõe globalmente ──────────────────────────────────────
   global.DeliveryDB      = DeliveryDB;
-  global.DeliveryStorage = DeliveryStorage;
   global.DeliveryAdmin   = DeliveryAdmin;
   global.DeliveryGallery = DeliveryGallery;
 
