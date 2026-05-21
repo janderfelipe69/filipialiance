@@ -58,9 +58,15 @@
     async insert(payload) {
       const jwt = await _ensureValidSession();
 
-      // Resolve campos possivelmente ausentes buscando o pedido original
+      // [SchemaAudit] Aceita tanto nomes EN canônicos quanto aliases PT legados.
+      // Normaliza tudo para EN antes de montar o row — nunca envia PT ao Supabase.
+      const svcName  = payload.service_name || payload.servico_nome || null;
+      const pkName   = payload.pokemon_name || payload.pokemon_nome || null;
+      const svcType  = payload.service_type || payload.tipo_pedido  || null;
+
+      // Resolve campos ausentes buscando o pedido original (fallback)
       let extraData = {};
-      if (payload.pedido_id && (!payload.servico_nome || !payload.pokemon_nome || !payload.tipo_pedido)) {
+      if (payload.pedido_id && (!svcName || !pkName || !svcType)) {
         try {
           const res = await fetch(
             `${SB_URL}/rest/v1/pedidos?id=eq.${payload.pedido_id}&select=service_name,pokemon_name,service_type,nick&limit=1`,
@@ -79,7 +85,6 @@
       }
 
       // Monta a URL pública da primeira imagem (image_url)
-      // FIX: garante que image_url seja sempre uma URL http completa (não path relativo)
       const firstPrint = Array.isArray(payload.prints) ? payload.prints[0] : null;
       let imageUrl = firstPrint?.url || null;
       if (imageUrl && !imageUrl.startsWith('http')) {
@@ -87,19 +92,22 @@
         console.log('[DeliveryDB] image_url convertida para URL completa:', imageUrl);
       }
 
+      // [SchemaAudit] Colunas reais de delivery_proofs — SOMENTE nomes EN canônicos.
+      // Nunca enviar servico_nome / pokemon_nome / tipo_pedido ao Supabase.
       const row = {
-        order_id:      payload.pedido_id     || null,
-        service_name:  payload.servico_nome  || extraData.service_name || null,
-        pokemon_name:  payload.pokemon_nome  || extraData.pokemon_name || null,
-        service_type:  payload.tipo_pedido   || extraData.service_type || null,
+        order_id:      payload.pedido_id                          || null,
+        service_name:  svcName  || extraData.service_name         || null,
+        pokemon_name:  pkName   || extraData.pokemon_name         || null,
+        service_type:  svcType  || extraData.service_type         || null,
         image_url:     imageUrl,
-        prints:        payload.prints        || [],
-        delivered_by:  payload.user_id       || _getCurrentUserId() || null,
-        cliente_nick:  payload.cliente_nick  || extraData.nick       || null,
-        descricao:     payload.descricao     || null,
-        created_at:    payload.concluido_at  || new Date().toISOString(),
+        prints:        payload.prints                             || [],
+        delivered_by:  payload.user_id || _getCurrentUserId()    || null,
+        cliente_nick:  payload.cliente_nick || extraData.nick     || null,
+        descricao:     payload.descricao                          || null,
+        created_at:    payload.concluido_at || new Date().toISOString(),
       };
 
+      console.log('[SchemaAudit] delivery_proofs columns:', Object.keys(row));
       console.log('[DeliveryDB] INSERT payload:', row);
 
       const res = await fetch(`${SB_URL}/rest/v1/${TABLE}`, {
@@ -111,6 +119,11 @@
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         console.error('[DeliveryDB] ❌ INSERT falhou:', { status: res.status, error: e });
+        // [SchemaAudit] Log detalhado do erro de schema
+        if (e.message && e.message.includes('does not exist')) {
+          console.error('[SchemaAudit] ❌ CAMPO INEXISTENTE NO BANCO:', e.message);
+          console.error('[SchemaAudit] Colunas enviadas:', Object.keys(row));
+        }
         throw new Error(e.message || e.error || `Erro ao salvar entrega (HTTP ${res.status})`);
       }
 
@@ -126,18 +139,19 @@
     async list(limit = 200) {
       const jwt = await _getSessionToken();
 
-      // SELECT ampliado: inclui todos os nomes de coluna possíveis para garantir
-      // compatibilidade independente de como a tabela foi criada no Supabase.
-      // NOTA: Supabase ignora silenciosamente colunas inexistentes — sem erro HTTP.
+      // [SchemaAudit] SELECT usa SOMENTE colunas canônicas EN confirmadas na tabela.
+      // IMPORTANTE: A documentação do Supabase diz que ignora colunas inexistentes,
+      // mas na prática retorna HTTP 400 com "column does not exist" quando o schema
+      // cache ainda não foi atualizado. NUNCA incluir aliases PT no select=.
+      // Fallback para registros antigos é feito em _normalizeEntry() no cliente.
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=id,order_id,` +
-        `service_name,pokemon_name,service_type,` +         // nomes canônicos EN
-        `servico_nome,pokemon_nome,tipo_pedido,` +          // nomes alternativos PT
-        `image_url,proof_urls,screenshot_url,` +            // imagem principal (variantes)
-        `prints,images,` +                                  // array de prints (variantes)
-        `cliente_nick,nick,` +                              // nick do cliente
-        `delivered_by,created_at,concluido_at,` +           // metadados
-        `descricao,description` +                           // descrição (variantes)
+        `service_name,pokemon_name,service_type,` +    // colunas reais EN
+        `image_url,` +                                 // imagem principal
+        `prints,` +                                    // array de prints
+        `cliente_nick,` +                              // nick do cliente
+        `delivered_by,created_at,` +                   // metadados
+        `descricao` +                                  // descrição
         `&order=created_at.desc` +
         `&limit=${limit}`;
 
@@ -149,7 +163,14 @@
         const e = await res.json().catch(() => ({}));
         const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
         console.error('[Entregas] Falha na query:', msg);
-        throw new Error(msg);
+        // [SchemaAudit] Diagnóstico de erro de schema
+        if (msg.includes('does not exist')) {
+          console.error('[SchemaAudit] ❌ Coluna inexistente na query SELECT:', msg);
+          console.error('[SchemaAudit] Verifique se a coluna existe em delivery_proofs no Supabase.');
+        }
+        // [Passo 6] Não joga erro para cima — retorna array vazio para não destruir a tela
+        console.warn('[Entregas] Retornando lista vazia por segurança');
+        return [];
       }
 
       const rows = await res.json();
@@ -158,17 +179,15 @@
       // ── Diagnóstico do primeiro registro ────────────────────────────────────
       if (rows.length > 0) {
         const r0 = rows[0];
-        console.group('[Entregas] Estrutura do banco (primeiro registro)');
-        console.log('Campos presentes:', Object.keys(r0));
-        console.log('image_url:', r0.image_url);
-        console.log('proof_urls:', r0.proof_urls);
-        console.log('prints:', r0.prints);
-        console.log('images:', r0.images);
-        console.log('service_name:', r0.service_name, '| servico_nome:', r0.servico_nome);
-        console.log('pokemon_name:', r0.pokemon_name, '| pokemon_nome:', r0.pokemon_nome);
-        console.log('service_type:', r0.service_type, '| tipo_pedido:', r0.tipo_pedido);
-        console.log('description:', r0.description, '| descricao:', r0.descricao);
-        console.log('cliente_nick:', r0.cliente_nick, '| nick:', r0.nick);
+        console.group('[SchemaAudit] delivery_proofs — estrutura do banco (primeiro registro)');
+        console.log('[SchemaAudit] delivery_proofs columns:', Object.keys(r0));
+        console.log('[SchemaAudit] image_url:', r0.image_url);
+        console.log('[SchemaAudit] prints:', r0.prints);
+        console.log('[SchemaAudit] service_name:', r0.service_name);
+        console.log('[SchemaAudit] pokemon_name:', r0.pokemon_name);
+        console.log('[SchemaAudit] service_type:', r0.service_type);
+        console.log('[SchemaAudit] descricao:', r0.descricao);
+        console.log('[SchemaAudit] cliente_nick:', r0.cliente_nick);
         console.groupEnd();
       } else {
         console.warn('[Entregas] Banco retornou 0 registros — verifique RLS e tabela:', TABLE);
@@ -672,17 +691,21 @@
 
         // ── PASSO 2: INSERT em pedido_entregas ───────────────
         console.log('[Entrega] PASSO 2 — Salvando em delivery_proofs...');
+        // [SchemaAudit] Payload usa SOMENTE nomes canônicos EN (colunas reais da tabela).
+        // Os aliases PT (servico_nome, pokemon_nome, tipo_pedido) eram o root cause do
+        // erro "column delivery_proofs.servico_nome does not exist".
         const payload = {
           pedido_id:    Number(orderId),
           user_id:      _getCurrentUserId(),
           prints:       prints,
           descricao:    null,
           cliente_nick: orderData?.nick    || null,
-          servico_nome: orderData?.service || null,
-          pokemon_nome: orderData?.pokemon || null,
-          tipo_pedido:  orderData?.tipo    || null,
+          service_name: orderData?.service || null,   // ← EN canônico
+          pokemon_name: orderData?.pokemon || null,   // ← EN canônico
+          service_type: orderData?.tipo    || null,   // ← EN canônico
           concluido_at: new Date().toISOString(),
         };
+        console.log('[SchemaAudit] payload recebido:', JSON.stringify(payload));
         await DeliveryDB.insert(payload);
         console.log('[Entrega] PASSO 2 — ✅ Entrega salva em delivery_proofs.');
 
@@ -881,20 +904,31 @@
       }
 
       // ── 3. NOME DO SERVIÇO ────────────────────────────────────────────────
+      // [Passo 4] Fallback: registros antigos podem ter servico_nome (PT)
+      const prevSvc = entry.service_name;
       entry.service_name = entry.service_name
-        || entry.servico_nome
+        || entry.servico_nome   // compatibilidade registros antigos
         || entry.service
         || null;
+      if (!prevSvc && entry.service_name) {
+        console.log('[SchemaAudit] fallback aplicado: service_name ←', Object.keys(entry).find(k => ['servico_nome','service'].includes(k) && entry[k]));
+      } else if (!entry.service_name) {
+        console.log('[SchemaAudit] campo ausente: service_name (id:', entry.id, ')');
+      }
 
       // ── 4. NOME DO POKÉMON ────────────────────────────────────────────────
+      const prevPk = entry.pokemon_name;
       entry.pokemon_name = entry.pokemon_name
-        || entry.pokemon_nome
+        || entry.pokemon_nome   // compatibilidade registros antigos
         || entry.pokemon
         || null;
+      if (!prevPk && entry.pokemon_name) {
+        console.log('[SchemaAudit] fallback aplicado: pokemon_name ←', Object.keys(entry).find(k => ['pokemon_nome','pokemon'].includes(k) && entry[k]));
+      }
 
       // ── 5. TIPO DO SERVIÇO ────────────────────────────────────────────────
       entry.service_type = entry.service_type
-        || entry.tipo_pedido
+        || entry.tipo_pedido    // compatibilidade registros antigos
         || entry.tipo
         || null;
 
@@ -913,20 +947,17 @@
       // ── 8. DATA ────────────────────────────────────────────────────────────
       entry.created_at = entry.created_at || entry.concluido_at || null;
 
-      // Atalhos legados usados no HTML do card
-      entry.servico_nome = entry.service_name;
-      entry.pokemon_nome = entry.pokemon_name;
-      entry.tipo_pedido  = entry.service_type;
-
       entry._normalized = true;
 
-      console.log('[Entregas] renderizando card — resultado normalizado:',
-        'image_url:', entry.image_url || '(sem imagem)',
-        '| service:', entry.service_name || '(sem serviço)',
-        '| pokemon:', entry.pokemon_name || '(sem pokémon)',
-        '| nick:', entry.cliente_nick || '(sem nick)',
-        '| prints:', entry.prints.length
-      );
+      console.log('[SchemaAudit] render card:', {
+        id:           entry.id,
+        service_name: entry.service_name || '(null)',
+        pokemon_name: entry.pokemon_name || '(null)',
+        service_type: entry.service_type || '(null)',
+        cliente_nick: entry.cliente_nick || '(null)',
+        image_url:    entry.image_url   ? '✅' : '(sem imagem)',
+        prints:       entry.prints.length,
+      });
 
       return entry;
     },
