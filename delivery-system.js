@@ -58,11 +58,13 @@
     async insert(payload) {
       const jwt = await _ensureValidSession();
 
-      // [SchemaAudit] Aceita tanto nomes EN canônicos quanto aliases PT legados.
-      // Normaliza tudo para EN antes de montar o row — nunca envia PT ao Supabase.
-      const svcName  = payload.service_name || payload.servico_nome || null;
-      const pkName   = payload.pokemon_name || payload.pokemon_nome || null;
-      const svcType  = payload.service_type || payload.tipo_pedido  || null;
+      // [PayloadSanitize] Usa camada centralizada — remove todos os campos PT legados
+      // antes de qualquer acesso. Idempotente e seguro para qualquer formato.
+      const _safe = typeof sanitizeDeliveryPayload === 'function' ? sanitizeDeliveryPayload : (p => p);
+      payload = _safe(payload);
+      const svcName  = payload.service_name || null;
+      const pkName   = payload.pokemon_name || null;
+      const svcType  = payload.service_type || null;
 
       // Resolve campos ausentes buscando o pedido original (fallback)
       let extraData = {};
@@ -139,19 +141,13 @@
     async list(limit = 200) {
       const jwt = await _getSessionToken();
 
-      // [SchemaAudit] SELECT usa SOMENTE colunas canônicas EN confirmadas na tabela.
-      // IMPORTANTE: A documentação do Supabase diz que ignora colunas inexistentes,
-      // mas na prática retorna HTTP 400 com "column does not exist" quando o schema
-      // cache ainda não foi atualizado. NUNCA incluir aliases PT no select=.
-      // Fallback para registros antigos é feito em _normalizeEntry() no cliente.
+      // [SchemaCompat] Usa select canônico centralizado — nunca * nem aliases PT
+      const _selectCols = typeof SchemaCompat !== 'undefined'
+        ? SchemaCompat.buildDeliveryProofsSelect()
+        : 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,descricao,status';
+
       const url = `${SB_URL}/rest/v1/${TABLE}` +
-        `?select=id,order_id,` +
-        `service_name,pokemon_name,service_type,` +    // colunas reais EN
-        `image_url,` +                                 // imagem principal
-        `prints,` +                                    // array de prints
-        `cliente_nick,` +                              // nick do cliente
-        `delivered_by,created_at,` +                   // metadados
-        `descricao` +                                  // descrição
+        `?select=${_selectCols}` +
         `&order=created_at.desc` +
         `&limit=${limit}`;
 
@@ -864,11 +860,20 @@
     },
 
     // ── Normaliza um registro vindo do Supabase ──────────────────────────────
-    // Resolve divergências entre nomes de colunas (snake_case variantes, PT vs EN)
-    // e garante que prints seja sempre um array de {url} objects.
+    // [DataNormalize] Delegado para normalizeDeliveryProof() (schema-compat.js)
     _normalizeEntry(entry) {
       if (!entry || entry._normalized) return entry;
-
+      if (typeof normalizeDeliveryProof === 'function') {
+        const normalized = normalizeDeliveryProof(entry);
+        Object.assign(entry, normalized);
+        return entry;
+      }
+      console.error('[Entregas] normalizeDeliveryProof nao disponivel — schema-compat.js carregado?');
+      entry._normalized = true; entry._partial = true;
+      return entry;
+    },
+    _normalizeEntry_LEGACY_DISABLED(entry) {
+      if (!entry || entry._normalized) return entry;
       console.log('[Entregas] renderizando card — id:', entry.id, '| campos:', Object.keys(entry));
 
       // ── 1. IMAGEM PRINCIPAL ───────────────────────────────────────────────
@@ -1009,8 +1014,25 @@
       const isAdmin = typeof Session !== 'undefined' && Session.isAdmin();
 
       data.forEach((entry, idx) => {
-        const card = DeliveryGallery._buildCard(entry, idx, isAdmin);
-        grid.appendChild(card);
+        // [PartialRender] Error boundary por card — falha de um não destrói a lista
+        const _wrapEB = typeof wrapWithErrorBoundary === 'function'
+          ? wrapWithErrorBoundary
+          : (fn, fb) => { try { return fn(); } catch(e) { if(fb) fb(e); return null; } };
+
+        _wrapEB(
+          () => {
+            const card = DeliveryGallery._buildCard(entry, idx, isAdmin);
+            grid.appendChild(card);
+          },
+          (err) => {
+            console.warn('[PartialRender] card #' + idx + ' falhou:', err.message);
+            const _rp = typeof renderPartialCard === 'function'
+              ? renderPartialCard
+              : (c, r) => { const d = document.createElement('div'); d.className='dg-card dg-card--partial'; d.textContent='dados incompletos'; c.appendChild(d); };
+            _rp(grid, entry, err);
+          },
+          'card #' + idx
+        );
       });
 
       DeliveryGallery._setupLazyLoad();
@@ -1023,11 +1045,13 @@
 
       const prints      = entry.prints;   // já é [{url}]
       const mainImg     = entry.image_url || '';
-      const servicoNome = entry.service_name  || '';
-      const pokemonNome = entry.pokemon_name  || '';
-      const tipoPedido  = entry.service_type  || '';
-      const clienteNick = entry.cliente_nick  || '';
-      const descricao   = entry.descricao     || '';
+      // [SafeRender] Usa safe() para toda renderização — nunca acessa campo direto
+      const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
+      const servicoNome = _s(entry.service_name, '');
+      const pokemonNome = _s(entry.pokemon_name, '');
+      const tipoPedido  = _s(entry.service_type, '');
+      const clienteNick = _s(entry.cliente_nick, '');
+      const descricao   = _s(entry.descricao, '');
       const dateRaw = entry.created_at || entry.concluido_at;
       const date    = dateRaw
         ? new Date(dateRaw).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })

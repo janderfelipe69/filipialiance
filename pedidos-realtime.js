@@ -240,7 +240,11 @@
     var record = null;
 
     if (msg.event === 'postgres_changes') {
-      if (msg.payload && msg.payload.data && msg.payload.data.type && msg.payload.data.record) {
+      // [DataNormalize] Usa normalizeRealtimeRecord (schema-compat.js) quando disponível
+      if (typeof normalizeRealtimeRecord === 'function') {
+        var _rt = normalizeRealtimeRecord(msg, 'pedidos');
+        if (_rt.record) { tipo = _rt.event || tipo; record = _rt.record; }
+      } else if (msg.payload && msg.payload.data && msg.payload.data.type && msg.payload.data.record) {
         tipo   = msg.payload.data.type;
         record = msg.payload.data.record;
       } else if (msg.payload && msg.payload.type && msg.payload.record) {
@@ -390,6 +394,11 @@
    * Chamado automaticamente no login — chamar manualmente apenas se necessário.
    */
   function startRealtime() {
+    // [SchemaCompat] RealtimeGuard: previne subscriptions duplicadas
+    if (typeof SchemaCompat !== 'undefined' && SchemaCompat.RealtimeGuard.isActive('pedidos-realtime')) {
+      _log('RealtimeGuard: canal ja ativo — ignorando subscribe duplicado');
+      return;
+    }
     if (
       _wsActive &&
       _ws &&

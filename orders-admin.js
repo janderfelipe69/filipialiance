@@ -185,18 +185,27 @@ const OrdersAdmin = (() => {
               return String(sid) === String(supabaseOrderId);
             });
             if (order) {
-              // FIX: campo correto é 'nickname', não 'userNickname'/'nick'
+              // [DataNormalize] Monta orderData com campos EN canônicos
+              // safe() garante que nenhum campo ausente quebre o modal
+              const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
               orderData = {
-                nick:    order.nickname || order.userNickname || order.nick || '—',
-                service: (order.items && order.items.length)
+                nick:         _s(order.nickname || order.userNickname || order.nick, '—'),
+                service_name: _s((order.items && order.items.length)
                   ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
-                  : (order.service_type || '—'),
-                pokemon: (order.items && order.items[0])
-                  ? (order.items[0].pokemon || order.items[0].name || '')
-                  : '',
-                tipo: order.service_type || order.type || '—',
+                  : (order.service_type), '—'),
+                // Mantém 'service' por compatibilidade com DeliveryAdmin._buildModalHTML
+                service:      _s((order.items && order.items.length)
+                  ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
+                  : (order.service_type), '—'),
+                pokemon_name: _s((order.items && order.items[0])
+                  ? (order.items[0].pokemon || order.items[0].name) : '', ''),
+                // Mantém 'pokemon' por compatibilidade com DeliveryAdmin._buildModalHTML
+                pokemon:      _s((order.items && order.items[0])
+                  ? (order.items[0].pokemon || order.items[0].name) : '', ''),
+                service_type: _s(order.service_type || order.type, '—'),
+                tipo:         _s(order.service_type || order.type, '—'),
               };
-              console.log('[OrdersAdmin] orderData para modal de entrega:', orderData);
+              console.log('[DataNormalize] orderData para modal de entrega:', orderData);
             } else {
               console.warn('[OrdersAdmin] Pedido #' + supabaseOrderId + ' não encontrado no cache local.');
             }

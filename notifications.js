@@ -461,20 +461,32 @@ const NotificationsAPI = (() => {
       let formato = null;
 
       if (msg.event === 'postgres_changes') {
-        // Formato 1: .payload.data.record
-        if (msg.payload?.data?.type === 'INSERT' && msg.payload?.data?.record) {
-          record  = msg.payload.data.record;
-          formato = 'payload.data.record';
+        // [DataNormalize] Usa normalizeRealtimeRecord (schema-compat.js) se disponível
+        if (typeof normalizeRealtimeRecord === 'function') {
+          const _rt = normalizeRealtimeRecord(msg, 'notifications');
+          if (_rt.record && (_rt.event === 'INSERT' || !_rt.event)) {
+            record = _rt.record;
+            formato = 'schema-compat/normalizeRealtimeRecord';
+          }
         }
-        // Formato 2: .payload.record (sem wrapper .data)
-        else if (msg.payload?.type === 'INSERT' && msg.payload?.record) {
-          record  = msg.payload.record;
-          formato = 'payload.record';
-        }
-        // Formato 3: .payload.new
-        else if (msg.payload?.new && Object.keys(msg.payload.new).length) {
-          record  = msg.payload.new;
-          formato = 'payload.new';
+
+        // Fallback: extração manual dos formatos Phoenix
+        if (!record) {
+          // Formato 1: .payload.data.record
+          if (msg.payload?.data?.type === 'INSERT' && msg.payload?.data?.record) {
+            record  = msg.payload.data.record;
+            formato = 'payload.data.record';
+          }
+          // Formato 2: .payload.record (sem wrapper .data)
+          else if (msg.payload?.type === 'INSERT' && msg.payload?.record) {
+            record  = msg.payload.record;
+            formato = 'payload.record';
+          }
+          // Formato 3: .payload.new
+          else if (msg.payload?.new && Object.keys(msg.payload.new).length) {
+            record  = msg.payload.new;
+            formato = 'payload.new';
+          }
         }
       }
 
