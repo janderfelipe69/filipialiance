@@ -189,9 +189,9 @@
         console.warn('[Entregas] Banco retornou 0 registros — verifique RLS e tabela:', TABLE);
       }
 
-      // ── Resolução de image_url via signed URL se necessário ─────────────────
-      // Se image_url existir mas apontar para um path interno (sem /public/),
-      // tenta gerar signed URL para buckets privados.
+      // ── Resolução de image_url com diagnóstico aprofundado ──────────────────
+      // [FIX IMG-4] Testa se a URL da primeira imagem é acessível.
+      // Se retornar 400/403 → bucket é privado → gera Signed URL como fallback.
       const resolvedRows = await Promise.all(rows.map(async (row) => {
         // Já tem URL pública completa? → usa como está
         if (row.image_url && row.image_url.startsWith('http')) {
@@ -208,7 +208,17 @@
 
         // Sem image_url mas com prints[]? → extrai do primeiro print
         if (!row.image_url) {
-          const rawPrints = row.prints || row.images || row.proof_urls || [];
+          // [FIX IMG-1] prints pode ser string JSON se coluna for TEXT no Supabase
+          let rawPrints = row.prints || row.images || row.proof_urls || [];
+          if (typeof rawPrints === 'string') {
+            try {
+              rawPrints = JSON.parse(rawPrints);
+              console.log('[Entregas] prints era string JSON — parseado em list()');
+            } catch (_) {
+              console.warn('[Entregas] prints é string inválida — ignorando:', String(rawPrints).slice(0, 60));
+              rawPrints = [];
+            }
+          }
           if (Array.isArray(rawPrints) && rawPrints.length) {
             const first = rawPrints[0];
             const firstUrl = (typeof first === 'string') ? first : (first && first.url ? first.url : null);
@@ -349,6 +359,10 @@
       if (res.ok) {
         const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${path}`;
         console.log('[Entrega] ✅ Upload concluído:', publicUrl);
+        // [FIX IMG-3] Avisa se o bucket pode ser privado
+        // (verificar: se a imagem não carregar na galeria, o bucket está privado)
+        console.log('[Entrega] ℹ️ Se imagens não aparecerem na galeria, verifique:');
+        console.log('[Entrega]    Supabase Dashboard → Storage → delivery-proofs → Policies → "Enable public access"');
         return { url: publicUrl, path, name: file.name || path };
       }
 
@@ -1152,9 +1166,50 @@
                 img.classList.add('dg-loaded');
                 console.log('[Entregas] imagem carregada (lazy):', src.slice(0, 70));
               };
+              // [FIX IMG-4] onerror com diagnóstico claro do tipo de falha
               img.onerror = () => {
                 img.classList.add('dg-error-img');
-                console.warn('[Entregas] erro render — falha ao carregar imagem:', src.slice(0, 80));
+                const isPrivateBucket = src.includes('/storage/v1/object/') &&
+                  !src.includes('/object/public/') && !src.includes('/object/sign/');
+                const isPublicBucket  = src.includes('/object/public/');
+                if (isPrivateBucket) {
+                  console.error('[Entregas] ❌ Falha ao carregar imagem — bucket PRIVADO. URL sem /public/:', src.slice(0, 100));
+                  console.error('[Entregas] Fix: Supabase Dashboard → Storage → delivery-proofs → Make Public');
+                } else if (isPublicBucket) {
+                  console.error('[Entregas] ❌ Falha ao carregar imagem — bucket público mas arquivo não encontrado ou CORS bloqueado. URL:', src.slice(0, 100));
+                  console.error('[Entregas] Verifique: 1) arquivo existe no bucket, 2) URL correta, 3) CORS no bucket');
+                } else {
+                  console.error('[Entregas] ❌ Falha ao carregar imagem — URL inválida ou erro de rede:', src.slice(0, 100));
+                }
+                // [FIX IMG-4] Tenta Signed URL como último recurso se a URL pública falhar
+                if (isPublicBucket && typeof window.SUPABASE_URL !== 'undefined' && typeof window.SUPABASE_KEY !== 'undefined') {
+                  const pathMatch = src.match(/\/object\/public\/delivery-proofs\/(.+)$/);
+                  if (pathMatch) {
+                    const filePath = pathMatch[1];
+                    console.log('[Entregas] Tentando Signed URL para:', filePath);
+                    fetch(`${window.SUPABASE_URL}/storage/v1/object/sign/delivery-proofs/${filePath}`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': window.SUPABASE_KEY,
+                        'Authorization': 'Bearer ' + (typeof Session !== 'undefined' && Session.getAccessToken ? Session.getAccessToken() : window.SUPABASE_KEY),
+                      },
+                      body: JSON.stringify({ expiresIn: 3600 }),
+                    })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                      if (data && data.signedURL) {
+                        const signed = data.signedURL.startsWith('http')
+                          ? data.signedURL
+                          : `${window.SUPABASE_URL}${data.signedURL}`;
+                        console.log('[Entregas] Signed URL obtida — tentando carregar');
+                        img.classList.remove('dg-error-img');
+                        img.src = signed;
+                      }
+                    })
+                    .catch(err => console.warn('[Entregas] Signed URL falhou:', err.message));
+                  }
+                }
               };
               obs.unobserve(img);
             }

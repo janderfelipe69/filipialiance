@@ -171,10 +171,20 @@
     function _toAbsolute(url) {
       if (!url) return null;
       if (url.startsWith('http')) return url;
+      // [FIX IMG-2] Guarda defensivo: path relativo sem SUPABASE_URL geraria
+      // '/storage/v1/...' (URL inválida sem host) → imagem nunca carregaria.
+      if (!SB_URL) {
+        console.warn('[DataNormalize] SUPABASE_URL não definido — path relativo não resolvido:', url.slice(0, 60));
+        return null;
+      }
       return `${SB_URL}/storage/v1/object/public/${BUCKET}/${url}`;
     }
 
     function _firstUrl(arr) {
+      // [FIX IMG-1] Suporte a array de strings, objetos {url} e string JSON
+      if (typeof arr === 'string') {
+        try { arr = JSON.parse(arr); } catch (_) { return null; }
+      }
       if (!Array.isArray(arr) || !arr.length) return null;
       const item = arr[0];
       if (typeof item === 'string') return item;
@@ -183,6 +193,18 @@
     }
 
     function _normalizePrints(raw) {
+      // [FIX IMG-1] Se o campo prints vier como string JSON (coluna TEXT no Supabase
+      // em vez de JSONB), faz parse antes de processar.
+      // Sem este fix: Array.isArray(string) = false → retorna [] → sem imagem.
+      if (typeof raw === 'string') {
+        try {
+          raw = JSON.parse(raw);
+          console.log('[DataNormalize] prints era string JSON — parseado com sucesso');
+        } catch (_) {
+          console.warn('[DataNormalize] prints é string mas não é JSON válido — ignorando:', raw.slice(0, 60));
+          return [];
+        }
+      }
       if (!Array.isArray(raw)) return [];
       return raw.map(p => {
         if (typeof p === 'string') return { url: _toAbsolute(p) };
@@ -193,12 +215,19 @@
       }).filter(Boolean);
     }
 
-    // Consolida todos os arrays de imagem possíveis
-    const rawPrints =
-      record.prints      ||
-      record.images      ||     // alias legado
-      record.proof_urls  ||     // alias legado
-      [];
+    // [FIX IMG-1] Consolida todos os arrays de imagem possíveis
+    // com suporte a campos que vieram como string JSON (coluna TEXT vs JSONB)
+    let rawPrints = record.prints || record.images || record.proof_urls || [];
+
+    if (typeof rawPrints === 'string') {
+      try {
+        rawPrints = JSON.parse(rawPrints);
+        console.log('[DataNormalize] rawPrints era string JSON — parseado');
+      } catch (_) {
+        console.warn('[DataNormalize] rawPrints é string mas não é JSON válido');
+        rawPrints = [];
+      }
+    }
 
     // image_url canônica
     let image_url =
@@ -208,6 +237,20 @@
       _toAbsolute(_firstUrl(record.images)) ||
       _toAbsolute(_firstUrl(rawPrints)) ||
       null;
+
+    // [FIX IMG-3] Detecta URL sem /public/ — indica bucket privado.
+    // A imagem precisa de Signed URL ou o bucket precisa ser tornado público.
+    if (image_url &&
+        image_url.includes('/storage/v1/object/') &&
+        !image_url.includes('/object/public/') &&
+        !image_url.includes('/object/sign/')) {
+      console.warn(
+        '[DataNormalize] ⚠️ image_url sem /public/ — bucket pode estar PRIVADO.',
+        '\n  URL:', image_url.slice(0, 100),
+        '\n  Fix: Supabase Dashboard → Storage → delivery-proofs → Policies → tornar público',
+        '\n  Ou use Signed URLs em DeliveryStorage._doUpload()'
+      );
+    }
 
     // Normaliza array de prints
     let prints = _normalizePrints(rawPrints);
