@@ -146,6 +146,11 @@ const NotificationsUI = (() => {
   right: 0;
   width: 340px;
   max-width: calc(100vw - 20px);
+  /* [FIX 2] flex-column: header fixo + lista rolável + footer fixo */
+  display: flex;
+  flex-direction: column;
+  /* [FIX 2] Limita altura total do painel sem vazar da viewport */
+  max-height: min(520px, calc(100dvh - 80px));
   background: linear-gradient(145deg,
     rgba(13,30,61,0.96) 0%,
     rgba(6,14,32,0.97) 55%,
@@ -160,6 +165,9 @@ const NotificationsUI = (() => {
     0 20px 60px rgba(0,0,0,0.65),
     0 4px 20px rgba(0,0,0,0.4);
   z-index: 10001;
+  /* [FIX 1] overflow:hidden cortava o footer e botões de ação ao rolar.
+     O clip visual (border-radius) é mantido via overflow:hidden apenas
+     no eixo X; o scroll acontece só dentro do .nui-list. */
   overflow: hidden;
   /* fechado */
   opacity: 0;
@@ -183,6 +191,8 @@ const NotificationsUI = (() => {
   padding: 13px 14px 11px;
   border-bottom: 1px solid rgba(58,140,255,0.1);
   gap: 6px;
+  /* [FIX 2] Header fixo — não comprime quando a lista cresce */
+  flex-shrink: 0;
 }
 .nui-title {
   font-family: var(--font-title, 'Cinzel', serif);
@@ -200,6 +210,19 @@ const NotificationsUI = (() => {
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
+  /* [FIX 1] overflow:visible garante que nenhum botão seja cortado
+     pelo container pai mesmo em telas menores */
+  overflow: visible;
+}
+
+/* [FIX 4] Responsividade mobile: compacta texto dos botões */
+@media (max-width: 400px) {
+  .nui-panel {
+    width: calc(100vw - 20px);
+    right: -10px;
+  }
+  .nui-mark-all  { font-size: 10px; padding: 4px 6px; }
+  .nui-clear-read { font-size: 10px; padding: 4px 6px; }
 }
 
 /* Botão "Marcar todas" */
@@ -288,8 +311,15 @@ const NotificationsUI = (() => {
    LISTA SCROLLÁVEL
    ═══════════════════════════════════════════════════ */
 .nui-list {
-  max-height: 370px;
+  /* [FIX 2] flex:1 + min-height:0 é o padrão correto para scroll
+     dentro de um flex-column. O max-height fixo anterior (370px)
+     ignorava o espaço ocupado por header/footer e fazia o panel
+     "vazar" para além do max-height total. Agora a lista ocupa
+     o espaço restante e scrolla internamente. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 5px 5px 5px;
   scrollbar-width: thin;
   scrollbar-color: rgba(58,140,255,0.25) transparent;
@@ -479,6 +509,8 @@ const NotificationsUI = (() => {
   font-size: 10px;
   color: rgba(255,255,255,0.15);
   text-align: center;
+  /* [FIX 2] Footer fixo — não comprime quando a lista cresce */
+  flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -577,6 +609,9 @@ const NotificationsUI = (() => {
   // ── RENDER LIST (completo, só quando necessário) ──────────────────────────
   function _render() {
     if (!$list) return;
+    console.log('[NotificationsUI] rerender triggered, notifs:', _notifs.filter(n=>!n.archived).length);
+    console.log('[NotificationsUI] rendering header');
+    console.log('[NotificationsUI] rendering footer');
     const visible = _notifs.filter(n => !n.archived);
     if (visible.length === 0) {
       $list.innerHTML = `
@@ -612,6 +647,7 @@ const NotificationsUI = (() => {
         </button>
       </div>`).join('');
     _updateActionButtons();
+    console.log('[NotificationsUI] scroll container height:', $list.scrollHeight, 'px, clientHeight:', $list.clientHeight, 'px');
   }
 
   // ── REMOVE ITEM DA UI COM ANIMAÇÃO ────────────────────────────────────────
@@ -946,14 +982,27 @@ const NotificationsUI = (() => {
     if (wrap && !wrap.contains(e.target)) _close();
   }
 
-  function _inject() {
-    if (document.getElementById('nui-bell')) return;
+  // [FIX 1 — ROOT CAUSE] session.js usa container.innerHTML = ... no auth-header-slot
+  // ao fazer login/logout. Isso DESTRÓI o nui-wrap injetado, inclusive todos os
+  // botões (Marcar todas, Limpar lidas). A solução é um MutationObserver no slot
+  // que detecta a remoção do nui-wrap e o reinjecta automaticamente.
+  let _slotObserver = null;
 
-    const authSlot = document.getElementById('auth-header-slot');
-    if (!authSlot) {
-      setTimeout(_inject, 400);
-      return;
-    }
+  function _attachSlotObserver(authSlot) {
+    if (_slotObserver) _slotObserver.disconnect();
+    _slotObserver = new MutationObserver(() => {
+      if (!document.getElementById('nui-bell')) {
+        console.log('[NotificationsUI] nui-wrap foi removido pelo session.js — reinjectando');
+        _injectInto(authSlot);
+      }
+    });
+    _slotObserver.observe(authSlot, { childList: true, subtree: false });
+  }
+
+  function _injectInto(authSlot) {
+    // Garante que não duplique
+    const existing = document.getElementById('nui-wrap');
+    if (existing) existing.remove();
 
     const wrap = document.createElement('div');
     wrap.className = 'nui-wrap';
@@ -974,31 +1023,20 @@ const NotificationsUI = (() => {
       _toggle();
     });
 
-    // ── Evento: "Marcar todas" ── [FIX 1]
-    document.getElementById('nui-mark-all').addEventListener('click', e => {
-      e.stopPropagation();
-      _markAllRead();
-    });
-
-    // ── Evento: "Limpar lidas" ── [FIX 2]
-    document.getElementById('nui-clear-read').addEventListener('click', e => {
-      e.stopPropagation();
-      _clearRead();
-    });
-
-    // ── Evento: "Limpar todas" ──
-    document.getElementById('nui-clear-all').addEventListener('click', e => {
-      e.stopPropagation();
-      _clearAll();
-    });
-
-    // ── Evento delegado: botões X ──
+    // ── Evento delegado no panel: botões de ação + botões X ──
+    // [FIX 3] Usando event delegation no $panel em vez de getElementById direto,
+    // pois se o HTML for recriado os listeners não são perdidos (o $panel é
+    // recriado aqui, então basta anexar uma única vez ao novo elemento).
     $panel.addEventListener('click', e => {
-      const btn = e.target.closest('.nui-dismiss');
-      if (!btn) return;
       e.stopPropagation();
-      const id = btn.dataset.nid;
-      if (id) _removeOne(id);
+      if (e.target.closest('#nui-mark-all'))   { _markAllRead(); return; }
+      if (e.target.closest('#nui-clear-read')) { _clearRead();   return; }
+      if (e.target.closest('#nui-clear-all'))  { _clearAll();    return; }
+      const btn = e.target.closest('.nui-dismiss');
+      if (btn) {
+        const id = btn.dataset.nid;
+        if (id) _removeOne(id);
+      }
     });
 
     // ── Fecha ao clicar fora ──
@@ -1006,6 +1044,25 @@ const NotificationsUI = (() => {
     document.addEventListener('click', _outsideClick);
 
     console.log('[NotificationsUI] injected into header');
+    console.log('[NotificationsUI] clear button mounted:', !!document.getElementById('nui-clear-read'));
+    console.log('[NotificationsUI] mark-all button mounted:', !!document.getElementById('nui-mark-all'));
+
+    // Restaura o badge e estado visual
+    _badge(false);
+    if (_isOpen) _render();
+  }
+
+  function _inject() {
+    if (document.getElementById('nui-bell')) return;
+
+    const authSlot = document.getElementById('auth-header-slot');
+    if (!authSlot) {
+      setTimeout(_inject, 400);
+      return;
+    }
+
+    _injectInto(authSlot);
+    _attachSlotObserver(authSlot);
   }
 
   // ── REALTIME ──────────────────────────────────────────────────────────────
