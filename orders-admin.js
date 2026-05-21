@@ -171,22 +171,38 @@ const OrdersAdmin = (() => {
       setTimeout(() => {
         if (window.DeliveryAdmin && typeof DeliveryAdmin.openModal === 'function') {
           // Tenta recuperar dados do pedido para desnormalizar
+          // FIX: API correta é getAllOrders(), getAll() não existe
           let orderData = {};
           try {
-            const allOrders = (window.OrdersStorage && OrdersStorage.getAll) ? OrdersStorage.getAll() : [];
+            const allOrders = (window.OrdersStorage && typeof OrdersStorage.getAllOrders === 'function')
+              ? OrdersStorage.getAllOrders()
+              : [];
             const order = allOrders.find(o => {
-              const sid = o._supabaseId || o.orderNumber;
+              // FIX: supabase ID pode estar em _supabaseId, orderNumber, ou como "sb_123" no id
+              const sid = o._supabaseId
+                || o.orderNumber
+                || (typeof o.id === 'string' && o.id.startsWith('sb_') ? o.id.replace('sb_', '') : o.id);
               return String(sid) === String(supabaseOrderId);
             });
             if (order) {
+              // FIX: campo correto é 'nickname', não 'userNickname'/'nick'
               orderData = {
-                nick:    order.userNickname || order.nick || '—',
-                service: (order.items && order.items.map ? order.items.map(i => i.name || i.item).join(', ') : null) || order.service_type || '—',
-                pokemon: (order.items && order.items[0]) ? (order.items[0].pokemon || order.items[0].name || '') : '',
-                tipo:    order.service_type || order.type || '—',
+                nick:    order.nickname || order.userNickname || order.nick || '—',
+                service: (order.items && order.items.length)
+                  ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
+                  : (order.service_type || '—'),
+                pokemon: (order.items && order.items[0])
+                  ? (order.items[0].pokemon || order.items[0].name || '')
+                  : '',
+                tipo: order.service_type || order.type || '—',
               };
+              console.log('[OrdersAdmin] orderData para modal de entrega:', orderData);
+            } else {
+              console.warn('[OrdersAdmin] Pedido #' + supabaseOrderId + ' não encontrado no cache local.');
             }
-          } catch (_) {}
+          } catch (err) {
+            console.error('[OrdersAdmin] Erro ao montar orderData:', err);
+          }
           DeliveryAdmin.openModal(supabaseOrderId, orderData);
         }
       }, 600);

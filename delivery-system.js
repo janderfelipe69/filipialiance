@@ -79,8 +79,13 @@
       }
 
       // Monta a URL pública da primeira imagem (image_url)
+      // FIX: garante que image_url seja sempre uma URL http completa (não path relativo)
       const firstPrint = Array.isArray(payload.prints) ? payload.prints[0] : null;
-      const imageUrl   = firstPrint?.url || null;
+      let imageUrl = firstPrint?.url || null;
+      if (imageUrl && !imageUrl.startsWith('http')) {
+        imageUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${imageUrl}`;
+        console.log('[DeliveryDB] image_url convertida para URL completa:', imageUrl);
+      }
 
       const row = {
         order_id:      payload.pedido_id     || null,
@@ -123,10 +128,10 @@
 
       // SELECT ampliado: inclui todos os nomes de coluna possíveis para garantir
       // compatibilidade independente de como a tabela foi criada no Supabase.
-      // Supabase ignora silenciosamente colunas que não existem — sem erro.
+      // NOTA: Supabase ignora silenciosamente colunas inexistentes — sem erro HTTP.
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=id,order_id,` +
-        `service_name,pokemon_name,service_type,` +         // nomes canônicos
+        `service_name,pokemon_name,service_type,` +         // nomes canônicos EN
         `servico_nome,pokemon_nome,tipo_pedido,` +          // nomes alternativos PT
         `image_url,proof_urls,screenshot_url,` +            // imagem principal (variantes)
         `prints,images,` +                                  // array de prints (variantes)
@@ -136,26 +141,75 @@
         `&order=created_at.desc` +
         `&limit=${limit}`;
 
+      console.log('[Entregas] Buscando entregas — url:', url);
+
       const res = await fetch(url, { headers: _headers(jwt) });
 
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error(e.message || `Erro ao carregar entregas (HTTP ${res.status})`);
+        const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
+        console.error('[Entregas] Falha na query:', msg);
+        throw new Error(msg);
       }
 
       const rows = await res.json();
-      console.log(`[DeliveryDB] LIST: ${rows.length} registros carregados`);
+      console.log(`[Entregas] dados carregados — ${rows.length} registros`);
 
-      // ── DEBUG: exibe o objeto RAW do primeiro registro para diagnóstico ──
+      // ── Diagnóstico do primeiro registro ────────────────────────────────────
       if (rows.length > 0) {
-        console.log('[ENTREGAS RAW] Primeiro registro (colunas reais do banco):', rows[0]);
-        console.log('[ENTREGAS RAW] Campos presentes:', Object.keys(rows[0]));
-        console.log('[ENTREGAS RAW] image_url:', rows[0].image_url, '| proof_urls:', rows[0].proof_urls, '| prints:', rows[0].prints, '| images:', rows[0].images);
-        console.log('[ENTREGAS RAW] service_name:', rows[0].service_name, '| servico_nome:', rows[0].servico_nome, '| description:', rows[0].description, '| descricao:', rows[0].descricao);
+        const r0 = rows[0];
+        console.group('[Entregas] Estrutura do banco (primeiro registro)');
+        console.log('Campos presentes:', Object.keys(r0));
+        console.log('image_url:', r0.image_url);
+        console.log('proof_urls:', r0.proof_urls);
+        console.log('prints:', r0.prints);
+        console.log('images:', r0.images);
+        console.log('service_name:', r0.service_name, '| servico_nome:', r0.servico_nome);
+        console.log('pokemon_name:', r0.pokemon_name, '| pokemon_nome:', r0.pokemon_nome);
+        console.log('service_type:', r0.service_type, '| tipo_pedido:', r0.tipo_pedido);
+        console.log('description:', r0.description, '| descricao:', r0.descricao);
+        console.log('cliente_nick:', r0.cliente_nick, '| nick:', r0.nick);
+        console.groupEnd();
+      } else {
+        console.warn('[Entregas] Banco retornou 0 registros — verifique RLS e tabela:', TABLE);
       }
-      console.log('[ENTREGAS RAW] Todos os registros:', rows);
 
-      return rows;
+      // ── Resolução de image_url via signed URL se necessário ─────────────────
+      // Se image_url existir mas apontar para um path interno (sem /public/),
+      // tenta gerar signed URL para buckets privados.
+      const resolvedRows = await Promise.all(rows.map(async (row) => {
+        // Já tem URL pública completa? → usa como está
+        if (row.image_url && row.image_url.startsWith('http')) {
+          return row;
+        }
+
+        // image_url parece um path relativo? → monta URL pública
+        if (row.image_url && !row.image_url.startsWith('http')) {
+          const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${row.image_url}`;
+          console.log('[Entregas] Convertendo path relativo para URL pública:', publicUrl);
+          row.image_url = publicUrl;
+          return row;
+        }
+
+        // Sem image_url mas com prints[]? → extrai do primeiro print
+        if (!row.image_url) {
+          const rawPrints = row.prints || row.images || row.proof_urls || [];
+          if (Array.isArray(rawPrints) && rawPrints.length) {
+            const first = rawPrints[0];
+            const firstUrl = (typeof first === 'string') ? first : (first && first.url ? first.url : null);
+            if (firstUrl) {
+              row.image_url = firstUrl.startsWith('http')
+                ? firstUrl
+                : `${SB_URL}/storage/v1/object/public/${BUCKET}/${firstUrl}`;
+              console.log('[Entregas] image_url extraída de prints[0]:', row.image_url);
+            }
+          }
+        }
+
+        return row;
+      }));
+
+      return resolvedRows;
     },
 
     /**
@@ -775,7 +829,7 @@
         DeliveryGallery._loaded = true;
         DeliveryGallery._render();
       } catch (err) {
-        console.error('[DeliveryGallery] Erro ao carregar:', err);
+        console.error('[Entregas] erro render — falha ao carregar lista:', err.message, err);
         grid.innerHTML = `
           <div class="dg-error">
             <div class="dg-error-icon">⚠️</div>
@@ -791,6 +845,8 @@
     // e garante que prints seja sempre um array de {url} objects.
     _normalizeEntry(entry) {
       if (!entry || entry._normalized) return entry;
+
+      console.log('[Entregas] renderizando card — id:', entry.id, '| campos:', Object.keys(entry));
 
       // ── 1. IMAGEM PRINCIPAL ───────────────────────────────────────────────
       // Suporte a: image_url | proof_urls[0] | screenshot_url | images[0] | prints[0]
@@ -863,6 +919,15 @@
       entry.tipo_pedido  = entry.service_type;
 
       entry._normalized = true;
+
+      console.log('[Entregas] renderizando card — resultado normalizado:',
+        'image_url:', entry.image_url || '(sem imagem)',
+        '| service:', entry.service_name || '(sem serviço)',
+        '| pokemon:', entry.pokemon_name || '(sem pokémon)',
+        '| nick:', entry.cliente_nick || '(sem nick)',
+        '| prints:', entry.prints.length
+      );
+
       return entry;
     },
 
@@ -916,6 +981,7 @@
     _buildCard(entry, idx, isAdmin) {
       // Garante normalização (idempotente — não refaz se já foi feita em refresh)
       DeliveryGallery._normalizeEntry(entry);
+      console.log('[Entregas] renderizando card #' + idx, '— service:', entry.service_name, '| image_url:', entry.image_url || '(vazio)');
 
       const prints      = entry.prints;   // já é [{url}]
       const mainImg     = entry.image_url || '';
@@ -943,7 +1009,9 @@
       el.innerHTML = `
         <div class="dg-card-img-wrap" onclick="DeliveryGallery.openLightbox(${mainLbIdx})">
           ${mainImg
-            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${servicoNome || 'Entrega'}" onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('afterbegin','<div class=dg-card-img-placeholder>📷</div>')">`
+            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${servicoNome || 'Entrega'}"
+                 onload="this.classList.add('dg-loaded');console.log('[Entregas] imagem carregada:','${mainImg}'.slice(0,60))"
+                 onerror="console.warn('[Entregas] erro imagem — tentando fallback. url:','${mainImg}'.slice(0,80));this.style.display='none';this.parentNode.querySelector('.dg-card-overlay') && (this.parentNode.querySelector('.dg-card-overlay').style.display='none');var ph=document.createElement('div');ph.className='dg-card-img-placeholder';ph.textContent='📷';this.parentNode.insertBefore(ph,this.parentNode.firstChild);">`
             : `<div class="dg-card-img-placeholder">📷</div>`
           }
           <div class="dg-card-overlay">
@@ -1010,9 +1078,16 @@
           if (e.isIntersecting) {
             const img = e.target;
             if (img.dataset.src) {
-              img.src = img.dataset.src;
-              img.onload  = () => img.classList.add('dg-loaded');
-              img.onerror = () => img.classList.add('dg-error-img');
+              const src = img.dataset.src;
+              img.src = src;
+              img.onload  = () => {
+                img.classList.add('dg-loaded');
+                console.log('[Entregas] imagem carregada (lazy):', src.slice(0, 70));
+              };
+              img.onerror = () => {
+                img.classList.add('dg-error-img');
+                console.warn('[Entregas] erro render — falha ao carregar imagem:', src.slice(0, 80));
+              };
               obs.unobserve(img);
             }
           }
