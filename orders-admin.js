@@ -38,6 +38,9 @@ const OrdersAdmin = (() => {
   // DEPOIS desta ação: SLA conta a partir do started_at retornado.
 
   async function startService(supabaseOrderId) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
+
     if (!isCurrentUserAdmin()) {
       return { success: false, error: 'Apenas admins podem iniciar serviços.' };
     }
@@ -53,6 +56,10 @@ const OrdersAdmin = (() => {
 
     try {
       const jwt = _getJWT();
+      if (!jwt) {
+        if (typeof showToast === 'function') showToast('Sessão inválida. Faça login novamente.', 'error');
+        return { success: false, error: 'Sem JWT — sessão inválida.' };
+      }
 
       const orderId = Number(supabaseOrderId);
 
@@ -107,6 +114,9 @@ const OrdersAdmin = (() => {
   // ── Ação: CONCLUIR SERVIÇO ────────────────────────────────────────────────
 
   async function completeService(supabaseOrderId, adminNotes) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
+
     if (!isCurrentUserAdmin()) return;
 
     const confirmed = await showConfirmModal({
@@ -120,6 +130,10 @@ const OrdersAdmin = (() => {
 
     try {
       const jwt = _getJWT();
+      if (!jwt) {
+        if (typeof showToast === 'function') showToast('Sessão inválida. Faça login novamente.', 'error');
+        return { success: false, error: 'Sem JWT — sessão inválida.' };
+      }
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/complete_service`,
         {
@@ -229,7 +243,8 @@ const OrdersAdmin = (() => {
           if (!_foundInCache && window.SUPABASE_URL && window.SUPABASE_KEY) {
             (async () => {
               try {
-                const jwt = (typeof Session !== 'undefined' && Session.getAccessToken) ? Session.getAccessToken() : window.SUPABASE_KEY;
+                const jwt = (typeof Session !== 'undefined' && Session.getAccessToken) ? Session.getAccessToken() : null;
+                if (!jwt) { DeliveryAdmin.openModal(supabaseOrderId, {}); return; }
                 const res = await fetch(
                   window.SUPABASE_URL + '/rest/v1/pedidos?id=eq.' + supabaseOrderId +
                   '&select=id,nickname,nick,nick_jogo,service_name,servico_nome,pokemon_name,pokemon_nome,service_type,tipo_pedido,service_quantity,itens,created_at&limit=1',
@@ -264,6 +279,9 @@ const OrdersAdmin = (() => {
   // ── Ação: CANCELAR ────────────────────────────────────────────────────────
 
   async function cancelOrder(supabaseOrderId) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
+
     if (!isCurrentUserAdmin()) return;
     const confirmed = await showConfirmModal({
       title: `Cancelar Pedido #${supabaseOrderId}`,
@@ -287,6 +305,9 @@ const OrdersAdmin = (() => {
   // ── Mudança de status genérica (para outros status permitidos) ────────────
 
   async function setStatus(orderId, newStatus) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
+
     if (!isCurrentUserAdmin()) return;
 
     // Para iniciar/concluir, usa as funções específicas (que validam no banco)
@@ -309,7 +330,9 @@ const OrdersAdmin = (() => {
 
   // ── Atualizar quantidade entregue de item ─────────────────────────────────
 
-  function updateItemQty(orderId, itemId, rawQty) {
+  async function updateItemQty(orderId, itemId, rawQty) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
     if (!isCurrentUserAdmin()) return;
     const qty = parseInt(rawQty, 10);
     if (isNaN(qty)) return;
@@ -320,7 +343,9 @@ const OrdersAdmin = (() => {
 
   // ── Salvar observação ─────────────────────────────────────────────────────
 
-  function saveObservation(orderId, text) {
+  async function saveObservation(orderId, text) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
     if (!isCurrentUserAdmin()) return;
     const admin = Session.getCurrentUser();
     OrdersStorage.addObservation(orderId, text, admin.nickname);
@@ -337,6 +362,9 @@ const OrdersAdmin = (() => {
   // Após sucesso total: limpa localStorage, caches e memória temporária.
 
   async function deleteOrder(orderId) {
+    // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
+    await Session.ready();
+
     if (!isCurrentUserAdmin()) return;
 
     const confirmed = await showConfirmModal({
@@ -700,16 +728,17 @@ const OrdersAdmin = (() => {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function _getJWT() {
-    // Usa o JWT real do usuário quando disponível.
-    // Se não houver sessão ainda (role ainda carregando), usa anon key como
-    // fallback — o banco bloqueia via RLS de qualquer forma.
+    // CORREÇÃO: NUNCA retorna anon key como fallback.
+    // Chamadores aguardam Session.ready() antes de chamar _getJWT(),
+    // então o JWT real sempre estará disponível quando esta função for chamada.
+    // Retorna null se sem sessão — chamador deve abortar o fetch.
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     if (user && user.jwt) return user.jwt;
     if (typeof Session !== 'undefined' && Session.getAccessToken) {
       var token = Session.getAccessToken();
       if (token) return token;
     }
-    return window.SUPABASE_KEY;
+    return null; // PROIBIDO fallback anon key — sem JWT = sem fetch
   }
 
   function _extractSupabaseId(orderId) {
@@ -724,6 +753,12 @@ const OrdersAdmin = (() => {
 
   async function _patchStatus(supabaseId, newStatus) {
     try {
+      const jwt = _getJWT();
+      if (!jwt) {
+        console.error('[OrdersAdmin] _patchStatus: sem JWT — abortado.');
+        if (typeof showToast === 'function') showToast('Sessão inválida. Faça login novamente.', 'error');
+        return;
+      }
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseId}`,
         {
@@ -731,7 +766,7 @@ const OrdersAdmin = (() => {
           headers: {
             'Content-Type':  'application/json',
             'apikey':        window.SUPABASE_KEY,
-            'Authorization': 'Bearer ' + _getJWT(),
+            'Authorization': 'Bearer ' + jwt,
             'Prefer':        'return=minimal',
           },
           body: JSON.stringify({ status_v3: newStatus }),

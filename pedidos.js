@@ -396,16 +396,24 @@
   }
 
   // ── Inicialização ──────────────────────────────────────────────────────
-  // Se a aba pedidos já estiver ativa no carregamento inicial, dispara
-  // pedidosCarregar(). O próprio pedidosCarregar() aguarda Session.ready()
-  // internamente — não precisamos repetir o await aqui.
+  // Aguarda Session.ready() antes de disparar pedidosCarregar().
+  // Isso elimina o race condition onde pedidos.js roda antes do Session.init().
 
   function _init() {
     if (_initialized) return;
     _initialized = true;
     var tabPedidos = document.getElementById('tab-pedidos');
     if (tabPedidos && tabPedidos.classList.contains('active')) {
-      global.pedidosCarregar();
+      // OBRIGATÓRIO: aguarda sessão completa antes de qualquer fetch/render
+      var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
+        ? Session.ready()
+        : Promise.resolve();
+      sessionReady.then(function () {
+        global.pedidosCarregar();
+      }).catch(function () {
+        // Session.ready() nunca rejeita (garantia session.js), mas por segurança:
+        global.pedidosCarregar();
+      });
     }
   }
 

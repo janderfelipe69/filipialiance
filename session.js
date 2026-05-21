@@ -28,6 +28,10 @@
 // DEPENDÊNCIAS: supabase-client.js (deve ser carregado antes)
 // ============================================================
 
+// FLAG GLOBAL: indica que Session.init() concluiu completamente (perfil carregado).
+// Módulos que não conseguem usar await podem checar window.SESSION_READY === true.
+window.SESSION_READY = false;
+
 const Session = (() => {
   'use strict';
 
@@ -240,6 +244,7 @@ const Session = (() => {
       if (!hasStoredTokens) {
         console.log('[Session] ℹ️ Nenhuma sessão persistida. Usuário não logado.');
         _initialized = true;
+        window.SESSION_READY = true;
         _renderLoggedOut();
         return;
       }
@@ -287,6 +292,7 @@ const Session = (() => {
               console.error('[Session] ❌ Refresh de emergência retornou sem access_token.');
               _clearTokens();
               _initialized = true;
+              window.SESSION_READY = true;
               _renderLoggedOut();
               return;
             }
@@ -301,6 +307,7 @@ const Session = (() => {
               console.error('[Session] ❌ getUser falhou mesmo após refresh de emergência:', getUserAfterRefreshErr.message);
               _clearTokens();
               _initialized = true;
+              window.SESSION_READY = true;
               _renderLoggedOut();
               return;
             }
@@ -309,6 +316,7 @@ const Session = (() => {
             console.error('[Session] ❌ AUTH LOST — refresh de emergência falhou:', refreshEmergErr.message);
             _clearTokens();
             _initialized = true;
+            window.SESSION_READY = true;
             _renderLoggedOut();
             return;
           }
@@ -316,6 +324,7 @@ const Session = (() => {
           console.error('[Session] ❌ AUTH LOST — sem refresh_token e token inválido.');
           _clearTokens();
           _initialized = true;
+          window.SESSION_READY = true;
           _renderLoggedOut();
           return;
         }
@@ -340,6 +349,7 @@ const Session = (() => {
 
       // Passo 6: Atualiza UI e notifica
       _initialized = true;
+      window.SESSION_READY = true;
       _renderLoggedIn(_currentUser);
       _notify('login', _currentUser);
 
@@ -355,6 +365,7 @@ const Session = (() => {
       console.error('[Session] ❌ FATAL: exceção não prevista em _doInit:', fatalErr);
       _clearTokens();
       _initialized = true;
+      window.SESSION_READY = true;
       _renderLoggedOut();
     }
   }
@@ -426,8 +437,13 @@ const Session = (() => {
   function isAdmin()        { return _currentUser?.role === 'admin'; }
 
   function ready() {
-    if (_initPromise) return _initPromise;
-    return Promise.resolve();
+    // CORREÇÃO RACE CONDITION: ready() SEMPRE aguarda init real.
+    // Se init ainda não começou, inicia agora e aguarda conclusão.
+    // NUNCA retorna Promise.resolve() fake quando _initPromise é null.
+    if (!_initPromise) {
+      _initPromise = _doInit();
+    }
+    return _initPromise;
   }
 
   async function refreshProfile() {

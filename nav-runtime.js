@@ -234,17 +234,19 @@
   ═══════════════════════════════════════════════════════════════ */
 
   /* pedidos.js: carrega pedidos ao abrir aba.
-     Aguarda Session.ready() antes de disparar — pedidosCarregar() também
-     aguarda internamente, mas fazer aqui evita flicker de loading desnecessário. */
+     OBRIGATÓRIO: aguarda Session.ready() antes de pedidosCarregar() —
+     elimina race condition onde nav-runtime dispara antes do auth estar pronto. */
   onTabSwitch('after', 'pedidos-loader', function (tab) {
     if (tab === 'pedidos' && typeof global.pedidosCarregar === 'function') {
+      // SEMPRE aguarda Session.ready() — nunca chama pedidosCarregar() diretamente
       var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
         ? Session.ready()
         : Promise.resolve();
       sessionReady.then(function () {
         global.pedidosCarregar();
       }).catch(function () {
-        global.pedidosCarregar(); // Session.ready() nunca rejeita, mas por segurança
+        // Session.ready() nunca rejeita, mas captura por segurança
+        global.pedidosCarregar();
       });
     }
   });

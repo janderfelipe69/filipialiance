@@ -25,7 +25,13 @@ const OrdersUI = (() => {
 
   // ── Inicialização ──────────────────────────────────────────────────────
 
-  function init() {
+  async function init() {
+    // OBRIGATÓRIO: aguarda sessão completa antes de qualquer render ou isAdmin check.
+    // Elimina race condition onde render() roda antes do profile estar carregado.
+    if (!window.SESSION_READY) {
+      await Session.ready();
+    }
+
     OrdersAdmin.injectStyles();
     _injectStyles();
     _setupTopbar();
@@ -116,6 +122,12 @@ const OrdersUI = (() => {
   // ── Render Principal ───────────────────────────────────────────────────
 
   function render() {
+    // GUARD: não renderiza antes da sessão estar pronta (admin role pode não ter chegado ainda)
+    if (!window.SESSION_READY) {
+      Session.ready().then(function () { render(); }).catch(function () { render(); });
+      return;
+    }
+
     // PATCH 5.3: se modo kanban estiver ativo, delega e retorna
     if (_state.viewMode === 'kanban' && typeof OrdersKanban !== 'undefined') {
       const kanbanEl = document.getElementById('pedidos-kanban');
@@ -1112,11 +1124,22 @@ const OrdersUI = (() => {
 
 // ── Inicialização ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-  setTimeout(function () {
+  // OBRIGATÓRIO: aguarda sessão completa (Session.ready()) antes de init.
+  // Elimina setTimeout gambiarra e garante que admin role já chegou do banco.
+  var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
+    ? Session.ready()
+    : Promise.resolve();
+  sessionReady.then(function () {
     try {
       OrdersUI.init();
-    } catch(e) {
+    } catch (e) {
       console.error('[OrdersUI] Falha na inicialização:', e);
     }
-  }, 150);
+  }).catch(function () {
+    try {
+      OrdersUI.init();
+    } catch (e) {
+      console.error('[OrdersUI] Falha na inicialização:', e);
+    }
+  });
 });
