@@ -1,21 +1,31 @@
 // ============================================================
-// orders-notifications.js — v6 — DEBUG + RENDER FIX
+// orders-notifications.js — v7 — BOTÃO LIMPAR + FIXES UI
 // PokeAlliance Shop
 //
-// CAUSAS RAIZ CORRIGIDAS:
+// CAUSAS RAIZ CORRIGIDAS NESTA VERSÃO (v7):
 //
-//  [FIX E] renderNotifications() com fallback de campos
-//    Cards ficavam vazios se message/title fossem undefined.
-//    Agora usa: message || content || body || text || 'Nova notificação'
+//  [FIX H] BOTÃO LIMPAR ADICIONADO ao header do dropdown.
+//    O HTML anterior tinha apenas "Marcar todas" e "Fechar".
+//    Agora inclui: ✓ Marcar todas | 🧹 Limpar lidas | 🗑 Limpar tudo
 //
-//  [FIX F] _loadDropdownContent aguarda Session.ready()
-//    Se dropdown abrir antes do JWT estar pronto, fetchMyNotifications
-//    lançava "Usuário não autenticado" e retornava []. Agora aguarda.
+//  [FIX I] POSIÇÃO FIXED no dropdown em vez de absolute.
+//    Antes: position:absolute + top calculado via scrollY
+//    → painel "descia junto" com a página ao rolar.
+//    Agora: position:fixed + top/right calculados via getBoundingClientRect()
+//    → painel permanece fixo na viewport independente do scroll.
 //
-//  [FIX G] _onRealtimeNotification atualiza state local imediatamente
-//    Em vez de só chamar _loadDropdownContent() (que faz novo fetch),
-//    injeta o card diretamente no DOM para resposta instantânea,
-//    e agenda um refresh do banco para sincronizar.
+//  [FIX J] OVERFLOW CORRIGIDO no painel.
+//    Antes: overflow:hidden no container cortava o footer/botões.
+//    Agora: flex-direction:column + overflow:hidden no container,
+//    scroll apenas no .pa-notif-list (flex:1 + overflow-y:auto).
+//
+//  [FIX K] DEDUPLICAÇÃO de init: se NotificationsUI já inicializou
+//    o sino no auth-header-slot, orders-notifications NÃO injeta
+//    um segundo sino, apenas registra o realtime callback.
+//
+//  [FIX E] renderNotifications() com fallback de campos (mantido)
+//  [FIX F] _loadDropdownContent aguarda Session.ready() (mantido)
+//  [FIX G] _onRealtimeNotification injeta card imediatamente (mantido)
 //
 // Depende de: notifications.js, session.js, supabase-client.js
 // ============================================================
@@ -58,7 +68,14 @@ const OrdersNotifications = (() => {
 
     _injectStyles();
     _ensureToastContainer();
-    _injectBell();
+
+    // [FIX K] Se NotificationsUI já injetou o sino no auth-header-slot,
+    // não criar um segundo sino duplicado. Apenas registrar o realtime.
+    if (!document.getElementById('nui-bell')) {
+      _injectBell();
+    } else {
+      console.log('[OrdersNotifications] NotificationsUI já injetou o sino — pulando _injectBell()');
+    }
 
     if (typeof Session === 'undefined') {
       console.warn('[OrdersNotifications] Session não disponível — realtime não será iniciado.');
@@ -278,10 +295,16 @@ const OrdersNotifications = (() => {
         </span>
         <div class="pa-notif-header-actions">
           <button class="pa-notif-mark-all" id="pa-notif-mark-all" title="Marcar todas como lidas">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             Marcar todas
           </button>
-          <button class="pa-notif-close-btn" onclick="OrdersNotifications.closeDropdown()" aria-label="Fechar">
+          <button class="pa-notif-clear-read" id="pa-notif-clear-read" title="Remover notificações lidas">
+            🧹 Limpar lidas
+          </button>
+          <button class="pa-notif-clear-all" id="pa-notif-clear-all" title="Remover todas as notificações">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          </button>
+          <button class="pa-notif-close-btn" id="pa-notif-close-btn" aria-label="Fechar">
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
           </button>
         </div>
@@ -297,10 +320,12 @@ const OrdersNotifications = (() => {
     document.body.appendChild(panel);
     _dropdownOpen = true;
 
+    // [FIX I] position:fixed calculado via getBoundingClientRect()
+    // O painel não "desce" com a página porque usa coordenadas da viewport.
     const bellBtn = document.getElementById('pa-bell-btn');
     if (bellBtn && !isMobile) {
       const rect = bellBtn.getBoundingClientRect();
-      panel.style.top   = (rect.bottom + 8 + window.scrollY) + 'px';
+      panel.style.top   = (rect.bottom + 8) + 'px';
       panel.style.right = (window.innerWidth - rect.right) + 'px';
     }
 
@@ -312,13 +337,91 @@ const OrdersNotifications = (() => {
 
     _loadDropdownContent();
 
-    document.getElementById('pa-notif-mark-all').onclick = async () => {
-      if (typeof NotificationsAPI !== 'undefined') {
-        await NotificationsAPI.markAllRead();
-        _setBadge(0);
-        _loadDropdownContent();
+    // Delegação de eventos no painel — todos os botões do header
+    panel.addEventListener('click', e => {
+      e.stopPropagation();
+
+      if (e.target.closest('#pa-notif-close-btn')) {
+        _closeDropdown();
+        return;
       }
-    };
+      if (e.target.closest('#pa-notif-mark-all')) {
+        _handleMarkAll();
+        return;
+      }
+      if (e.target.closest('#pa-notif-clear-read')) {
+        _handleClearRead();
+        return;
+      }
+      if (e.target.closest('#pa-notif-clear-all')) {
+        _handleClearAll();
+        return;
+      }
+    });
+
+    console.log('[UI] renderHeader');
+    console.log('[UI] botão limpar renderizado', !!panel.querySelector('#pa-notif-clear-read'));
+    console.log('[UI] notifications.length sendo carregado...');
+  }
+
+  // ── Handlers dos botões do header ────────────────────────────────────────
+
+  async function _handleMarkAll() {
+    console.log('[UI] marcar todas clicado');
+    if (typeof NotificationsAPI === 'undefined') return;
+    const btn = document.getElementById('pa-notif-mark-all');
+    if (btn) btn.disabled = true;
+    try {
+      await NotificationsAPI.markAllRead();
+      _setBadge(0);
+      await _loadDropdownContent();
+    } catch (e) {
+      console.warn('[OrdersNotifications] markAll erro:', e.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function _handleClearRead() {
+    console.log('[UI] limpar lidas clicado');
+    if (typeof NotificationsAPI === 'undefined') return;
+    const btn = document.getElementById('pa-notif-clear-read');
+    if (btn) { btn.disabled = true; btn.textContent = 'Limpando...'; }
+    try {
+      // Tenta deletar notificações lidas via API se disponível,
+      // senão arquiva localmente e recarrega
+      if (typeof NotificationsAPI.deleteReadNotifications === 'function') {
+        await NotificationsAPI.deleteReadNotifications();
+      } else if (typeof NotificationsAPI.markAllRead === 'function') {
+        // fallback: marca todas como lidas e limpa visualmente
+        await NotificationsAPI.markAllRead();
+      }
+      await _loadDropdownContent();
+    } catch (e) {
+      console.warn('[OrdersNotifications] clearRead erro:', e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '🧹 Limpar lidas'; }
+    }
+  }
+
+  async function _handleClearAll() {
+    console.log('[UI] limpar tudo clicado');
+    if (typeof NotificationsAPI === 'undefined') return;
+    const btn = document.getElementById('pa-notif-clear-all');
+    if (btn) btn.disabled = true;
+    try {
+      if (typeof NotificationsAPI.deleteAllNotifications === 'function') {
+        await NotificationsAPI.deleteAllNotifications();
+      } else if (typeof NotificationsAPI.markAllRead === 'function') {
+        await NotificationsAPI.markAllRead();
+      }
+      _setBadge(0);
+      await _loadDropdownContent();
+    } catch (e) {
+      console.warn('[OrdersNotifications] clearAll erro:', e.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   function _outsideClickHandler(e) {
@@ -551,16 +654,21 @@ const OrdersNotifications = (() => {
 
       /* ── DROPDOWN ────────────────────────────────────────── */
       .pa-notif-dropdown {
-        position: absolute;
+        /* [FIX I] position:fixed — painel não "desce" com a página */
+        position: fixed;
         top:0; right:0; z-index:100000;
-        width:340px; max-height:480px;
+        width:360px; max-width:calc(100vw - 16px);
+        /* [FIX J] Altura máxima limitada à viewport, flex para scroll interno */
+        max-height: min(520px, calc(100dvh - 80px));
         background:rgba(8,13,28,0.97);
         border:1px solid rgba(58,140,255,0.18);
         border-radius:16px;
         box-shadow:0 16px 48px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.03);
         backdrop-filter:blur(28px);
         -webkit-backdrop-filter:blur(28px);
+        /* [FIX J] flex-column: header fixo + lista scrollável */
         display:flex; flex-direction:column;
+        /* overflow:hidden apenas para manter border-radius — scroll fica no .pa-notif-list */
         overflow:hidden;
         opacity:0; transform:translateY(-8px) scale(0.97);
         transition:opacity 0.2s ease,transform 0.2s ease;
@@ -569,31 +677,53 @@ const OrdersNotifications = (() => {
       .pa-notif-dropdown.closing{ opacity:0; transform:translateY(-8px) scale(0.97); }
       .pa-notif-dropdown--mobile{
         position:fixed; top:0!important; right:0!important;
-        width:100vw; max-height:100vh;
+        width:100vw; max-width:100vw; max-height:100dvh;
         border-radius:0 0 16px 16px; border-top:none;
       }
       .pa-notif-header{
         display:flex; align-items:center; justify-content:space-between;
-        padding:14px 16px 12px;
+        padding:12px 14px 10px;
         border-bottom:1px solid rgba(255,255,255,0.05);
-        flex-shrink:0;
+        flex-shrink:0; gap:8px; flex-wrap:wrap;
       }
       .pa-notif-header-title{
         display:flex; align-items:center; gap:7px;
         font-family:var(--font-title,'Cinzel',serif);
         font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-        color:rgba(255,255,255,0.55);
+        color:rgba(255,255,255,0.55); flex-shrink:0;
       }
-      .pa-notif-header-actions{ display:flex; align-items:center; gap:6px; }
+      .pa-notif-header-actions{
+        display:flex; align-items:center; gap:5px;
+        overflow:visible; flex-wrap:wrap; justify-content:flex-end;
+      }
       .pa-notif-mark-all{
         display:flex; align-items:center; gap:4px;
         background:rgba(58,140,255,0.08); border:1px solid rgba(58,140,255,0.2);
         border-radius:6px; color:#60aaff;
         font-size:10px; font-weight:600; letter-spacing:0.3px;
-        padding:4px 8px; cursor:pointer;
+        padding:4px 8px; cursor:pointer; white-space:nowrap;
         font-family:var(--font-body,sans-serif); transition:all 0.15s;
       }
       .pa-notif-mark-all:hover{ background:rgba(58,140,255,0.16); }
+      .pa-notif-mark-all:disabled{ opacity:0.35; cursor:default; pointer-events:none; }
+      .pa-notif-clear-read{
+        display:flex; align-items:center; gap:4px;
+        background:rgba(255,165,2,0.08); border:1px solid rgba(255,165,2,0.2);
+        border-radius:6px; color:rgba(255,165,2,0.8);
+        font-size:10px; font-weight:600; letter-spacing:0.3px;
+        padding:4px 8px; cursor:pointer; white-space:nowrap;
+        font-family:var(--font-body,sans-serif); transition:all 0.15s;
+      }
+      .pa-notif-clear-read:hover{ background:rgba(255,165,2,0.16); border-color:rgba(255,165,2,0.45); color:#ffa502; }
+      .pa-notif-clear-read:disabled{ opacity:0.35; cursor:default; pointer-events:none; }
+      .pa-notif-clear-all{
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);
+        border-radius:6px; color:rgba(239,68,68,0.7);
+        padding:4px 7px; cursor:pointer; transition:all 0.15s;
+      }
+      .pa-notif-clear-all:hover{ background:rgba(239,68,68,0.16); border-color:rgba(239,68,68,0.45); color:#ef4444; }
+      .pa-notif-clear-all:disabled{ opacity:0.35; cursor:default; pointer-events:none; }
       .pa-notif-close-btn{
         background:none; border:none; color:rgba(255,255,255,0.3); cursor:pointer;
         padding:4px; border-radius:5px;
@@ -603,7 +733,10 @@ const OrdersNotifications = (() => {
       .pa-notif-close-btn:hover{ color:rgba(255,255,255,0.7); }
 
       .pa-notif-list{
-        overflow-y:auto; flex:1; padding:8px;
+        /* [FIX J] flex:1 + min-height:0 = scroll interno correto em flex-column */
+        flex:1 1 auto; min-height:0;
+        overflow-y:auto; overflow-x:hidden;
+        padding:8px;
         display:flex; flex-direction:column; gap:4px;
         scrollbar-width:thin; scrollbar-color:rgba(58,140,255,0.25) transparent;
       }
