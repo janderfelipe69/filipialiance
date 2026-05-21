@@ -887,6 +887,7 @@
     _lightboxIdx: 0,
     _lightboxAll: [],
     _loaded:      false,
+    _failedUrls:  new Set(), // URLs que já falharam definitivamente — persiste entre re-renders
 
     async init() {
       const container = document.getElementById('tab-entregas');
@@ -1211,11 +1212,21 @@
     },
 
     _setupLazyLoad() {
-      // ── [IMG-LOOP-FIX] Lazy loader sem retry infinito ──────────────────────
-      // Cada imagem tenta: 1) URL pública → 2) Signed URL (fallback único).
-      // Após qualquer falha final: dataset.failed='1', placeholder, sem re-observe.
-      // O IntersectionObserver NÃO re-observa imagens com dataset.failed='1'.
-      // ─────────────────────────────────────────────────────────────────────────
+      // ── [IMG-LOOP-FIX v2] Lazy loader anti-loop definitivo ────────────────
+      // Cada URL pode ser tentada no MÁXIMO 2 vezes (1x pública + 1x Signed).
+      // _failedUrls persiste no objeto DeliveryGallery — sobrevive a re-renders.
+      // dataset.failed protege o elemento DOM atual.
+      // Qualquer falha definitiva: URL → _failedUrls, placeholder, fim.
+      // ─────────────────────────────────────────────────────────────────────
+
+      const _failed = DeliveryGallery._failedUrls; // Set persistente entre renders
+
+      function _markFailed(img, url) {
+        _failed.add(url);
+        img.dataset.failed = '1';
+        img.onerror = null;
+        img.onload  = null;
+      }
 
       function _applyPlaceholder(img) {
         img.style.display = 'none';
@@ -1230,109 +1241,136 @@
         if (overlay) overlay.style.display = 'none';
       }
 
-      function _loadImgFinal(img, signedSrc) {
-        // Signed URL — última tentativa. Remove onerror para evitar loop.
+      function _loadImgFinal(img, signedSrc, originalUrl) {
+        // Última tentativa: Signed URL. onerror já nulo antes de atribuir src.
+        img.onerror = null; // limpa ANTES de atribuir src — nunca re-dispara handler antigo
+        img.onload  = null;
         img.onload  = () => { img.classList.add('dg-loaded'); };
         img.onerror = () => {
-          img.dataset.failed = '1';
-          img.onerror = null;
-          img.onload  = null;
-          console.error('[SIGNED_URL_FAIL] Signed URL também falhou. FILE_NOT_FOUND ou CORS_BLOCKED:', signedSrc.slice(0, 120));
-          console.error('[FILE_NOT_FOUND] Verifique: Supabase Storage → delivery-proofs → arquivo existe? Path correto?');
+          _markFailed(img, originalUrl);
+          console.error('[SIGNED_URL_FAIL] Signed URL falhou — arquivo inexistente ou CORS:', signedSrc.slice(0, 120));
+          console.error('[FILE_NOT_FOUND] Supabase Storage → delivery-proofs → arquivo existe com esse path?');
           _applyPlaceholder(img);
         };
         img.src = signedSrc;
       }
 
       function _loadImgWithFallback(img, publicSrc) {
+        if (_failed.has(publicSrc)) {
+          // URL já conhecida como falha (re-render) — aplica placeholder direto, sem log
+          img.dataset.failed = '1';
+          _applyPlaceholder(img);
+          return;
+        }
+        if (img.dataset.retryAttempted === '1') return; // guard extra por elemento
+
+        img.onerror = null; // limpa handler anterior ANTES de atribuir src
+        img.onload  = null;
         img.onload  = () => { img.classList.add('dg-loaded'); };
         img.onerror = () => {
-          // Limpa imediatamente para não re-disparar
-          img.onerror = null;
+          img.onerror = null; // trava imediata — impede qualquer re-disparo
           img.onload  = null;
+          img.dataset.retryAttempted = '1';
 
           const isPublic = publicSrc.includes('/object/public/');
-          const isSign   = publicSrc.includes('/object/sign/');
 
           if (isPublic) {
             console.warn('[PUBLIC_URL_FAIL] URL pública falhou — tentando Signed URL:', publicSrc.slice(0, 120));
-          } else if (!isSign) {
-            console.warn('[PUBLIC_URL_FAIL] URL inválida (sem /public/ ou /sign/):', publicSrc.slice(0, 120));
+          } else {
+            // Não é URL pública nem signed → falha definitiva sem fallback
+            _markFailed(img, publicSrc);
+            console.error('[PUBLIC_URL_FAIL] URL fora do padrão /object/public/:', publicSrc.slice(0, 120));
+            _applyPlaceholder(img);
+            return;
           }
 
-          // Tenta Signed URL UMA única vez
-          const canSign = isPublic &&
-            typeof window.SUPABASE_URL !== 'undefined' &&
-            typeof window.SUPABASE_KEY !== 'undefined';
+          const canSign = typeof window.SUPABASE_URL !== 'undefined' &&
+                          typeof window.SUPABASE_KEY !== 'undefined';
+          if (!canSign) {
+            _markFailed(img, publicSrc);
+            console.error('[SIGNED_URL_FAIL] SUPABASE_URL/KEY indisponíveis — sem fallback');
+            _applyPlaceholder(img);
+            return;
+          }
 
-          if (canSign) {
-            const pathMatch = publicSrc.match(/\/object\/public\/delivery-proofs\/(.+)$/);
-            if (pathMatch) {
-              const filePath = pathMatch[1];
-              const token = (typeof Session !== 'undefined' && Session.getAccessToken)
-                ? Session.getAccessToken() : window.SUPABASE_KEY;
-              fetch(`${window.SUPABASE_URL}/storage/v1/object/sign/delivery-proofs/${filePath}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': window.SUPABASE_KEY,
-                  'Authorization': 'Bearer ' + token,
-                },
-                body: JSON.stringify({ expiresIn: 3600 }),
-              })
-              .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-              .then(data => {
-                if (data && data.signedURL) {
-                  const signed = data.signedURL.startsWith('http')
-                    ? data.signedURL
-                    : `${window.SUPABASE_URL}${data.signedURL}`;
-                  _loadImgFinal(img, signed);
-                } else {
-                  throw new Error('signedURL ausente na resposta');
-                }
-              })
-              .catch(err => {
-                img.dataset.failed = '1';
-                console.error('[SIGNED_URL_FAIL] Falha ao obter Signed URL:', err.message, '| path:', filePath);
-                _applyPlaceholder(img);
-              });
-              return; // aguarda fetch — não aplica placeholder ainda
+          const pathMatch = publicSrc.match(/\/object\/public\/delivery-proofs\/(.+)$/);
+          if (!pathMatch) {
+            _markFailed(img, publicSrc);
+            console.error('[PUBLIC_URL_FAIL] Path não encontrado na URL:', publicSrc.slice(0, 120));
+            _applyPlaceholder(img);
+            return;
+          }
+
+          const filePath = pathMatch[1];
+          const token = (typeof Session !== 'undefined' && Session.getAccessToken)
+            ? Session.getAccessToken() : window.SUPABASE_KEY;
+
+          fetch(`${window.SUPABASE_URL}/storage/v1/object/sign/delivery-proofs/${filePath}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': window.SUPABASE_KEY,
+              'Authorization': 'Bearer ' + token,
+            },
+            body: JSON.stringify({ expiresIn: 3600 }),
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+          .then(data => {
+            if (data && data.signedURL) {
+              const signed = data.signedURL.startsWith('http')
+                ? data.signedURL
+                : `${window.SUPABASE_URL}${data.signedURL}`;
+              _loadImgFinal(img, signed, publicSrc);
+            } else {
+              throw new Error('signedURL ausente na resposta');
             }
-          }
-
-          // Sem possibilidade de Signed URL → falha definitiva
-          img.dataset.failed = '1';
-          const reason = isPublic ? 'CORS_BLOCKED ou FILE_NOT_FOUND' : 'URL fora do padrão /object/public/';
-          console.error('[PUBLIC_URL_FAIL]', reason, publicSrc.slice(0, 120));
-          _applyPlaceholder(img);
+          })
+          .catch(err => {
+            _markFailed(img, publicSrc);
+            console.error('[SIGNED_URL_FAIL] Falha ao obter Signed URL:', err.message, '| path:', filePath);
+            _applyPlaceholder(img);
+          });
         };
         img.src = publicSrc;
       }
 
+      // ── Sem IntersectionObserver (fallback) ──────────────────────────────
       if (!('IntersectionObserver' in window)) {
         document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => {
-          if (img.dataset.failed === '1') return;
+          if (img.dataset.failed === '1' || img.dataset.retryAttempted === '1') return;
           if (img.dataset.src) _loadImgWithFallback(img, img.dataset.src);
         });
         return;
       }
 
+      // ── IntersectionObserver principal ───────────────────────────────────
       const obs = new IntersectionObserver((entries) => {
         entries.forEach(e => {
           if (!e.isIntersecting) return;
           const img = e.target;
-          obs.unobserve(img); // sempre remove antes de carregar
-          if (img.dataset.failed === '1') return; // imagem já marcada como falha — para aqui
+          obs.unobserve(img); // remove ANTES de qualquer operação — nunca re-observa
+          if (img.dataset.failed === '1') return;
+          if (img.dataset.retryAttempted === '1') return;
           if (!img.dataset.src) return;
           _loadImgWithFallback(img, img.dataset.src);
         });
       }, { rootMargin: '200px' });
 
+      let observed = 0;
       document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => {
-        if (img.dataset.failed === '1') return; // não observa imagens já falhadas
+        const url = img.dataset.src || '';
+        if (img.dataset.failed === '1') return;
+        if (img.dataset.retryAttempted === '1') return;
+        if (_failed.has(url)) {
+          // URL já falhou antes (re-render após refresh) — placeholder imediato
+          img.dataset.failed = '1';
+          _applyPlaceholder(img);
+          return;
+        }
         obs.observe(img);
+        observed++;
       });
-      console.log('[LazyLoad] Observer ativo —', document.querySelectorAll('#dg-grid .dg-lazy').length, 'imagens registradas');
+      console.log('[LazyLoad] Observer ativo —', observed, 'imagens | já falhadas (cache):', _failed.size);
     },
 
     openLightbox(idx) {
