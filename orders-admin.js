@@ -39,7 +39,6 @@ const OrdersAdmin = (() => {
 
   async function startService(supabaseOrderId) {
     if (!isCurrentUserAdmin()) {
-      console.warn('[OrdersAdmin] ⛔ Acesso negado: não é admin.');
       return { success: false, error: 'Apenas admins podem iniciar serviços.' };
     }
 
@@ -55,12 +54,8 @@ const OrdersAdmin = (() => {
     try {
       const jwt = _getJWT();
       if (!jwt) { if (typeof showToast === 'function') showToast('Sessão expirada. Faça login novamente.', 'error'); return { success: false, error: 'NO_JWT' }; }
-      console.log('[START SERVICE] payload', { p_order_id: supabaseOrderId });
-      console.log('[START SERVICE] url', `${window.SUPABASE_URL}/rest/v1/rpc/start_service`);
-      console.log('[START SERVICE] jwt', jwt ? jwt.slice(0, 20) + '…' : 'null');
 
       const orderId = Number(supabaseOrderId);
-      console.log('[START SERVICE]', typeof orderId, orderId);
 
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/start_service`,
@@ -76,22 +71,16 @@ const OrdersAdmin = (() => {
         }
       );
 
-      console.log('[START SERVICE] status', res.status);
       const raw = await res.text();
-      console.log('[START SERVICE] raw response', raw);
 
       let data = null;
-      try { data = JSON.parse(raw); } catch(e) { console.error('[START SERVICE] JSON parse fail', e); }
-      console.log('[START SERVICE] parsed', data);
 
       if (!res.ok || (data && data.success === false)) {
         const err = (data && (data.message || data.error || data.hint)) || raw || `HTTP ${res.status}`;
-        console.error('[OrdersAdmin] Falha ao iniciar serviço:', err);
         if (typeof showToast === 'function') showToast((data && (data.message || data.error)) || raw || `Erro ao iniciar serviço (${res.status})`, 'error');
         return { success: false, error: err };
       }
 
-      console.log('[OrdersAdmin] ✅ Serviço iniciado:', data);
 
       if (typeof OrdersNotifications !== 'undefined') {
         OrdersNotifications.show(
@@ -111,7 +100,6 @@ const OrdersAdmin = (() => {
       return { success: true, data };
 
     } catch (e) {
-      console.error('[OrdersAdmin] Erro de rede ao iniciar serviço:', e);
       if (typeof showToast === 'function') showToast('Erro de rede: ' + e.message, 'error');
       return { success: false, error: e.message };
     }
@@ -179,19 +167,41 @@ const OrdersAdmin = (() => {
             const serviceItems = (order.items && order.items.length)
               ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
               : null;
+            // ── item_name + quantity a partir de items[] ──────────────────────
+            const _items = order.items || [];
+            const _isPokemonType = (order.service_type || order.tipo_pedido || '').toLowerCase().includes('pokemon');
+            // pokemon: pega do primeiro item (campo pokemon ou name) ou do campo direto
+            const _pokemon = _s(
+              (_items[0]) ? (_items[0].pokemon || (_isPokemonType ? _items[0].name : null)) : null ||
+              order.pokemon_name || order.pokemon_nome, ''
+            );
+            // item_name: itens não-pokemon — concatena nomes
+            const _itemName = !_isPokemonType && _items.length
+              ? _items.map(i => i.name || i.nome || '').filter(Boolean).join(', ')
+              : null;
+            // quantity: soma qtdTotal de todos os itens
+            const _quantity = _items.length
+              ? _items.reduce((s, i) => s + parseInt(i.qtdTotal || i.quantidade || i.qty || 1, 10), 0)
+              : (order.service_quantity || null);
+
             return {
               // nick: suporte a todos os aliases conhecidos
               nick:         _s(order.nickname || order.userNickname || order.nick || order.cliente_nick, '—'),
+              // player_name: nick real do jogador no jogo
+              player_name:  _s(order.nickname || order.userNickname || order.nick_jogo || order.nick || order.cliente_nick, null),
               // service: alias usado por _buildModalHTML + canonical EN
               service:      _s(serviceItems || order.service_name  || order.servico_nome  || order.service_type, '—'),
               service_name: _s(serviceItems || order.service_name  || order.servico_nome  || order.service_type, '—'),
               // pokemon: alias usado por _buildModalHTML + canonical EN
-              pokemon:      _s((order.items && order.items[0]) ? (order.items[0].pokemon || order.items[0].name) : (order.pokemon_name || order.pokemon_nome), ''),
-              pokemon_name: _s((order.items && order.items[0]) ? (order.items[0].pokemon || order.items[0].name) : (order.pokemon_name || order.pokemon_nome), ''),
+              pokemon:      _pokemon,
+              pokemon_name: _pokemon,
+              // item_name + quantity: para entregas de items
+              item_name:    _itemName || null,
+              quantity:     _quantity,
               // tipo: alias usado por _buildModalHTML + canonical EN
               tipo:         _s(order.service_type || order.tipo_pedido || order.type || order.tipo, '—'),
               service_type: _s(order.service_type || order.tipo_pedido || order.type || order.tipo, '—'),
-              // created_at: para mostrar tempo desde o pedido
+              // created_at: para calcular tempo total do pedido
               created_at:   order.created_at || order.createdAt || order.timestamp || null,
             };
           }
@@ -212,12 +222,9 @@ const OrdersAdmin = (() => {
             if (order) {
               orderData = _buildOrderData(order);
               _foundInCache = true;
-              console.log('[DataNormalize] orderData do cache local:', orderData);
             } else {
-              console.warn('[OrdersAdmin] Pedido #' + supabaseOrderId + ' não encontrado no cache local — buscando no Supabase...');
             }
           } catch (err) {
-            console.error('[OrdersAdmin] Erro ao montar orderData do cache:', err);
           }
 
           // [FIX DELIVERY_MODAL] Se não encontrou no cache, busca direto no Supabase antes de abrir o modal
@@ -227,20 +234,17 @@ const OrdersAdmin = (() => {
                 const jwt = (typeof Session !== 'undefined' && Session.getAccessToken) ? Session.getAccessToken() : window.SUPABASE_KEY;
                 const res = await fetch(
                   window.SUPABASE_URL + '/rest/v1/pedidos?id=eq.' + supabaseOrderId +
-                  '&select=id,nickname,nick,service_name,servico_nome,pokemon_name,pokemon_nome,service_type,tipo_pedido,created_at,items&limit=1',
+                  '&select=id,nickname,nick,nick_jogo,service_name,servico_nome,pokemon_name,pokemon_nome,service_type,tipo_pedido,service_quantity,itens,created_at&limit=1',
                   { headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_KEY, 'Authorization': 'Bearer ' + jwt } }
                 );
                 if (res.ok) {
                   const rows = await res.json();
                   if (rows && rows[0]) {
                     orderData = _buildOrderData(rows[0]);
-                    console.log('[DataNormalize] orderData do Supabase (fallback):', orderData);
                   } else {
-                    console.warn('[OrdersAdmin] Supabase não retornou dados para pedido #' + supabaseOrderId);
                   }
                 }
               } catch (fetchErr) {
-                console.warn('[OrdersAdmin] Falha ao buscar pedido no Supabase:', fetchErr.message);
               }
               DeliveryAdmin.openModal(supabaseOrderId, orderData);
             })();
@@ -340,22 +344,62 @@ const OrdersAdmin = (() => {
     // Remove do storage local
     OrdersStorage.deleteOrder(orderId);
 
-    // Remove do banco se for pedido do Supabase
+    // Remove do banco em cascata — sem registros órfãos
     const supabaseId = _extractSupabaseId(orderId);
     if (supabaseId) {
+      const jwt = _getJWT();
+      if (!jwt) {
+        console.error('[Entrega] deleteOrder: sem JWT, não foi possível excluir do banco.');
+        if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+        return;
+      }
+
+      const headers = {
+        'apikey':        window.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + jwt,
+        'Prefer':        'return=minimal',
+      };
+      const base = window.SUPABASE_URL;
+
       try {
-        await fetch(
-          `${window.SUPABASE_URL}/rest/v1/pedidos?id=eq.${supabaseId}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'apikey':        window.SUPABASE_KEY,
-              'Authorization': 'Bearer ' + _getJWT(),
-            },
-          }
-        );
+        // 1. delete delivery_history where order_id = X
+        const r1 = await fetch(`${base}/rest/v1/delivery_history?order_id=eq.${supabaseId}`, {
+          method: 'DELETE', headers,
+        });
+        if (!r1.ok) {
+          const e = await r1.json().catch(() => ({}));
+          console.error('[Entrega] Erro ao remover delivery_history:', e.message || r1.status);
+        }
+
+        // 2. delete delivery_proofs where order_id = X
+        const r2 = await fetch(`${base}/rest/v1/delivery_proofs?order_id=eq.${supabaseId}`, {
+          method: 'DELETE', headers,
+        });
+        if (!r2.ok) {
+          const e = await r2.json().catch(() => ({}));
+          console.error('[Entrega] Erro ao remover delivery_proofs:', e.message || r2.status);
+        }
+
+        // 3. delete captures where order_id = X
+        const r3 = await fetch(`${base}/rest/v1/captures?order_id=eq.${supabaseId}`, {
+          method: 'DELETE', headers,
+        });
+        if (!r3.ok) {
+          const e = await r3.json().catch(() => ({}));
+          console.error('[Entrega] Erro ao remover captures:', e.message || r3.status);
+        }
+
+        // 4. delete orders where id = X
+        const r4 = await fetch(`${base}/rest/v1/pedidos?id=eq.${supabaseId}`, {
+          method: 'DELETE', headers,
+        });
+        if (!r4.ok) {
+          const e = await r4.json().catch(() => ({}));
+          console.error('[Entrega] Erro ao remover pedido:', e.message || r4.status);
+        }
+
       } catch (e) {
-        console.warn('[OrdersAdmin] Falha ao excluir do banco:', e);
+        console.error('[Entrega] Falha ao excluir pedido em cascata:', e.message);
       }
     }
 
@@ -547,7 +591,6 @@ const OrdersAdmin = (() => {
       );
       if (typeof pedidosCarregar === 'function') pedidosCarregar();
     } catch (e) {
-      console.error('[OrdersAdmin] Erro ao alterar tipo de serviço:', e);
     }
   }
 
@@ -570,7 +613,6 @@ const OrdersAdmin = (() => {
         }
       );
     } catch (e) {
-      console.error('[OrdersAdmin] Erro ao alterar quantidade:', e);
     }
   }
 
@@ -583,7 +625,6 @@ const OrdersAdmin = (() => {
       var token = Session.getAccessToken();
       if (token) return token;
     }
-    console.warn('[OrdersAdmin] ⛔ Nenhum JWT de sessão ativa.');
     return null; // Chamadores devem checar null antes de disparar o fetch
   }
 
@@ -615,7 +656,6 @@ const OrdersAdmin = (() => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       if (typeof pedidosCarregar === 'function') pedidosCarregar();
     } catch (e) {
-      console.error('[OrdersAdmin] Falha ao atualizar status:', e);
       if (typeof showToast === 'function') showToast('Erro ao atualizar status: ' + e.message, 'error');
     }
   }
@@ -665,9 +705,7 @@ const OrdersAdmin = (() => {
           }),
         }
       );
-      console.log('[Notifications] notificação criada para user_id:', userId, '| pedido_id:', supabaseOrderId, '| tipo:', type);
     } catch (e) {
-      console.warn('[OrdersAdmin] _insertNotification falhou silenciosamente:', e.message);
     }
   }
 

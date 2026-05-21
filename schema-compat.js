@@ -43,8 +43,9 @@
    * Resolve variantes PT/EN, arrays de prints, URLs relativas e fallbacks.
    *
    * @param {Object} record - Registro bruto vindo do Supabase ou Realtime
-   * @returns {{ id, service_name, pokemon_name, service_type, cliente_nick,
-   *             descricao, image_url, created_at, prints,
+   * @returns {{ id, service_name, pokemon_name, service_type, item_name, quantity,
+   *             player_name, cliente_nick, descricao, image_url,
+   *             created_at, delivered_at, order_created_at, prints,
    *             status, _normalized }}
    * @note 'status' é campo COMPUTADO de display (sempre 'concluido').
    *       Não existe como coluna em delivery_proofs — não é lido via SELECT.
@@ -127,28 +128,54 @@
     // ── 8. image_url + prints ──────────────────────────────────────────
     const { image_url, prints } = _resolveImages(record);
 
+    // ── Novos campos: player_name, item_name, quantity, order_created_at ─
+    const player_name =
+      record.player_name    ||
+      record.cliente_nick   ||
+      record.nick           ||
+      record.nickname       ||
+      null;
+
+    const item_name =
+      record.item_name      ||
+      record.nome_item      ||
+      null;
+
+    const quantity =
+      record.quantity != null ? parseInt(record.quantity, 10) :
+      record.service_quantity != null ? parseInt(record.service_quantity, 10) :
+      null;
+
+    const order_created_at =
+      record.order_created_at ||
+      null;
+
     // ── Resultado canônico ─────────────────────────────────────────────
     const normalized = {
       // Identidade
-      id:           record.id           || null,
-      order_id:     record.order_id     || record.pedido_id || null,
-      delivered_by: record.delivered_by || null,
+      id:               record.id           || null,
+      order_id:         record.order_id     || record.pedido_id || null,
+      delivered_by:     record.delivered_by || null,
 
       // Campos canônicos EN (apenas colunas que existem na tabela)
       service_name,
       pokemon_name,
       service_type,
+      item_name,
+      quantity,
+      player_name,
       cliente_nick,
       descricao,
       image_url,
       created_at,
-      delivered_at: record.delivered_at || null,   // coluna real — nullable timestamptz
+      delivered_at:     record.delivered_at     || null,
+      order_created_at: order_created_at,
       status,   // computado de display — não é coluna do banco
       prints,
 
       // Marcador de idempotência — não serializar para o banco
       _normalized: true,
-      _partial: !service_name || !image_url,   // true = dados incompletos
+      _partial: !service_name || !image_url,
     };
 
     if (normalized._partial) {
@@ -181,8 +208,10 @@
     return {
       id: null, order_id: null, delivered_by: null,
       service_name: null, pokemon_name: null, service_type: null,
+      item_name: null, quantity: null, player_name: null,
       cliente_nick: null, descricao: null, image_url: null,
-      created_at: null, delivered_at: null, status: 'concluido', prints: [],
+      created_at: null, delivered_at: null, order_created_at: null,
+      status: 'concluido', prints: [],
       _normalized: true, _partial: true,
     };
   }
@@ -295,12 +324,15 @@
     'service_name',
     'pokemon_name',
     'service_type',
+    'item_name',
+    'quantity',
+    'player_name',
     'image_url',
-    'prints',
     'cliente_nick',
     'delivered_by',
     'created_at',
-    'delivered_at',  // coluna adicionada — existe na tabela (nullable timestamptz)
+    'delivered_at',
+    'order_created_at',
     'descricao',
   ];
 

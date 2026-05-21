@@ -59,42 +59,64 @@
       if (payload.pedido_id && (!svcName || !pkName || !svcType)) {
         try {
           const res = await fetch(
-            `${SB_URL}/rest/v1/pedidos?id=eq.${payload.pedido_id}&select=service_name,pokemon_name,service_type,nick&limit=1`,
+            `${SB_URL}/rest/v1/pedidos?id=eq.${payload.pedido_id}&select=service_name,pokemon_name,service_type,nick,nick_jogo,itens,service_quantity,created_at&limit=1`,
             { headers: _headers(jwt) }
           );
           if (res.ok) {
             const rows = await res.json();
             if (rows && rows[0]) {
               extraData = rows[0];
-              console.log('[DeliveryDB] Dados extras do pedido original:', extraData);
             }
           }
         } catch (e) {
-          console.warn('[DeliveryDB] Não foi possível buscar pedido original:', e.message);
         }
       }
 
-      // image_url vem direto de prints[0].url (já é data: URL ou URL externa)
-      const firstPrint = Array.isArray(payload.prints) ? payload.prints[0] : null;
-      const imageUrl = firstPrint?.url || null;
+      // image_url é URL externa direta (Imgur) — salvo direto, sem uploads
+      const imageUrl = payload.image_url || null;
+
+      // Resolve item_name e quantity a partir de items[] ou campos diretos
+      const _resolveItems = (p, extra) => {
+        // Prioridade: payload.item_name > items[0].name > extraData.itens
+        if (p.item_name) return { item_name: p.item_name, quantity: p.quantity || 1 };
+        const items = p.items || (extra.itens ? (() => { try { return typeof extra.itens === 'string' ? JSON.parse(extra.itens) : extra.itens; } catch(_) { return []; } })() : []);
+        if (items && items.length) {
+          return {
+            item_name: items.map(i => i.nome || i.name || '').filter(Boolean).join(', ') || null,
+            quantity:  items.reduce((s, i) => s + parseInt(i.quantidade || i.qty || i.qtdTotal || 1, 10), 0),
+          };
+        }
+        return { item_name: p.item_name || null, quantity: p.quantity || extra.service_quantity || null };
+      };
+      const { item_name, quantity } = _resolveItems(payload, extraData);
+
+      // player_name = nick do jogador (nick_jogo no banco)
+      const playerName = payload.player_name || payload.cliente_nick || extraData.nick_jogo || extraData.nick || null;
+
+      // order_created_at = created_at do pedido original (para calcular tempo total)
+      const orderCreatedAt = payload.order_created_at || extraData.created_at || null;
+
+      // delivered_at = momento da entrega
+      const deliveredAt = payload.concluido_at || new Date().toISOString();
 
       // [SchemaAudit] Colunas reais de delivery_proofs — SOMENTE nomes EN canônicos.
-      // Nunca enviar servico_nome / pokemon_nome / tipo_pedido ao Supabase.
       const row = {
-        order_id:      payload.pedido_id                          || null,
-        service_name:  svcName  || extraData.service_name         || null,
-        pokemon_name:  pkName   || extraData.pokemon_name         || null,
-        service_type:  svcType  || extraData.service_type         || null,
-        image_url:     imageUrl,
-        prints:        payload.prints                             || [],
-        delivered_by:  payload.user_id || _getCurrentUserId()    || null,
-        cliente_nick:  payload.cliente_nick || extraData.nick     || null,
-        descricao:     payload.descricao                          || null,
-        created_at:    payload.concluido_at || new Date().toISOString(),
+        order_id:         payload.pedido_id                          || null,
+        service_name:     svcName  || extraData.service_name         || null,
+        pokemon_name:     pkName   || extraData.pokemon_name         || null,
+        service_type:     svcType  || extraData.service_type         || null,
+        item_name:        item_name,
+        quantity:         quantity,
+        player_name:      playerName,
+        image_url:        imageUrl,
+        delivered_by:     payload.user_id || _getCurrentUserId()     || null,
+        cliente_nick:     payload.cliente_nick || extraData.nick      || null,
+        descricao:        payload.descricao                           || null,
+        order_created_at: orderCreatedAt,
+        created_at:       deliveredAt,
+        delivered_at:     deliveredAt,
       };
 
-      console.log('[SchemaAudit] delivery_proofs columns:', Object.keys(row));
-      console.log('[DeliveryDB] INSERT payload:', row);
 
       const res = await fetch(`${SB_URL}/rest/v1/${TABLE}`, {
         method:  'POST',
@@ -104,17 +126,13 @@
 
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        console.error('[DeliveryDB] ❌ INSERT falhou:', { status: res.status, error: e });
         // [SchemaAudit] Log detalhado do erro de schema
         if (e.message && e.message.includes('does not exist')) {
-          console.error('[SchemaAudit] ❌ CAMPO INEXISTENTE NO BANCO:', e.message);
-          console.error('[SchemaAudit] Colunas enviadas:', Object.keys(row));
         }
         throw new Error(e.message || e.error || `Erro ao salvar entrega (HTTP ${res.status})`);
       }
 
       const result = await res.json().catch(() => []);
-      console.log('[DeliveryDB] ✅ INSERT OK:', result);
       return result;
     },
 
@@ -124,6 +142,10 @@
      */
     async list(limit = 200) {
       const jwt = await _getSessionToken();
+
+      if (!jwt) {
+        return [];
+      }
 
       // [SchemaAudit] Usa introspecção assíncrona do schema real.
       // SchemaCompat.resolveSelect() faz SELECT * limit=1 no primeiro call,
@@ -135,8 +157,7 @@
       } else {
         // Fallback estritamente mínimo — sem nenhuma coluna com histórico de HTTP 400.
         // NÃO inclui: status, concluido_at, servico_nome, pokemon_nome, tipo_pedido (delivered_at reabilitada)
-        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,delivered_at,descricao';
-        console.warn('[SchemaAudit] SchemaCompat indisponível — usando fallback mínimo:', _selectCols);
+        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,item_name,quantity,player_name,image_url,cliente_nick,delivered_by,created_at,delivered_at,order_created_at,descricao';
       }
 
       const url = `${SB_URL}/rest/v1/${TABLE}` +
@@ -144,77 +165,96 @@
         `&order=created_at.desc` +
         `&limit=${limit}`;
 
-      console.log('[Entregas] Buscando entregas — select:', _selectCols);
 
       const res = await fetch(url, { headers: _headers(jwt) });
 
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
-        console.error('[Entregas] Falha na query:', msg);
         // [SchemaAudit] Guard: detecta coluna inexistente
         if (e.message && e.message.includes('does not exist')) {
-          console.error('[SchemaAudit] ❌ Coluna inexistente detectada:', e.message);
           const colMatch = e.message.match(/column\s+["']?(\S+?)["']?\s+does not exist/i);
           if (colMatch) {
             const badCol = colMatch[1].replace(/^delivery_proofs\./, '');
-            console.error(`[SchemaAudit] ❌ Coluna inválida: "${badCol}" — remover de DESIRED_COLUMNS em schema-compat.js`);
             // Invalida cache para forçar re-introspecção na próxima chamada
             if (typeof SchemaCompat !== 'undefined') SchemaCompat._resetCache && SchemaCompat._resetCache();
           }
-          console.error('[SchemaAudit] SELECT usado:', _selectCols);
         }
-        console.warn('[Entregas] Retornando lista vazia por segurança. Select usado:', _selectCols);
         return [];
       }
 
       const rows = await res.json();
-      console.log(`[Entregas] dados carregados — ${rows.length} registros`);
 
       if (!rows.length) {
-        console.warn('[Entregas] Banco retornou 0 registros — verifique RLS e tabela:', TABLE);
       }
 
-      // ── Fix 1: garante que prints seja sempre Array (Supabase pode retornar TEXT) ──
+      // image_url é URL direta — normaliza apenas para garantir compatibilidade com
+      // registros legados que possam ter prints no formato antigo
       rows.forEach(row => {
-        if (typeof row.prints === 'string') {
-          try {
-            row.prints = JSON.parse(row.prints);
-          } catch (_) {
-            row.prints = [];
-          }
+        if (!row.image_url && Array.isArray(row.prints) && row.prints[0]?.url) {
+          row.image_url = row.prints[0].url;
         }
+        // Garante prints como array vazio se vier como string/null
+        if (!Array.isArray(row.prints)) row.prints = [];
       });
 
-      // ── Resolução de image_url a partir de prints[0].url ou image_url ──────
-      const resolvedRows = rows.map(row => {
-        // Fix 2: prioridade — prints[0].url → image_url → null
-        const firstPrintUrl = Array.isArray(row.prints) && row.prints[0]
-          ? (row.prints[0].url || null)
-          : null;
-
-        if (!row.image_url && firstPrintUrl) {
-          row.image_url = firstPrintUrl;
-        }
-
-        return row;
-      });
-
-      return resolvedRows;
+      return rows;
     },
 
     /**
-     * Remove uma entrega pelo ID (apenas admins devem chamar).
+     * Remove uma entrega pelo ID em cascata (apenas admins devem chamar).
+     * Ordem: delivery_history → delivery_proofs → pedidos
      */
     async delete(id) {
       const jwt = await _ensureValidSession();
-      const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
+
+      // Busca order_id da entrega antes de deletar
+      const proofRes = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}&select=order_id`, {
+        headers: _headers(jwt),
+      });
+      const proofRows = proofRes.ok ? await proofRes.json().catch(() => []) : [];
+      const orderId = proofRows?.[0]?.order_id || null;
+
+      // 1. delete delivery_history where order_id = X
+      if (orderId) {
+        const r1 = await fetch(`${SB_URL}/rest/v1/delivery_history?order_id=eq.${orderId}`, {
+          method:  'DELETE',
+          headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
+        });
+        if (!r1.ok) {
+          const e = await r1.json().catch(() => ({}));
+          console.error('[Entrega] Erro ao remover delivery_history:', e.message || r1.status);
+        }
+      }
+
+      // 2. delete delivery_proofs where id = X (e opcionalmente order_id = X)
+      const r2 = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
         method:  'DELETE',
         headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
       });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.message || `Erro ao remover entrega (HTTP ${res.status})`);
+      if (!r2.ok) {
+        const e = await r2.json().catch(() => ({}));
+        throw new Error(e.message || `Erro ao remover entrega (HTTP ${r2.status})`);
+      }
+
+      // 3. Se não há mais provas para o pedido, remove captures e o pedido também
+      if (orderId) {
+        const remaining = await fetch(
+          `${SB_URL}/rest/v1/${TABLE}?order_id=eq.${orderId}&select=id&limit=1`,
+          { headers: _headers(jwt) }
+        );
+        const rem = remaining.ok ? await remaining.json().catch(() => []) : [];
+        if (!rem.length) {
+          // delete captures where order_id = X
+          const r3 = await fetch(`${SB_URL}/rest/v1/captures?order_id=eq.${orderId}`, {
+            method:  'DELETE',
+            headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
+          });
+          if (!r3.ok) {
+            const e = await r3.json().catch(() => ({}));
+            console.error('[Entrega] Erro ao remover captures:', e.message || r3.status);
+          }
+        }
       }
     },
   };
@@ -244,7 +284,6 @@
       if (token) return token;
     }
 
-    console.error('[Entrega] ❌ Session não disponível ou sem token após ready()');
     return null;
   }
 
@@ -307,7 +346,6 @@
 
     _buildModalHTML(orderId, orderData) {
       // [DELIVERY_MODAL] logs temporários de diagnóstico
-      console.log('[DELIVERY_MODAL] orderData', orderData);
 
       // Normaliza: suporte a campos EN canônicos e aliases PT
       const normalized = {
@@ -317,7 +355,6 @@
         tipo:    orderData?.tipo         || orderData?.service_type  || orderData?.tipo_pedido   || '—',
         created_at: orderData?.created_at || orderData?.createdAt    || null,
       };
-      console.log('[DELIVERY_MODAL] normalized', normalized);
 
       const nick    = normalized.nick;
       const service = normalized.service;
@@ -476,7 +513,6 @@
     // ── Submit: fluxo completo ponta a ponta ─────────────────
     async _submit(btn) {
       if (DeliveryAdmin._submitting) {
-        console.warn('[Entrega] Já em progresso, ignorando clique duplo.');
         return;
       }
 
@@ -515,45 +551,37 @@
       if (progressWrap) progressWrap.style.display = 'block';
 
       try {
-        // ── PASSO 1: Usar link Imgur como comprovante ────────
-        console.log('[Entrega] PASSO 1 — Link Imgur:', imgurLink);
-        const prints = [{ url: imgurLink, name: 'imgur' }];
+        // ── PASSO 1: Salvar image_url (link Imgur) ────────────
 
         if (progressFill) progressFill.style.width = '65%';
 
-        // ── PASSO 2: INSERT em pedido_entregas ───────────────
-        console.log('[Entrega] PASSO 2 — Salvando em delivery_proofs...');
-        // [SchemaAudit] Payload usa SOMENTE nomes canônicos EN (colunas reais da tabela).
-        // Os aliases PT (servico_nome, pokemon_nome, tipo_pedido) eram o root cause do
-        // erro "column delivery_proofs.servico_nome does not exist".
+        // ── PASSO 2: INSERT em delivery_proofs ───────────────
         const payload = {
-          pedido_id:    Number(orderId),
-          user_id:      _getCurrentUserId(),
-          prints:       prints,
-          descricao:    null,
-          cliente_nick: orderData?.nick    || null,
-          service_name: orderData?.service || null,   // ← EN canônico
-          pokemon_name: orderData?.pokemon || null,   // ← EN canônico
-          service_type: orderData?.tipo    || null,   // ← EN canônico
-          concluido_at: new Date().toISOString(),
+          pedido_id:        Number(orderId),
+          user_id:          _getCurrentUserId(),
+          image_url:        imgurLink,
+          descricao:        null,
+          cliente_nick:     orderData?.nick         || null,
+          player_name:      orderData?.player_name  || orderData?.nick || null,
+          service_name:     orderData?.service      || null,
+          pokemon_name:     orderData?.pokemon      || null,
+          service_type:     orderData?.tipo         || null,
+          item_name:        orderData?.item_name    || null,
+          quantity:         orderData?.quantity     || null,
+          order_created_at: orderData?.created_at   || null,
+          concluido_at:     new Date().toISOString(),
         };
-        console.log('[SchemaAudit] payload recebido:', JSON.stringify(payload));
         await DeliveryDB.insert(payload);
-        console.log('[Entrega] PASSO 2 — ✅ Entrega salva em delivery_proofs.');
 
         if (progressFill) progressFill.style.width = '75%';
 
         // ── PASSO 3: UPDATE pedidos → status = 'concluido' ──
-        console.log('[Entrega] PASSO 3 — Atualizando pedido #' + orderId + ' → concluido...');
         await DeliveryAdmin._updatePedidoStatus(orderId);
-        console.log('[Entrega] PASSO 3 — ✅ Pedido atualizado.');
 
         if (progressFill) progressFill.style.width = '88%';
 
         // ── PASSO 4: Notificação para o cliente ──────────────
-        console.log('[Entrega] PASSO 4 — Criando notificação...');
         await DeliveryAdmin._createClientNotification(orderId, 'Seu pedido foi concluído!');
-        console.log('[Entrega] PASSO 4 — ✅ Notificação criada.');
 
         if (progressFill) progressFill.style.width = '100%';
         if (progressLbl)  progressLbl.textContent = '✅ Entrega registrada!';
@@ -581,7 +609,6 @@
             DeliveryGallery.refresh();
           }
 
-          console.log('[Entrega] ✅ Fluxo completo concluído para pedido #' + orderId);
         }, 900);
 
       } catch (err) {
@@ -642,7 +669,6 @@
         });
       } catch (e) {
         // Não bloqueia o fluxo principal se notificação falhar
-        console.warn('[Entrega] Notificação falhou (não fatal):', e.message);
       }
     },
   };
@@ -685,7 +711,6 @@
         DeliveryGallery._loaded = true;
         DeliveryGallery._render();
       } catch (err) {
-        console.error('[Entregas] erro render — falha ao carregar lista:', err.message, err);
         grid.innerHTML = `
           <div class="dg-error">
             <div class="dg-error-icon">⚠️</div>
@@ -705,7 +730,6 @@
         Object.assign(entry, normalized);
         return entry;
       }
-      console.error('[Entregas] normalizeDeliveryProof nao disponivel — schema-compat.js carregado?');
       entry._normalized = true; entry._partial = true;
       return entry;
     },
@@ -736,21 +760,18 @@
         const pkName  = entry.pokemon_name || '';
         const nick    = entry.cliente_nick || '';
 
-        // Monta índice do lightbox a partir dos prints normalizados [{url}]
-        entry.prints.forEach(p => {
-          if (!p.url) return;
-          DeliveryGallery._lightboxAll.push({
-            url:     p.url,
-            caption: (() => {
+        // Monta lightbox a partir de image_url (URL direta — fonte única de verdade)
+        if (entry.image_url) {
           const currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
           const fakeOrder = { nickname: nick, cliente_nick: nick, userId: entry.user_id, user_id: entry.user_id, id: entry.id };
           const maskedNick = typeof QueuePrivacy !== 'undefined'
             ? QueuePrivacy.maskNickSimple(fakeOrder, currentUser)
             : nick;
-          return `${svcName}${pkName ? ' — ' + pkName : ''} ${maskedNick ? '• ' + maskedNick : ''}`.trim();
-        })(),
+          DeliveryGallery._lightboxAll.push({
+            url:     entry.image_url,
+            caption: `${svcName}${pkName ? ' — ' + pkName : ''} ${maskedNick ? '• ' + maskedNick : ''}`.trim(),
           });
-        });
+        }
       });
 
       grid.innerHTML = '';
@@ -768,7 +789,6 @@
             grid.appendChild(card);
           },
           (err) => {
-            console.warn('[PartialRender] card #' + idx + ' falhou:', err.message);
             const _rp = typeof renderPartialCard === 'function'
               ? renderPartialCard
               : (c, r) => { const d = document.createElement('div'); d.className='dg-card dg-card--partial'; d.textContent='dados incompletos'; c.appendChild(d); };
@@ -781,73 +801,130 @@
     },
 
     _buildCard(entry, idx, isAdmin) {
-      // Garante normalização (idempotente — não refaz se já foi feita em refresh)
+      // Garante normalização (idempotente)
       DeliveryGallery._normalizeEntry(entry);
-      const prints  = entry.prints;   // já é [{url}]
-      // Fix 3: prioridade de imagem — prints[0].url → image_url → ''
-      const mainImg = (Array.isArray(prints) && prints[0] && prints[0].url)
-        ? prints[0].url
-        : (entry.image_url || '');
-      // [SafeRender] Usa safe() para toda renderização — nunca acessa campo direto
-      const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
-      const servicoNome = _s(entry.service_name, '');
-      const pokemonNome = _s(entry.pokemon_name, '');
-      const tipoPedido  = _s(entry.service_type, '');
-      const clienteNick = _s(entry.cliente_nick, '');
-      const descricao   = _s(entry.descricao, '');
-      const dateRaw = entry.created_at || entry.concluido_at;
-      const date    = dateRaw
-        ? new Date(dateRaw).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })
-        : '—';
 
-      const thumb2   = prints[1] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 1)}"><img src="${prints[1].url}" alt="print 2"></div>` : '';
-      const thumb3   = prints[2] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 2)}"><img src="${prints[2].url}" alt="print 3"></div>` : '';
-      const more     = prints.length > 3 ? `<div class="dg-thumb dg-thumb-more" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 3)}">+${prints.length - 3}</div>` : '';
-      const hasThumbs  = prints.length > 1;
-      const mainLbIdx  = DeliveryGallery._getLightboxIndex(entry, 0);
+      const NA = 'Informação indisponível';
+      const _v = (v) => (v && String(v).trim()) ? String(v).trim() : null;
+
+      // ── Campos do card ─────────────────────────────────────────────
+      const mainImg     = _v(entry.image_url);
+      const playerName  = _v(entry.player_name) || _v(entry.cliente_nick);
+      const servicoNome = _v(entry.service_name);
+      const tipoPedido  = _v(entry.service_type);
+      const pokemonNome = _v(entry.pokemon_name);
+      const itemNome    = _v(entry.item_name);
+      const quantity    = entry.quantity ? parseInt(entry.quantity, 10) : null;
+
+      // ── O que foi entregue: pokemon OU item+qty ────────────────────
+      // Detecta tipo pelo service_type ou pela presença dos campos
+      const isPokemon = tipoPedido && tipoPedido.toLowerCase().includes('pokemon');
+      const hasItem   = !!itemNome;
+      const hasPokemon = !!pokemonNome;
+
+      let entregaLabel = null;
+      if (isPokemon || hasPokemon) {
+        entregaLabel = pokemonNome || NA;
+      } else if (hasItem) {
+        entregaLabel = quantity && quantity > 1 ? `${itemNome} ×${quantity}` : itemNome;
+      } else {
+        entregaLabel = servicoNome || NA;
+      }
+
+      // ── Datas ──────────────────────────────────────────────────────
+      const deliveredAt  = _v(entry.delivered_at) || _v(entry.created_at);
+      const orderCreated = _v(entry.order_created_at);
+
+      const fmtDate = (iso) => {
+        if (!iso) return NA;
+        try {
+          return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+        } catch(_) { return NA; }
+      };
+
+      // ── Tempo total do pedido ──────────────────────────────────────
+      const _calcTempo = (start, end) => {
+        if (!start || !end) return null;
+        try {
+          const ms   = new Date(end).getTime() - new Date(start).getTime();
+          if (ms < 0) return null;
+          const min  = Math.floor(ms / 60000);
+          const h    = Math.floor(min / 60);
+          const d    = Math.floor(h / 24);
+          if (d > 0)       return `${d}d ${h % 24}h`;
+          if (h > 0)       return `${h}h ${min % 60}min`;
+          if (min > 0)     return `${min}min`;
+          return '< 1min';
+        } catch(_) { return null; }
+      };
+      const tempoTotal  = _calcTempo(orderCreated, deliveredAt);
+      const dataEntrega = fmtDate(deliveredAt);
+
+      // ── nick mascarado ─────────────────────────────────────────────
+      const _maskedNick = (() => {
+        if (!playerName) return NA;
+        if (typeof QueuePrivacy === 'undefined') return playerName;
+        const currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+        const fakeOrder = { nickname: playerName, cliente_nick: playerName, userId: entry.user_id, user_id: entry.user_id, id: entry.id };
+        return QueuePrivacy.maskNickSimple(fakeOrder, currentUser) || playerName;
+      })();
+
+      const mainLbIdx = DeliveryGallery._getLightboxIndex(entry);
       const deleteBtnHTML = isAdmin
         ? `<button class="dg-card-delete" onclick="DeliveryGallery._deleteEntry('${entry.id}', event)" title="Remover entrega">🗑</button>`
         : '';
+
+      // ── tipo chip ──────────────────────────────────────────────────
+      const tipoChip = tipoPedido
+        ? `<span class="dg-card-type">${tipoPedido}</span>`
+        : '';
+
+      // ── ícone do que foi entregue ──────────────────────────────────
+      const entregaIcon = (isPokemon || hasPokemon) ? '⚡' : (hasItem ? '📦' : '🎁');
 
       const el = document.createElement('div');
       el.className = 'dg-card';
       el.innerHTML = `
         <div class="dg-card-img-wrap" onclick="DeliveryGallery.openLightbox(${mainLbIdx})">
           ${mainImg
-            ? `<img class="dg-card-img" src="${mainImg}" alt="${servicoNome || 'Entrega'}">`
+            ? `<img class="dg-card-img" src="${mainImg}" alt="Comprovante de entrega">`
             : `<div class="dg-card-img-placeholder">📷</div>`
           }
-          <div class="dg-card-overlay">
-            <div class="dg-card-overlay-icon">🔍</div>
-          </div>
+          <div class="dg-card-overlay"><div class="dg-card-overlay-icon">🔍</div></div>
           ${deleteBtnHTML}
         </div>
 
-        ${hasThumbs ? `<div class="dg-thumbs">${thumb2}${thumb3}${more}</div>` : ''}
-
         <div class="dg-card-body">
-          <div class="dg-card-service">${servicoNome || pokemonNome || '—'}</div>
-          <div class="dg-card-row">
-            ${pokemonNome ? `<span class="dg-card-pokemon">⚡ ${pokemonNome}</span>` : ''}
-            ${tipoPedido  ? `<span class="dg-card-type">${tipoPedido}</span>` : ''}
+
+          <div class="dg-card-player">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ${_maskedNick}
           </div>
-          ${descricao ? `<div class="dg-card-desc" style="font-size:12px;color:rgba(255,255,255,0.45);margin:4px 0 6px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${descricao}</div>` : ''}
+
+          <div class="dg-card-entrega">
+            <span class="dg-entrega-icon">${entregaIcon}</span>
+            <span class="dg-entrega-nome">${entregaLabel}</span>
+          </div>
+
+          <div class="dg-card-chips">
+            ${tipoChip}
+            ${servicoNome && servicoNome !== entregaLabel
+              ? `<span class="dg-card-service-chip">${servicoNome}</span>`
+              : ''}
+          </div>
+
           <div class="dg-card-meta">
-            <div class="dg-meta-item">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              ${(() => {
-                if (typeof QueuePrivacy === 'undefined') return clienteNick || '—';
-                const currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-                // Monta objeto mínimo compatível com QueuePrivacy
-                const fakeOrder = { nickname: clienteNick, cliente_nick: clienteNick, userId: entry.user_id, user_id: entry.user_id, id: entry.id };
-                return QueuePrivacy.maskNickSimple(fakeOrder, currentUser);
-              })()}
-            </div>
-            <div class="dg-meta-item">
+            <div class="dg-meta-item" title="Data de entrega">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              ${date}
+              ${dataEntrega}
             </div>
+            ${tempoTotal ? `
+            <div class="dg-meta-item dg-meta-tempo" title="Tempo total do pedido">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${tempoTotal}
+            </div>` : ''}
           </div>
+
           <div class="dg-card-status">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
             ENTREGUE
@@ -855,22 +932,12 @@
         </div>
       `;
 
-      el.querySelectorAll('.dg-thumb[data-lb-idx]').forEach(t => {
-        t.addEventListener('click', (e) => {
-          e.stopPropagation();
-          DeliveryGallery.openLightbox(parseInt(t.dataset.lbIdx));
-        });
-      });
-
       return el;
     },
 
-    _getLightboxIndex(entry, printIndex) {
-      const all    = DeliveryGallery._lightboxAll;
-      // entry.prints é sempre [{url}] após _normalizeEntry()
-      // entry.image_url está garantido como prints[0].url pelo normalizer
-      const prints = Array.isArray(entry.prints) ? entry.prints : [];
-      const url    = (prints[printIndex] || prints[0] || {}).url || entry.image_url || null;
+    _getLightboxIndex(entry) {
+      const all = DeliveryGallery._lightboxAll;
+      const url = entry.image_url || null;
       if (!url) return 0;
       return Math.max(0, all.findIndex(x => x.url === url));
     },
@@ -910,7 +977,7 @@
 
     async _deleteEntry(id, e) {
       if (e) e.stopPropagation();
-      const confirmed = await showConfirmModal({ title: 'Remover Entrega', message: 'Remover esta entrega? Os prints não serão deletados do Storage.', confirmText: 'Remover', cancelText: 'Cancelar', type: 'danger' });
+      const confirmed = await showConfirmModal({ title: 'Remover Entrega', message: 'Remover este registro de entrega?', confirmText: 'Remover', cancelText: 'Cancelar', type: 'danger' });
       if (!confirmed) return;
       try {
         await DeliveryDB.delete(id);
@@ -1092,6 +1159,17 @@
 .da-btn-submit { background:rgba(58,140,255,0.15); border:1px solid rgba(58,140,255,0.35); color:#3a8cff; min-width:180px; justify-content:center; }
 .da-btn-submit:hover:not(:disabled) { background:rgba(58,140,255,0.25); border-color:rgba(58,140,255,0.55); color:#fff; }
 .da-btn-submit:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* ── Novos estilos dos cards de entrega ────────── */
+.dg-card-player { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:rgba(255,255,255,0.75); margin-bottom:10px; }
+.dg-card-player svg { opacity:0.55; flex-shrink:0; }
+.dg-card-entrega { display:flex; align-items:center; gap:8px; margin-bottom:8px; min-height:28px; }
+.dg-entrega-icon { font-size:16px; flex-shrink:0; }
+.dg-entrega-nome { font-family:var(--font-title,"Cinzel",serif); font-size:13px; font-weight:700; letter-spacing:0.8px; color:rgba(255,255,255,0.92); line-height:1.3; }
+.dg-card-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.dg-card-service-chip { font-size:10px; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:2px 8px; letter-spacing:0.3px; }
+.dg-meta-tempo { color:rgba(180,160,255,0.75) !important; }
+.dg-meta-tempo svg { stroke:rgba(180,160,255,0.6) !important; }
 
 @media (max-width:768px) {
   .dg-header { padding:16px 16px 14px; }
