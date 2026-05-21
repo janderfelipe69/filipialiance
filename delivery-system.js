@@ -141,20 +141,26 @@
     async list(limit = 200) {
       const jwt = await _getSessionToken();
 
-      // [SchemaCompat] Usa select canônico centralizado — nunca * nem aliases PT
-      const _selectCols = typeof SchemaCompat !== 'undefined'
-        ? SchemaCompat.buildDeliveryProofsSelect()
-        // [SchemaCompat] Usa select canônico centralizado — nunca * nem aliases PT
-        // FALLBACK: se SchemaCompat não estiver disponível, usa colunas confirmadas.
-        // NUNCA incluir 'status' — coluna não existe em delivery_proofs (HTTP 400).
-        : 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,delivered_at,descricao';
+      // [SchemaAudit] Usa introspecção assíncrona do schema real.
+      // SchemaCompat.resolveSelect() faz SELECT * limit=1 no primeiro call,
+      // lê as colunas reais e cruza com DESIRED_COLUMNS.
+      // Nunca usa colunas hardcoded — nunca inclui status/delivered_at/concluido_at.
+      let _selectCols;
+      if (typeof SchemaCompat !== 'undefined' && typeof SchemaCompat.resolveSelect === 'function') {
+        _selectCols = await SchemaCompat.resolveSelect();
+      } else {
+        // Fallback estritamente mínimo — sem nenhuma coluna com histórico de HTTP 400.
+        // NÃO inclui: status, delivered_at, concluido_at, servico_nome, pokemon_nome, tipo_pedido
+        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,descricao';
+        console.warn('[SchemaAudit] SchemaCompat indisponível — usando fallback mínimo:', _selectCols);
+      }
 
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=${_selectCols}` +
         `&order=created_at.desc` +
         `&limit=${limit}`;
 
-      console.log('[Entregas] Buscando entregas — url:', url);
+      console.log('[Entregas] Buscando entregas — select:', _selectCols);
 
       const res = await fetch(url, { headers: _headers(jwt) });
 
@@ -162,20 +168,19 @@
         const e = await res.json().catch(() => ({}));
         const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
         console.error('[Entregas] Falha na query:', msg);
-        // [SchemaAudit] Guard: detecta coluna inexistente e aponta a causa exata
+        // [SchemaAudit] Guard: detecta coluna inexistente
         if (e.message && e.message.includes('does not exist')) {
-          console.error('[SchemaAudit] ❌ Coluna inexistente na query SELECT:', e.message);
-          // Tenta extrair o nome da coluna do erro do PostgREST ("column X does not exist")
+          console.error('[SchemaAudit] ❌ Coluna inexistente detectada:', e.message);
           const colMatch = e.message.match(/column\s+["']?(\S+?)["']?\s+does not exist/i);
           if (colMatch) {
             const badCol = colMatch[1].replace(/^delivery_proofs\./, '');
-            console.error(`[SchemaAudit] ❌ Coluna inválida: "${badCol}"`);
-            console.error(`[SchemaAudit] Fix: remover "${badCol}" de DELIVERY_PROOFS_COLUMNS em schema-compat.js`);
-            console.error('[SchemaAudit] Colunas confirmadas:', _selectCols);
+            console.error(`[SchemaAudit] ❌ Coluna inválida: "${badCol}" — remover de DESIRED_COLUMNS em schema-compat.js`);
+            // Invalida cache para forçar re-introspecção na próxima chamada
+            if (typeof SchemaCompat !== 'undefined') SchemaCompat._resetCache && SchemaCompat._resetCache();
           }
+          console.error('[SchemaAudit] SELECT usado:', _selectCols);
         }
-        // Não joga erro para cima — retorna array vazio para não destruir a tela
-        console.warn('[Entregas] Retornando lista vazia por segurança. Query usada:', _selectCols);
+        console.warn('[Entregas] Retornando lista vazia por segurança. Select usado:', _selectCols);
         return [];
       }
 

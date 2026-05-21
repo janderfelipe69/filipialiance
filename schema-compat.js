@@ -44,10 +44,11 @@
    *
    * @param {Object} record - Registro bruto vindo do Supabase ou Realtime
    * @returns {{ id, service_name, pokemon_name, service_type, cliente_nick,
-   *             descricao, image_url, created_at, delivered_at, prints,
+   *             descricao, image_url, created_at, prints,
    *             status, _normalized }}
    * @note 'status' é campo COMPUTADO de display (sempre 'concluido').
    *       Não existe como coluna em delivery_proofs — não é lido via SELECT.
+   * @note 'delivered_at' REMOVIDO — não existe na tabela.
    */
   function normalizeDeliveryProof(record) {
     // Guarda defensivo: registro nulo ou já normalizado
@@ -110,19 +111,17 @@
       record.desc           ||   // alias curto legado
       null;
 
-    // ── 6. created_at / delivered_at ───────────────────────────────────
+    // ── 6. created_at ──────────────────────────────────────────────────
+    // concluido_at é alias PT legado — nunca vai ao banco, só usado aqui como fallback.
+    // delivered_at foi removido: não existe em delivery_proofs.
     const created_at =
       record.created_at     ||
-      record.concluido_at   ||
-      null;
-
-    const delivered_at =
-      record.delivered_at   ||
+      record.concluido_at   ||   // fallback PT legado — leitura somente, nunca escrita
       null;
 
     // ── 7. status (CAMPO COMPUTADO — não existe no banco) ──────────────
-    // 'status' NÃO é coluna de delivery_proofs. É derivado aqui apenas
-    // para consumo interno da UI. Nunca deve entrar em SELECT nem INSERT.
+    // 'status' NÃO é coluna de delivery_proofs. Derivado aqui só para UI.
+    // Nunca entra em SELECT nem INSERT.
     const status = 'concluido';
 
     // ── 8. image_url + prints ──────────────────────────────────────────
@@ -135,7 +134,7 @@
       order_id:     record.order_id     || record.pedido_id || null,
       delivered_by: record.delivered_by || null,
 
-      // Campos canônicos EN
+      // Campos canônicos EN (apenas colunas que existem na tabela)
       service_name,
       pokemon_name,
       service_type,
@@ -143,8 +142,7 @@
       descricao,
       image_url,
       created_at,
-      delivered_at,
-      status,   // computado — não é coluna do banco
+      status,   // computado de display — não é coluna do banco
       prints,
 
       // Marcador de idempotência — não serializar para o banco
@@ -281,7 +279,7 @@
       id: null, order_id: null, delivered_by: null,
       service_name: null, pokemon_name: null, service_type: null,
       cliente_nick: null, descricao: null, image_url: null,
-      created_at: null, status: null, prints: [],
+      created_at: null, status: 'concluido', prints: [],
       _normalized: true, _partial: true,
     };
   }
@@ -372,18 +370,23 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  // PASSO 3 — buildSafeSelect(columns)
-  // Monta string de select Supabase apenas com colunas reais.
+  // PASSO 3 — Schema Introspection + buildDeliveryProofsSelect()
+  //
+  // FILOSOFIA: nunca confiar em lista de colunas hardcoded.
+  // O sistema introspecciona o schema REAL do banco em runtime:
+  //   1. Faz SELECT * limit=1 → lê chaves do primeiro objeto.
+  //   2. Cruza com DESIRED_COLUMNS (intenção) → só pede o que existe.
+  //   3. Cacheia o resultado para não bater o banco toda chamada.
+  //   4. Fallback: DESIRED_COLUMNS sem banidas se introspecção falhar.
+  //
+  // BANIDAS PERMANENTEMENTE — nunca entram em SELECT desta tabela:
+  //   status, delivered_at, concluido_at, servico_nome,
+  //   pokemon_nome, tipo_pedido
   // ══════════════════════════════════════════════════════════
 
-  /**
-   * Colunas canônicas reais da tabela delivery_proofs.
-   * NUNCA usar * — nunca usar aliases PT.
-   * ATENÇÃO: 'status' NÃO existe nesta tabela. Todo registro em delivery_proofs
-   * é implicitamente "concluido" — o status é computado em normalizeDeliveryProof()
-   * como campo de display, nunca lido do banco nem enviado em INSERT/UPDATE.
-   */
-  const DELIVERY_PROOFS_COLUMNS = [
+  // Colunas que QUEREMOS (se existirem no banco).
+  // Define INTENÇÃO — não garantia de existência.
+  const DESIRED_COLUMNS = [
     'id',
     'order_id',
     'service_name',
@@ -394,29 +397,155 @@
     'cliente_nick',
     'delivered_by',
     'created_at',
-    'delivered_at',
     'descricao',
   ];
 
+  // Nunca podem entrar num SELECT de delivery_proofs.
+  const BANNED_FROM_SELECT = [
+    'status',       // não existe em delivery_proofs
+    'delivered_at', // não existe em delivery_proofs
+    'concluido_at', // campo legado PT — não é coluna real
+    'servico_nome', // alias PT legado
+    'pokemon_nome', // alias PT legado
+    'tipo_pedido',  // alias PT legado
+  ];
+
+  // Cache das colunas reais após introspecção. null = ainda não resolvido.
+  let _resolvedColumns = null;
+  let _resolvingPromise = null;
+
   /**
-   * Retorna o select string seguro para delivery_proofs.
-   * Usa apenas colunas de DELIVERY_PROOFS_COLUMNS — nunca 'status', nunca *.
-   * @returns {string} Colunas separadas por vírgula
+   * Introspecta o schema real de delivery_proofs.
+   * Estratégia 1: SELECT * limit=1 → lê chaves do objeto retornado.
+   * Estratégia 2: se tabela vazia, tenta SELECT * limit=0 e lê
+   *   o header Content-Range (PostgREST sempre o envia).
+   * @returns {Promise<string[]|null>}
+   */
+  async function _introspectColumns() {
+    const sbUrl = global.SUPABASE_URL || '';
+    const sbKey = global.SUPABASE_KEY || '';
+    if (!sbUrl || !sbKey) {
+      console.warn('[SchemaAudit] SUPABASE_URL/KEY indisponíveis — introspecção impossível');
+      return null;
+    }
+
+    // Estratégia 1: pega um registro real e lê suas chaves
+    try {
+      const res = await fetch(
+        `${sbUrl}/rest/v1/delivery_proofs?select=*&limit=1&order=id.desc`,
+        { headers: { apikey: sbKey, Authorization: 'Bearer ' + sbKey, Accept: 'application/json' } }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('[SchemaAudit] ❌ SELECT * falhou:', res.status, err.message || '(sem detalhe)');
+        // Se mesmo SELECT * com limit=1 dá erro, a tabela tem problema mais grave
+        return null;
+      }
+
+      const rows = await res.json();
+
+      if (Array.isArray(rows) && rows.length > 0) {
+        const cols = Object.keys(rows[0]);
+        console.log('[SchemaAudit] ✅ Schema real detectado (', cols.length, 'colunas ):', cols.join(', '));
+        return cols;
+      }
+
+      // Estratégia 2: tabela existe mas está vazia — usa limit=0 + header
+      console.warn('[SchemaAudit] Tabela vazia — tentando Content-Range...');
+      const res0 = await fetch(
+        `${sbUrl}/rest/v1/delivery_proofs?select=*&limit=0`,
+        { headers: { apikey: sbKey, Authorization: 'Bearer ' + sbKey,
+            Accept: 'application/json', Prefer: 'count=exact' } }
+      );
+      // PostgREST retorna Content-Range: 0-0/0 mesmo para tabela vazia,
+      // mas não os nomes de colunas via headers. Neste caso não conseguimos
+      // inferir e retornamos null para acionar o fallback.
+      console.warn('[SchemaAudit] Tabela vazia — introspecção inconclusiva; usando fallback');
+      return null;
+
+    } catch (e) {
+      console.warn('[SchemaAudit] Introspecção falhou (rede/CORS):', e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Resolve as colunas a usar no SELECT, cruzando schema real com DESIRED_COLUMNS.
+   * Cacheia após a primeira chamada bem-sucedida.
+   * @returns {Promise<string>}
+   */
+  async function _resolveSelectColumns() {
+    if (_resolvedColumns !== null) return _resolvedColumns;
+    if (_resolvingPromise) return _resolvingPromise;
+
+    _resolvingPromise = (async () => {
+      const realCols = await _introspectColumns();
+
+      let confirmed;
+      if (realCols && realCols.length > 0) {
+        confirmed = DESIRED_COLUMNS.filter(col => {
+          if (BANNED_FROM_SELECT.includes(col)) {
+            console.error('[SchemaAudit] ❌ coluna banida em DESIRED_COLUMNS:', col, '— removida');
+            return false;
+          }
+          const exists = realCols.includes(col);
+          if (!exists) {
+            console.warn(`[SchemaAudit] ⚠️ "${col}" desejada mas não existe na tabela — ignorada`);
+          }
+          return exists;
+        });
+
+        const extras = realCols.filter(c => !DESIRED_COLUMNS.includes(c));
+        if (extras.length) {
+          console.log('[SchemaAudit] ℹ️ Colunas na tabela não solicitadas:', extras.join(', '));
+        }
+        console.log('[SchemaAudit] ✅ SELECT confirmado pelo banco:', confirmed.join(', '));
+      } else {
+        // Introspecção falhou: usa DESIRED_COLUMNS filtrado de banidas.
+        // Não inclui nenhuma coluna com histórico de causar HTTP 400.
+        confirmed = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c));
+        console.warn('[SchemaAudit] ⚠️ Usando fallback (sem introspecção):', confirmed.join(', '));
+      }
+
+      _resolvedColumns = confirmed.join(',');
+      _resolvingPromise = null;
+      return _resolvedColumns;
+    })();
+
+    return _resolvingPromise;
+  }
+
+  /**
+   * Retorna select string síncrono.
+   * Se a introspecção ainda não rodou, usa DESIRED_COLUMNS filtrado de banidas.
+   * Prefira usar: await SchemaCompat.resolveSelect()
    */
   function buildDeliveryProofsSelect() {
-    // Guard: se alguém reintroduzir 'status' em DELIVERY_PROOFS_COLUMNS por engano,
-    // ele é removido aqui antes de chegar na query — evita HTTP 400 silencioso.
-    const BANNED_COLUMNS = ['status'];
-    const safe = DELIVERY_PROOFS_COLUMNS.filter(col => {
-      if (BANNED_COLUMNS.includes(col)) {
-        console.error('[SchemaAudit] ❌ coluna banida detectada em DELIVERY_PROOFS_COLUMNS e removida:', col,
-          '— esta coluna NÃO existe na tabela delivery_proofs.');
-        return false;
-      }
-      return true;
-    });
-    return safe.join(',');
+    if (_resolvedColumns !== null) return _resolvedColumns;
+    const fallback = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c)).join(',');
+    console.warn('[SchemaAudit] buildDeliveryProofsSelect() síncrono antes da introspecção — fallback:', fallback);
+    return fallback;
   }
+
+  /** Versão assíncrona preferível — aguarda introspecção completa. */
+  async function resolveSelect() {
+    return _resolveSelectColumns();
+  }
+
+  /**
+   * Invalida o cache de colunas resolvidas.
+   * Chamado automaticamente quando list() recebe erro "does not exist",
+   * forçando re-introspecção na próxima query.
+   */
+  function _resetCache() {
+    _resolvedColumns = null;
+    _resolvingPromise = null;
+    console.warn('[SchemaAudit] Cache de colunas invalidado — próxima query re-introspecta o banco');
+  }
+
+  // Alias compatível com código legado que acessa SchemaCompat.DELIVERY_PROOFS_COLUMNS
+  const DELIVERY_PROOFS_COLUMNS = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c));
 
   // ══════════════════════════════════════════════════════════
   // PASSO 4 — safe(value, fallback)
@@ -698,7 +827,7 @@
         const out = normalizeDeliveryProof(input);
         // Validações mínimas — apenas campos que EXISTEM no banco ou são computados obrigatórios.
         // 'status' é computado (sempre 'concluido') e está no output — pode permanecer.
-        // 'delivered_at' foi adicionado ao schema real.
+        // 'delivered_at' REMOVIDO — não existe na tabela delivery_proofs.
         const hasId = out.id !== undefined;
         const hasShape = ['service_name', 'pokemon_name', 'service_type',
                           'cliente_nick', 'descricao', 'image_url',
@@ -750,6 +879,8 @@
     normalizeDeliveryProof,
     sanitizeDeliveryPayload,
     buildDeliveryProofsSelect,
+    resolveSelect,           // async — preferível a buildDeliveryProofsSelect()
+    _resetCache,             // invalida cache após erro de schema
     safe,
     renderPartialCard,
     wrapWithErrorBoundary,
@@ -759,6 +890,8 @@
 
     // Constantes
     DELIVERY_PROOFS_COLUMNS,
+    DESIRED_COLUMNS,
+    BANNED_FROM_SELECT,
   };
 
   // ── Expõe globalmente ──────────────────────────────────────
