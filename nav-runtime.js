@@ -233,10 +233,19 @@
      mobile-ux.js e wiki-nav.js
   ═══════════════════════════════════════════════════════════════ */
 
-  /* pedidos.js: carrega pedidos ao abrir aba */
+  /* pedidos.js: carrega pedidos ao abrir aba.
+     Aguarda Session.ready() antes de disparar — pedidosCarregar() também
+     aguarda internamente, mas fazer aqui evita flicker de loading desnecessário. */
   onTabSwitch('after', 'pedidos-loader', function (tab) {
     if (tab === 'pedidos' && typeof global.pedidosCarregar === 'function') {
-      global.pedidosCarregar();
+      var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
+        ? Session.ready()
+        : Promise.resolve();
+      sessionReady.then(function () {
+        global.pedidosCarregar();
+      }).catch(function () {
+        global.pedidosCarregar(); // Session.ready() nunca rejeita, mas por segurança
+      });
     }
   });
 
