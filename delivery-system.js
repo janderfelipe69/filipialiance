@@ -756,20 +756,30 @@
         // entry já foi normalizado em refresh(); _normalizeEntry é idempotente
         DeliveryGallery._normalizeEntry(entry);
 
-        const svcName = entry.service_name || 'Entrega';
-        const pkName  = entry.pokemon_name || '';
         const nick    = entry.cliente_nick || '';
 
         // Monta lightbox a partir de image_url (URL direta — fonte única de verdade)
         if (entry.image_url) {
           const currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-          const fakeOrder = { nickname: nick, cliente_nick: nick, userId: entry.user_id, user_id: entry.user_id, id: entry.id };
+          const fakeOrder = {
+            nickname: nick, cliente_nick: nick,
+            userId: entry.user_id, user_id: entry.user_id, id: entry.id,
+            // Campos necessários para formatPublicOrderTitle
+            items:        entry._items     || [],
+            service_type: entry.service_type || '',
+            service_name: entry.service_name || '',
+          };
           const maskedNick = typeof QueuePrivacy !== 'undefined'
             ? QueuePrivacy.maskNickSimple(fakeOrder, currentUser)
             : nick;
+          // Título público: respeita privacidade
+          const isAdminUser = typeof Session !== 'undefined' && Session.isAdmin();
+          const pubTitle = (typeof QueuePrivacy !== 'undefined' && !isAdminUser)
+            ? QueuePrivacy.formatPublicOrderTitle(fakeOrder, currentUser)
+            : (entry.pokemon_name || entry.service_name || entry.item_name || 'Entrega');
           DeliveryGallery._lightboxAll.push({
             url:     entry.image_url,
-            caption: `${svcName}${pkName ? ' — ' + pkName : ''} ${maskedNick ? '• ' + maskedNick : ''}`.trim(),
+            caption: `${pubTitle} ${maskedNick ? '• ' + maskedNick : ''}`.trim(),
           });
         }
       });
@@ -822,8 +832,25 @@
       const hasItem   = !!itemNome;
       const hasPokemon = !!pokemonNome;
 
+      // Monta fakeOrder para formatPublicOrderTitle
+      const _fakeOrderForTitle = {
+        nickname:     entry.cliente_nick || '',
+        user_id:      entry.user_id,
+        userId:       entry.user_id,
+        id:           entry.id,
+        service_type: tipoPedido || '',
+        service_name: servicoNome || '',
+        items: pokemonNome
+          ? [{ type: 'capture', pokemon: pokemonNome, name: pokemonNome, tier: '' }]
+          : (itemNome ? [{ name: itemNome, qtdTotal: quantity || 1 }] : []),
+      };
+      const _currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+
       let entregaLabel = null;
-      if (isPokemon || hasPokemon) {
+      if (!isAdmin && typeof QueuePrivacy !== 'undefined') {
+        // Usuário comum vê título público mascarado
+        entregaLabel = QueuePrivacy.formatPublicOrderTitle(_fakeOrderForTitle, _currentUser);
+      } else if (isPokemon || hasPokemon) {
         entregaLabel = pokemonNome || NA;
       } else if (hasItem) {
         entregaLabel = quantity && quantity > 1 ? `${itemNome} ×${quantity}` : itemNome;

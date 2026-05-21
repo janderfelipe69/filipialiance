@@ -144,14 +144,17 @@
   }
 
   // ── JWT Helper ─────────────────────────────────────────────────────────
-  // PATCH 5.2: aborta se não houver sessão — nunca envia anon key como Authorization.
-  // Retorna null para que chamadores possam interromper o fetch antes de enviar.
+  // Usa o JWT real do usuário quando disponível.
+  // Se não houver sessão ainda (ex: role ainda carregando), usa anon key como
+  // fallback — o banco bloqueia via RLS de qualquer forma, mas o cliente
+  // não é impedido de tentar e mostrar o estado correto.
   function _getJWT() {
     if (typeof Session !== 'undefined' && Session.getAccessToken) {
       var token = Session.getAccessToken();
       if (token) return token;
     }
-    return null; // sem sessão → chamador deve abortar
+    _warn('Nenhum JWT de sessão ativa — usando anon key como fallback.');
+    return SB_KEY;
   }
 
   // ── Fetch do Supabase ──────────────────────────────────────────────────
@@ -160,10 +163,6 @@
 
   async function _fetchDoBD() {
     var jwt = _getJWT();
-    if (!jwt) {
-      _warn('Sem JWT — abortando fetch de pedidos. Faça login.');
-      throw new Error('Usuário não autenticado');
-    }
     _log('Buscando pedidos do Supabase...');
     var url = SB_URL + '/rest/v1/pedidos' +
       '?order=created_at.asc' +

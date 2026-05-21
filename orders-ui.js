@@ -366,7 +366,7 @@ const OrdersUI = (() => {
 
       <!-- Itens -->
       <div class="order-items-section">
-        ${_renderItems(order.items)}
+        ${_renderItemsGuarded(order, user, isAdmin)}
       </div>
 
       ${order.observations ? `
@@ -415,6 +415,52 @@ const OrdersUI = (() => {
   }
 
   // ── Renderização de Itens ──────────────────────────────────────────────
+
+  // ── _renderItemsGuarded: respeita privacidade ─────────────────────────
+  // Admin e dono do pedido vêem itens reais.
+  // Outros usuários vêem apenas o título público do pedido.
+  function _renderItemsGuarded(order, user, isAdmin) {
+    const items = order.items || [];
+
+    // Admin: painel completo com todos os itens reais
+    if (isAdmin) {
+      return _renderItems(items);
+    }
+
+    // Dono do pedido: vê seus próprios itens reais
+    const isOwner = user && (order.userId === user.id || order.nickname === user.nickname);
+    if (isOwner) {
+      return _renderItems(items);
+    }
+
+    // Usuário comum vendo pedido de terceiro → título genérico
+    const publicTitle = typeof QueuePrivacy !== 'undefined'
+      ? QueuePrivacy.formatPublicOrderTitle(order, user)
+      : (items.length ? items[0].name : '—');
+
+    const meta = typeof QueuePrivacy !== 'undefined'
+      ? QueuePrivacy.formatPublicOrderTitleMeta(order, user)
+      : { type: 'item', tierLabel: null };
+
+    const iconMap = { capture: '⚡', package: '📦', item: '🎁' };
+    const icon = iconMap[meta.type] || '📦';
+    const tierBadge = meta.tierLabel
+      ? `<span class="order-item-tier-badge order-item-tier--${meta.tierLabel.toLowerCase()}">${meta.tierLabel}</span>`
+      : '';
+
+    return `
+      <div class="order-item order-item--public">
+        <div class="order-item-info">
+          <span class="order-item-public-icon">${icon}</span>
+          <span class="order-item-name order-item-name--public">${_escHtml(publicTitle)}</span>
+          ${tierBadge}
+        </div>
+        <div class="order-item-progress">
+          <span class="order-item-waiting-label">Em processamento</span>
+        </div>
+      </div>
+    `;
+  }
 
   function _renderItems(items) {
     if (!items || !items.length) {
@@ -940,6 +986,38 @@ const OrdersUI = (() => {
       .order-item-qty-simple { font-family: var(--font-mono, monospace); font-size: 10px; font-weight: 700; white-space: nowrap; }
       .order-item-qty-simple.done { color: #4ade80 !important; }
       .order-item-waiting-label { font-size: 10px; font-weight: 400; color: rgba(255,255,255,0.32); font-style: italic; white-space: nowrap; letter-spacing: 0.01em; }
+      /* ── Título público de pedido (visão não-admin) ──── */
+      .order-item--public {
+        background: rgba(255,255,255,0.015);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 8px;
+        padding: 10px 14px;
+      }
+      .order-item-public-icon {
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+      .order-item-name--public {
+        font-weight: 600;
+        color: rgba(255,255,255,0.7);
+        font-style: italic;
+        letter-spacing: 0.3px;
+      }
+      .order-item-tier-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 7px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        font-family: var(--font-mono, monospace);
+      }
+      .order-item-tier--t1 { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.35); color: #c084fc; }
+      .order-item-tier--t2 { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.35); color: #60a5fa; }
+      .order-item-tier--t3 { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.35);  color: #4ade80; }
+      .order-item-tier--sr { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.35); color: #fbbf24; }
+
 
       /* ─── Observation ─────────────────────────────────────────────── */
       .order-obs {

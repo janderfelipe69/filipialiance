@@ -201,8 +201,14 @@ const OrdersKanban = (() => {
     // Data formatada
     const dateStr = _formatDate(order.createdAt);
 
-    // Tipo e quantidade de serviço
-    const serviceLabel = _serviceLabel(order.service_type, order.service_quantity);
+    // Tipo e quantidade de serviço — respeita privacidade
+    // Admin e dono vêem label real; outros vêem título público genérico
+    const serviceLabel = (function() {
+      if (typeof QueuePrivacy !== 'undefined') {
+        return QueuePrivacy.formatPublicOrderTitle(order, user);
+      }
+      return _serviceLabel(order.service_type, order.service_quantity);
+    })();
 
     // SLA info (somente in_progress com started_at)
     let slaHTML = '';

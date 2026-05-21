@@ -267,6 +267,109 @@ const QueuePrivacy = (() => {
       .replace(/"/g, '&quot;');
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // formatPublicOrderTitle — título público de um pedido
+  //
+  // REGRAS:
+  //   Admin / dono → título real (nome do pokémon, item, pacote)
+  //   Outros       → título genérico por tipo
+  //
+  //   Captura Pokémon → "Captura Pokémon T1/T2/T3/SR"
+  //   Pacote          → nome do pacote (sem listar itens)
+  //   Item avulso     → "QTD× Nome do item"
+  // ══════════════════════════════════════════════════════════════════════
+  function formatPublicOrderTitle(order, currentUser) {
+    if (!order) return '—';
+    if (_isAdmin(currentUser) || _isOwner(order, currentUser)) {
+      return _buildRealTitle(order);
+    }
+    return _buildMaskedTitle(order);
+  }
+
+  function formatPublicOrderTitleMeta(order, currentUser) {
+    if (!order) return { title: '—', type: 'item', tierLabel: null, isPrivileged: false };
+    const isPrivileged = _isAdmin(currentUser) || _isOwner(order, currentUser);
+    const title = isPrivileged ? _buildRealTitle(order) : _buildMaskedTitle(order);
+    const items = order.items || [];
+    const captureItem = items.find(function(it) { return _isCaptureItem(it); });
+    const isPokemon   = !!(captureItem || (order.service_type || '').toLowerCase().includes('pokemon'));
+    const isPackage   = !isPokemon && _isPackageOrder(order);
+    const rawTier     = captureItem
+      ? ((captureItem.tier || captureItem.tag || '')).toLowerCase()
+      : (items[0] ? (items[0].tier || '') : '').toLowerCase();
+    return {
+      title,
+      type:      isPokemon ? 'capture' : isPackage ? 'package' : 'item',
+      tierLabel: isPokemon ? (_tierToLabel(rawTier) || null) : null,
+      isPrivileged,
+    };
+  }
+
+  function _buildRealTitle(order) {
+    const items = order.items || [];
+    if (!items.length) return order.service_name || '—';
+    const captureItem = items.find(function(it) { return _isCaptureItem(it); });
+    if (captureItem) return captureItem.pokemon || captureItem.name || '—';
+    if (_isPackageOrder(order)) return order.service_name || (items[0] && items[0].name) || 'Pacote';
+    return items.map(function(it) {
+      return (it.qtdTotal > 1 ? it.qtdTotal + '× ' : '') + (it.name || '—');
+    }).join(', ');
+  }
+
+  function _buildMaskedTitle(order) {
+    const items       = order.items || [];
+    const serviceType = (order.service_type || '').toLowerCase();
+    const captureItem = items.find(function(it) { return _isCaptureItem(it); });
+    const isPokemon   = !!(captureItem || serviceType.includes('pokemon'));
+
+    if (isPokemon) {
+      const rawTier = captureItem
+        ? (captureItem.tier || captureItem.tag || '').toLowerCase()
+        : (items[0] ? (items[0].tier || '') : '').toLowerCase();
+      const lbl = _tierToLabel(rawTier);
+      return lbl ? 'Captura Pokémon ' + lbl : 'Captura Pokémon';
+    }
+
+    if (_isPackageOrder(order)) {
+      return order.service_name || (items[0] && items[0].name) || 'Pacote';
+    }
+
+    if (items.length) {
+      return items.map(function(it) {
+        return (it.qtdTotal > 1 ? it.qtdTotal + '× ' : '') + (it.name || '—');
+      }).join(', ');
+    }
+    return order.service_name || '—';
+  }
+
+  function _tierToLabel(tier) {
+    if (!tier) return '';
+    const t = tier.toLowerCase().replace(/[\s_-]/g, '');
+    if (t === 't1') return 'T1';
+    if (t === 't2') return 'T2';
+    if (t === 't3') return 'T3';
+    if (t === 'superraro' || t === 'sr' || t === 'pokemonsr' ||
+        t === 'ultrararo' || t === 't4' || t === 't5' || t === 't6') return 'SR';
+    return '';
+  }
+
+  function _isCaptureItem(item) {
+    if (!item) return false;
+    if (item.type === 'capture') return true;
+    if (item.pokemon) return true;
+    if (item.name && /\(\w+ ball\)/i.test(item.name)) return true;
+    return false;
+  }
+
+  function _isPackageOrder(order) {
+    const st = (order.service_type || '').toLowerCase();
+    if (st === 'normal_package') return true;
+    const items = order.items || [];
+    if (!items.length) return false;
+    if (items.some(function(it) { return _isCaptureItem(it); })) return false;
+    return items.length > 1;
+  }
+
   // Auto-injeção de estilos quando o módulo carrega
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', injectStyles);
@@ -283,5 +386,7 @@ const QueuePrivacy = (() => {
     shouldShowNick,
     canSearchByNick,
     injectStyles,
+    formatPublicOrderTitle,
+    formatPublicOrderTitleMeta,
   };
 })();

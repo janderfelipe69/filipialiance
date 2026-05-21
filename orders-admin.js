@@ -53,7 +53,6 @@ const OrdersAdmin = (() => {
 
     try {
       const jwt = _getJWT();
-      if (!jwt) { if (typeof showToast === 'function') showToast('Sessão expirada. Faça login novamente.', 'error'); return { success: false, error: 'NO_JWT' }; }
 
       const orderId = Number(supabaseOrderId);
 
@@ -121,7 +120,6 @@ const OrdersAdmin = (() => {
 
     try {
       const jwt = _getJWT();
-      if (!jwt) { if (typeof showToast === 'function') showToast('Sessão expirada. Faça login novamente.', 'error'); return { success: false, error: 'NO_JWT' }; }
       const res = await fetch(
         `${window.SUPABASE_URL}/rest/v1/rpc/complete_service`,
         {
@@ -619,13 +617,16 @@ const OrdersAdmin = (() => {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function _getJWT() {
-    // PATCH 5.1: usa Session.getAccessToken() — token JWT real do usuário logado.
-    // Se não houver sessão ativa, aborta (não faz sentido chamar ações admin sem login).
+    // Usa o JWT real do usuário quando disponível.
+    // Se não houver sessão ainda (role ainda carregando), usa anon key como
+    // fallback — o banco bloqueia via RLS de qualquer forma.
+    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (user && user.jwt) return user.jwt;
     if (typeof Session !== 'undefined' && Session.getAccessToken) {
       var token = Session.getAccessToken();
       if (token) return token;
     }
-    return null; // Chamadores devem checar null antes de disparar o fetch
+    return window.SUPABASE_KEY;
   }
 
   function _extractSupabaseId(orderId) {
