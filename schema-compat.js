@@ -1,6 +1,6 @@
 // ============================================================
 // schema-compat.js — CAMADA ÚNICA DE COMPATIBILIDADE DE DADOS
-// PokeAlliance Shop — FASE FINAL DE ESTABILIZAÇÃO
+// PokeAlliance Shop
 //
 // OBJETIVO:
 //   Centralizar toda lógica de normalização, sanitização e
@@ -169,109 +169,11 @@
     return normalized;
   }
 
-  // ── Helpers de imagem ──────────────────────────────────────────────────
+  // ── Imagem ────────────────────────────────────────────────────────────
 
   function _resolveImages(record) {
-    const SB_URL = global.SUPABASE_URL || '';
-    const BUCKET = 'delivery-proofs';
-
-    function _toAbsolute(url) {
-      if (!url) return null;
-      if (url.startsWith('http')) return url;
-      // [FIX IMG-2] Guarda defensivo: path relativo sem SUPABASE_URL geraria
-      // '/storage/v1/...' (URL inválida sem host) → imagem nunca carregaria.
-      if (!SB_URL) {
-        console.warn('[DataNormalize] SUPABASE_URL não definido — path relativo não resolvido:', url.slice(0, 60));
-        return null;
-      }
-      return `${SB_URL}/storage/v1/object/public/${BUCKET}/${url}`;
-    }
-
-    function _firstUrl(arr) {
-      // [FIX IMG-1] Suporte a array de strings, objetos {url} e string JSON
-      if (typeof arr === 'string') {
-        try { arr = JSON.parse(arr); } catch (_) { return null; }
-      }
-      if (!Array.isArray(arr) || !arr.length) return null;
-      const item = arr[0];
-      if (typeof item === 'string') return item;
-      if (item && typeof item === 'object') return item.url || item.path || null;
-      return null;
-    }
-
-    function _normalizePrints(raw) {
-      // [FIX IMG-1] Se o campo prints vier como string JSON (coluna TEXT no Supabase
-      // em vez de JSONB), faz parse antes de processar.
-      // Sem este fix: Array.isArray(string) = false → retorna [] → sem imagem.
-      if (typeof raw === 'string') {
-        try {
-          raw = JSON.parse(raw);
-          console.log('[DataNormalize] prints era string JSON — parseado com sucesso');
-        } catch (_) {
-          console.warn('[DataNormalize] prints é string mas não é JSON válido — ignorando:', raw.slice(0, 60));
-          return [];
-        }
-      }
-      if (!Array.isArray(raw)) return [];
-      return raw.map(p => {
-        if (typeof p === 'string') return { url: _toAbsolute(p) };
-        if (p && typeof p === 'object' && (p.url || p.path)) {
-          return { ...p, url: _toAbsolute(p.url || p.path) };
-        }
-        return null;
-      }).filter(Boolean);
-    }
-
-    // [FIX IMG-1] Consolida todos os arrays de imagem possíveis
-    // com suporte a campos que vieram como string JSON (coluna TEXT vs JSONB)
-    let rawPrints = record.prints || record.images || record.proof_urls || [];
-
-    if (typeof rawPrints === 'string') {
-      try {
-        rawPrints = JSON.parse(rawPrints);
-        console.log('[DataNormalize] rawPrints era string JSON — parseado');
-      } catch (_) {
-        console.warn('[DataNormalize] rawPrints é string mas não é JSON válido');
-        rawPrints = [];
-      }
-    }
-
-    // image_url canônica
-    let image_url =
-      _toAbsolute(record.image_url) ||
-      _toAbsolute(_firstUrl(record.proof_urls)) ||
-      _toAbsolute(record.screenshot_url) ||
-      _toAbsolute(_firstUrl(record.images)) ||
-      _toAbsolute(_firstUrl(rawPrints)) ||
-      null;
-
-    // [FIX IMG-3] Detecta URL sem /public/ — indica bucket privado.
-    // A imagem precisa de Signed URL ou o bucket precisa ser tornado público.
-    if (image_url &&
-        image_url.includes('/storage/v1/object/') &&
-        !image_url.includes('/object/public/') &&
-        !image_url.includes('/object/sign/')) {
-      console.warn(
-        '[DataNormalize] ⚠️ image_url sem /public/ — bucket pode estar PRIVADO.',
-        '\n  URL:', image_url.slice(0, 100),
-        '\n  Fix: Supabase Dashboard → Storage → delivery-proofs → Policies → tornar público',
-        '\n  Ou use Signed URLs em DeliveryStorage._doUpload()'
-      );
-    }
-
-    // Normaliza array de prints
-    let prints = _normalizePrints(rawPrints);
-
-    // Garante que image_url esteja no topo dos prints
-    if (image_url && !prints.some(p => p.url === image_url)) {
-      prints.unshift({ url: image_url });
-    }
-
-    // Se prints tem items mas image_url é nulo, usa o primeiro
-    if (!image_url && prints.length) {
-      image_url = prints[0].url;
-    }
-
+    const image_url = record.image_url || null;
+    const prints    = image_url ? [{ url: image_url }] : [];
     return { image_url, prints };
   }
 
@@ -310,11 +212,11 @@
       'servico_nome',   // PT legado → service_name
       'pokemon_nome',   // PT legado → pokemon_name
       'tipo_pedido',    // PT legado → service_type
-      'proof_urls',     // legado    → prints
-      'images',         // legado    → prints
+      'proof_urls',     // legado    → ignorado
+      'images',         // legado    → ignorado
+      'screenshot_url', // legado    → ignorado
       'nick',           // legado    → cliente_nick
       'desc',           // legado    → descricao
-      'screenshot_url', // legado    → image_url
       'concluido_at',   // legado    → created_at (não é coluna real)
       '_normalized',    // marcador interno
       '_partial',       // marcador interno
@@ -777,7 +679,7 @@
       {
         label: 'Pedido antigo (PT legado)',
         input: { id: 2, servico_nome: 'Shiny Hunt', pokemon_nome: 'Bulbasaur',
-                 tipo_pedido: 'pokemon_sr', nick: 'Brock', proof_urls: ['https://cdn/old.jpg'],
+                 tipo_pedido: 'pokemon_sr', nick: 'Brock', image_url: 'https://cdn/old.jpg',
                  concluido_at: '2023-01-01T00:00:00Z' },
       },
       {
@@ -849,13 +751,12 @@
       service_name: 'Hunt', servico_nome: 'DEVE SER REMOVIDO',
       pokemon_name: 'Pikachu', pokemon_nome: 'DEVE SER REMOVIDO',
       service_type: 'pokemon_sr', tipo_pedido: 'DEVE SER REMOVIDO',
-      proof_urls: ['url1'], images: ['url2'], nick: 'player',
-      desc: 'desc legada', _normalized: true, _partial: false,
+      nick: 'player', desc: 'desc legada', _normalized: true, _partial: false,
     };
     try {
       const clean = sanitizeDeliveryPayload(dirtyPayload);
       const noLegacy = !['servico_nome','pokemon_nome','tipo_pedido',
-                         'proof_urls','images','nick','desc','_normalized','_partial']
+                         'nick','desc','_normalized','_partial']
         .some(k => k in clean);
       const hasEN = clean.service_name && clean.pokemon_name;
       const ok = noLegacy && hasEN;

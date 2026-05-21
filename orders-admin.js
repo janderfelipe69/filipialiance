@@ -172,7 +172,32 @@ const OrdersAdmin = (() => {
         if (window.DeliveryAdmin && typeof DeliveryAdmin.openModal === 'function') {
           // Tenta recuperar dados do pedido para desnormalizar
           // FIX: API correta é getAllOrders(), getAll() não existe
+          // [FIX DELIVERY_MODAL] Helper para montar orderData a partir de um objeto de pedido
+          function _buildOrderData(order) {
+            const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
+            // Suporte a campos EN canônicos + aliases PT
+            const serviceItems = (order.items && order.items.length)
+              ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
+              : null;
+            return {
+              // nick: suporte a todos os aliases conhecidos
+              nick:         _s(order.nickname || order.userNickname || order.nick || order.cliente_nick, '—'),
+              // service: alias usado por _buildModalHTML + canonical EN
+              service:      _s(serviceItems || order.service_name  || order.servico_nome  || order.service_type, '—'),
+              service_name: _s(serviceItems || order.service_name  || order.servico_nome  || order.service_type, '—'),
+              // pokemon: alias usado por _buildModalHTML + canonical EN
+              pokemon:      _s((order.items && order.items[0]) ? (order.items[0].pokemon || order.items[0].name) : (order.pokemon_name || order.pokemon_nome), ''),
+              pokemon_name: _s((order.items && order.items[0]) ? (order.items[0].pokemon || order.items[0].name) : (order.pokemon_name || order.pokemon_nome), ''),
+              // tipo: alias usado por _buildModalHTML + canonical EN
+              tipo:         _s(order.service_type || order.tipo_pedido || order.type || order.tipo, '—'),
+              service_type: _s(order.service_type || order.tipo_pedido || order.type || order.tipo, '—'),
+              // created_at: para mostrar tempo desde o pedido
+              created_at:   order.created_at || order.createdAt || order.timestamp || null,
+            };
+          }
+
           let orderData = {};
+          let _foundInCache = false;
           try {
             const allOrders = (window.OrdersStorage && typeof OrdersStorage.getAllOrders === 'function')
               ? OrdersStorage.getAllOrders()
@@ -185,33 +210,43 @@ const OrdersAdmin = (() => {
               return String(sid) === String(supabaseOrderId);
             });
             if (order) {
-              // [DataNormalize] Monta orderData com campos EN canônicos
-              // safe() garante que nenhum campo ausente quebre o modal
-              const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
-              orderData = {
-                nick:         _s(order.nickname || order.userNickname || order.nick, '—'),
-                service_name: _s((order.items && order.items.length)
-                  ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
-                  : (order.service_type), '—'),
-                // Mantém 'service' por compatibilidade com DeliveryAdmin._buildModalHTML
-                service:      _s((order.items && order.items.length)
-                  ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
-                  : (order.service_type), '—'),
-                pokemon_name: _s((order.items && order.items[0])
-                  ? (order.items[0].pokemon || order.items[0].name) : '', ''),
-                // Mantém 'pokemon' por compatibilidade com DeliveryAdmin._buildModalHTML
-                pokemon:      _s((order.items && order.items[0])
-                  ? (order.items[0].pokemon || order.items[0].name) : '', ''),
-                service_type: _s(order.service_type || order.type, '—'),
-                tipo:         _s(order.service_type || order.type, '—'),
-              };
-              console.log('[DataNormalize] orderData para modal de entrega:', orderData);
+              orderData = _buildOrderData(order);
+              _foundInCache = true;
+              console.log('[DataNormalize] orderData do cache local:', orderData);
             } else {
-              console.warn('[OrdersAdmin] Pedido #' + supabaseOrderId + ' não encontrado no cache local.');
+              console.warn('[OrdersAdmin] Pedido #' + supabaseOrderId + ' não encontrado no cache local — buscando no Supabase...');
             }
           } catch (err) {
-            console.error('[OrdersAdmin] Erro ao montar orderData:', err);
+            console.error('[OrdersAdmin] Erro ao montar orderData do cache:', err);
           }
+
+          // [FIX DELIVERY_MODAL] Se não encontrou no cache, busca direto no Supabase antes de abrir o modal
+          if (!_foundInCache && window.SUPABASE_URL && window.SUPABASE_KEY) {
+            (async () => {
+              try {
+                const jwt = (typeof Session !== 'undefined' && Session.getAccessToken) ? Session.getAccessToken() : window.SUPABASE_KEY;
+                const res = await fetch(
+                  window.SUPABASE_URL + '/rest/v1/pedidos?id=eq.' + supabaseOrderId +
+                  '&select=id,nickname,nick,service_name,servico_nome,pokemon_name,pokemon_nome,service_type,tipo_pedido,created_at,items&limit=1',
+                  { headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_KEY, 'Authorization': 'Bearer ' + jwt } }
+                );
+                if (res.ok) {
+                  const rows = await res.json();
+                  if (rows && rows[0]) {
+                    orderData = _buildOrderData(rows[0]);
+                    console.log('[DataNormalize] orderData do Supabase (fallback):', orderData);
+                  } else {
+                    console.warn('[OrdersAdmin] Supabase não retornou dados para pedido #' + supabaseOrderId);
+                  }
+                }
+              } catch (fetchErr) {
+                console.warn('[OrdersAdmin] Falha ao buscar pedido no Supabase:', fetchErr.message);
+              }
+              DeliveryAdmin.openModal(supabaseOrderId, orderData);
+            })();
+            return; // openModal será chamado pelo async acima
+          }
+
           DeliveryAdmin.openModal(supabaseOrderId, orderData);
         }
       }, 600);

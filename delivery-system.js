@@ -1,19 +1,8 @@
 // ============================================================
-// delivery-system.js — Sistema de Entregas v4 (AUTH DEFINITIVE FIX)
+// delivery-system.js — Sistema de Entregas
 // PokeAlliance Shop
 //
-// ROOT CAUSE RESOLVIDO (v4):
-//   O session.js anterior tinha bugs em _doInit() que causavam rejeição
-//   do _initPromise. Quando _initPromise rejeitava:
-//     → Session.ready() também rejeitava
-//     → await Session.ready() lançava exceção em _getSessionToken()
-//     → _getSessionToken() não tinha try/catch → propagava a exceção
-//     → jwt = null → log mostrava "❌ NULL"
-//
-//   Adicionalmente: _getSessionToken() agora tem try/catch robusto.
-//   E: STORAGE AUTH OK log confirma quando token chega ao fetch de upload.
-//
-// DEPENDÊNCIAS: supabase-client.js, session.js (v3+)
+// DEPENDÊNCIAS: supabase-client.js, session.js
 // ============================================================
 
 ;(function (global) {
@@ -376,7 +365,7 @@
           <div class="da-imgur-field">
             <label class="da-imgur-label" for="da-imgur-input">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              Link da imagem (Imgur)
+              Link da imagem (URL direta)
             </label>
             <input
               type="text"
@@ -387,6 +376,7 @@
               autocomplete="off"
               spellcheck="false"
             >
+            <div id="da-url-error" class="da-url-error" style="display:none"></div>
             <div class="da-imgur-preview-wrap" id="da-imgur-preview-wrap" style="display:none">
               <img id="da-imgur-preview-img" src="" alt="Preview" class="da-imgur-preview-img">
             </div>
@@ -434,9 +424,42 @@
       const btn     = document.getElementById('da-submit-btn');
       const preview = document.getElementById('da-imgur-preview-wrap');
       const img     = document.getElementById('da-imgur-preview-img');
+      const errEl   = document.getElementById('da-url-error');
+      const inputEl = document.getElementById('da-imgur-input');
 
-      const isValid = /^https?:\/\/(i\.)?imgur\.com\/\S+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(trimmed);
+      // ── Validação ────────────────────────────────────────────
+      const IMGUR_HOST = /^https?:\/\/(i\.)?imgur\.com\//i;
+      const VALID_EXT  = /\.(png|jpe?g|webp|gif)(\?.*)?$/i;
 
+      let errorMsg = null;
+
+      if (trimmed === '') {
+        errorMsg = null;
+      } else if (!IMGUR_HOST.test(trimmed)) {
+        errorMsg = 'Use um link do Imgur — imgur.com ou i.imgur.com';
+      } else if (!VALID_EXT.test(trimmed)) {
+        errorMsg = 'Extensão inválida. Use: .png · .jpg · .jpeg · .webp · .gif';
+      }
+
+      const isValid = trimmed !== '' && errorMsg === null;
+
+      // ── Feedback no input ────────────────────────────────────
+      if (inputEl) {
+        inputEl.classList.toggle('da-imgur-input--error', !isValid && trimmed !== '');
+        inputEl.classList.toggle('da-imgur-input--valid', isValid);
+      }
+
+      // ── Mensagem de erro inline ──────────────────────────────
+      if (errEl) {
+        if (errorMsg) {
+          errEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' + errorMsg;
+          errEl.style.display = 'flex';
+        } else {
+          errEl.style.display = 'none';
+        }
+      }
+
+      // ── Botão e preview ──────────────────────────────────────
       if (btn) btn.disabled = !isValid;
 
       if (preview && img) {
@@ -462,7 +485,7 @@
       const imgurLink = DeliveryAdmin._imgurLink;
 
       if (!imgurLink) {
-        DeliveryAdmin._showError('Insira o link da imagem do Imgur antes de registrar.');
+        DeliveryAdmin._showError('Insira o link da imagem antes de registrar.');
         return;
       }
       if (!orderId) {
@@ -632,7 +655,7 @@
     _lightboxIdx: 0,
     _lightboxAll: [],
     _loaded:      false,
-    _failedUrls:  new Set(), // URLs que já falharam definitivamente — persiste entre re-renders
+
 
     async init() {
       const container = document.getElementById('tab-entregas');
@@ -684,100 +707,6 @@
       }
       console.error('[Entregas] normalizeDeliveryProof nao disponivel — schema-compat.js carregado?');
       entry._normalized = true; entry._partial = true;
-      return entry;
-    },
-    _normalizeEntry_LEGACY_DISABLED(entry) {
-      if (!entry || entry._normalized) return entry;
-      console.log('[Entregas] renderizando card — id:', entry.id, '| campos:', Object.keys(entry));
-
-      // ── 1. IMAGEM PRINCIPAL ───────────────────────────────────────────────
-      // Suporte a: image_url | proof_urls[0] | screenshot_url | images[0] | prints[0]
-      const _firstUrl = (arr) => {
-        if (!Array.isArray(arr) || !arr.length) return null;
-        const item = arr[0];
-        if (typeof item === 'string') return item;         // formato ["url1", ...]
-        if (item && typeof item === 'object') return item.url || item.path || null; // formato [{url:...}]
-        return null;
-      };
-
-      entry.image_url = entry.image_url
-        || _firstUrl(entry.proof_urls)
-        || entry.screenshot_url
-        || _firstUrl(entry.images)
-        || _firstUrl(Array.isArray(entry.prints) ? entry.prints : [])
-        || null;
-
-      // ── 2. ARRAY DE PRINTS (normaliza para [{url}] sempre) ────────────────
-      const rawPrints = entry.prints || entry.images || entry.proof_urls || [];
-      entry.prints = Array.isArray(rawPrints)
-        ? rawPrints.map(p => {
-            if (typeof p === 'string') return { url: p };          // era string pura
-            if (p && typeof p === 'object' && p.url) return p;     // já é {url:...}
-            return null;
-          }).filter(Boolean)
-        : [];
-
-      // Garante que image_url também esteja representado nos prints (para lightbox)
-      if (entry.image_url && !entry.prints.some(p => p.url === entry.image_url)) {
-        entry.prints.unshift({ url: entry.image_url });
-      }
-
-      // ── 3. NOME DO SERVIÇO ────────────────────────────────────────────────
-      // [Passo 4] Fallback: registros antigos podem ter servico_nome (PT)
-      const prevSvc = entry.service_name;
-      entry.service_name = entry.service_name
-        || entry.servico_nome   // compatibilidade registros antigos
-        || entry.service
-        || null;
-      if (!prevSvc && entry.service_name) {
-        console.log('[SchemaAudit] fallback aplicado: service_name ←', Object.keys(entry).find(k => ['servico_nome','service'].includes(k) && entry[k]));
-      } else if (!entry.service_name) {
-        console.log('[SchemaAudit] campo ausente: service_name (id:', entry.id, ')');
-      }
-
-      // ── 4. NOME DO POKÉMON ────────────────────────────────────────────────
-      const prevPk = entry.pokemon_name;
-      entry.pokemon_name = entry.pokemon_name
-        || entry.pokemon_nome   // compatibilidade registros antigos
-        || entry.pokemon
-        || null;
-      if (!prevPk && entry.pokemon_name) {
-        console.log('[SchemaAudit] fallback aplicado: pokemon_name ←', Object.keys(entry).find(k => ['pokemon_nome','pokemon'].includes(k) && entry[k]));
-      }
-
-      // ── 5. TIPO DO SERVIÇO ────────────────────────────────────────────────
-      entry.service_type = entry.service_type
-        || entry.tipo_pedido    // compatibilidade registros antigos
-        || entry.tipo
-        || null;
-
-      // ── 6. NICK DO CLIENTE ────────────────────────────────────────────────
-      entry.cliente_nick = entry.cliente_nick
-        || entry.nick
-        || entry.client_nick
-        || null;
-
-      // ── 7. DESCRIÇÃO ──────────────────────────────────────────────────────
-      entry.descricao = entry.descricao
-        || entry.description
-        || entry.desc
-        || null;
-
-      // ── 8. DATA ────────────────────────────────────────────────────────────
-      entry.created_at = entry.created_at || entry.concluido_at || null;
-
-      entry._normalized = true;
-
-      console.log('[SchemaAudit] render card:', {
-        id:           entry.id,
-        service_name: entry.service_name || '(null)',
-        pokemon_name: entry.pokemon_name || '(null)',
-        service_type: entry.service_type || '(null)',
-        cliente_nick: entry.cliente_nick || '(null)',
-        image_url:    entry.image_url   ? '✅' : '(sem imagem)',
-        prints:       entry.prints.length,
-      });
-
       return entry;
     },
 
@@ -849,13 +778,6 @@
         );
       });
 
-      // [FIX IMG-RACE] Adia _setupLazyLoad para o próximo frame de pintura.
-      // Se chamado imediatamente após appendChild, o browser ainda não calculou
-      // o layout dos cards — eles têm offsetHeight=0 e o IntersectionObserver
-      // reporta isIntersecting=false para TODOS, depois nunca mais dispara para
-      // os que já estavam na viewport. Resultado: img.src nunca é atribuído.
-      // requestAnimationFrame garante que o layout esteja completo antes do observe().
-      requestAnimationFrame(() => DeliveryGallery._setupLazyLoad());
     },
 
     _buildCard(entry, idx, isAdmin) {
@@ -878,8 +800,8 @@
         ? new Date(dateRaw).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' })
         : '—';
 
-      const thumb2   = prints[1] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 1)}"><img data-src="${prints[1].url}" class="dg-lazy" alt="print 2"></div>` : '';
-      const thumb3   = prints[2] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 2)}"><img data-src="${prints[2].url}" class="dg-lazy" alt="print 3"></div>` : '';
+      const thumb2   = prints[1] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 1)}"><img src="${prints[1].url}" alt="print 2"></div>` : '';
+      const thumb3   = prints[2] ? `<div class="dg-thumb" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 2)}"><img src="${prints[2].url}" alt="print 3"></div>` : '';
       const more     = prints.length > 3 ? `<div class="dg-thumb dg-thumb-more" data-lb-idx="${DeliveryGallery._getLightboxIndex(entry, 3)}">+${prints.length - 3}</div>` : '';
       const hasThumbs  = prints.length > 1;
       const mainLbIdx  = DeliveryGallery._getLightboxIndex(entry, 0);
@@ -892,7 +814,7 @@
       el.innerHTML = `
         <div class="dg-card-img-wrap" onclick="DeliveryGallery.openLightbox(${mainLbIdx})">
           ${mainImg
-            ? `<img class="dg-card-img dg-lazy" data-src="${mainImg}" alt="${servicoNome || 'Entrega'}">`
+            ? `<img class="dg-card-img" src="${mainImg}" alt="${servicoNome || 'Entrega'}">`
             : `<div class="dg-card-img-placeholder">📷</div>`
           }
           <div class="dg-card-overlay">
@@ -951,111 +873,6 @@
       const url    = (prints[printIndex] || prints[0] || {}).url || entry.image_url || null;
       if (!url) return 0;
       return Math.max(0, all.findIndex(x => x.url === url));
-    },
-
-    _setupLazyLoad() {
-      // ── [IMG-LOOP-FIX v2] Lazy loader anti-loop definitivo ────────────────
-      // _failedUrls persiste no objeto DeliveryGallery — sobrevive a re-renders.
-      // dataset.failed protege o elemento DOM atual.
-      // Qualquer falha definitiva: URL → _failedUrls, placeholder, fim.
-      // ─────────────────────────────────────────────────────────────────────
-
-      const _failed = DeliveryGallery._failedUrls; // Set persistente entre renders
-
-      function _markFailed(img, url) {
-        _failed.add(url);
-        img.dataset.failed = '1';
-        img.onerror = null;
-        img.onload  = null;
-      }
-
-      function _applyPlaceholder(img) {
-        img.style.display = 'none';
-        const wrap = img.closest('.dg-card-img-wrap, .dg-thumb');
-        if (wrap && !wrap.querySelector('.dg-card-img-placeholder')) {
-          const ph = document.createElement('div');
-          ph.className = 'dg-card-img-placeholder';
-          ph.textContent = '📷';
-          wrap.insertBefore(ph, wrap.firstChild);
-        }
-        const overlay = img.parentNode && img.parentNode.querySelector('.dg-card-overlay');
-        if (overlay) overlay.style.display = 'none';
-      }
-
-      function _loadImgFinal(img, src, originalUrl) {
-        // Aplica a URL final na imagem.
-        img.onerror = null;
-        img.onload  = null;
-        img.onload  = () => { img.classList.add('dg-loaded'); };
-        img.onerror = () => {
-          img.onerror = null;
-          img.onload  = null;
-          _markFailed(img, originalUrl);
-          img.classList.add('dg-error');
-          _applyPlaceholder(img);
-        };
-        img.src = src;
-      }
-
-      function _loadImgWithFallback(img, publicSrc) {
-        // ── Guards: nunca re-tenta se já falhou ──────────────────────────────────
-        if (_failed.has(publicSrc)) {
-          img.dataset.failed = '1';
-          _applyPlaceholder(img);
-          return;
-        }
-        if (img.dataset.retryAttempted === '1') return;
-
-        img.onerror = null;
-        img.onload  = null;
-        img.onload  = () => { img.classList.add('dg-loaded'); };
-        img.onerror = () => {
-          img.onerror = null;
-          img.onload  = null;
-          img.dataset.retryAttempted = '1';
-          _markFailed(img, publicSrc);
-          img.classList.add('dg-error');
-          _applyPlaceholder(img);
-        };
-        img.src = publicSrc;
-      }
-
-      // ── Sem IntersectionObserver (fallback) ──────────────────────────────
-      if (!('IntersectionObserver' in window)) {
-        document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => {
-          if (img.dataset.failed === '1' || img.dataset.retryAttempted === '1') return;
-          if (img.dataset.src) _loadImgWithFallback(img, img.dataset.src);
-        });
-        return;
-      }
-
-      // ── IntersectionObserver principal ───────────────────────────────────
-      const obs = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          if (!e.isIntersecting) return;
-          const img = e.target;
-          obs.unobserve(img); // remove ANTES de qualquer operação — nunca re-observa
-          if (img.dataset.failed === '1') return;
-          if (img.dataset.retryAttempted === '1') return;
-          if (!img.dataset.src) return;
-          _loadImgWithFallback(img, img.dataset.src);
-        });
-      }, { rootMargin: '200px' });
-
-      let observed = 0;
-      document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => {
-        const url = img.dataset.src || '';
-        if (img.dataset.failed === '1') return;
-        if (img.dataset.retryAttempted === '1') return;
-        if (_failed.has(url)) {
-          // URL já falhou antes (re-render após refresh) — placeholder imediato
-          img.dataset.failed = '1';
-          _applyPlaceholder(img);
-          return;
-        }
-        obs.observe(img);
-        observed++;
-      });
     },
 
     openLightbox(idx) {
@@ -1183,8 +1000,8 @@
 .dg-card:hover { transform:translateY(-3px); border-color:rgba(58,140,255,0.3); box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 1px rgba(58,140,255,0.15); }
 
 .dg-card-img-wrap { position:relative; width:100%; aspect-ratio:16/10; overflow:hidden; cursor:pointer; background:rgba(0,0,0,0.3); }
-.dg-card-img { width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity 0.4s; }
-.dg-card-img.dg-loaded { opacity:1; }
+.dg-card-img { width:100%; height:100%; object-fit:cover; display:block; }
+
 .dg-card-img-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:40px; color:rgba(255,255,255,0.1); }
 .dg-card-overlay { position:absolute; inset:0; background:rgba(0,0,0,0); display:flex; align-items:center; justify-content:center; transition:background 0.2s; pointer-events:none; }
 .dg-card-img-wrap:hover .dg-card-overlay { background:rgba(0,0,0,0.35); }
@@ -1197,7 +1014,7 @@
 .dg-thumb { flex:1; aspect-ratio:16/9; border-radius:6px; overflow:hidden; cursor:pointer; background:rgba(255,255,255,0.04); transition:opacity 0.2s; }
 .dg-thumb:hover { opacity:0.8; }
 .dg-thumb img { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.3s; display:block; }
-.dg-thumb img.dg-loaded { opacity:1; }
+
 .dg-thumb-more { display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:rgba(255,255,255,0.5); background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); }
 .dg-card-body { padding:14px 16px 16px; }
 .dg-card-service { font-family:var(--font-title,'Cinzel',serif); font-size:13px; font-weight:700; letter-spacing:1px; color:rgba(255,255,255,0.88); margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1256,6 +1073,11 @@
 .da-imgur-input { width:100%; box-sizing:border-box; background:rgba(255,255,255,0.04); border:1px solid rgba(58,140,255,0.25); border-radius:10px; padding:11px 14px; font-size:13px; color:rgba(255,255,255,0.85); outline:none; transition:border-color 0.2s, box-shadow 0.2s; font-family:var(--font-mono,monospace); }
 .da-imgur-input::placeholder { color:rgba(255,255,255,0.2); }
 .da-imgur-input:focus { border-color:rgba(58,140,255,0.6); box-shadow:0 0 0 3px rgba(58,140,255,0.12); }
+.da-imgur-input--error { border-color:rgba(255,80,80,0.55) !important; box-shadow:0 0 0 3px rgba(255,80,80,0.1) !important; }
+.da-imgur-input--valid { border-color:rgba(60,200,100,0.5) !important; box-shadow:0 0 0 3px rgba(60,200,100,0.1) !important; }
+.da-url-error { display:flex; align-items:center; gap:6px; font-size:11px; color:rgba(255,110,110,0.9); background:rgba(255,60,60,0.07); border:1px solid rgba(255,80,80,0.2); border-radius:8px; padding:8px 12px; line-height:1.4; animation:da-err-in 0.18s ease; }
+.da-url-error svg { flex-shrink:0; opacity:0.8; }
+@keyframes da-err-in { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
 .da-imgur-preview-wrap { border-radius:10px; overflow:hidden; border:1px solid rgba(58,140,255,0.2); background:rgba(0,0,0,0.3); }
 .da-imgur-preview-img { display:block; max-width:100%; max-height:200px; margin:0 auto; object-fit:contain; }
 .da-progress-bar-wrap { display:flex; flex-direction:column; gap:6px; }
