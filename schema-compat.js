@@ -44,7 +44,10 @@
    *
    * @param {Object} record - Registro bruto vindo do Supabase ou Realtime
    * @returns {{ id, service_name, pokemon_name, service_type, cliente_nick,
-   *             descricao, image_url, created_at, status, prints, _normalized }}
+   *             descricao, image_url, created_at, delivered_at, prints,
+   *             status, _normalized }}
+   * @note 'status' é campo COMPUTADO de display (sempre 'concluido').
+   *       Não existe como coluna em delivery_proofs — não é lido via SELECT.
    */
   function normalizeDeliveryProof(record) {
     // Guarda defensivo: registro nulo ou já normalizado
@@ -107,16 +110,20 @@
       record.desc           ||   // alias curto legado
       null;
 
-    // ── 6. created_at ──────────────────────────────────────────────────
+    // ── 6. created_at / delivered_at ───────────────────────────────────
     const created_at =
       record.created_at     ||
       record.concluido_at   ||
       null;
 
-    // ── 7. status ──────────────────────────────────────────────────────
-    const status =
-      record.status         ||
-      'concluido';           // delivery_proofs implica entregue
+    const delivered_at =
+      record.delivered_at   ||
+      null;
+
+    // ── 7. status (CAMPO COMPUTADO — não existe no banco) ──────────────
+    // 'status' NÃO é coluna de delivery_proofs. É derivado aqui apenas
+    // para consumo interno da UI. Nunca deve entrar em SELECT nem INSERT.
+    const status = 'concluido';
 
     // ── 8. image_url + prints ──────────────────────────────────────────
     const { image_url, prints } = _resolveImages(record);
@@ -136,7 +143,8 @@
       descricao,
       image_url,
       created_at,
-      status,
+      delivered_at,
+      status,   // computado — não é coluna do banco
       prints,
 
       // Marcador de idempotência — não serializar para o banco
@@ -299,6 +307,7 @@
 
     // Campos legados que NUNCA devem ir ao banco
     const BLOCKED_FIELDS = [
+      'status',         // NÃO existe em delivery_proofs — nunca enviar ao banco
       'servico_nome',   // PT legado → service_name
       'pokemon_nome',   // PT legado → pokemon_name
       'tipo_pedido',    // PT legado → service_type
@@ -370,6 +379,9 @@
   /**
    * Colunas canônicas reais da tabela delivery_proofs.
    * NUNCA usar * — nunca usar aliases PT.
+   * ATENÇÃO: 'status' NÃO existe nesta tabela. Todo registro em delivery_proofs
+   * é implicitamente "concluido" — o status é computado em normalizeDeliveryProof()
+   * como campo de display, nunca lido do banco nem enviado em INSERT/UPDATE.
    */
   const DELIVERY_PROOFS_COLUMNS = [
     'id',
@@ -382,16 +394,28 @@
     'cliente_nick',
     'delivered_by',
     'created_at',
+    'delivered_at',
     'descricao',
-    'status',
   ];
 
   /**
    * Retorna o select string seguro para delivery_proofs.
+   * Usa apenas colunas de DELIVERY_PROOFS_COLUMNS — nunca 'status', nunca *.
    * @returns {string} Colunas separadas por vírgula
    */
   function buildDeliveryProofsSelect() {
-    return DELIVERY_PROOFS_COLUMNS.join(',');
+    // Guard: se alguém reintroduzir 'status' em DELIVERY_PROOFS_COLUMNS por engano,
+    // ele é removido aqui antes de chegar na query — evita HTTP 400 silencioso.
+    const BANNED_COLUMNS = ['status'];
+    const safe = DELIVERY_PROOFS_COLUMNS.filter(col => {
+      if (BANNED_COLUMNS.includes(col)) {
+        console.error('[SchemaAudit] ❌ coluna banida detectada em DELIVERY_PROOFS_COLUMNS e removida:', col,
+          '— esta coluna NÃO existe na tabela delivery_proofs.');
+        return false;
+      }
+      return true;
+    });
+    return safe.join(',');
   }
 
   // ══════════════════════════════════════════════════════════
@@ -672,11 +696,13 @@
 
       try {
         const out = normalizeDeliveryProof(input);
-        // Validações mínimas
+        // Validações mínimas — apenas campos que EXISTEM no banco ou são computados obrigatórios.
+        // 'status' é computado (sempre 'concluido') e está no output — pode permanecer.
+        // 'delivered_at' foi adicionado ao schema real.
         const hasId = out.id !== undefined;
         const hasShape = ['service_name', 'pokemon_name', 'service_type',
                           'cliente_nick', 'descricao', 'image_url',
-                          'created_at', 'status', 'prints']
+                          'created_at', 'prints']
           .every(k => k in out);
         const normalized = out._normalized === true;
         const ok = hasId && hasShape && normalized;

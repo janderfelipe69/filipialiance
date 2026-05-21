@@ -144,7 +144,10 @@
       // [SchemaCompat] Usa select canônico centralizado — nunca * nem aliases PT
       const _selectCols = typeof SchemaCompat !== 'undefined'
         ? SchemaCompat.buildDeliveryProofsSelect()
-        : 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,descricao,status';
+        // [SchemaCompat] Usa select canônico centralizado — nunca * nem aliases PT
+        // FALLBACK: se SchemaCompat não estiver disponível, usa colunas confirmadas.
+        // NUNCA incluir 'status' — coluna não existe em delivery_proofs (HTTP 400).
+        : 'id,order_id,service_name,pokemon_name,service_type,image_url,prints,cliente_nick,delivered_by,created_at,delivered_at,descricao';
 
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=${_selectCols}` +
@@ -159,13 +162,20 @@
         const e = await res.json().catch(() => ({}));
         const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
         console.error('[Entregas] Falha na query:', msg);
-        // [SchemaAudit] Diagnóstico de erro de schema
-        if (msg.includes('does not exist')) {
-          console.error('[SchemaAudit] ❌ Coluna inexistente na query SELECT:', msg);
-          console.error('[SchemaAudit] Verifique se a coluna existe em delivery_proofs no Supabase.');
+        // [SchemaAudit] Guard: detecta coluna inexistente e aponta a causa exata
+        if (e.message && e.message.includes('does not exist')) {
+          console.error('[SchemaAudit] ❌ Coluna inexistente na query SELECT:', e.message);
+          // Tenta extrair o nome da coluna do erro do PostgREST ("column X does not exist")
+          const colMatch = e.message.match(/column\s+["']?(\S+?)["']?\s+does not exist/i);
+          if (colMatch) {
+            const badCol = colMatch[1].replace(/^delivery_proofs\./, '');
+            console.error(`[SchemaAudit] ❌ Coluna inválida: "${badCol}"`);
+            console.error(`[SchemaAudit] Fix: remover "${badCol}" de DELIVERY_PROOFS_COLUMNS em schema-compat.js`);
+            console.error('[SchemaAudit] Colunas confirmadas:', _selectCols);
+          }
         }
-        // [Passo 6] Não joga erro para cima — retorna array vazio para não destruir a tela
-        console.warn('[Entregas] Retornando lista vazia por segurança');
+        // Não joga erro para cima — retorna array vazio para não destruir a tela
+        console.warn('[Entregas] Retornando lista vazia por segurança. Query usada:', _selectCols);
         return [];
       }
 
