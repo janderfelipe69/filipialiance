@@ -772,11 +772,13 @@
           const maskedNick = typeof QueuePrivacy !== 'undefined'
             ? QueuePrivacy.maskNickSimple(fakeOrder, currentUser)
             : nick;
-          // Título público: respeita privacidade
-          const isAdminUser = typeof Session !== 'undefined' && Session.isAdmin();
-          const pubTitle = (typeof QueuePrivacy !== 'undefined' && !isAdminUser)
-            ? QueuePrivacy.formatPublicOrderTitle(fakeOrder, currentUser)
-            : (entry.pokemon_name || entry.service_name || entry.item_name || 'Entrega');
+          // Título público: usa getPublicOrderLabel (função canônica de privacidade)
+          let pubTitle;
+          if (typeof QueuePrivacy !== 'undefined' && typeof QueuePrivacy.getPublicOrderLabel === 'function') {
+            pubTitle = QueuePrivacy.getPublicOrderLabel(fakeOrder, currentUser).label;
+          } else {
+            pubTitle = entry.pokemon_name || entry.service_name || entry.item_name || 'Entrega';
+          }
           DeliveryGallery._lightboxAll.push({
             url:     entry.image_url,
             caption: `${pubTitle} ${maskedNick ? '• ' + maskedNick : ''}`.trim(),
@@ -846,14 +848,20 @@
       };
       const _currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
 
+      // Usa getPublicOrderLabel (função canônica) para decidir o que exibir.
+      // Admin vê título real; cliente vê título mascarado por tipo.
       let entregaLabel = null;
-      if (!isAdmin && typeof QueuePrivacy !== 'undefined') {
-        // Usuário comum vê título público mascarado
-        entregaLabel = QueuePrivacy.formatPublicOrderTitle(_fakeOrderForTitle, _currentUser);
-      } else if (isPokemon || hasPokemon) {
-        entregaLabel = pokemonNome || NA;
-      } else if (hasItem) {
-        entregaLabel = quantity && quantity > 1 ? `${itemNome} ×${quantity}` : itemNome;
+      if (typeof QueuePrivacy !== 'undefined' && typeof QueuePrivacy.getPublicOrderLabel === 'function') {
+        entregaLabel = QueuePrivacy.getPublicOrderLabel(_fakeOrderForTitle, _currentUser, isAdmin).label;
+      } else if (isAdmin) {
+        // Fallback legado para admin
+        if (isPokemon || hasPokemon) {
+          entregaLabel = pokemonNome || NA;
+        } else if (hasItem) {
+          entregaLabel = quantity && quantity > 1 ? `${itemNome} ×${quantity}` : itemNome;
+        } else {
+          entregaLabel = servicoNome || NA;
+        }
       } else {
         entregaLabel = servicoNome || NA;
       }

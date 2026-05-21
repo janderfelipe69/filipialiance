@@ -370,6 +370,64 @@ const QueuePrivacy = (() => {
     return items.length > 1;
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // getPublicOrderLabel — função canônica e centralizada para o label
+  // de um pedido respeitando privacidade.
+  //
+  // É o ponto único de verdade para QUALQUER componente que precise
+  // exibir o conteúdo de um pedido (orders-ui, delivery-system, kanban).
+  //
+  // REGRAS:
+  //   admin          → título real sempre (nome do pokémon, item, pacote)
+  //   dono do pedido → título real do próprio pedido
+  //   outros         → título genérico por tipo:
+  //                      Captura → "Captura Pokémon T1/T2/SR"
+  //                      Pacote  → nome do pacote (sem listar itens)
+  //                      Item    → "QTD× Nome do item" (itens avulsos são ok)
+  //
+  // @param {object}  order       — objeto do pedido
+  // @param {object}  currentUser — usuário logado (pode ser null)
+  // @param {boolean} [forceAdmin=false] — passa true se já sabe que é admin
+  //                                        (evita chamada extra a Session)
+  //
+  // @returns {{
+  //   label:        string,   — texto a exibir
+  //   isPrivileged: boolean,  — true se está vendo título real
+  //   isAdmin:      boolean,
+  //   isOwner:      boolean,
+  //   type:         string,   — 'capture' | 'package' | 'item'
+  //   tierLabel:    string|null
+  // }}
+  // ══════════════════════════════════════════════════════════════════════
+  function getPublicOrderLabel(order, currentUser, forceAdmin) {
+    if (!order) {
+      return { label: '—', isPrivileged: false, isAdmin: false, isOwner: false, type: 'item', tierLabel: null };
+    }
+
+    const admin  = forceAdmin === true || _isAdmin(currentUser);
+    const owner  = _isOwner(order, currentUser);
+    const isPrivileged = admin || owner;
+
+    const items        = order.items || [];
+    const captureItem  = items.find(function(it) { return _isCaptureItem(it); });
+    const serviceType  = (order.service_type || '').toLowerCase();
+    const isPokemon    = !!(captureItem || serviceType.includes('pokemon'));
+    const isPackage    = !isPokemon && _isPackageOrder(order);
+
+    const rawTier = captureItem
+      ? (captureItem.tier || captureItem.tag || '').toLowerCase()
+      : (items[0] ? (items[0].tier || '') : '').toLowerCase();
+    const tierLabel = isPokemon ? (_tierToLabel(rawTier) || null) : null;
+
+    const type = isPokemon ? 'capture' : isPackage ? 'package' : 'item';
+
+    const label = isPrivileged
+      ? _buildRealTitle(order)
+      : _buildMaskedTitle(order);
+
+    return { label, isPrivileged, isAdmin: admin, isOwner: owner, type, tierLabel };
+  }
+
   // Auto-injeção de estilos quando o módulo carrega
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', injectStyles);
@@ -379,6 +437,10 @@ const QueuePrivacy = (() => {
 
   // ── API Pública ─────────────────────────────────────────────────────────
   return {
+    // Função canônica — use esta em novos componentes
+    getPublicOrderLabel,
+
+    // Funções existentes mantidas para compatibilidade
     maskNick,
     maskNickSimple,
     buildNickHTML,

@@ -326,10 +326,19 @@ const OrdersAdmin = (() => {
     OrdersStorage.addObservation(orderId, text, admin.nickname);
   }
 
-  // ── Excluir pedido ────────────────────────────────────────────────────────
+  // ── Excluir pedido — DELETE CASCADE COMPLETO ─────────────────────────────
+  //
+  // Executa exclusão em transação lógica sequencial:
+  //   1. delivery_history  → 2. delivery_proofs → 3. captures
+  //   4. notifications     → 5. pedido principal
+  //
+  // Se QUALQUER etapa falhar → ABORTA imediatamente.
+  // O pedido principal NÃO é excluído se dependências falharem.
+  // Após sucesso total: limpa localStorage, caches e memória temporária.
 
   async function deleteOrder(orderId) {
     if (!isCurrentUserAdmin()) return;
+
     const confirmed = await showConfirmModal({
       title: 'Excluir Pedido',
       message: 'Excluir pedido permanentemente? Esta ação não pode ser desfeita.',
@@ -339,16 +348,14 @@ const OrdersAdmin = (() => {
     });
     if (!confirmed) return;
 
-    // Remove do storage local
-    OrdersStorage.deleteOrder(orderId);
-
-    // Remove do banco em cascata — sem registros órfãos
     const supabaseId = _extractSupabaseId(orderId);
+
+    // ── Cascata no banco ─────────────────────────────────────────────────
     if (supabaseId) {
       const jwt = _getJWT();
       if (!jwt) {
-        console.error('[Entrega] deleteOrder: sem JWT, não foi possível excluir do banco.');
-        if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+        console.error('[DeleteCascade] Sem JWT — exclusão abortada.');
+        if (typeof showToast === 'function') showToast('Sessão inválida. Faça login novamente.', 'error');
         return;
       }
 
@@ -359,49 +366,125 @@ const OrdersAdmin = (() => {
       };
       const base = window.SUPABASE_URL;
 
+      // Helper: executa um DELETE e lança erro se falhar
+      async function _cascadeDelete(table, filter, label) {
+        console.log(`[DeleteCascade] Deletando ${label} (${table}?${filter})...`);
+        const res = await fetch(`${base}/rest/v1/${table}?${filter}`, {
+          method: 'DELETE',
+          headers,
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = body.message || body.error || body.hint || `HTTP ${res.status}`;
+          throw new Error(`Falha em ${label}: ${msg}`);
+        }
+        console.log(`[DeleteCascade] ✓ ${label} removido.`);
+      }
+
       try {
-        // 1. delete delivery_history where order_id = X
-        const r1 = await fetch(`${base}/rest/v1/delivery_history?order_id=eq.${supabaseId}`, {
-          method: 'DELETE', headers,
-        });
-        if (!r1.ok) {
-          const e = await r1.json().catch(() => ({}));
-          console.error('[Entrega] Erro ao remover delivery_history:', e.message || r1.status);
-        }
+        // ETAPA 1 — delivery_history
+        await _cascadeDelete('delivery_history', `order_id=eq.${supabaseId}`, 'delivery_history');
 
-        // 2. delete delivery_proofs where order_id = X
-        const r2 = await fetch(`${base}/rest/v1/delivery_proofs?order_id=eq.${supabaseId}`, {
-          method: 'DELETE', headers,
-        });
-        if (!r2.ok) {
-          const e = await r2.json().catch(() => ({}));
-          console.error('[Entrega] Erro ao remover delivery_proofs:', e.message || r2.status);
-        }
+        // ETAPA 2 — delivery_proofs
+        await _cascadeDelete('delivery_proofs', `order_id=eq.${supabaseId}`, 'delivery_proofs');
 
-        // 3. delete captures where order_id = X
-        const r3 = await fetch(`${base}/rest/v1/captures?order_id=eq.${supabaseId}`, {
-          method: 'DELETE', headers,
-        });
-        if (!r3.ok) {
-          const e = await r3.json().catch(() => ({}));
-          console.error('[Entrega] Erro ao remover captures:', e.message || r3.status);
-        }
+        // ETAPA 3 — captures
+        await _cascadeDelete('captures', `order_id=eq.${supabaseId}`, 'captures');
 
-        // 4. delete orders where id = X
-        const r4 = await fetch(`${base}/rest/v1/pedidos?id=eq.${supabaseId}`, {
-          method: 'DELETE', headers,
-        });
-        if (!r4.ok) {
-          const e = await r4.json().catch(() => ({}));
-          console.error('[Entrega] Erro ao remover pedido:', e.message || r4.status);
-        }
+        // ETAPA 4 — notifications
+        await _cascadeDelete('notifications', `pedido_id=eq.${supabaseId}`, 'notifications');
 
-      } catch (e) {
-        console.error('[Entrega] Falha ao excluir pedido em cascata:', e.message);
+        // ETAPA 5 — pedido principal (só chega aqui se todas as anteriores ok)
+        await _cascadeDelete('pedidos', `id=eq.${supabaseId}`, 'pedido principal');
+
+        console.log(`[DeleteSuccess] Pedido #${supabaseId} excluído completamente do banco.`);
+
+      } catch (err) {
+        // ABORT — qualquer etapa falhou
+        console.error(`[DeleteAbort] Cascata interrompida. ${err.message}`);
+        if (typeof showToast === 'function') {
+          showToast(`Exclusão abortada: ${err.message}`, 'error');
+        }
+        // Não continua — não limpa localStorage, não atualiza UI
+        return;
       }
     }
 
-    if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+    // ── Limpeza pós-sucesso ───────────────────────────────────────────────
+    // Só chega aqui se o banco foi limpo (ou não havia supabaseId)
+
+    // 1. Remove do localStorage (cache local)
+    if (typeof OrdersStorage !== 'undefined') {
+      OrdersStorage.deleteOrderDirect(orderId, { preventRestore: true });
+    }
+
+    // 2. Limpa caches em memória conhecidos
+    if (window._ordersCache && Array.isArray(window._ordersCache)) {
+      window._ordersCache = window._ordersCache.filter(
+        o => String(o.id) !== String(orderId) &&
+             String(o._supabaseId) !== String(supabaseId) &&
+             String(o.orderNumber) !== String(supabaseId)
+      );
+    }
+
+    // 3. Remove entrada específica de qualquer chave localStorage que referencie o pedido
+    _purgeLocalStorageReferences(orderId, supabaseId);
+
+    // 4. Emite evento global de refresh para todos os módulos ouvintes
+    try {
+      window.dispatchEvent(new CustomEvent('orders:deleted', {
+        detail: { orderId, supabaseId }
+      }));
+    } catch (_) {}
+
+    console.log(`[DeleteSuccess] Pedido ${orderId} removido: banco, histórico, notificações, cache e localStorage.`);
+
+    if (typeof showToast === 'function') {
+      showToast(`Pedido #${supabaseId || orderId} excluído completamente.`, 'success');
+    }
+
+    // 5. Recarrega a lista
+    if (typeof pedidosCarregar === 'function') pedidosCarregar();
+    else if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+  }
+
+  // ── Helper: remove referências ao pedido de todas as chaves localStorage ─
+  function _purgeLocalStorageReferences(orderId, supabaseId) {
+    try {
+      // Chave principal do cache de pedidos
+      const ORDERS_KEY = 'pa_orders_v2';
+      const raw = localStorage.getItem(ORDERS_KEY);
+      if (raw) {
+        const orders = JSON.parse(raw);
+        const filtered = orders.filter(o => {
+          if (String(o.id) === String(orderId)) return false;
+          const sid = o._supabaseId || o.orderNumber;
+          if (supabaseId && String(sid) === String(supabaseId)) return false;
+          return true;
+        });
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(filtered));
+        console.log(`[DeleteSuccess] localStorage "${ORDERS_KEY}" atualizado (${orders.length} → ${filtered.length} pedidos).`);
+      }
+
+      // Chaves de notificações lidas que referenciam este pedido
+      const notifKey = `pa_notif_read_v1`;
+      const notifRaw = localStorage.getItem(notifKey);
+      if (notifRaw) {
+        try {
+          const notifData = JSON.parse(notifRaw);
+          // Se for array de ids ou objeto, filtra entradas do pedido excluído
+          if (Array.isArray(notifData)) {
+            const filtered = notifData.filter(id =>
+              !String(id).includes(String(orderId)) &&
+              !(supabaseId && String(id).includes(String(supabaseId)))
+            );
+            localStorage.setItem(notifKey, JSON.stringify(filtered));
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[DeleteCascade] Aviso ao limpar localStorage:', e.message);
+    }
   }
 
   // ── Painel Admin Inline ───────────────────────────────────────────────────

@@ -144,25 +144,28 @@
   }
 
   // ── JWT Helper ─────────────────────────────────────────────────────────
-  // Usa o JWT real do usuário quando disponível.
-  // Se não houver sessão ainda (ex: role ainda carregando), usa anon key como
-  // fallback — o banco bloqueia via RLS de qualquer forma, mas o cliente
-  // não é impedido de tentar e mostrar o estado correto.
+  // Retorna o JWT real do usuário autenticado, ou null se não houver sessão.
+  // NUNCA retorna a anon key — a RLS exige JWT de usuário válido.
+  // Chamadores devem checar null e abortar o fetch antes de enviar.
   function _getJWT() {
     if (typeof Session !== 'undefined' && Session.getAccessToken) {
       var token = Session.getAccessToken();
       if (token) return token;
     }
-    _warn('Nenhum JWT de sessão ativa — usando anon key como fallback.');
-    return SB_KEY;
+    return null;
   }
 
   // ── Fetch do Supabase ──────────────────────────────────────────────────
   // Busca todos os campos necessários para o sistema v3, incluindo os novos.
   // Ordenado por created_at ASC — fonte de verdade da fila.
+  // GARANTIA: só executa se houver JWT válido. Sem JWT → aborta silenciosamente.
 
   async function _fetchDoBD() {
     var jwt = _getJWT();
+    if (!jwt) {
+      _log('Sessão ainda indisponível — fetch abortado (sem JWT). Aguardando Session.ready().');
+      return null; // sinaliza ao chamador que não houve fetch
+    }
     _log('Buscando pedidos do Supabase...');
     var url = SB_URL + '/rest/v1/pedidos' +
       '?order=created_at.asc' +
@@ -221,6 +224,8 @@
   }
 
   // ── Função principal de carregamento ───────────────────────────────────
+  // GARANTIA: sempre aguarda Session.ready() antes de _fetchDoBD().
+  // Isso elimina o race condition com nav-runtime e _init().
 
   global.pedidosCarregar = async function () {
     if (_carregando) return;
@@ -230,10 +235,28 @@
     _girarRefresh(true);
     var usouBD = false;
 
+    // Aguarda sessão inicializar completamente antes de qualquer acesso ao banco.
+    // Session.ready() nunca rejeita (garantia de session.js v3).
     try {
-      _pedidosBD = await _fetchDoBD();
-      usouBD     = _sincronizarComOrdersStorage(_pedidosBD);
-      _mostrarErro(null);
+      if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+        await Session.ready();
+      }
+    } catch (sessionErr) {
+      _warn('Session.ready() rejeitou (inesperado):', sessionErr && sessionErr.message);
+    }
+
+    try {
+      var dados = await _fetchDoBD();
+      if (dados !== null) {
+        // fetch ocorreu com JWT válido
+        _pedidosBD = dados;
+        usouBD     = _sincronizarComOrdersStorage(_pedidosBD);
+        _mostrarErro(null);
+      } else {
+        // JWT indisponível após Session.ready() — usuário não está logado
+        _log('Usuário não autenticado após Session.ready(). Fila não carregada.');
+        _mostrarErro(null); // sem mensagem de erro — estado normal para visitante anon
+      }
     } catch (e) {
       _error('Falha ao buscar do Supabase:', e.message);
       _mostrarErro('Falha de conexão: ' + e.message);
@@ -373,22 +396,16 @@
   }
 
   // ── Inicialização ──────────────────────────────────────────────────────
+  // Se a aba pedidos já estiver ativa no carregamento inicial, dispara
+  // pedidosCarregar(). O próprio pedidosCarregar() aguarda Session.ready()
+  // internamente — não precisamos repetir o await aqui.
 
   function _init() {
     if (_initialized) return;
     _initialized = true;
     var tabPedidos = document.getElementById('tab-pedidos');
     if (tabPedidos && tabPedidos.classList.contains('active')) {
-      // Aguarda Session restaurar sessão antes de buscar pedidos (evita race condition)
-      var sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
-        ? Session.ready()
-        : Promise.resolve();
-      sessionReady
-        .then(function () { global.pedidosCarregar(); })
-        .catch(function (err) {
-          console.warn('[Pedidos] Session.ready() rejeitou:', err && err.message);
-          global.pedidosCarregar(); // tenta mesmo assim
-        });
+      global.pedidosCarregar();
     }
   }
 

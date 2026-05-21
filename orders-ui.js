@@ -419,41 +419,48 @@ const OrdersUI = (() => {
   // ── _renderItemsGuarded: respeita privacidade ─────────────────────────
   // Admin e dono do pedido vêem itens reais.
   // Outros usuários vêem apenas o título público do pedido.
+  // Usa QueuePrivacy.getPublicOrderLabel — ponto único de verdade.
   function _renderItemsGuarded(order, user, isAdmin) {
     const items = order.items || [];
 
-    // Admin: painel completo com todos os itens reais
-    if (isAdmin) {
-      return _renderItems(items);
+    // Usa getPublicOrderLabel se disponível (função canônica)
+    if (typeof QueuePrivacy !== 'undefined' && typeof QueuePrivacy.getPublicOrderLabel === 'function') {
+      const info = QueuePrivacy.getPublicOrderLabel(order, user, isAdmin);
+
+      if (info.isPrivileged) {
+        return _renderItems(items);
+      }
+
+      // Usuário comum vendo pedido de terceiro → título genérico
+      const iconMap = { capture: '⚡', package: '📦', item: '🎁' };
+      const icon = iconMap[info.type] || '📦';
+      const tierBadge = info.tierLabel
+        ? `<span class="order-item-tier-badge order-item-tier--${info.tierLabel.toLowerCase()}">${info.tierLabel}</span>`
+        : '';
+      return `
+        <div class="order-item order-item--public">
+          <div class="order-item-info">
+            <span class="order-item-public-icon">${icon}</span>
+            <span class="order-item-name order-item-name--public">${_escHtml(info.label)}</span>
+            ${tierBadge}
+          </div>
+          <div class="order-item-progress">
+            <span class="order-item-waiting-label">Em processamento</span>
+          </div>
+        </div>
+      `;
     }
 
-    // Dono do pedido: vê seus próprios itens reais
+    // Fallback legado (QueuePrivacy não carregado)
+    if (isAdmin) return _renderItems(items);
     const isOwner = user && (order.userId === user.id || order.nickname === user.nickname);
-    if (isOwner) {
-      return _renderItems(items);
-    }
-
-    // Usuário comum vendo pedido de terceiro → título genérico
-    const publicTitle = typeof QueuePrivacy !== 'undefined'
-      ? QueuePrivacy.formatPublicOrderTitle(order, user)
-      : (items.length ? items[0].name : '—');
-
-    const meta = typeof QueuePrivacy !== 'undefined'
-      ? QueuePrivacy.formatPublicOrderTitleMeta(order, user)
-      : { type: 'item', tierLabel: null };
-
-    const iconMap = { capture: '⚡', package: '📦', item: '🎁' };
-    const icon = iconMap[meta.type] || '📦';
-    const tierBadge = meta.tierLabel
-      ? `<span class="order-item-tier-badge order-item-tier--${meta.tierLabel.toLowerCase()}">${meta.tierLabel}</span>`
-      : '';
-
+    if (isOwner) return _renderItems(items);
+    const publicTitle = items.length ? items[0].name : '—';
     return `
       <div class="order-item order-item--public">
         <div class="order-item-info">
-          <span class="order-item-public-icon">${icon}</span>
+          <span class="order-item-public-icon">📦</span>
           <span class="order-item-name order-item-name--public">${_escHtml(publicTitle)}</span>
-          ${tierBadge}
         </div>
         <div class="order-item-progress">
           <span class="order-item-waiting-label">Em processamento</span>

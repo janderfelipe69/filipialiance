@@ -229,11 +229,52 @@ const OrdersStorage = (() => {
   /**
    * Remove pedido do storage sem verificação de permissão.
    * Chamar apenas via OrdersAdmin.deleteOrder(), que valida isAdmin() antes.
+   *
+   * @param {string} orderId - ID local do pedido
+   * @param {{ preventRestore?: boolean }} [opts]
+   *   preventRestore: se true, registra tombstone que impede re-inserção
+   *   automática durante próximo ciclo de sync com o Supabase.
    */
-  function deleteOrderDirect(orderId) {
+  function deleteOrderDirect(orderId, opts = {}) {
     const orders = getAllOrders().filter(o => o.id !== orderId);
     _saveAllOrders(orders);
+
+    // Tombstone: garante que um sync posterior não restaure o pedido excluído.
+    // A chave 'pa_deleted_orders' deve ser consultada por _sincronizarComOrdersStorage()
+    // antes de re-inserir um pedido no cache local.
+    if (opts.preventRestore) {
+      try {
+        const TOMBSTONE_KEY = 'pa_deleted_orders';
+        const tombstones = JSON.parse(localStorage.getItem(TOMBSTONE_KEY) || '[]');
+        if (!tombstones.includes(String(orderId))) {
+          tombstones.push(String(orderId));
+          // Mantém no máximo 500 entradas para não crescer indefinidamente
+          if (tombstones.length > 500) tombstones.splice(0, tombstones.length - 500);
+          localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(tombstones));
+        }
+        console.log(`[DeleteSuccess] Tombstone registrado para orderId="${orderId}" — sync não irá restaurar.`);
+      } catch (e) {
+        console.warn('[OrdersStorage] Falha ao registrar tombstone:', e.message);
+      }
+    }
+
     return { success: true };
+  }
+
+  /**
+   * Verifica se um pedido foi excluído permanentemente (tombstone ativo).
+   * Use em _sincronizarComOrdersStorage() para evitar re-inserção pós-sync.
+   *
+   * @param {string} orderId
+   * @returns {boolean}
+   */
+  function isDeleted(orderId) {
+    try {
+      const tombstones = JSON.parse(localStorage.getItem('pa_deleted_orders') || '[]');
+      return tombstones.includes(String(orderId));
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -336,7 +377,9 @@ const OrdersStorage = (() => {
     updateStatus,
     updateItemProgress,
     addObservation,
-    deleteOrder: deleteOrderDirect,
+    deleteOrder: deleteOrderDirect,      // alias legado
+    deleteOrderDirect,                   // chamado por OrdersAdmin com { preventRestore: true }
+    isDeleted,                           // consulte antes de re-inserir no sync
     markNotificationsRead,
     getUnreadCount,
     migrateLegacyOrders,

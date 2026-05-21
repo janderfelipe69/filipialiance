@@ -3608,14 +3608,44 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape')     lb.classList.remove('open');
 });
 
-// Substituto seguro (adicione no final de app.js, após DOMContentLoaded):
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.NavRuntime) {
+// ── Registro do hook de entregas ──────────────────────────────────────────
+// nav-runtime.js é carregado DEPOIS de app.js, então NavRuntime não existe
+// no momento do DOMContentLoaded de app.js. Esta função aguarda NavRuntime
+// ficar disponível antes de registrar o hook, e também garante a renderização
+// ao entrar diretamente via URL hash (#entregas).
+
+function registerEntregasHook() {
+  // NavRuntime já chama renderEntregas() diretamente no switchTab (linha ~134).
+  // O hook aqui é uma camada extra para garantir o caso de entrada via URL hash
+  // e quaisquer caminhos alternativos de navegação.
+  if (typeof NavRuntime !== 'undefined' && typeof NavRuntime.onTabSwitch === 'function') {
     NavRuntime.onTabSwitch('after', 'app-entregas', function (tab) {
       if (tab === 'entregas' && typeof renderEntregas === 'function') renderEntregas();
     });
+    // Se a aba entregas já está ativa agora (entrada direta via #entregas),
+    // renderiza imediatamente.
+    if (typeof renderEntregas === 'function') {
+      var hash = window.location.hash.replace(/^#/, '').toLowerCase();
+      if (hash === 'entregas') renderEntregas();
+    }
+    return true; // registrado com sucesso
   }
-});
+  return false; // NavRuntime ainda não disponível
+}
+
+// Tenta registrar imediatamente. Se NavRuntime ainda não existir,
+// faz retries leves com intervalo curto até ele estar disponível.
+(function () {
+  if (registerEntregasHook()) return;
+  var attempts = 0;
+  var maxAttempts = 20; // até ~2s de espera (20 × 100ms)
+  var interval = setInterval(function () {
+    attempts++;
+    if (registerEntregasHook() || attempts >= maxAttempts) {
+      clearInterval(interval);
+    }
+  }, 100);
+})();
 
 // Sticky offset — mede header e tabs e expõe como variáveis CSS
 function updateStickyOffsets() {
