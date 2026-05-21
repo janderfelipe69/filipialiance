@@ -185,6 +185,45 @@
         console.log('[SchemaAudit] descricao:', r0.descricao);
         console.log('[SchemaAudit] cliente_nick:', r0.cliente_nick);
         console.groupEnd();
+
+        // ── [IMG TRACE] Rastreamento completo do pipeline de imagem ────────────
+        console.group('[IMG TRACE] Pipeline completo de imagem — id:', r0.id);
+        console.log('[IMG TRACE] 1. VALOR EXATO DO BANCO:');
+        console.log('[IMG TRACE]    image_url  =', JSON.stringify(r0.image_url),
+          '| tipo:', typeof r0.image_url);
+        console.log('[IMG TRACE]    prints     =', JSON.stringify(r0.prints),
+          '| tipo:', typeof r0.prints, '| isArray:', Array.isArray(r0.prints));
+
+        const _traceNormalized = typeof normalizeDeliveryProof === 'function'
+          ? normalizeDeliveryProof({ ...r0 })
+          : null;
+        if (_traceNormalized) {
+          console.log('[IMG TRACE] 2. APÓS normalizeDeliveryProof():');
+          console.log('[IMG TRACE]    image_url  =', JSON.stringify(_traceNormalized.image_url));
+          console.log('[IMG TRACE]    prints     =', JSON.stringify(_traceNormalized.prints));
+          console.log('[IMG TRACE]    _partial   =', _traceNormalized._partial);
+
+          if (_traceNormalized.image_url) {
+            const _traceUrl = _traceNormalized.image_url;
+            console.log('[IMG TRACE] 3. TESTANDO URL HTTP:', _traceUrl.slice(0, 120));
+            const _isBucketPublic = _traceUrl.includes('/object/public/');
+            const _isBucketPrivate = _traceUrl.includes('/storage/v1/object/') &&
+              !_traceUrl.includes('/object/public/') && !_traceUrl.includes('/object/sign/');
+            console.log('[IMG TRACE]    bucket público?:', _isBucketPublic,
+              '| bucket privado?:', _isBucketPrivate);
+            fetch(_traceUrl, { method: 'HEAD' })
+              .then(r => console.log('[IMG TRACE]    HEAD', _traceUrl.slice(0, 80),
+                '→ HTTP', r.status, r.statusText,
+                _isBucketPrivate && r.status === 400 ? '← BUCKET PRIVADO! Fix: tornar público no Supabase Dashboard' : ''))
+              .catch(e => console.warn('[IMG TRACE]    HEAD falhou (rede/CORS):', e.message));
+          } else {
+            console.warn('[IMG TRACE] 3. image_url é NULL após normalize — sem imagem para testar');
+          }
+        } else {
+          console.warn('[IMG TRACE] normalizeDeliveryProof não disponível — schema-compat.js carregado?');
+        }
+        console.groupEnd();
+        // ── [/IMG TRACE] ────────────────────────────────────────────────────────
       } else {
         console.warn('[Entregas] Banco retornou 0 registros — verifique RLS e tabela:', TABLE);
       }
@@ -1049,13 +1088,23 @@
         );
       });
 
-      DeliveryGallery._setupLazyLoad();
+      // [FIX IMG-RACE] Adia _setupLazyLoad para o próximo frame de pintura.
+      // Se chamado imediatamente após appendChild, o browser ainda não calculou
+      // o layout dos cards — eles têm offsetHeight=0 e o IntersectionObserver
+      // reporta isIntersecting=false para TODOS, depois nunca mais dispara para
+      // os que já estavam na viewport. Resultado: img.src nunca é atribuído.
+      // requestAnimationFrame garante que o layout esteja completo antes do observe().
+      requestAnimationFrame(() => DeliveryGallery._setupLazyLoad());
     },
 
     _buildCard(entry, idx, isAdmin) {
       // Garante normalização (idempotente — não refaz se já foi feita em refresh)
       DeliveryGallery._normalizeEntry(entry);
-      console.log('[Entregas] renderizando card #' + idx, '— service:', entry.service_name, '| image_url:', entry.image_url || '(vazio)');
+      console.log('[IMG TRACE] card #' + idx,
+        '| service:', entry.service_name,
+        '| image_url (valor exato que vai em data-src):', JSON.stringify(entry.image_url),
+        '| prints.length:', entry.prints ? entry.prints.length : 'N/A',
+        '| prints[0].url:', entry.prints && entry.prints[0] ? JSON.stringify(entry.prints[0].url) : '(vazio)');
 
       const prints      = entry.prints;   // já é [{url}]
       const mainImg     = entry.image_url || '';
@@ -1161,11 +1210,16 @@
             const img = e.target;
             if (img.dataset.src) {
               const src = img.dataset.src;
-              img.src = src;
+              // [FIX IMG-CACHE] Registra onload/onerror ANTES de atribuir src.
+              // Se a imagem já está em cache do browser, o evento 'load' dispara
+              // SINCRONAMENTE no momento de img.src = src — antes de qualquer
+              // atribuição posterior. Registrar antes garante que dg-loaded
+              // seja sempre adicionada, mesmo com hit de cache.
               img.onload  = () => {
                 img.classList.add('dg-loaded');
-                console.log('[Entregas] imagem carregada (lazy):', src.slice(0, 70));
+                console.log('[IMG TRACE] ✅ carregada (lazy):', src.slice(0, 80));
               };
+              img.src = src;
               // [FIX IMG-4] onerror com diagnóstico claro do tipo de falha
               img.onerror = () => {
                 img.classList.add('dg-error-img');
@@ -1211,12 +1265,25 @@
                   }
                 }
               };
+              console.log('[IMG TRACE] observer disparou ✅ | img.src atribuído =', src.slice(0, 100),
+                '| img.complete:', img.complete, '| img.naturalWidth:', img.naturalWidth);
               obs.unobserve(img);
             }
           }
         });
       }, { rootMargin: '200px' });
 
+      const _lazyImgs = document.querySelectorAll('#dg-grid .dg-lazy');
+      console.log('[IMG TRACE] _setupLazyLoad: imagens lazy encontradas:', _lazyImgs.length,
+        '| IntersectionObserver disponível:', 'IntersectionObserver' in window);
+      _lazyImgs.forEach((img, i) => {
+        const rect = img.getBoundingClientRect();
+        console.log('[IMG TRACE]   img[' + i + '] data-src:', (img.dataset.src || '').slice(0, 80),
+          '| rect:', Math.round(rect.width) + 'x' + Math.round(rect.height),
+          '| offsetParent:', img.offsetParent ? img.offsetParent.tagName : 'null (hidden!)',
+          '| computed display:', getComputedStyle(img).display,
+          '| computed opacity:', getComputedStyle(img).opacity);
+      });
       document.querySelectorAll('#dg-grid .dg-lazy').forEach(img => obs.observe(img));
     },
 
