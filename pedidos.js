@@ -326,7 +326,14 @@
 
   function _renderCardLegado(p, queuePos) {
     var id      = p.id;
-    var nick    = p.nick_jogo || '—';
+    var _rawNick = p.nick_jogo || '—';
+    // [QueuePrivacy] mascara nick de terceiros para usuários comuns
+    var nick = _rawNick;
+    if (typeof QueuePrivacy !== 'undefined') {
+      var _currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+      var _fakeOrder = { nickname: _rawNick, userId: p.user_id, user_id: p.user_id, id: p.id };
+      nick = QueuePrivacy.maskNickSimple(_fakeOrder, _currentUser);
+    }
     var status  = p.status_v3 || p.status || 'waiting_queue';
     var totalKK = p.total_kk  || p.subtotal_kk  || '—';
     var date    = _fmtDate(p.created_at);

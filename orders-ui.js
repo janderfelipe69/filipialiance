@@ -174,11 +174,17 @@ const OrdersUI = (() => {
     }
     if (_state.search.trim()) {
       const q = _state.search.trim().toLowerCase();
-      baseList = baseList.filter(o =>
-        o.nickname.toLowerCase().includes(q) ||
-        (o.items || []).some(it => it.name.toLowerCase().includes(q)) ||
-        String(o.orderNumber).includes(q)
-      );
+      baseList = baseList.filter(o => {
+        // Busca por item ou número: sempre permitida
+        const matchItem = (o.items || []).some(it => it.name.toLowerCase().includes(q));
+        const matchNum  = String(o.orderNumber).includes(q);
+        if (matchItem || matchNum) return true;
+        // Busca por nick: respeita privacidade
+        if (typeof QueuePrivacy !== 'undefined') {
+          return QueuePrivacy.canSearchByNick(q, o, user);
+        }
+        return o.nickname.toLowerCase().includes(q);
+      });
     }
 
     // ── Tabs ─────────────────────────────────────────────────────────────
@@ -316,9 +322,10 @@ const OrdersUI = (() => {
             <div class="order-card-num">${OrdersProgress.formatOrderNumber(order.orderNumber)}</div>
           `}
           <div class="order-card-nick">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            ${_escHtml(order.nickname)}
-            ${isOwner ? '<span class="order-card-you-badge">você</span>' : ''}
+            ${typeof QueuePrivacy !== 'undefined'
+              ? QueuePrivacy.buildNickHTML(order, user)
+              : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>${_escHtml(order.nickname)}${isOwner ? '<span class="order-card-you-badge">você</span>' : ''}`
+            }
           </div>
         </div>
         <div class="order-card-header-right">

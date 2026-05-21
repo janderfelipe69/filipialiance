@@ -148,7 +148,9 @@ const OrdersKanban = (() => {
     if (_state.search.trim()) {
       const q = _state.search.trim().toLowerCase();
       list = list.filter(o =>
-        (o.nickname || '').toLowerCase().includes(q) ||
+        (typeof QueuePrivacy !== 'undefined'
+          ? QueuePrivacy.canSearchByNick(q, o, user)
+          : (o.nickname || '').toLowerCase().includes(q)) ||
         String(o.orderNumber || '').includes(q)
       );
     }
@@ -253,7 +255,8 @@ const OrdersKanban = (() => {
         </div>`;
     }
 
-    // Badge "você"
+    // Badge "você" + privacidade do nick
+    // QueuePrivacy mascara nicks de terceiros para usuários comuns
     const youBadge = isOwner
       ? `<span class="kb-you-badge">você</span>`
       : '';
@@ -268,8 +271,10 @@ const OrdersKanban = (() => {
         <div class="kb-card-header">
           <div class="kb-card-header-left">
             ${posBadge}
-            <span class="kb-card-nick">${_esc(order.nickname)}</span>
-            ${youBadge}
+            ${typeof QueuePrivacy !== 'undefined'
+              ? QueuePrivacy.buildNickHTML(order, user, { showIcon: false })
+              : `<span class="kb-card-nick">${_esc(order.nickname)}</span>${youBadge}`
+            }
           </div>
           <span class="kb-card-time" title="${dateStr}">${waitingTime}</span>
         </div>
