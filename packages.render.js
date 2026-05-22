@@ -71,9 +71,8 @@ function buildPkgCardHTML(pkg, pi, isActive, cartCount) {
 }
 
 /**
- * Hero header cinematográfico do pacote selecionado.
- * Inclui: ícone grande, nome em destaque, tags de categoria + qty,
- * preço em KK + BRL, tag "Best Value" se aplicável.
+ * Hero header premium — estrutura 3 colunas: ÍCONE | INFO + SLOTS | BUY PANEL
+ * Estilo: Destiny 2 × Steam featured bundle × Diablo inventory
  */
 function buildHeroHeaderHTML(pkg, pi) {
   var icon      = getPkgIcon(pkg.name);
@@ -83,29 +82,91 @@ function buildHeroHeaderHTML(pkg, pi) {
   var totalRaw  = getPkgTotal(pkg, pi);
   var totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
   var slots     = pkg.slots || [allItems];
+  var added     = pkgState.cartCount[pi] || 0;
 
   // Heurística "Best Value": pacotes Full ou com muitos itens
   var n = (pkg.name || '').toLowerCase();
   var isBestValue = n.startsWith('full') || allItems.length >= 8;
 
-  var tagsHTML = ''
-    + '<span class="pkg-hero-tag pkg-hero-tag-cat">' + catLabel + '</span>'
-    + '<span class="pkg-hero-tag pkg-hero-tag-items">' + allItems.length + ' itens · ' + slots.length + ' slot' + (slots.length > 1 ? 's' : '') + '</span>'
-    + (isBestValue ? '<span class="pkg-hero-tag pkg-hero-tag-best">⭐ Best Value</span>' : '');
+  // Tier baseado na quantidade de slots
+  var tierLabel = slots.length >= 3 ? 'LEGENDARY' : slots.length === 2 ? 'RARE' : 'STANDARD';
+  var tierClass = slots.length >= 3 ? 'tier-legendary' : slots.length === 2 ? 'tier-rare' : 'tier-standard';
 
-  var priceHTML = totalData
-    ? '<span class="pkg-hero-price-kk">' + totalData.label + '</span>'
-    + '<span class="pkg-hero-price-brl">' + totalData.brl + '</span>'
-    : '<span class="pkg-hero-price-kk" style="opacity:0.3;font-size:13px">preço não definido</span>';
+  // ── COLUNA ESQUERDA: ícone + badge ──
+  var leftHTML = '<div class="pkg-hero-left">'
+    + '<div class="pkg-hero-icon-wrap">'
+    +   '<div class="pkg-hero-icon-glow"></div>'
+    +   '<div class="pkg-hero-icon-frame">' + icon + '</div>'
+    + '</div>'
+    + '<div class="pkg-hero-cat-badge">' + catLabel + '</div>'
+    + '</div>';
+
+  // ── COLUNA CENTRAL: nome + metadata + preview stack ──
+  // Preview dos primeiros itens
+  var previewItems = allItems.slice(0, 3);
+  var overflowCount = allItems.length - previewItems.length;
+  var previewHTML = '';
+  for (var p = 0; p < previewItems.length; p++) {
+    var it = getPkgItemData(previewItems[p][0]);
+    var thumb = it && it.img
+      ? '<img src="' + it.img + '" alt="' + previewItems[p][0] + '" />'
+      : '<span class="pkg-preview-char">◆</span>';
+    previewHTML += '<div class="pkg-preview-thumb" title="' + previewItems[p][0] + '">' + thumb + '</div>';
+  }
+  if (overflowCount > 0) {
+    previewHTML += '<div class="pkg-preview-more">+' + overflowCount + '</div>';
+  }
+
+  var centerHTML = '<div class="pkg-hero-center">'
+    + '<div class="pkg-hero-tier ' + tierClass + '">' + tierLabel + '</div>'
+    + '<div class="pkg-detail-title">' + pkg.name + '</div>'
+    + '<div class="pkg-hero-meta">'
+    +   '<span class="pkg-meta-chip"><span class="pkg-meta-val">' + allItems.length + '</span> itens</span>'
+    +   '<span class="pkg-meta-sep">·</span>'
+    +   '<span class="pkg-meta-chip"><span class="pkg-meta-val">' + slots.length + '</span> slot' + (slots.length > 1 ? 's' : '') + '</span>'
+    +   (isBestValue ? '<span class="pkg-meta-sep">·</span><span class="pkg-meta-chip pkg-meta-best">⭐ Best Value</span>' : '')
+    + '</div>'
+    + '<div class="pkg-hero-preview-row">'
+    +   previewHTML
+    + '</div>'
+    + '</div>';
+
+  // ── COLUNA DIREITA: buy panel ──
+  var addedCls   = added ? ' added' : '';
+  var addedLabel = added ? '✓ No Carrinho ×' + added : '+ Adicionar ao Carrinho';
+
+  var buyPanelHTML = '<div class="pkg-hero-buy-panel" id="pkg-buy-panel-' + pi + '">'
+    + '<div class="pkg-buy-panel-inner">';
+
+  if (totalData) {
+    buyPanelHTML += '<div class="pkg-buy-price-block">'
+      + '<div class="pkg-buy-price-kk">' + totalData.label + '</div>'
+      + '<div class="pkg-buy-price-brl">' + totalData.brl + '</div>'
+      + '</div>';
+  } else {
+    buyPanelHTML += '<div class="pkg-buy-price-block">'
+      + '<div class="pkg-buy-price-na">Preço sob consulta</div>'
+      + '</div>';
+  }
+
+  buyPanelHTML += '<div class="pkg-buy-actions">'
+    + '<button class="pkg-buy-cta' + addedCls + '"'
+    +   ' id="pkgbtn-detail-' + pi + '"'
+    +   ' onclick="addPackageToCartDirect(' + pi + ')">'
+    +   addedLabel
+    + '</button>'
+    + '<div class="pkg-buy-secondary-row">'
+    +   '<div id="pkgrem-detail-' + pi + '"></div>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
 
   return '<div class="pkg-detail-hero" style="--pkg-color:' + color + '">'
     + '<div class="pkg-detail-hero-inner">'
-    +   '<div class="pkg-detail-hero-icon">' + icon + '</div>'
-    +   '<div class="pkg-detail-hero-info">'
-    +     '<div class="pkg-detail-title">' + pkg.name + '</div>'
-    +     '<div class="pkg-detail-hero-tags">' + tagsHTML + '</div>'
-    +     '<div class="pkg-detail-hero-price">' + priceHTML + '</div>'
-    +   '</div>'
+    +   leftHTML
+    +   centerHTML
+    +   buyPanelHTML
     + '</div>'
     + '</div>';
 }
@@ -365,24 +426,9 @@ function renderPkgDetail(pi) {
   }
 
   // ── Footer ──
-  var addedCls   = added ? ' added' : '';
-  var addedLabel = added ? '✓ Adicionado ×' + added : '+ Adicionar ao Carrinho';
-
-  var footerHTML = '<div class="pkg-detail-footer" style="--pkg-color:' + color + '">'
-    + '<div class="pkg-detail-total-block">'
-    + (totalData
-        ? '<span class="pkg-detail-total-label">Total ativo</span>'
-          + '<span class="pkg-detail-total-kk">' + totalData.label + '</span>'
-          + '<span class="pkg-detail-total-brl">' + totalData.brl + '</span>'
-        : '<span class="pkg-detail-total-label" style="opacity:0.4">preço não definido</span>')
-    + '</div>'
-    + '<div id="pkgrem-detail-' + pi + '"></div>'
-    + '<button class="pkg-detail-add-btn' + addedCls + '"'
-    +   ' id="pkgbtn-detail-' + pi + '"'
-    +   ' onclick="addPackageToCartDirect(' + pi + ')">'
-    +   addedLabel
-    + '</button>'
-    + '</div>';
+  // O botão de carrinho agora fica no buy panel do hero.
+  // Mantemos o footer apenas para compatibilidade com o botão remover inline.
+  var footerHTML = '';
 
   // Injeta tudo de uma vez — sem reflow parcial
   detail.innerHTML = heroHTML + slotTabsHTML
@@ -391,13 +437,13 @@ function renderPkgDetail(pi) {
     + '</div>'
     + footerHTML;
 
-  // Botão remover se já está no carrinho
+  // Botão remover se já está no carrinho — injeta no slot do buy panel
   if (added) {
     var remSlot = document.getElementById('pkgrem-detail-' + pi);
     if (remSlot) {
       remSlot.innerHTML = '<button class="pkg-detail-rem-btn"'
         + ' onclick="removePackageFromCart(' + pi + ')"'
-        + ' title="Remover do carrinho">✕</button>';
+        + ' title="Remover do carrinho">✕ Remover</button>';
     }
   }
 }
