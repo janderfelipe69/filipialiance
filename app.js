@@ -4,7 +4,7 @@
 // ============================================================
 
 function formatKK(raw) {
-  if (!raw || raw <= 0) return null;
+  if (raw === null || raw === undefined || raw <= 0) return null;
   let label = '';
   if (raw >= 1000000000) {
     const v = raw / 1000000000;
@@ -24,7 +24,7 @@ function formatKK(raw) {
 
 function _calcCapturaFinalPrice(poke, ball) {
   const diveMultiplier = poke.dive ? 1.30 : 1.0;
-  const effectiveBase  = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
+  const effectiveBase  = (poke.price !== null && poke.price !== undefined) ? Math.round(poke.price * diveMultiplier) : 0;
   const rawFinalPrice  = effectiveBase ? Math.round(effectiveBase * ball.mult) : 0;
   return (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
 }
@@ -2210,7 +2210,15 @@ function updatePkgQty(idx, val) {
   const item = getPkgItemData(currentPkgState[idx].name);
   const lineTotal = item && item.price !== null && item.price > 0 && qty > 0 ? item.price * qty : 0;
   const priceEl = document.getElementById('pkg-price-' + idx);
-  if (priceEl) priceEl.textContent = lineTotal > 0 ? formatKK(lineTotal).label : '—';
+  if (priceEl) {
+    if (lineTotal === 0 && item && item.price === 0) {
+      priceEl.textContent = 'Grátis';
+    } else if (lineTotal > 0) {
+      priceEl.textContent = formatKK(lineTotal).label;
+    } else {
+      priceEl.textContent = '—';
+    }
+  }
   updatePkgTotal();
 }
 
@@ -2572,12 +2580,14 @@ function renderCaptura() {
     const fallbackSrc = poke.image && !/\.gif$/i.test(poke.image) ? poke.image : '';
 
     const diveMultiplier = poke.dive ? 1.30 : 1.0;
-    const effectivePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
+    const effectivePrice = (poke.price !== null && poke.price !== undefined) ? Math.round(poke.price * diveMultiplier) : poke.price;
     const priceData = formatKK(effectivePrice);
     const priceHtml = priceData
       ? `<span class="captura-list-price-kk" style="color:${typeColor}">${priceData.label}</span>
          <span class="captura-list-price-brl">${priceData.brl}</span>`
-      : `<span class="price-none">sem preço</span>`;
+      : (poke.price === null || poke.price === undefined)
+        ? `<span class="price-none">sem preço</span>`
+        : `<span class="price-free">Grátis</span>`;
 
     const tagsHtml = [
       poke.tag ? getCapturaTagHtml(poke.tag) : '',
@@ -2617,7 +2627,7 @@ function openCapturaModal(idx) {
   const poke = POKEMONS[idx];
   const ball = BALLS[0]; // Ultra Ball
   const diveMultiplier = poke.dive ? 1.30 : 1.0;
-  const effectiveBasePrice = poke.price ? Math.round(poke.price * diveMultiplier) : poke.price;
+  const effectiveBasePrice = (poke.price !== null && poke.price !== undefined) ? Math.round(poke.price * diveMultiplier) : poke.price;
   const finalPrice = _calcCapturaFinalPrice(poke, ball);
   const priceData = formatKK(finalPrice);
   const pokeType = getTypeFromBanner(poke.bannerImage);

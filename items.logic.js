@@ -133,6 +133,12 @@ function buildItemEvoHtml(evo) {
 }
 
 function buildItemPriceHtml(item, typeColor) {
+  if (item.price === null || item.price === undefined) {
+    return '<div class="item-price-block"><span class="item-price-none">sem preço</span></div>';
+  }
+  if (item.price === 0) {
+    return '<div class="item-price-block"><span class="item-price-free">Grátis</span></div>';
+  }
   var priceData = (typeof formatKK === 'function') ? formatKK(item.price) : null;
   if (!priceData) {
     return '<div class="item-price-block"><span class="item-price-none">sem preço</span></div>';
@@ -199,7 +205,7 @@ function buildItemManualFooterHtml(item) {
 function itemUpdateTotalPrice(i, rawVal) {
   var qty  = Math.max(1, parseInt(rawVal, 10) || 1);
   var item = items[i];
-  if (!item || item.price === null || item.price === 0) return;
+  if (!item || item.price === null || item.price === undefined) return;
   var data = (typeof formatKK === 'function') ? formatKK(item.price * qty) : null;
   if (!data) return;
   var kkEl  = document.getElementById('item-total-kk-'  + i);
