@@ -476,7 +476,7 @@ window.openWikiLookup = function (itemName, e) {
     const tk = it.tier.toLowerCase();
     meta += `<span class="icp-badge tier-${tk}">${it.tier.toUpperCase()}</span>`;
   }
-  if (it && it.price && typeof formatKK === 'function') {
+  if (PriceLayer.hasPaidPrice(it) && typeof formatKK === 'function') {
     const pd = formatKK(it.price);
     if (pd) meta += `<span class="icp-price">${pd.label} unit.</span>`;
   }

@@ -186,7 +186,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 function _calcTotais(keys) {
   const TAXA_THRESHOLD = 10000000;
   const TAXA_VALOR     = 5000000;
-  const grandTotalRaw   = keys.reduce((s, k) => s + (items[k]?.price ? items[k].price * cart[k] : 0), 0);
+  const grandTotalRaw   = keys.reduce((s, k) => s + (PriceLayer.getItemPriceRaw(items[k]) * (cart[k] || 0)), 0);
   const hasTaxa         = grandTotalRaw > 0 && grandTotalRaw < TAXA_THRESHOLD;
   const grandTotalFinal = hasTaxa ? grandTotalRaw + TAXA_VALOR : grandTotalRaw;
   return { grandTotalRaw, grandTotalFinal, hasTaxa, TAXA_VALOR };
@@ -368,6 +368,19 @@ async function sendToDiscord() {
 // Timer próprio — não compartilhado com _showToastMsg nem addPackageToCartDirect
 let _toastTimer = null;
 function showNoPriceToast(itemName) {
+  // TRACE — confirma que só dispara para price===null.
+  // Remover após validação em produção.
+  if (typeof console !== 'undefined') {
+    console.group('[PriceLayer] showNoPriceToast');
+    console.log('item:', itemName);
+    if (typeof items !== 'undefined') {
+      var found = items.find(function(x) { return x && x.name === itemName; });
+      console.log('price value:', found ? found.price : '(item not found)');
+      console.log('hasValidPrice:', found ? PriceLayer.hasValidPrice(found) : false);
+    }
+    console.trace();
+    console.groupEnd();
+  }
   const toast = document.getElementById('no-price-toast');
   const msg   = document.getElementById('no-price-toast-msg');
   if (!toast) return;
@@ -534,11 +547,11 @@ function renderCart() {
     const ballHtml = isCaptura && item._ballEmoji
       ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--gold);font-family:var(--font-mono)">${item._ballEmoji.replace('width:40px;height:40px','width:18px;height:18px')}</span>`
       : '';
-    const itemTotalRaw = item.price ? item.price * cart[k] : 0;
+    const itemTotalRaw = PriceLayer.getItemPriceRaw(item) * cart[k];
     const priceBlock = itemTotalRaw > 0
       ? (() => {
-          const unitData = formatKK(item.price);
-          const totalData = formatKK(itemTotalRaw);
+          const unitData = PriceLayer.fmtKK(item.price);
+          const totalData = PriceLayer.fmtKK(itemTotalRaw);
           return `<div class="cart-price-block">
             <span class="cart-price-kk">${totalData.label}</span>
             <span class="cart-price-brl">${totalData.brl}</span>
@@ -3084,7 +3097,7 @@ const _pokeDropMap = (function() {
   const priceMap = {};
   RAW.forEach(function(entry) {
     const name = entry[0];
-    const price = entry[2] || 0;
+    const price = (entry[2] !== undefined && entry[2] !== null) ? Number(entry[2]) : null;
     if (name) priceMap[name.toLowerCase()] = price;
   });
   RAW_WIKI.forEach(function(entry) {
@@ -3114,7 +3127,7 @@ function buildDropsHtml(pokeName, typeColor) {
   const colorDim = color + '22';
   const colorBorder = color + '40';
   const chips = drops.map(function(drop) {
-    const priceLabel = drop.price ? formatKK(drop.price) : null;
+    const priceLabel = (drop.price !== null && drop.price > 0) ? formatKK(drop.price) : null;
     const priceHtml = priceLabel
       ? '<span style="font-size:10px;color:rgba(255,255,255,0.38);margin-left:4px">' + priceLabel.label + '</span>'
       : '';

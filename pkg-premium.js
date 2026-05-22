@@ -744,7 +744,7 @@
         const slotTotal = slot.reduce((s, [n, q]) => {
           if (typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, idx, n)) return s;
           const it = typeof getPkgItemData === 'function' ? getPkgItemData(n) : null;
-          return s + (it && it.price ? it.price * q : 0);
+          return s + (PriceLayer.getItemPriceRaw(it) * (q || 0));
         }, 0);
         const slotData = slotTotal > 0 && typeof formatKK === 'function' ? formatKK(slotTotal) : null;
         const isActive    = idx === si;

@@ -181,7 +181,7 @@ function getPkgTotal(pkg, pi) {
   var src = (pi !== undefined) ? getPkgActiveItems(pkg, pi) : getPkgAllItems(pkg);
   return src.reduce(function(sum, entry) {
     var item = getPkgItemData(entry[0]);
-    return sum + (item && item.price ? item.price * entry[1] : 0);
+    return sum + (PriceLayer.getItemPriceRaw(item) * (entry[1] || 0));
   }, 0);
 }
 
