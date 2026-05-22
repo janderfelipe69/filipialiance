@@ -86,20 +86,16 @@
       // image_url é URL externa direta (Imgur) — salvo direto, sem uploads
       const imageUrl = payload.image_url || null;
 
-      // Resolve item_name e quantity a partir de items[] ou campos diretos
-      const _resolveItems = (p, extra) => {
-        // Prioridade: payload.item_name > items[0].name > extraData.itens
-        if (p.item_name) return { item_name: p.item_name, quantity: p.quantity || 1 };
+      // Resolve quantity a partir de items[] ou campo direto (item_name removido — coluna não existe no banco)
+      const _resolveQuantity = (p, extra) => {
+        if (p.quantity != null) return p.quantity;
         const items = p.items || (extra.itens ? (() => { try { return typeof extra.itens === 'string' ? JSON.parse(extra.itens) : extra.itens; } catch(_) { return []; } })() : []);
         if (items && items.length) {
-          return {
-            item_name: items.map(i => i.nome || i.name || '').filter(Boolean).join(', ') || null,
-            quantity:  items.reduce((s, i) => s + parseInt(i.quantidade || i.qty || i.qtdTotal || 1, 10), 0),
-          };
+          return items.reduce((s, i) => s + parseInt(i.quantidade || i.qty || i.qtdTotal || 1, 10), 0);
         }
-        return { item_name: p.item_name || null, quantity: p.quantity || extra.service_quantity || null };
+        return extra.service_quantity || null;
       };
-      const { item_name, quantity } = _resolveItems(payload, extraData);
+      const quantity = _resolveQuantity(payload, extraData);
 
       // player_name = nick do jogador (nick_jogo no banco)
       const playerName = payload.player_name || payload.cliente_nick || extraData.nick_jogo || extraData.nick || null;
@@ -116,7 +112,6 @@
         service_name:     svcName  || extraData.service_name         || null,
         pokemon_name:     pkName   || extraData.pokemon_name         || null,
         service_type:     svcType  || extraData.service_type         || null,
-        item_name:        item_name,
         quantity:         quantity,
         player_name:      playerName,
         image_url:        imageUrl,
@@ -132,7 +127,7 @@
       console.log('[Entrega] INSERT payload:', JSON.stringify(row));
 
       // Colunas opcionais — removidas no retry se causarem HTTP 400
-      const OPTIONAL_COLS = ['item_name', 'quantity', 'player_name', 'order_created_at', 'delivered_at'];
+      const OPTIONAL_COLS = ['quantity', 'player_name', 'order_created_at', 'delivered_at'];
 
       async function _doInsert(payload) {
         return fetch(`${SB_URL}/rest/v1/${TABLE}`, {
@@ -201,7 +196,7 @@
         _selectCols = await SchemaCompat.resolveSelect();
       } else {
         // Fallback ultra-conservador: apenas colunas core.
-        // NÃO inclui: item_name, quantity, player_name, order_created_at, delivered_at
+        // NÃO inclui: quantity, player_name, order_created_at, delivered_at
         _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,cliente_nick,delivered_by,created_at,descricao';
       }
       console.log('[Entrega] GET delivery_proofs select:', _selectCols);
@@ -397,19 +392,29 @@
       console.log('[DeliveryAdmin] openModal orderId:', orderId, '| orderData keys:', orderData ? Object.keys(orderData).join(', ') : 'VAZIO');
       console.log('[DeliveryAdmin] orderData:', JSON.stringify(orderData));
 
+      // Mapa canônico de service_type → label legível
+      const _TYPE_LABEL = {
+        normal_package:   'Captura Pokémon',
+        pokemon_sr:       'Pokémon SR',
+        pokemon_capture:  'Captura Pokémon',
+        item_delivery:    'Entrega de Itens',
+        service:          'Serviço',
+      };
+
       // Normaliza: suporte a campos EN canônicos e aliases PT
       const normalized = {
         nick:    orderData?.nick         || orderData?.nick_jogo    || orderData?.player_name || orderData?.nickname || '—',
         service: orderData?.service      || orderData?.service_name || orderData?.servico_nome || '—',
         pokemon: orderData?.pokemon      || orderData?.pokemon_name || orderData?.pokemon_nome || '—',
-        tipo:    orderData?.tipo         || orderData?.service_type || orderData?.tipo_pedido  || '—',
+        tipo:    orderData?.tipo         || orderData?.service_type || orderData?.tipo_pedido  || null,
         created_at: orderData?.created_at || orderData?.createdAt   || null,
       };
 
       const nick    = normalized.nick;
       const service = normalized.service;
       const pokemon = normalized.pokemon;
-      const tipo    = normalized.tipo;
+      const _tipoRaw = normalized.tipo;
+      const tipo    = _tipoRaw ? (_TYPE_LABEL[_tipoRaw] || _tipoRaw) : '—';
 
       // Tempo desde created_at
       let tempoStr = '—';
@@ -616,7 +621,6 @@
           service_name:     orderData?.service_name || orderData?.service   || null,
           pokemon_name:     orderData?.pokemon_name || orderData?.pokemon   || null,
           service_type:     orderData?.service_type || orderData?.tipo      || null,
-          item_name:        orderData?.item_name    || null,
           quantity:         orderData?.quantity     || null,
           order_created_at: orderData?.created_at   || null,
           concluido_at:     new Date().toISOString(),
@@ -827,7 +831,7 @@
           if (typeof QueuePrivacy !== 'undefined' && typeof QueuePrivacy.getPublicOrderLabel === 'function') {
             pubTitle = QueuePrivacy.getPublicOrderLabel(fakeOrder, currentUser).label;
           } else {
-            pubTitle = entry.pokemon_name || entry.service_name || entry.item_name || 'Entrega';
+            pubTitle = entry.pokemon_name || entry.service_name || 'Entrega';
           }
           DeliveryGallery._lightboxAll.push({
             url:     entry.image_url,
@@ -875,13 +879,11 @@
       const servicoNome = _v(entry.service_name);
       const tipoPedido  = _v(entry.service_type);
       const pokemonNome = _v(entry.pokemon_name);
-      const itemNome    = _v(entry.item_name);
       const quantity    = entry.quantity ? parseInt(entry.quantity, 10) : null;
 
-      // ── O que foi entregue: pokemon OU item+qty ────────────────────
-      // Detecta tipo pelo service_type ou pela presença dos campos
-      const isPokemon = tipoPedido && tipoPedido.toLowerCase().includes('pokemon');
-      const hasItem   = !!itemNome;
+      // ── O que foi entregue: pokemon OU pacote genérico ────────────
+      // Detecta pelo service_type ou pela presença de pokemon_name
+      const isPokemon  = (tipoPedido && tipoPedido.toLowerCase().includes('pokemon')) || !!pokemonNome;
       const hasPokemon = !!pokemonNome;
 
       // Monta fakeOrder para formatPublicOrderTitle
@@ -894,7 +896,7 @@
         service_name: servicoNome || '',
         items: pokemonNome
           ? [{ type: 'capture', pokemon: pokemonNome, name: pokemonNome, tier: '' }]
-          : (itemNome ? [{ name: itemNome, qtdTotal: quantity || 1 }] : []),
+          : [],
       };
       const _currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
 
@@ -907,8 +909,6 @@
         // Fallback legado para admin
         if (isPokemon || hasPokemon) {
           entregaLabel = pokemonNome || NA;
-        } else if (hasItem) {
-          entregaLabel = quantity && quantity > 1 ? `${itemNome} ×${quantity}` : itemNome;
         } else {
           entregaLabel = servicoNome || NA;
         }
@@ -959,13 +959,21 @@
         ? `<button class="dg-card-delete" onclick="DeliveryGallery._deleteEntry('${entry.id}', event)" title="Remover entrega">🗑</button>`
         : '';
 
-      // ── tipo chip ──────────────────────────────────────────────────
-      const tipoChip = tipoPedido
-        ? `<span class="dg-card-type">${tipoPedido}</span>`
+      // ── tipo chip (com label legível) ─────────────────────────────
+      const _CARD_TYPE_LABEL = {
+        normal_package:   'Captura Pokémon',
+        pokemon_sr:       'Pokémon SR',
+        pokemon_capture:  'Captura Pokémon',
+        item_delivery:    'Entrega de Itens',
+        service:          'Serviço',
+      };
+      const tipoLabel = tipoPedido ? (_CARD_TYPE_LABEL[tipoPedido] || tipoPedido) : null;
+      const tipoChip = tipoLabel
+        ? `<span class="dg-card-type">${tipoLabel}</span>`
         : '';
 
       // ── ícone do que foi entregue ──────────────────────────────────
-      const entregaIcon = (isPokemon || hasPokemon) ? '⚡' : (hasItem ? '📦' : '🎁');
+      const entregaIcon = (isPokemon || hasPokemon) ? '⚡' : '📦';
 
       const el = document.createElement('div');
       el.className = 'dg-card';

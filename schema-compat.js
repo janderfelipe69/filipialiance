@@ -43,7 +43,7 @@
    * Resolve variantes PT/EN, arrays de prints, URLs relativas e fallbacks.
    *
    * @param {Object} record - Registro bruto vindo do Supabase ou Realtime
-   * @returns {{ id, service_name, pokemon_name, service_type, item_name, quantity,
+   * @returns {{ id, service_name, pokemon_name, service_type, quantity,
    *             player_name, cliente_nick, descricao, image_url,
    *             created_at, delivered_at, order_created_at, prints,
    *             status, _normalized }}
@@ -128,16 +128,12 @@
     // ── 8. image_url + prints ──────────────────────────────────────────
     const { image_url, prints } = _resolveImages(record);
 
-    // ── Novos campos: player_name, item_name, quantity, order_created_at ─
+    // ── Novos campos: player_name, quantity, order_created_at ─
     const player_name =
       record.player_name    ||
       record.cliente_nick   ||
       record.nick           ||
       record.nickname       ||
-      null;
-
-    const item_name =
-      record.item_name      ||
       null;
 
     const quantity =
@@ -160,7 +156,6 @@
       service_name,
       pokemon_name,
       service_type,
-      item_name,
       quantity,
       player_name,
       cliente_nick,
@@ -207,7 +202,7 @@
     return {
       id: null, order_id: null, delivered_by: null,
       service_name: null, pokemon_name: null, service_type: null,
-      item_name: null, quantity: null, player_name: null,
+      quantity: null, player_name: null,
       cliente_nick: null, descricao: null, image_url: null,
       created_at: null, delivered_at: null, order_created_at: null,
       status: 'concluido', prints: [],
@@ -332,7 +327,6 @@
     'created_at',
     'descricao',
     // OPTIONAL — adicionadas em migrações posteriores
-    'item_name',
     'quantity',
     'player_name',
     'delivered_at',
@@ -848,7 +842,7 @@
   // ── Log de inicialização ───────────────────────────────────
   console.log('[SchemaCompat] ✅ Camada de compatibilidade carregada.',
     '| Core columns:', CORE_COLUMNS.join(', '),
-    '| Optional columns: item_name, quantity, player_name, delivered_at, order_created_at');
+    '| Optional columns: quantity, player_name, delivered_at, order_created_at');
 
   // ── Auto-validação em desenvolvimento (remove em produção) ──
   if (global.location && global.location.hostname === 'localhost') {
