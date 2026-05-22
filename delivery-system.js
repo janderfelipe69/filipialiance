@@ -46,20 +46,31 @@
     async insert(payload) {
       const jwt = await _ensureValidSession();
 
-      // [PayloadSanitize] Usa camada centralizada — remove todos os campos PT legados
-      // antes de qualquer acesso. Idempotente e seguro para qualquer formato.
+      // [PayloadSanitize] Extrai campos necessários ANTES de sanitizar,
+      // pois sanitizeDeliveryPayload() remapeia pedido_id→order_id e user_id→delivered_by.
+      const _rawPedidoId = payload.pedido_id || payload.order_id || null;
+      const _rawUserId   = payload.user_id   || payload.delivered_by || null;
+      const _rawClienteNick = payload.cliente_nick || payload.nick || null;
+
+      // Aplica sanitização PT→EN
       const _safe = typeof sanitizeDeliveryPayload === 'function' ? sanitizeDeliveryPayload : (p => p);
       payload = _safe(payload);
+
+      // Restaura campos que podem ter sido remapeados por sanitizeDeliveryPayload
+      if (_rawPedidoId && !payload.order_id)     payload.order_id     = _rawPedidoId;
+      if (_rawUserId   && !payload.delivered_by) payload.delivered_by = _rawUserId;
+      if (_rawClienteNick && !payload.cliente_nick) payload.cliente_nick = _rawClienteNick;
+
       const svcName  = payload.service_name || null;
       const pkName   = payload.pokemon_name || null;
       const svcType  = payload.service_type || null;
 
       // Resolve campos ausentes buscando o pedido original (fallback)
       let extraData = {};
-      if (payload.pedido_id && (!svcName || !pkName || !svcType)) {
+      if (_rawPedidoId && (!svcName || !pkName || !svcType)) {
         try {
           const res = await fetch(
-            `${SB_URL}/rest/v1/pedidos?id=eq.${payload.pedido_id}&select=service_name,pokemon_name,service_type,nick,nick_jogo,itens,service_quantity,created_at&limit=1`,
+            `${SB_URL}/rest/v1/pedidos?id=eq.${_rawPedidoId}&select=service_name,pokemon_name,service_type,nick_jogo,itens,service_quantity,created_at&limit=1`,
             { headers: _headers(jwt) }
           );
           if (res.ok) {
@@ -101,7 +112,7 @@
 
       // [SchemaAudit] Colunas reais de delivery_proofs — SOMENTE nomes EN canônicos.
       const row = {
-        order_id:         payload.pedido_id                          || null,
+        order_id:         _rawPedidoId                               || null,
         service_name:     svcName  || extraData.service_name         || null,
         pokemon_name:     pkName   || extraData.pokemon_name         || null,
         service_type:     svcType  || extraData.service_type         || null,
@@ -109,27 +120,62 @@
         quantity:         quantity,
         player_name:      playerName,
         image_url:        imageUrl,
-        delivered_by:     payload.user_id || _getCurrentUserId()     || null,
-        cliente_nick:     payload.cliente_nick || extraData.nick      || null,
+        delivered_by:     _rawUserId || _getCurrentUserId()          || null,
+        cliente_nick:     _rawClienteNick || extraData.nick_jogo     || null,
         descricao:        payload.descricao                           || null,
         order_created_at: orderCreatedAt,
         created_at:       deliveredAt,
         delivered_at:     deliveredAt,
       };
 
+      // [DEBUG] Log do payload final antes do INSERT
+      console.log('[Entrega] INSERT payload:', JSON.stringify(row));
 
-      const res = await fetch(`${SB_URL}/rest/v1/${TABLE}`, {
-        method:  'POST',
-        headers: { ..._headers(jwt), 'Prefer': 'return=representation' },
-        body:    JSON.stringify(row),
-      });
+      // Colunas opcionais — removidas no retry se causarem HTTP 400
+      const OPTIONAL_COLS = ['item_name', 'quantity', 'player_name', 'order_created_at', 'delivered_at'];
+
+      async function _doInsert(payload) {
+        return fetch(`${SB_URL}/rest/v1/${TABLE}`, {
+          method:  'POST',
+          headers: { ..._headers(jwt), 'Prefer': 'return=representation' },
+          body:    JSON.stringify(payload),
+        });
+      }
+
+      let res = await _doInsert(row);
 
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        // [SchemaAudit] Log detalhado do erro de schema
-        if (e.message && e.message.includes('does not exist')) {
+        console.error('[Entrega] ❌ INSERT falhou HTTP', res.status, '| message:', e.message, '| details:', e.details, '| hint:', e.hint);
+        console.error('[Entrega] ❌ Payload enviado:', JSON.stringify(row));
+
+        // [SchemaAudit] Se for erro de coluna inexistente, remove a coluna e retenta UMA VEZ
+        if (res.status === 400 && e.message && e.message.includes('does not exist')) {
+          const colMatch = e.message.match(/column[^\w]+([\w_.]+)[^\w]+does not exist/i)
+            || e.message.match(/"([\w_]+)".*does not exist/i);
+          const badCol = colMatch ? colMatch[1].replace(/^[^.]+\./, '') : null;
+
+          if (badCol && badCol in row) {
+            console.warn('[Entrega] ⚠️ Coluna inexistente detectada:', badCol, '— removendo e retentando INSERT');
+            const rowRetry = { ...row };
+            // Remove a coluna problemática e outras opcionais para minimizar falhas
+            OPTIONAL_COLS.forEach(c => { delete rowRetry[c]; });
+            delete rowRetry[badCol]; // garante que a coluna problemática seja removida mesmo se não estiver em OPTIONAL_COLS
+
+            console.log('[Entrega] INSERT retry payload:', JSON.stringify(rowRetry));
+            res = await _doInsert(rowRetry);
+
+            if (!res.ok) {
+              const e2 = await res.json().catch(() => ({}));
+              console.error('[Entrega] ❌ INSERT retry falhou HTTP', res.status, '| message:', e2.message);
+              throw new Error(e2.message || e2.error || `Erro ao salvar entrega (HTTP ${res.status})`);
+            }
+          } else {
+            throw new Error(e.message || e.error || `Erro ao salvar entrega (HTTP ${res.status})`);
+          }
+        } else {
+          throw new Error(e.message || e.error || `Erro ao salvar entrega (HTTP ${res.status})`);
         }
-        throw new Error(e.message || e.error || `Erro ao salvar entrega (HTTP ${res.status})`);
       }
 
       const result = await res.json().catch(() => []);
@@ -147,18 +193,18 @@
         return [];
       }
 
-      // [SchemaAudit] Usa introspecção assíncrona do schema real.
-      // SchemaCompat.resolveSelect() faz SELECT * limit=1 no primeiro call,
-      // lê as colunas reais e cruza com DESIRED_COLUMNS.
-      // Nunca usa colunas hardcoded — nunca inclui status/concluido_at (delivered_at agora é coluna real).
+      // [SchemaAudit] Usa introspecção assíncrona do schema real via SchemaCompat.resolveSelect().
+      // Se SchemaCompat não estiver disponível, usa apenas colunas garantidamente básicas.
+      // NUNCA inclui no fallback hardcoded colunas que podem não existir no banco.
       let _selectCols;
       if (typeof SchemaCompat !== 'undefined' && typeof SchemaCompat.resolveSelect === 'function') {
         _selectCols = await SchemaCompat.resolveSelect();
       } else {
-        // Fallback estritamente mínimo — sem nenhuma coluna com histórico de HTTP 400.
-        // NÃO inclui: status, concluido_at, servico_nome, pokemon_nome, tipo_pedido (delivered_at reabilitada)
-        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,item_name,quantity,player_name,image_url,cliente_nick,delivered_by,created_at,delivered_at,order_created_at,descricao';
+        // Fallback ultra-conservador: apenas colunas core.
+        // NÃO inclui: item_name, quantity, player_name, order_created_at, delivered_at
+        _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,cliente_nick,delivered_by,created_at,descricao';
       }
+      console.log('[Entrega] GET delivery_proofs select:', _selectCols);
 
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=${_selectCols}` +
@@ -171,6 +217,8 @@
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
+        console.error('[Entrega] ❌ GET delivery_proofs falhou HTTP', res.status, '| message:', e.message, '| hint:', e.hint);
+        console.error('[Entrega] ❌ SELECT usado:', _selectCols);
         // [SchemaAudit] Guard: detecta coluna inexistente
         if (e.message && e.message.includes('does not exist')) {
           const colMatch = e.message.match(/column\s+["']?(\S+?)["']?\s+does not exist/i);
@@ -345,15 +393,17 @@
     },
 
     _buildModalHTML(orderId, orderData) {
-      // [DELIVERY_MODAL] logs temporários de diagnóstico
+      // [DELIVERY_MODAL] Log de diagnóstico — mostra os dados recebidos
+      console.log('[DeliveryAdmin] openModal orderId:', orderId, '| orderData keys:', orderData ? Object.keys(orderData).join(', ') : 'VAZIO');
+      console.log('[DeliveryAdmin] orderData:', JSON.stringify(orderData));
 
       // Normaliza: suporte a campos EN canônicos e aliases PT
       const normalized = {
-        nick:    orderData?.nick         || orderData?.nickname      || '—',
-        service: orderData?.service      || orderData?.service_name  || orderData?.servico_nome  || '—',
-        pokemon: orderData?.pokemon      || orderData?.pokemon_name  || orderData?.pokemon_nome  || '—',
-        tipo:    orderData?.tipo         || orderData?.service_type  || orderData?.tipo_pedido   || '—',
-        created_at: orderData?.created_at || orderData?.createdAt    || null,
+        nick:    orderData?.nick         || orderData?.nick_jogo    || orderData?.player_name || orderData?.nickname || '—',
+        service: orderData?.service      || orderData?.service_name || orderData?.servico_nome || '—',
+        pokemon: orderData?.pokemon      || orderData?.pokemon_name || orderData?.pokemon_nome || '—',
+        tipo:    orderData?.tipo         || orderData?.service_type || orderData?.tipo_pedido  || '—',
+        created_at: orderData?.created_at || orderData?.createdAt   || null,
       };
 
       const nick    = normalized.nick;
@@ -561,11 +611,11 @@
           user_id:          _getCurrentUserId(),
           image_url:        imgurLink,
           descricao:        null,
-          cliente_nick:     orderData?.nick         || null,
-          player_name:      orderData?.player_name  || orderData?.nick || null,
-          service_name:     orderData?.service      || null,
-          pokemon_name:     orderData?.pokemon      || null,
-          service_type:     orderData?.tipo         || null,
+          cliente_nick:     orderData?.nick         || orderData?.nick_jogo || orderData?.player_name || null,
+          player_name:      orderData?.player_name  || orderData?.nick      || orderData?.nick_jogo   || null,
+          service_name:     orderData?.service_name || orderData?.service   || null,
+          pokemon_name:     orderData?.pokemon_name || orderData?.pokemon   || null,
+          service_type:     orderData?.service_type || orderData?.tipo      || null,
           item_name:        orderData?.item_name    || null,
           quantity:         orderData?.quantity     || null,
           order_created_at: orderData?.created_at   || null,

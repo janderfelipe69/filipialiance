@@ -138,7 +138,6 @@
 
     const item_name =
       record.item_name      ||
-      record.nome_item      ||
       null;
 
     const quantity =
@@ -318,25 +317,33 @@
 
   // Colunas que QUEREMOS (se existirem no banco).
   // Define INTENÇÃO — não garantia de existência.
+  // CORE: esperadas em qualquer versão da tabela.
+  // OPTIONAL: adicionadas posteriormente — podem não existir em instâncias antigas.
   const DESIRED_COLUMNS = [
+    // CORE — sempre presentes
     'id',
     'order_id',
     'service_name',
     'pokemon_name',
     'service_type',
-    'item_name',
-    'quantity',
-    'player_name',
     'image_url',
     'cliente_nick',
     'delivered_by',
     'created_at',
+    'descricao',
+    // OPTIONAL — adicionadas em migrações posteriores
+    'item_name',
+    'quantity',
+    'player_name',
     'delivered_at',
     'order_created_at',
-    'descricao',
   ];
 
-  // Nunca podem entrar num SELECT de delivery_proofs.
+  // Colunas CORE garantidas — usadas no fallback síncrono quando introspecção não rodou ainda.
+  const CORE_COLUMNS = [
+    'id', 'order_id', 'service_name', 'pokemon_name', 'service_type',
+    'image_url', 'cliente_nick', 'delivered_by', 'created_at', 'descricao',
+  ];
   const BANNED_FROM_SELECT = [
     'status',       // não existe em delivery_proofs
     'concluido_at', // campo legado PT — não é coluna real
@@ -458,8 +465,10 @@
    */
   function buildDeliveryProofsSelect() {
     if (_resolvedColumns !== null) return _resolvedColumns;
-    const fallback = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c)).join(',');
-    console.warn('[SchemaAudit] buildDeliveryProofsSelect() síncrono antes da introspecção — fallback:', fallback);
+    // Usa apenas CORE_COLUMNS no fallback síncrono — não inclui colunas opcionais
+    // que podem não existir e causariam HTTP 400 antes da introspecção completar.
+    const fallback = CORE_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c)).join(',');
+    console.warn('[SchemaAudit] buildDeliveryProofsSelect() síncrono antes da introspecção — fallback CORE:', fallback);
     return fallback;
   }
 
@@ -480,7 +489,8 @@
   }
 
   // Alias compatível com código legado que acessa SchemaCompat.DELIVERY_PROOFS_COLUMNS
-  const DELIVERY_PROOFS_COLUMNS = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c));
+  // Usa CORE_COLUMNS para garantir que o fallback nunca cause HTTP 400
+  const DELIVERY_PROOFS_COLUMNS = CORE_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c));
 
   // ══════════════════════════════════════════════════════════
   // PASSO 4 — safe(value, fallback)
@@ -825,6 +835,7 @@
     // Constantes
     DELIVERY_PROOFS_COLUMNS,
     DESIRED_COLUMNS,
+    CORE_COLUMNS,
     BANNED_FROM_SELECT,
   };
 
@@ -836,7 +847,8 @@
 
   // ── Log de inicialização ───────────────────────────────────
   console.log('[SchemaCompat] ✅ Camada de compatibilidade carregada.',
-    '| Colunas canônicas:', DELIVERY_PROOFS_COLUMNS.join(', '));
+    '| Core columns:', CORE_COLUMNS.join(', '),
+    '| Optional columns: item_name, quantity, player_name, delivered_at, order_created_at');
 
   // ── Auto-validação em desenvolvimento (remove em produção) ──
   if (global.location && global.location.hostname === 'localhost') {
