@@ -245,32 +245,27 @@
     },
 
     /**
-     * Remove uma entrega pelo ID em cascata (apenas admins devem chamar).
-     * Ordem: delivery_history → delivery_proofs → pedidos
+     * Remove uma entrega pelo ID (apenas admins devem chamar).
+     * Fluxo:
+     *   1. Busca order_id antes de deletar
+     *   2. Deleta o registro de delivery_proofs
+     *   3. Reverte pedidos.status_v3 → 'in_progress'
+     *   4. Dispara refresh da aba Pedidos sem reload
+     *
+     * NÃO toca delivery_history nem captures — essas tabelas não existem
+     * no banco atual e causariam HTTP 404 / schema cache errors.
      */
     async delete(id) {
       const jwt = await _ensureValidSession();
 
-      // Busca order_id da entrega antes de deletar
+      // ── 1. Busca order_id antes de deletar ──────────────────────────────
       const proofRes = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}&select=order_id`, {
         headers: _headers(jwt),
       });
       const proofRows = proofRes.ok ? await proofRes.json().catch(() => []) : [];
       const orderId = proofRows?.[0]?.order_id || null;
 
-      // 1. delete delivery_history where order_id = X
-      if (orderId) {
-        const r1 = await fetch(`${SB_URL}/rest/v1/delivery_history?order_id=eq.${orderId}`, {
-          method:  'DELETE',
-          headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
-        });
-        if (!r1.ok) {
-          const e = await r1.json().catch(() => ({}));
-          console.error('[Entrega] Erro ao remover delivery_history:', e.message || r1.status);
-        }
-      }
-
-      // 2. delete delivery_proofs where id = X (e opcionalmente order_id = X)
+      // ── 2. Deleta delivery_proofs ────────────────────────────────────────
       const r2 = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
         method:  'DELETE',
         headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
@@ -280,23 +275,19 @@
         throw new Error(e.message || `Erro ao remover entrega (HTTP ${r2.status})`);
       }
 
-      // 3. Se não há mais provas para o pedido, remove captures e o pedido também
+      // ── 3. Reverte status do pedido → in_progress ────────────────────────
       if (orderId) {
-        const remaining = await fetch(
-          `${SB_URL}/rest/v1/${TABLE}?order_id=eq.${orderId}&select=id&limit=1`,
-          { headers: _headers(jwt) }
-        );
-        const rem = remaining.ok ? await remaining.json().catch(() => []) : [];
-        if (!rem.length) {
-          // delete captures where order_id = X
-          const r3 = await fetch(`${SB_URL}/rest/v1/captures?order_id=eq.${orderId}`, {
-            method:  'DELETE',
-            headers: { ..._headers(jwt), 'Prefer': 'return=minimal' },
-          });
-          if (!r3.ok) {
-            const e = await r3.json().catch(() => ({}));
-            console.error('[Entrega] Erro ao remover captures:', e.message || r3.status);
-          }
+        const rPatch = await fetch(`${SB_URL}/rest/v1/pedidos?id=eq.${orderId}`, {
+          method:  'PATCH',
+          headers: { ..._headers(jwt), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body:    JSON.stringify({ status_v3: 'in_progress', updated_at: new Date().toISOString() }),
+        });
+        if (!rPatch.ok) {
+          const e = await rPatch.json().catch(() => ({}));
+          // Não lança — o proof já foi deletado; logar e continuar
+          console.error('[Entrega] ⚠️ Prova removida mas falhou ao reverter status do pedido:', e.message || rPatch.status);
+        } else {
+          console.log('[Entrega] ✅ pedido', orderId, 'revertido para in_progress');
         }
       }
     },
@@ -1074,8 +1065,22 @@
       if (!confirmed) return;
       try {
         await DeliveryDB.delete(id);
+
+        // Atualiza galeria localmente
         DeliveryGallery._data = DeliveryGallery._data.filter(x => x.id !== id);
         DeliveryGallery._render();
+
+        // ── Sincroniza aba Pedidos sem reload ─────────────────────────
+        // Tenta pedidosCarregar() (função global do pedidos.js),
+        // depois OrdersUI.refresh() como fallback,
+        // e por fim dispara evento customizado para qualquer listener registrado.
+        if (typeof pedidosCarregar === 'function') {
+          pedidosCarregar();
+        } else if (typeof OrdersUI !== 'undefined' && typeof OrdersUI.refresh === 'function') {
+          OrdersUI.refresh();
+        }
+        window.dispatchEvent(new CustomEvent('orders:refresh', { detail: { source: 'delivery_removed' } }));
+
       } catch (err) {
         _toast('Erro ao remover: ' + err.message, 'error');
       }
