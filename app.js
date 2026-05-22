@@ -42,7 +42,6 @@ document.getElementById('total-count').textContent = items.length + ' itens no �
 
 const cart = {};
 let pkgCartCount = {};
-let _searchTimer;
 let _capturaSearchTimer;
 
 function getTag(item) {
@@ -2366,27 +2365,6 @@ function removePackageFromCart(pi) {
   });
 })();
 
-// --- Card 3D Tilt REMOVIDO (causava jank: getBoundingClientRect em todos os cards a cada mousemove) ---
-// Shine div ainda é injetado para o efeito CSS funcionar
-(function() {
-  function injectShine() {
-    document.querySelectorAll('.item-card:not([data-shine])').forEach(function(card) {
-      card.setAttribute('data-shine','1');
-      var shine = document.createElement('div');
-      shine.className = 'card-shine';
-      card.appendChild(shine);
-    });
-  }
-  var obs = new MutationObserver(injectShine);
-  var _itemsGridEl = document.getElementById('items-grid');
-  if (_itemsGridEl) obs.observe(_itemsGridEl, { childList: true, subtree: true });
-  var pkgSidebar = document.getElementById('pkg-sidebar-list');
-  if (pkgSidebar) obs.observe(pkgSidebar, { childList: true, subtree: true });
-  var capturaGrid = document.getElementById('captura-grid');
-  if (capturaGrid) obs.observe(capturaGrid, { childList: true, subtree: true });
-  injectShine();
-})();
-
 
 // --- WebGL plasma shader REMOVIDO (causava jank no scroll) ---
 (function() {
@@ -2396,13 +2374,6 @@ function removePackageFromCart(pi) {
 
 // --- Floating ambient particles REMOVIDAS (causavam repaint constante) ---
 
-// --- Add burst animation on addToCart ---
-const _origAddToCart = addToCart;
-addToCart = function(i) {
-  _origAddToCart(i);
-  const card = document.querySelector(`#item-addbtn-${i}`)?.closest('.item-card');
-  if (card) { card.classList.remove('burst'); void card.offsetWidth; card.classList.add('burst'); }
-};
 
 // ===================== BROKE DATA =====================
 // Tabela de max brokes por tier (para shinys)
@@ -2822,71 +2793,28 @@ function handleCapturaOverlayClick(e) {
 
 // renderItems() é chamado por items.render.js (initItemsModule)
 
-// ── GIF Hover Manager ────────────────────────────────────────────────────────
-// Padrão: PNG estático (leve, zero GPU).
-// Hover: troca pelo GIF animado do Showdown. Mouseleave: volta ao PNG.
+// ── GIF Hover Manager — apenas captura (items geridos por items.render.js) ──
 (function GifHoverManager() {
   'use strict';
 
   function bindCard(card) {
     if (card._gifBound) return;
     card._gifBound = true;
-
     var img = card.querySelector('img[data-gif]');
     if (!img) return;
-
-    card.addEventListener('mouseenter', function() {
-      img.src = img.dataset.gif;
-    });
-    card.addEventListener('mouseleave', function() {
-      img.src = getShowdownStaticSprite(img.alt);
-    });
+    card.addEventListener('mouseenter', function() { img.src = img.dataset.gif; });
+    card.addEventListener('mouseleave', function() { img.src = getShowdownStaticSprite(img.alt); });
   }
 
   function bindAll() {
-    document.querySelectorAll('.item-card, .captura-card').forEach(bindCard);
+    document.querySelectorAll('.captura-card').forEach(bindCard);
   }
 
   bindAll();
 
   var mo = new MutationObserver(bindAll);
   var capturaGridEl = document.getElementById('captura-grid');
-  var itemsGridEl = document.getElementById('items-grid');
-  if (itemsGridEl)   mo.observe(itemsGridEl,   { childList: true });
   if (capturaGridEl) mo.observe(capturaGridEl, { childList: true });
-})();
-
-// ── Performance: pausa animações de cards fora da viewport ──────────────────
-// Cards fora da tela recebem `will-change: auto` e param de consumir GPU.
-// Assim só os cards visíveis ficam "ativos".
-(function setupCardVisibilityObserver() {
-  if (!window.IntersectionObserver) return;
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const img = entry.target.querySelector('img');
-      if (img) {
-        // Fora da tela: remove promoção de layer e animações
-        img.style.willChange = 'auto'; // GIFs: will-change:transform não afeta animação nativa
-      }
-      // Para as pseudo-animações CSS dos cards fora da tela
-      entry.target.style.willChange = entry.isIntersecting ? 'transform, box-shadow' : 'auto';
-      // Controla partículas de tipo via classe CSS (pausa quando fora da tela)
-      entry.target.classList.toggle('in-view', entry.isIntersecting);
-    });
-  }, { rootMargin: '120px 0px' }); // 120px de margem = pré-carrega um pouco antes
-
-  // Observa cards iniciais e re-observa a cada render
-  function observeCards() {
-    document.querySelectorAll('.item-card, .captura-card').forEach(c => observer.observe(c));
-  }
-
-  // Intercepta render para re-observar após cada atualização
-  const _origRender = render;
-  window.render = function() {
-    _origRender.apply(this, arguments);
-    requestAnimationFrame(observeCards);
-  };
-  requestAnimationFrame(observeCards);
 })();
 
 // ===================== ENTREGAS =====================

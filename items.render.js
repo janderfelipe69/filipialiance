@@ -1,20 +1,17 @@
 /**
- * items.render.js
+ * items.render.js  v2 — pipeline completo e autossuficiente
  * ─────────────────────────────────────────────────────────────────────────────
- * Responsabilidade única: construir e injetar HTML da aba de itens.
+ * Responsabilidade: construir, injetar e gerenciar TODA a UI da aba de itens.
  *
- * Depende de:
- *   • app.js          — items[], cart{}, formatKK(), getShowdownSprite(),
- *                       getShowdownStaticSprite(), openWikiLookup(),
- *                       addPackToCart()
- *   • items.logic.js  — filterItems(), getItemTag(), getItemPriceColor(),
- *                       getItemPokeType(), build*Html helpers,
- *                       itemAddToCart(), itemRemoveFromCart(),
- *                       itemUpdateTotalPrice()
- *   • items.css / items.animations.css — classes visuais
+ * Inclui (migrado do app.js):
+ *   • renderItems()               — render principal
+ *   • buildItemCardHtml()         — builder de card
+ *   • _itemsInjectShine()         — injetor do div .card-shine (CSS 3D)
+ *   • _itemsGifHoverManager()     — swap PNG ↔ GIF no hover
+ *   • _itemsVisibilityObserver()  — IntersectionObserver de performance
+ *   • _itemsBurstOnAdd()          — animação de burst ao adicionar
  *
- * NÃO lê nem escreve em: render(), updateTotalPrice(), addToCart(),
- * removeFromCart() do app.js — esses permanecem para uso de outros módulos.
+ * app.js NÃO controla mais nenhum desses comportamentos para .item-card.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -22,12 +19,6 @@
    BUILDER DE CARD INDIVIDUAL
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/**
- * Constrói o HTML completo de um item-card.
- * @param {object}  item         — objeto do array items[]
- * @param {boolean} animateIn    — se true, adiciona classe card-anim
- * @returns {string} HTML
- */
 function buildItemCardHtml(item, animateIn) {
   var i         = item._idx;
   var tag       = getItemTag(item);
@@ -35,11 +26,11 @@ function buildItemCardHtml(item, animateIn) {
   var typeColor = getItemPriceColor(item);
 
   // Imagem: GIF vs estático
-  var isGif   = item.image && /\.gif$/i.test(item.image);
-  var imgSrc  = isGif
+  var isGif  = item.image && /\.gif$/i.test(item.image);
+  var imgSrc = isGif
     ? (typeof getShowdownStaticSprite === 'function' ? getShowdownStaticSprite(item.name) : item.image)
     : item.image;
-  var imgGif  = isGif
+  var imgGif = isGif
     ? (typeof getShowdownSprite === 'function' ? getShowdownSprite(item.name) : '')
     : '';
 
@@ -56,9 +47,8 @@ function buildItemCardHtml(item, animateIn) {
       )
     : '';
 
-  // Nome + botão wiki
-  var safeName  = item.name.replace(/'/g, "\\'");
-  var nameHtml  =
+  var safeName = item.name.replace(/'/g, "\\'");
+  var nameHtml =
     '<div class="item-card-name">' +
       item.name +
       '<button class="item-wiki-btn" onclick="openWikiLookup(\'' + safeName + '\', event)" title="Ver drops na Wiki">' +
@@ -69,10 +59,9 @@ function buildItemCardHtml(item, animateIn) {
       '</button>' +
     '</div>';
 
-  // Classes do card
-  var cardCls = 'item-card';
-  if (tag === 'shiny')  cardCls += ' is-shiny';
-  if (animateIn)        cardCls += ' card-anim';
+  var cardCls  = 'item-card';
+  if (tag === 'shiny') cardCls += ' is-shiny';
+  if (animateIn)       cardCls += ' card-anim';
 
   var dataType = pokeType ? ' data-type="' + pokeType + '"' : '';
 
@@ -91,13 +80,9 @@ function buildItemCardHtml(item, animateIn) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PONTO DE ENTRADA — renderItems()
+   RENDER PRINCIPAL
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/**
- * Lê estado de itemsState, filtra, renderiza e injeta no DOM.
- * Substitui completamente o render() legado para a aba de itens.
- */
 function renderItems() {
   var q       = document.getElementById('items-search').value.toLowerCase();
   var f       = document.getElementById('items-filter').value;
@@ -106,16 +91,13 @@ function renderItems() {
 
   if (!grid) return;
 
-  // Persistir estado
   itemsState.searchQuery  = q;
   itemsState.activeFilter = f;
 
   var visible = filterItems(q, f);
 
-  // Atualiza contador
   if (counter) counter.textContent = visible.length + ' itens';
 
-  // Estado vazio
   if (!visible.length) {
     grid.innerHTML =
       '<div class="items-empty">' +
@@ -132,30 +114,116 @@ function renderItems() {
     return buildItemCardHtml(item, animate);
   }).join('');
 
-  // Após primeira renderização, não animar novamente
   itemsState.initialRender = false;
+
+  // Pós-render: re-executar efeitos visuais nos novos cards
+  requestAnimationFrame(function() {
+    _itemsInjectShine();
+    _itemsGifBind();
+    _itemsObserveCards();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHINE INJECTOR  (div .card-shine para efeito CSS de hover)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function _itemsInjectShine() {
+  document.querySelectorAll('.item-card:not([data-shine])').forEach(function(card) {
+    card.setAttribute('data-shine', '1');
+    var shine = document.createElement('div');
+    shine.className = 'card-shine';
+    card.appendChild(shine);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GIF HOVER MANAGER  (PNG estático ↔ GIF animado no hover)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function _itemsGifBind() {
+  document.querySelectorAll('.item-card').forEach(function(card) {
+    if (card._gifBound) return;
+    card._gifBound = true;
+    var img = card.querySelector('img[data-gif]');
+    if (!img) return;
+    card.addEventListener('mouseenter', function() {
+      img.src = img.dataset.gif;
+    });
+    card.addEventListener('mouseleave', function() {
+      if (typeof getShowdownStaticSprite === 'function') {
+        img.src = getShowdownStaticSprite(img.alt);
+      }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INTERSECTION OBSERVER  (pausa animações de cards fora da viewport)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+var _itemsIObs = null;
+
+function _itemsSetupVisibilityObserver() {
+  if (!window.IntersectionObserver) return;
+  _itemsIObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      var img = entry.target.querySelector('img');
+      if (img) img.style.willChange = 'auto';
+      entry.target.style.willChange = entry.isIntersecting ? 'transform, box-shadow' : 'auto';
+      entry.target.classList.toggle('in-view', entry.isIntersecting);
+    });
+  }, { rootMargin: '120px 0px' });
+}
+
+function _itemsObserveCards() {
+  if (!_itemsIObs) return;
+  document.querySelectorAll('.item-card').forEach(function(c) {
+    _itemsIObs.observe(c);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BURST ANIMATION  (anel de glow ao adicionar item ao carrinho)
+   Sobrescreve itemAddToCart com wrapper que dispara a animação.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function _itemsSetupBurst() {
+  var _base = itemAddToCart;
+  itemAddToCart = function(i) {
+    _base(i);
+    var card = document.querySelector('#item-addbtn-' + i);
+    if (card) {
+      var c = card.closest('.item-card');
+      if (c) { c.classList.remove('burst'); void c.offsetWidth; c.classList.add('burst'); }
+    }
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INICIALIZAÇÃO
-   Aguarda o DOM estar pronto para registrar eventos e fazer render inicial.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 (function initItemsModule() {
+  // Eventos de busca e filtro
   var searchEl = document.getElementById('items-search');
   var filterEl = document.getElementById('items-filter');
 
   if (searchEl) {
-    var _itemsSearchTimer;
+    var _timer;
     searchEl.addEventListener('input', function() {
-      clearTimeout(_itemsSearchTimer);
-      _itemsSearchTimer = setTimeout(renderItems, 150);
+      clearTimeout(_timer);
+      _timer = setTimeout(renderItems, 150);
     });
   }
 
   if (filterEl) {
     filterEl.addEventListener('change', renderItems);
   }
+
+  // Configura observers e efeitos
+  _itemsSetupVisibilityObserver();
+  _itemsSetupBurst();
 
   // Render inicial
   renderItems();
