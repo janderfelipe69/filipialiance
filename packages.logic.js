@@ -1,36 +1,30 @@
 /**
  * packages.logic.js
- * ──────────────────────────────────────────────────────────────────────────────
- * Responsabilidade única: lógica de estado e dados da aba de pacotes.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * SOURCE OF TRUTH para todo o estado da aba de pacotes.
  *
- * Este módulo NÃO renderiza HTML.
- * NÃO injeta CSS. NÃO acessa o DOM (exceto para triggers de re-render).
- * NÃO altera estrutura do banco, carrinho ou sistema de tabs.
+ * REGRA: nenhum outro arquivo declara variáveis de estado de pacotes.
+ * Tudo lê e escreve via window.pkgState.
  *
- * Contém:
- *   • Mapeamento de tipo/cor/ícone pelo nome do pacote
- *   • Classificação por categoria
- *   • Cálculo de totais
- *   • Estado de slots ativos e itens desativados
- *   • Funções de seleção (selectPkg, selectPkgCat, selectPkgSlot)
- *   • Funções de toggle de item (togglePkgItem)
- *   • Funções de compatibilidade legadas (openPkgModal, renderPkgModalRows)
- *   • Funções de carrinho (addPackageToCartDirect, removePackageFromCart)
- *
- * Dependências externas (declaradas em app.js / dados.js):
- *   PACKAGES, items, pkgCartCount, activePkgIdx, activePkgCat,
- *   activeSlotByPkg, disabledPkgItems, formatKK, addToCart, cart,
- *   updateCartBadge, renderCart
- * ──────────────────────────────────────────────────────────────────────────────
+ * Carregado APÓS app.js (que define PACKAGES, items, cart, formatKK, etc.)
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
-/* ─── Estado (mantido como estava em app.js) ──────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   ESTADO CENTRALIZADO
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-// Nota: activePkgIdx, activePkgCat, pkgCartCount já declarados em app.js (l.44, l.2285-2286)
-// activeSlotByPkg e disabledPkgItems declarados em app.js (l.2599-2601)
-// São preservados aqui apenas como documentação de dependência.
+window.pkgState = {
+  activePkgIdx:    null,      // número | null  — pacote selecionado
+  activePkgCat:    'all',     // string          — categoria ativa no filtro
+  activeSlotByPkg: {},        // { [pi]: slotIdx } — slot ativo por pacote
+  disabledPkgItems: {},       // { [pi]: Set<"si:name"> } — itens removidos
+  cartCount:       {},        // { [pi]: número } — vezes que o pacote está no carrinho
+};
 
-/* ─── Mapeamento de cor por tipo ──────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAPEAMENTOS PUROS (sem estado, sem DOM)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function getPkgTypeColor(name) {
   const n = name.toLowerCase();
@@ -59,31 +53,29 @@ function getPkgTypeColor(name) {
   return '#60aaff';
 }
 
-/* ─── Mapeamento de ícone por nome ────────────────────────────────────────── */
-
 function getPkgIcon(name) {
   const img = (url) => `<img src="${url}" style="width:32px;height:32px;object-fit:contain" />`;
   const n = name.toLowerCase();
 
   if (n.startsWith('reduces') || n.startsWith('reduce')) {
-    if (n.includes('ice'))                               return img('https://i.imgur.com/ssFz0sA.png');
-    if (n.includes('sand') || n.includes('ground'))      return img('https://i.imgur.com/JPcD2l3.png');
-    if (n.includes('fire'))                              return img('https://i.imgur.com/O8TONGE.png');
-    if (n.includes('grass'))                             return img('https://i.imgur.com/YjKxtoE.png');
-    if (n.includes('electric'))                          return img('https://i.imgur.com/Yv2WEYc.png');
-    if (n.includes('psychic'))                           return img('https://i.imgur.com/ASiZi1K.png');
-    if (n.includes('poison'))                            return img('https://i.imgur.com/xfX0ReE.png');
-    if (n.includes('normal'))                            return img('https://i.imgur.com/w2ChsIe.png');
-    if (n.includes('steel') || n.includes('metal'))      return img('https://i.imgur.com/GleRjiM.png');
-    if (n.includes('rock'))                              return img('https://i.imgur.com/GvD1Mtq.png');
-    if (n.includes('dark'))                              return img('https://i.imgur.com/7Luj4az.png');
-    if (n.includes('dragon'))                            return img('https://i.imgur.com/o7JWbaN.png');
-    if (n.includes('ghost'))                             return img('https://i.imgur.com/HuybbPn.png');
-    if (n.includes('fairy'))                             return img('https://i.imgur.com/j3HaXTh.png');
-    if (n.includes('flying'))                            return img('https://i.imgur.com/npGjQae.png');
-    if (n.includes('bug'))                               return img('https://i.imgur.com/V4IXR51.png');
+    if (n.includes('ice'))                                return img('https://i.imgur.com/ssFz0sA.png');
+    if (n.includes('sand') || n.includes('ground'))       return img('https://i.imgur.com/JPcD2l3.png');
+    if (n.includes('fire'))                               return img('https://i.imgur.com/O8TONGE.png');
+    if (n.includes('grass'))                              return img('https://i.imgur.com/YjKxtoE.png');
+    if (n.includes('electric'))                           return img('https://i.imgur.com/Yv2WEYc.png');
+    if (n.includes('psychic'))                            return img('https://i.imgur.com/ASiZi1K.png');
+    if (n.includes('poison'))                             return img('https://i.imgur.com/xfX0ReE.png');
+    if (n.includes('normal'))                             return img('https://i.imgur.com/w2ChsIe.png');
+    if (n.includes('steel') || n.includes('metal'))       return img('https://i.imgur.com/GleRjiM.png');
+    if (n.includes('rock'))                               return img('https://i.imgur.com/GvD1Mtq.png');
+    if (n.includes('dark'))                               return img('https://i.imgur.com/7Luj4az.png');
+    if (n.includes('dragon'))                             return img('https://i.imgur.com/o7JWbaN.png');
+    if (n.includes('ghost'))                              return img('https://i.imgur.com/HuybbPn.png');
+    if (n.includes('fairy'))                              return img('https://i.imgur.com/j3HaXTh.png');
+    if (n.includes('flying'))                             return img('https://i.imgur.com/npGjQae.png');
+    if (n.includes('bug'))                                return img('https://i.imgur.com/V4IXR51.png');
     if (n.includes('fighting') || n.includes('figthing')) return img('https://i.imgur.com/OKsJXh7.png');
-    if (n.includes('water'))                             return img('https://i.imgur.com/zpRe43i.png');
+    if (n.includes('water'))                              return img('https://i.imgur.com/zpRe43i.png');
     return img('https://i.imgur.com/zpRe43i.png');
   }
 
@@ -119,97 +111,103 @@ function getPkgIcon(name) {
   return img('https://i.imgur.com/zpRe43i.png');
 }
 
-/* ─── Categorias ──────────────────────────────────────────────────────────── */
-
 function getPkgCategory(name) {
   const n = name.toLowerCase();
-  if (n.startsWith('talent'))                          return 'talent';
-  if (n.startsWith('gym'))                             return 'gym';
-  if (n.startsWith('full'))                            return 'full';
+  if (n.startsWith('talent'))                            return 'talent';
+  if (n.startsWith('gym'))                               return 'gym';
+  if (n.startsWith('full'))                              return 'full';
   if (n.startsWith('reduces') || n.startsWith('reduce')) return 'reduces';
   return 'outros';
 }
 
-/* Meta de UI das categorias — usado por renderPkgCatTabs em packages.render.js */
 var PKG_CAT_META = {
-  all:     { label: 'Todos',    icon: '📦' },
-  talent:  { label: 'Talents',  icon: '✨' },
-  gym:     { label: 'Gym',      icon: '<img src="https://i.imgur.com/XyBY6d2.png" style="width:18px;height:18px;object-fit:contain" />' },
-  full:    { label: 'Full',     icon: '⚡' },
-  reduces: { label: 'Reduces',  icon: '<img src="https://i.imgur.com/KgwwD7D.png" style="width:18px;height:18px;object-fit:contain" />' },
-  outros:  { label: 'Outros',   icon: '🎲' },
+  all:     { label: 'Todos',   icon: '📦' },
+  talent:  { label: 'Talents', icon: '✨' },
+  gym:     { label: 'Gym',     icon: '<img src="https://i.imgur.com/XyBY6d2.png" style="width:18px;height:18px;object-fit:contain" />' },
+  full:    { label: 'Full',    icon: '⚡' },
+  reduces: { label: 'Reduces', icon: '<img src="https://i.imgur.com/KgwwD7D.png" style="width:18px;height:18px;object-fit:contain" />' },
+  outros:  { label: 'Outros',  icon: '🎲' },
 };
-
-/* ─── Label de slot ───────────────────────────────────────────────────────── */
 
 function getSlotLabel(pkg, si) {
   const n = pkg.name.toLowerCase();
   if (n.includes('talent')) return 'Talent ' + (si + 1);
-  if (n.includes('gym'))    return 'Slot '   + (si + 1);
-  if (n.includes('full'))   return 'Slot '   + (si + 1);
   return 'Slot ' + (si + 1);
 }
 
-/* ─── Acesso a dados dos itens ────────────────────────────────────────────── */
-// Nota: getPkgItemData, getPkgAllItems e getPkgTotal permanecem em app.js.
-// packages.logic.js os consome via escopo global.
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACESSO A DADOS (delegam para funções definidas em app.js)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Estado de itens desativados ─────────────────────────────────────────── */
+// getPkgItemData, getPkgAllItems → definidos em app.js, usados aqui via escopo global
 
-function pkgItemKey(si, name) { return si + ':' + name; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   ESTADO DE ITENS DESATIVADOS — lê/escreve em pkgState.disabledPkgItems
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function pkgItemKey(si, name) {
+  return si + ':' + name;
+}
 
 function isPkgItemDisabled(pi, si, name) {
-  return disabledPkgItems[pi] && disabledPkgItems[pi].has(pkgItemKey(si, name));
+  var set = pkgState.disabledPkgItems[pi];
+  return set ? set.has(pkgItemKey(si, name)) : false;
 }
 
 function togglePkgItem(pi, si, name) {
-  if (!disabledPkgItems[pi]) disabledPkgItems[pi] = new Set();
-  const key = pkgItemKey(si, name);
-  if (disabledPkgItems[pi].has(key)) {
-    disabledPkgItems[pi].delete(key);
+  if (!pkgState.disabledPkgItems[pi]) pkgState.disabledPkgItems[pi] = new Set();
+  var key = pkgItemKey(si, name);
+  if (pkgState.disabledPkgItems[pi].has(key)) {
+    pkgState.disabledPkgItems[pi].delete(key);
   } else {
-    disabledPkgItems[pi].add(key);
+    pkgState.disabledPkgItems[pi].add(key);
   }
   renderPkgDetail(pi);
 }
 
 function getPkgActiveItems(pkg, pi) {
-  return (pkg.slots || []).flatMap((slot, si) =>
-    slot.filter(([name]) => !isPkgItemDisabled(pi, si, name))
-  );
+  return (pkg.slots || []).flatMap(function(slot, si) {
+    return slot.filter(function(entry) {
+      return !isPkgItemDisabled(pi, si, entry[0]);
+    });
+  });
 }
 
-/* ─── Cálculo de total ────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   CÁLCULO DE TOTAL
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function getPkgTotal(pkg, pi) {
-  const src = (pi !== undefined) ? getPkgActiveItems(pkg, pi) : getPkgAllItems(pkg);
-  return src.reduce((sum, [name, qty]) => {
-    const item = getPkgItemData(name);
-    return sum + (item && item.price ? item.price * qty : 0);
+  var src = (pi !== undefined) ? getPkgActiveItems(pkg, pi) : getPkgAllItems(pkg);
+  return src.reduce(function(sum, entry) {
+    var item = getPkgItemData(entry[0]);
+    return sum + (item && item.price ? item.price * entry[1] : 0);
   }, 0);
 }
 
-/* ─── Navegação / seleção ─────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAVEGAÇÃO — escreve em pkgState, chama render
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function selectPkg(pi) {
-  activePkgIdx = pi;
+  pkgState.activePkgIdx = pi;
   renderPackages();
   renderPkgDetail(pi);
 }
 
 function selectPkgCat(cat) {
-  activePkgCat = cat;
-  /* Se o pacote ativo não pertence à nova categoria, deseleciona */
-  if (activePkgIdx !== null && cat !== 'all') {
-    if (getPkgCategory(PACKAGES[activePkgIdx].name) !== cat) {
-      activePkgIdx = null;
-      const detail = document.getElementById('pkg-detail');
+  pkgState.activePkgCat = cat;
+  // Se pacote ativo não pertence à nova categoria, deseleciona
+  if (pkgState.activePkgIdx !== null && cat !== 'all') {
+    if (getPkgCategory(PACKAGES[pkgState.activePkgIdx].name) !== cat) {
+      pkgState.activePkgIdx = null;
+      var detail = document.getElementById('pkg-detail');
       if (detail) {
-        detail.innerHTML = `
-          <div class="pkg-detail-empty" id="pkg-detail-empty">
-            <div class="pkg-detail-empty-icon">📋</div>
-            <div class="pkg-detail-empty-text">Selecione um pacote</div>
-          </div>`;
+        detail.innerHTML =
+          '<div class="pkg-detail-empty" id="pkg-detail-empty">' +
+            '<div class="pkg-detail-empty-icon">📋</div>' +
+            '<div class="pkg-detail-empty-text">Selecione um pacote</div>' +
+          '</div>';
       }
     }
   }
@@ -217,23 +215,52 @@ function selectPkgCat(cat) {
 }
 
 function selectPkgSlot(pi, si) {
-  activeSlotByPkg[pi] = si;
+  pkgState.activeSlotByPkg[pi] = si;
   renderPkgDetail(pi);
 }
 
-/* ─── Compatibilidade legada ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPATIBILIDADE LEGADA
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Mantido para compatibilidade — agora redireciona para seleção inline */
-function openPkgModal(pi) {
-  selectPkg(pi);
-}
-
-/** Mantido para compatibilidade */
+function openPkgModal(pi)    { selectPkg(pi); }
 function renderPkgModalRows() {
-  if (activePkgIdx !== null) renderPkgDetail(activePkgIdx);
+  if (pkgState.activePkgIdx !== null) renderPkgDetail(pkgState.activePkgIdx);
 }
 
-/* ─── Carrinho de pacotes ─────────────────────────────────────────────────── */
-// addPackageToCartDirect e removePackageFromCart estão em app.js
-// (versões completas com toast, atualização de botões individuais e renderCart).
-// packages.logic.js não os redefine para evitar shadowing.
+/* ═══════════════════════════════════════════════════════════════════════════
+   ALIASES — app.js usa pkgCartCount e activePkgIdx como variáveis soltas
+   em addPackageToCartDirect / removePackageFromCart.
+   Criamos proxies somente-leitura para compatibilidade sem redeclarar.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// Garante que pkgCartCount aponta para pkgState.cartCount.
+// app.js declara `let pkgCartCount = {}` na linha 44 e o reseta em clearCart().
+// Sobrescrevemos a referência global DEPOIS que app.js carregou.
+window.pkgCartCount = pkgState.cartCount;
+
+// activePkgIdx: app.js lê direto em addPackageToCartDirect / removePackageFromCart.
+// Expõe como getter/setter no window para que qualquer leitura/escrita
+// reflita em pkgState sem precisar alterar app.js.
+Object.defineProperty(window, 'activePkgIdx', {
+  get: function() { return pkgState.activePkgIdx; },
+  set: function(v) { pkgState.activePkgIdx = v; },
+  configurable: true,
+});
+
+// activeSlotByPkg e disabledPkgItems: app.js não os usa diretamente,
+// mas packages.render.js precisava deles como globais. Agora vêm de pkgState.
+// Expõe aliases por segurança caso algum script legado ainda os referencie.
+Object.defineProperty(window, 'activeSlotByPkg', {
+  get: function() { return pkgState.activeSlotByPkg; },
+  configurable: true,
+});
+Object.defineProperty(window, 'disabledPkgItems', {
+  get: function() { return pkgState.disabledPkgItems; },
+  configurable: true,
+});
+Object.defineProperty(window, 'activePkgCat', {
+  get: function() { return pkgState.activePkgCat; },
+  set: function(v) { pkgState.activePkgCat = v; },
+  configurable: true,
+});

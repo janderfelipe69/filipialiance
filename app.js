@@ -798,6 +798,7 @@ function clearCart() {
   });
   // Reseta botões de pacote
   pkgCartCount = {};
+  if (window.pkgState) { pkgState.cartCount = {}; window.pkgCartCount = pkgState.cartCount; }
   PACKAGES.forEach((_, pi) => {
     const pkgBtn = document.getElementById('pkgbtn-' + pi);
     const pkgLbl = document.getElementById('pkgbtn-label-' + pi);
@@ -2281,10 +2282,12 @@ function getShowdownStaticSprite(pokeName) {
 
 
 // ===================== PACOTES — LAYOUT RPG =====================
+// Estado centralizado em window.pkgState (packages.logic.js).
+// currentPkg / currentPkgState: usados apenas pelo modal legado abaixo.
 let currentPkg = null;
 let currentPkgState = [];
-let activePkgIdx = null;
-// pkgCartCount já declarado globalmente acima
+// activePkgIdx, activePkgCat, activeSlotByPkg, disabledPkgItems → pkgState
+// pkgCartCount → pkgState.cartCount (alias definido em packages.logic.js)
 
 // getPkgTypeColor, getPkgIcon → packages.logic.js
 function getPkgItemData(itemName) {
@@ -2364,6 +2367,7 @@ function addPackageToCart() {
 function addPackageToCartDirect(pi) {
   pkgCartCount = pkgCartCount || {};
   pkgCartCount[pi] = (pkgCartCount[pi] || 0) + 1;
+  if (window.pkgState) pkgState.cartCount[pi] = pkgCartCount[pi];
 
   let noPriceNames = [];
   getPkgActiveItems(PACKAGES[pi], pi).forEach(([name, qty]) => {
@@ -2423,6 +2427,7 @@ function removePackageFromCart(pi) {
     }
   });
   delete pkgCartCount[pi];
+  if (window.pkgState) delete pkgState.cartCount[pi];
   updateCartBadge();
   if (document.getElementById('cart-overlay').classList.contains('open')) {
     renderCart();
@@ -6804,7 +6809,7 @@ function goToTalentPackage(pkgIdx) {
     if (typeof activePkgCat !== 'undefined') {
       var pkgName = (PACKAGES[pkgIdx] && PACKAGES[pkgIdx].name) || '';
       var cat = pkgName.toLowerCase().startsWith('full') ? 'full' : 'talent';
-      activePkgCat = cat;
+      if (window.pkgState) pkgState.activePkgCat = cat; else activePkgCat = cat;
       if (typeof renderPackages === 'function') renderPackages();
       if (typeof renderPkgDetail === 'function') renderPkgDetail(pkgIdx);
     }
@@ -6816,7 +6821,7 @@ function goToTalentPackageReduces(pkgIdx) {
   if (tabBtn) { switchTab('pacotes', tabBtn); }
   setTimeout(function() {
     if (typeof activePkgCat !== 'undefined') {
-      activePkgCat = 'reduces';
+      if (window.pkgState) pkgState.activePkgCat = 'reduces'; else activePkgCat = 'reduces';
       if (typeof renderPackages === 'function') renderPackages();
     }
     if (typeof selectPkg === 'function') selectPkg(pkgIdx);
