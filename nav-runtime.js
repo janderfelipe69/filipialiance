@@ -127,12 +127,19 @@
     if (tabEl) tabEl.classList.add('active');
     if (btn) btn.classList.add('active');
 
-    /* Renderizadores do app.js (injetados via hook, mas chamados aqui para
-       garantir que rodem mesmo sem hook registrado) */
-    if (tab === 'pacotes'  && typeof renderPackages  === 'function') renderPackages();
-    if (tab === 'captura'  && typeof renderCaptura   === 'function') renderCaptura();
-    if (tab === 'entregas' && typeof renderEntregas  === 'function') renderEntregas();
-    if (tab === 'wiki'     && typeof renderWiki      === 'function') renderWiki();
+    /* Renderizadores — aguarda db-bootstrap terminar antes de renderizar
+       abas que dependem de dados do Supabase (captura, pacotes, itens) */
+    function _render() {
+      if (tab === 'pacotes'  && typeof renderPackages  === 'function') renderPackages();
+      if (tab === 'captura'  && typeof renderCaptura   === 'function') renderCaptura();
+      if (tab === 'entregas' && typeof renderEntregas  === 'function') renderEntregas();
+      if (tab === 'wiki'     && typeof renderWiki      === 'function') renderWiki();
+    }
+    if (window.__dbReady) {
+      _render();
+    } else {
+      document.addEventListener('db:ready', _render, { once: true });
+    }
 
     /* Atualiza estado */
     _state.tab = tab;
