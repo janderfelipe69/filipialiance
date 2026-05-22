@@ -1,4 +1,2255 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>F I L I P I • PokeAlliance Shop [v4]</title><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/><!-- sw removed --><style>.send-order-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-radius:12px;border:none;cursor:pointer;font-family:var(--font-title, 'Cinzel', serif);font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:linear-gradient(135deg,#3a8cff 0,#1a5fcc 100%);color:#fff;box-shadow:0 4px 20px rgba(58,140,255,.35);transition:transform .15s,box-shadow .15s,opacity .15s}.send-order-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(58,140,255,.5)}.send-order-btn:active{transform:translateY(0);box-shadow:0 2px 10px rgba(58,140,255,.25)}.send-order-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}</style><script>function enviarPedido() {
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>F I L I P I • PokeAlliance Shop [v4]</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="packages.css" />
+  <link rel="stylesheet" href="packages.animations.css" />
+  <link rel="stylesheet" href="items.css" />
+  <link rel="stylesheet" href="items.animations.css" />
+  <link rel="stylesheet" href="mobile-patch.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+
+<!-- WebGL shader canvas -->
+<canvas id="shader-canvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%;"></canvas>
+
+<!-- Click ripple container -->
+<div id="ripple-root" style="position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;"></div>
+
+
+<!-- Animated background -->
+<div class="bg-canvas">
+  <div class="stars"></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="aurora"></div>
+  <div class="header-grid">
+
+    <!-- Emblem SVG -->
+    <div class="pa-emblem">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer shield -->
+        <defs>
+          <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#3a8cff;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#1a5fcc;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#0a3a8a;stop-opacity:1" />
+          </linearGradient>
+          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#ffd166;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#c88a00;stop-opacity:1" />
+          </linearGradient>
+          <linearGradient id="innerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#0d1e3d;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#040810;stop-opacity:1" />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Shield base -->
+        <path d="M50 5 L88 22 L88 55 Q88 78 50 95 Q12 78 12 55 L12 22 Z" fill="url(#shieldGrad)" />
+        <!-- Gold border -->
+        <path d="M50 5 L88 22 L88 55 Q88 78 50 95 Q12 78 12 55 L12 22 Z" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" />
+        <!-- Inner shield -->
+        <path d="M50 14 L80 28 L80 54 Q80 72 50 85 Q20 72 20 54 L20 28 Z" fill="url(#innerGrad)" />
+        <!-- PA letters -->
+        <text x="50" y="58" text-anchor="middle" font-family="Cinzel,serif" font-size="26" font-weight="900" fill="url(#goldGrad)" filter="url(#glow)">PA</text>
+        <!-- Star top -->
+        <polygon points="50,6 52,11 57,11 53,14 55,19 50,16 45,19 47,14 43,11 48,11" fill="url(#goldGrad)" />
+        <!-- Corner ornaments -->
+        <circle cx="19" cy="26" r="2.5" fill="url(#goldGrad)" opacity="0.8" />
+        <circle cx="81" cy="26" r="2.5" fill="url(#goldGrad)" opacity="0.8" />
+      </svg>
+    </div>
+
+    <!-- Seller info -->
+    <div class="seller-info">
+      <div class="seller-name" data-text="F I L I P I">F I L I P I</div>
+      <div class="seller-meta">
+        <span class="seller-title">Loja de Itens</span>
+        <span class="divider-v"></span>
+        <div class="server-tag">
+          <span class="moon-icon">🌙</span>
+          MOON
+        </div>
+        <span class="divider-v"></span>
+        <span class="item-count-badge" id="total-count">carregando...</span>
+      </div>
+    </div>
+
+    <!-- Auth slot: populated by session.js on DOMContentLoaded -->
+    <div id="auth-header-slot">
+      <!-- Default state: login button, replaced when user is logged in -->
+      <button class="auth-login-btn" onclick="AuthModal.open('login')" aria-label="Entrar na sua conta">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <span>Entrar</span>
+      </button>
+    </div>
+
+    <!-- Cart -->
+    <button class="cart-trigger" onclick="openCart()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+      </svg>
+      <span class="cart-label">Carrinho</span> <span class="cart-count" id="cart-count-badge">0</span>
+    </button>
+
+  </div>
+</header>
+
+<!-- TABS NAV -->
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="switchTab('itens', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Itens
+  </button>
+  <button class="tab-btn" onclick="switchTab('pacotes', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    Pacotes
+  </button>
+  <button class="tab-btn" onclick="switchTab('captura', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    Captura
+  </button>
+  <button class="tab-btn" onclick="switchTab('entregas', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    Entregas
+  </button>
+  <button class="tab-btn tab-btn--pedidos" onclick="switchTab('pedidos', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+    Pedidos
+  </button>
+  <button class="tab-btn tab-btn--wiki" onclick="switchTab('wiki', this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Wiki
+  </button>
+</div>
+
+<!-- TAB: ITENS -->
+<div class="tab-content active" id="tab-itens">
+<div class="items-wrap">
+
+<!-- CONTROLS -->
+<div class="items-controls">
+  <div class="items-search-wrap">
+    <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+      <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <input type="text" class="items-search-input" id="items-search" placeholder="Buscar item..." />
+  </div>
+  <select class="items-filter-select" id="items-filter">
+    <option value="all">Todos</option>
+    <option value="t1">T1</option>
+    <option value="t2">T2</option>
+    <option value="t3">T3</option>
+    <option value="t4">T4</option>
+    <option value="t5">T5</option>
+    <option value="hard">Hard</option>
+    <option value="mark">Mark</option>
+    <option value="shiny">Shiny</option>
+    <option value="orb">Orbs</option>
+    <option value="essence">Essências</option>
+    <option value="normal">Sem tag</option>
+  </select>
+  <span class="items-count-label" id="items-count-label">— itens</span>
+</div>
+
+<!-- GRID -->
+<div class="items-grid-wrap">
+  <div class="items-grid" id="items-grid"></div>
+</div>
+
+</div><!-- /items-wrap -->
+</div><!-- /tab-itens -->
+
+<!-- TAB: PACOTES -->
+<div class="tab-content" id="tab-pacotes">
+  <div class="packages-wrap">
+    <!-- CATEGORY PILLS (horizontal, top) -->
+    <div class="pkg-cat-tabs" id="pkg-cat-tabs"></div>
+    <!-- MAIN AREA: sidebar grid + detail panel -->
+    <div class="pkg-main-area">
+      <!-- SIDEBAR GRID -->
+      <div class="pkg-sidebar">
+        <div class="pkg-sidebar-header">
+          <span class="pkg-sidebar-icon">📦</span>
+          <span class="pkg-sidebar-title">Pacotes</span>
+        </div>
+        <div class="pkg-sidebar-list" id="pkg-sidebar-list"></div>
+      </div>
+      <!-- DETAIL PANEL -->
+      <div class="pkg-detail" id="pkg-detail">
+        <div class="pkg-detail-empty" id="pkg-detail-empty">
+          <div class="pkg-detail-empty-icon">📋</div>
+          <div class="pkg-detail-empty-text">Selecione um pacote</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE PACOTE -->
+<div class="pkg-overlay" id="pkg-overlay" onclick="handlePkgOverlayClick(event)">
+  <div class="pkg-modal" id="pkg-modal">
+    <div class="pkg-modal-header">
+      <div class="pkg-modal-title" id="pkg-modal-title">Pacote</div>
+      <button class="close-btn" onclick="closePkgModal()">&#x2715;</button>
+    </div>
+    <div class="pkg-modal-body" id="pkg-modal-body"></div>
+    <div class="pkg-modal-footer">
+      <div class="pkg-modal-total" id="pkg-modal-total" style="display:none">
+        <span class="pkg-modal-total-label">Total do Pacote</span>
+        <div class="pkg-modal-total-val">
+          <span class="pkg-modal-total-kk" id="pkg-modal-kk">—</span>
+          <span class="pkg-modal-total-brl" id="pkg-modal-brl">—</span>
+        </div>
+      </div>
+      <button class="pkg-modal-add-btn" onclick="addPackageToCart()">
+        + Adicionar Pacote ao Carrinho
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: CAPTURA -->
+<div class="tab-content" id="tab-captura">
+  <!-- Premium Captura Hero Header -->
+  <div id="captura-hero" style="position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(10,6,30,0) 0%,rgba(100,40,200,0.06) 50%,rgba(10,6,30,0) 100%);border-bottom:1px solid rgba(160,80,255,0.12);padding:20px 24px 16px;">
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
+      <div style="position:absolute;top:-60px;left:20%;width:400px;height:200px;background:radial-gradient(ellipse,rgba(160,80,255,0.07) 0%,transparent 70%);"></div>
+      <div style="position:absolute;top:-40px;right:10%;width:280px;height:160px;background:radial-gradient(ellipse,rgba(58,140,255,0.06) 0%,transparent 70%);"></div>
+    </div>
+    <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:var(--font-title);font-size:18px;font-weight:900;letter-spacing:3px;text-transform:uppercase;background:linear-gradient(135deg,#fff 0%,rgba(160,80,255,1) 45%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Captura</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-top:3px;">MARKETPLACE PREMIUM · POKÉMON SHINY</div>
+      </div>
+      <span class="pkg-count-label" id="captura-count-label" style="font-family:var(--font-mono);font-size:10px;background:rgba(160,80,255,0.08);border:1px solid rgba(160,80,255,0.2);border-radius:20px;padding:5px 12px;color:rgba(255,255,255,0.45);letter-spacing:1px;">— pokémons</span>
+    </div>
+  </div>
+  <div class="captura-controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+        <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="captura-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_capturaSearchTimer); _capturaSearchTimer = setTimeout(renderCaptura, 150)" />
+    </div>
+    <select id="captura-filter" onchange="renderCaptura()">
+      <option value="all">Todos</option>
+      <option value="t1">T1</option>
+      <option value="t2">T2</option>
+      <option value="t3">T3</option>
+      <option value="t4">T4</option>
+      <option value="t5">T5</option>
+      <option value="t6">T6</option>
+      <option value="super-raro">Super Raro</option>
+      <option value="ultra-raro">Ultra Raro</option>
+      <option value="raro">Raro</option>
+      <option value="legendary">Legendary</option>
+      <option value="mythical">Mítico</option>
+      <option value="dive">🔵 Dive</option>
+      <option value="none">Sem tag</option>
+    </select>
+    <div class="type-dropdown" id="type-dropdown">
+      <button class="type-dropdown-btn" id="type-dropdown-btn" onclick="toggleTypeDropdown(event)" type="button">
+        <span class="type-dropdown-icon" id="type-dropdown-icon"><span class="type-dropdown-all-dot"></span></span>
+        <span class="type-dropdown-label" id="type-dropdown-label">Tipo</span>
+        <svg class="type-dropdown-arrow" width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+      </button>
+      <div class="type-dropdown-menu" id="type-dropdown-menu">
+        <button class="type-dropdown-item active" data-type="all" onclick="selectTypeFilter('all', this)">
+          <span class="type-dropdown-all-dot"></span>
+          <span>Todos</span>
+        </button>
+        <button class="type-dropdown-item" data-type="fire" onclick="selectTypeFilter('fire', this)">
+          <img src="https://i.imgur.com/O8TONGE.png" alt="fire">
+          <span>Fogo</span>
+        </button>
+        <button class="type-dropdown-item" data-type="water" onclick="selectTypeFilter('water', this)">
+          <img src="https://i.imgur.com/zpRe43i.png" alt="water">
+          <span>Água</span>
+        </button>
+        <button class="type-dropdown-item" data-type="electric" onclick="selectTypeFilter('electric', this)">
+          <img src="https://i.imgur.com/Yv2WEYc.png" alt="electric">
+          <span>Elétrico</span>
+        </button>
+        <button class="type-dropdown-item" data-type="grass" onclick="selectTypeFilter('grass', this)">
+          <img src="https://i.imgur.com/YjKxtoE.png" alt="grass">
+          <span>Planta</span>
+        </button>
+        <button class="type-dropdown-item" data-type="ice" onclick="selectTypeFilter('ice', this)">
+          <img src="https://i.imgur.com/ssFz0sA.png" alt="ice">
+          <span>Gelo</span>
+        </button>
+        <button class="type-dropdown-item" data-type="psychic" onclick="selectTypeFilter('psychic', this)">
+          <img src="https://i.imgur.com/ASiZi1K.png" alt="psychic">
+          <span>Psíquico</span>
+        </button>
+        <button class="type-dropdown-item" data-type="ghost" onclick="selectTypeFilter('ghost', this)">
+          <img src="https://i.imgur.com/HuybbPn.png" alt="ghost">
+          <span>Fantasma</span>
+        </button>
+        <button class="type-dropdown-item" data-type="dragon" onclick="selectTypeFilter('dragon', this)">
+          <img src="https://i.imgur.com/o7JWbaN.png" alt="dragon">
+          <span>Dragão</span>
+        </button>
+        <button class="type-dropdown-item" data-type="dark" onclick="selectTypeFilter('dark', this)">
+          <img src="https://i.imgur.com/7Luj4az.png" alt="dark">
+          <span>Sombrio</span>
+        </button>
+        <button class="type-dropdown-item" data-type="fairy" onclick="selectTypeFilter('fairy', this)">
+          <img src="https://i.imgur.com/j3HaXTh.png" alt="fairy">
+          <span>Fada</span>
+        </button>
+        <button class="type-dropdown-item" data-type="poison" onclick="selectTypeFilter('poison', this)">
+          <img src="https://i.imgur.com/xfX0ReE.png" alt="poison">
+          <span>Veneno</span>
+        </button>
+        <button class="type-dropdown-item" data-type="ground" onclick="selectTypeFilter('ground', this)">
+          <img src="https://i.imgur.com/JPcD2l3.png" alt="ground">
+          <span>Terra</span>
+        </button>
+        <button class="type-dropdown-item" data-type="rock" onclick="selectTypeFilter('rock', this)">
+          <img src="https://i.imgur.com/GvD1Mtq.png" alt="rock">
+          <span>Pedra</span>
+        </button>
+        <button class="type-dropdown-item" data-type="bug" onclick="selectTypeFilter('bug', this)">
+          <img src="https://i.imgur.com/V4IXR51.png" alt="bug">
+          <span>Inseto</span>
+        </button>
+        <button class="type-dropdown-item" data-type="flying" onclick="selectTypeFilter('flying', this)">
+          <img src="https://i.imgur.com/npGjQae.png" alt="flying">
+          <span>Voador</span>
+        </button>
+        <button class="type-dropdown-item" data-type="steel" onclick="selectTypeFilter('steel', this)">
+          <img src="https://i.imgur.com/GleRjiM.png" alt="steel">
+          <span>Aço</span>
+        </button>
+        <button class="type-dropdown-item" data-type="normal" onclick="selectTypeFilter('normal', this)">
+          <img src="https://i.imgur.com/w2ChsIe.png" alt="normal">
+          <span>Normal</span>
+        </button>
+        <button class="type-dropdown-item" data-type="fighting" onclick="selectTypeFilter('fighting', this)">
+          <img src="https://i.imgur.com/OKsJXh7.png" alt="fighting">
+          <span>Lutador</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="captura-wrap">
+    <div class="captura-grid" id="captura-grid"></div>
+  </div>
+</div>
+
+<!-- MODAL DE CAPTURA -->
+<div class="captura-overlay" id="captura-overlay" onclick="handleCapturaOverlayClick(event)">
+  <div class="captura-modal" id="captura-modal">
+    <div class="captura-modal-header">
+      <div class="captura-modal-title" id="captura-modal-title">Captura</div>
+      <button class="close-btn" onclick="closeCapturaModal()">&#x2715;</button>
+    </div>
+    <div class="captura-modal-body" id="captura-modal-body"></div>
+  </div>
+</div>
+
+<!-- TAB: ENTREGAS -->
+<div class="tab-content" id="tab-entregas">
+  <!-- Conteúdo montado dinamicamente por DeliveryGallery.init() em delivery-system.js -->
+</div>
+
+
+
+
+
+<!-- TAB: WIKI -->
+<div class="tab-content" id="tab-wiki">
+  <!-- Banner dourado -->
+  <div class="wiki-banner">
+    <div class="wiki-banner-title">WIKI</div>
+    <div class="wiki-banner-sub">Enciclopédia de Drops</div>
+    <div class="wiki-banner-ornament">
+      <div class="wiki-banner-line"></div>
+      <div class="wiki-banner-diamond"></div>
+      <div class="wiki-banner-line"></div>
+    </div>
+  </div>
+
+  <!-- Sentinel: quando sair da view, as subtabs ficam sticky -->
+  <div id="wiki-subtabs-sentinel"></div>
+
+  <!-- Sub-abas da Wiki -->
+  <div class="wiki-subtabs" id="wiki-subtabs">
+    <button class="wiki-subtab-btn active" onclick="switchWikiTab('itens', this)">
+      <span class="wiki-subtab-icon">📦</span> Itens
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('respawn', this)">
+      <span class="wiki-subtab-icon">🗺️</span> Local de Respawn
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('quests', this)">
+      <span class="wiki-subtab-icon">📜</span> Quests
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('npcs', this)">
+      <span class="wiki-subtab-icon">🧑‍💼</span> NPC's
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('brokes', this)">
+      <span class="wiki-subtab-icon">💥</span> Brokes
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('hazard', this)">
+      <span class="wiki-subtab-icon">⚠️</span> Hazard Tasks
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('starcalc', this)">
+      <span class="wiki-subtab-icon">⭐</span> Star Calculation
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('punchingbag', this)">
+      <span class="wiki-subtab-icon">🥊</span> Punching Bag
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('roupasspeed', this)">
+      <span class="wiki-subtab-icon">🎽</span> Roupas de Speed
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('talents', this)">
+      <span class="wiki-subtab-icon">✨</span> PokéTalents
+    </button>
+    <button class="wiki-subtab-btn" onclick="switchWikiTab('tokens', this)">
+      <span class="wiki-subtab-icon">🪙</span> Tokens
+    </button>
+  </div>
+
+  <!-- ===== SUB-ABA: ITENS ===== -->
+  <div id="wiki-tab-itens" class="wiki-subtab-content">
+    <!-- Controls -->
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="wiki-search" placeholder="Buscar item ou Pokémon..." oninput="clearTimeout(_wikiSearchTimer); _wikiSearchTimer = setTimeout(renderWiki, 150)" />
+      </div>
+      <span class="wiki-count-label" id="wiki-count-label">— itens</span>
+    </div>
+    <!-- Grid -->
+    <div class="wiki-wrap">
+      <div id="wiki-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== SUB-ABA: RESPAWN ===== -->
+  <div id="wiki-tab-respawn" class="wiki-subtab-content" style="display:none">
+
+    <!-- Topbar de controles do Respawn -->
+    <div class="rsp-topbar">
+      <!-- Search -->
+      <div class="rsp-topbar-search">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="respawn-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_respawnSearchTimer); _respawnSearchTimer = setTimeout(renderRespawn, 150)" />
+      </div>
+
+      <!-- Contador -->
+      <span class="rsp-topbar-count" id="respawn-count-label">— Pokémon</span>
+
+      <!-- Spacer -->
+      <div style="flex:1"></div>
+
+      <!-- Toggle Grid / Lista -->
+      <div class="rsp-topbar-views">
+        <button class="rsp-topbar-view-btn active" id="rsp-btn-grid" title="Grade" onclick="setRespawnView('grid')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="1" y="1" width="6" height="6" rx="1.5"/>
+            <rect x="9" y="1" width="6" height="6" rx="1.5"/>
+            <rect x="1" y="9" width="6" height="6" rx="1.5"/>
+            <rect x="9" y="9" width="6" height="6" rx="1.5"/>
+          </svg>
+          <span>Grade</span>
+        </button>
+        <button class="rsp-topbar-view-btn" id="rsp-btn-list" title="Lista" onclick="setRespawnView('list')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="1" y="2" width="14" height="2.5" rx="1"/>
+            <rect x="1" y="6.75" width="14" height="2.5" rx="1"/>
+            <rect x="1" y="11.5" width="14" height="2.5" rx="1"/>
+          </svg>
+          <span>Lista</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="wiki-respawn-wrap active" id="respawn-grid-wrap">
+      <div id="respawn-grid"></div>
+    </div>
+  </div>
+
+  <style>
+  /* ── Respawn Topbar ── */
+  .rsp-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 14px;
+    flex-wrap: wrap;
+  }
+
+  .rsp-topbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px;
+    padding: 0 12px;
+    height: 38px;
+    color: rgba(255,255,255,0.35);
+    transition: border-color .2s, background .2s;
+    min-width: 200px;
+    max-width: 320px;
+    flex: 1;
+  }
+  .rsp-topbar-search:focus-within {
+    border-color: rgba(96,170,255,0.45);
+    background: rgba(96,170,255,0.06);
+    color: rgba(96,170,255,0.8);
+  }
+  .rsp-topbar-search input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: var(--font-body, sans-serif);
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+  .rsp-topbar-search input::placeholder {
+    color: rgba(255,255,255,0.28);
+  }
+
+  .rsp-topbar-count {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+
+  .rsp-topbar-views {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .rsp-topbar-view-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.38);
+    font-family: var(--font-body, sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+  }
+  .rsp-topbar-view-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.7);
+  }
+  .rsp-topbar-view-btn.active {
+    background: rgba(96,170,255,0.15);
+    color: #60aaff;
+    border: 1px solid rgba(96,170,255,0.25);
+  }
+
+  @media (max-width: 480px) {
+    .rsp-topbar-view-btn span { display: none; }
+    .rsp-topbar-view-btn { padding: 6px 10px; }
+  }
+  </style>
+
+  <!-- ===== SUB-ABA: QUESTS ===== -->
+  <div id="wiki-tab-quests" class="wiki-subtab-content" style="display:none">
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="quests-search" placeholder="Buscar quest..." oninput="clearTimeout(_questsSearchTimer); _questsSearchTimer = setTimeout(renderQuests, 150)" />
+      </div>
+      <span class="wiki-count-label" id="quests-count-label">— quests</span>
+    </div>
+    <div class="wiki-quests-wrap active" id="quests-grid-wrap">
+      <div id="quests-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== SUB-ABA: NPC's ===== -->
+  <div id="wiki-tab-npcs" class="wiki-subtab-content" style="display:none">
+    <!-- Sub-categorias de NPC's -->
+    <div class="npc-subcats" id="npc-subcats">
+      <button class="npc-subcat-btn active" data-subcat="rockets" onclick="switchNpcSubcat('rockets', this)">
+        <span>🚀</span> Rockets
+      </button>
+      <button class="npc-subcat-btn" data-subcat="officers" onclick="switchNpcSubcat('officers', this)">
+        <span>👮</span> Officers
+      </button>
+      <!-- Futuras categorias entram aqui -->
+    </div>
+
+    <!-- Painel: Rockets -->
+    <div id="npc-tab-rockets" class="npc-subcat-content">
+      <div class="wiki-controls">
+        <div class="wiki-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+            <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="rockets-search" placeholder="Buscar Rocket..." oninput="clearTimeout(_rocketsSearchTimer); _rocketsSearchTimer = setTimeout(renderRockets, 150)" />
+        </div>
+        <span class="wiki-count-label" id="rockets-count-label">— rockets</span>
+      </div>
+      <div id="rockets-grid"></div>
+    </div>
+
+    <!-- Painel: Officers -->
+    <div id="npc-tab-officers" class="npc-subcat-content" style="display:none">
+      <div class="wiki-controls">
+        <div class="wiki-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+            <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="officers-search" placeholder="Buscar Officer..." oninput="clearTimeout(_officersSearchTimer); _officersSearchTimer = setTimeout(renderOfficers, 150)" />
+        </div>
+        <span class="wiki-count-label" id="officers-count-label">— officers</span>
+      </div>
+      <div id="officers-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== SUB-ABA: BROKES ===== -->
+  <div id="wiki-tab-brokes" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-brokes-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: HAZARD TASKS ===== -->
+  <div id="wiki-tab-hazard" class="wiki-subtab-content" style="display:none">
+    <div class="wiki-controls">
+      <div class="wiki-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="hazard-search" placeholder="Buscar NPC ou Pokémon..." oninput="clearTimeout(_hazardSearchTimer); _hazardSearchTimer = setTimeout(renderHazard, 150)" />
+      </div>
+      <span class="wiki-count-label" id="hazard-count-label">— NPCs</span>
+    </div>
+    <div id="hazard-grid"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: STAR CALCULATION ===== -->
+  <div id="wiki-tab-starcalc" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-starcalc-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: PUNCHING BAG ===== -->
+  <div id="wiki-tab-punchingbag" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-punchingbag-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: ROUPAS DE SPEED ===== -->
+  <div id="wiki-tab-roupasspeed" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-roupasspeed-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: POKETALENTS ===== -->
+  <div id="wiki-tab-talents" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-talents-content"></div>
+  </div>
+
+  <!-- ===== SUB-ABA: TOKENS ===== -->
+  <div id="wiki-tab-tokens" class="wiki-subtab-content" style="display:none">
+    <div id="wiki-tokens-content"></div>
+  </div>
+
+</div>
+
+<!-- TAB: PEDIDOS -->
+<div class="tab-content" id="tab-pedidos">
+  <div class="pedidos-page">
+
+    <div class="pedidos-topbar">
+      <div class="pedidos-topbar-left">
+        <div class="pedidos-titulo">📋 Pedidos</div>
+        <span class="pedidos-count-badge" id="pedidos-count-badge">—</span>
+      </div>
+      <div class="pedidos-topbar-right">
+        <button id="pedidos-my-filter" class="pedidos-my-filter-btn" title="Apenas meus pedidos">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span>Meus Pedidos</span>
+        </button>
+        <div class="pedidos-search-wrap">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" id="pedidos-search" placeholder="Buscar nick ou item..." oninput="pedidosFiltrar()" />
+        </div>
+        <select id="pedidos-status-filter" onchange="pedidosFiltrar()">
+          <option value="all">Todos status</option>
+          <option value="waiting_queue">⏳ Na Fila</option>
+          <option value="in_progress">⚡ Em Andamento</option>
+          <option value="completed">✅ Concluído</option>
+          <option value="cancelled">✕ Cancelado</option>
+        </select>
+        <button class="pedidos-refresh-btn" onclick="pedidosCarregar()" title="Atualizar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="pedidos-loading" class="pedidos-loading">
+      <div class="pedidos-spinner"></div>
+      <span>Carregando pedidos...</span>
+    </div>
+    <div id="pedidos-empty" class="pedidos-empty" style="display:none">
+      <div style="font-size:40px;margin-bottom:12px">📭</div>
+      <div>Nenhum pedido encontrado</div>
+    </div>
+    <div id="pedidos-erro" class="pedidos-erro" style="display:none">
+      <div style="font-size:36px;margin-bottom:10px">⚠️</div>
+      <div id="pedidos-erro-msg">Erro ao carregar pedidos</div>
+      <button onclick="pedidosCarregar()" style="margin-top:14px;padding:8px 20px;border-radius:8px;border:none;background:#3a8cff;color:#fff;cursor:pointer;font-weight:700">Tentar novamente</button>
+    </div>
+    <div id="pedidos-lista" class="pedidos-lista"></div>
+
+  </div>
+</div>
+
+<style>
+/* ── Pedidos Page ── */
+.pedidos-page { padding: 16px 0 80px; }
+
+.pedidos-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 0 2px;
+}
+.pedidos-topbar-left { display: flex; align-items: center; gap: 12px; }
+.pedidos-topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.pedidos-titulo {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+}
+.pedidos-count-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(58,140,255,0.15);
+  border: 1px solid rgba(58,140,255,0.3);
+  color: #60aaff;
+}
+
+.pedidos-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  padding: 0 12px;
+  height: 36px;
+  color: rgba(255,255,255,0.35);
+  min-width: 180px;
+}
+.pedidos-search-wrap:focus-within {
+  border-color: rgba(96,170,255,0.4);
+  background: rgba(96,170,255,0.06);
+}
+.pedidos-search-wrap input {
+  flex:1; background:none; border:none; outline:none;
+  color:#fff; font-size:13px;
+  font-family: var(--font-body, sans-serif);
+}
+.pedidos-search-wrap input::placeholder { color: rgba(255,255,255,0.28); }
+
+#pedidos-status-filter {
+  height: 36px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 9px;
+  color: #fff;
+  font-size: 13px;
+  padding: 0 10px;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-body, sans-serif);
+}
+
+.pedidos-refresh-btn {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.pedidos-refresh-btn:hover { background: rgba(58,140,255,0.15); color: #60aaff; }
+.pedidos-refresh-btn.spin svg { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pedidos-loading, .pedidos-empty, .pedidos-erro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(255,255,255,0.35);
+  font-family: var(--font-body, sans-serif);
+  font-size: 14px;
+  gap: 8px;
+}
+.pedidos-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(58,140,255,0.2);
+  border-top-color: #3a8cff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 8px;
+}
+
+.pedidos-lista { display: flex; flex-direction: column; gap: 12px; }
+
+/* Card de pedido */
+.pedido-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.pedido-card:hover { border-color: rgba(96,170,255,0.25); }
+
+.pedido-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.pedido-card-id {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+}
+.pedido-card-nick {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pedido-card-total {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffd166;
+  white-space: nowrap;
+}
+.pedido-card-date {
+  font-family: var(--font-body, sans-serif);
+  font-size: 11px;
+  color: rgba(255,255,255,0.28);
+  white-space: nowrap;
+}
+.pedido-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.pedido-status-pill.pendente  { background: rgba(255,193,7,0.15);  border:1px solid rgba(255,193,7,0.4);  color: #ffd166; }
+.pedido-status-pill.confirmado{ background: rgba(58,140,255,0.15); border:1px solid rgba(58,140,255,0.4); color: #60aaff; }
+.pedido-status-pill.entregue  { background: rgba(39,174,96,0.15);  border:1px solid rgba(39,174,96,0.4);  color: #5ae698; }
+.pedido-status-pill.cancelado { background: rgba(231,76,60,0.15);  border:1px solid rgba(231,76,60,0.4);  color: #ff6b6b; }
+
+.pedido-card-chevron {
+  color: rgba(255,255,255,0.25);
+  transition: transform .3s;
+  flex-shrink: 0;
+}
+.pedido-card.open .pedido-card-chevron { transform: rotate(180deg); color: #60aaff; }
+
+.pedido-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .35s cubic-bezier(.4,0,.2,1);
+}
+.pedido-card.open .pedido-card-body { max-height: 600px; }
+
+.pedido-card-inner {
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.pedido-itens-label {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin: 14px 0 8px;
+}
+.pedido-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-body, sans-serif);
+  font-size: 13px;
+}
+.pedido-item-row:last-child { border-bottom: none; }
+.pedido-item-nome { flex:1; color: rgba(255,255,255,0.85); }
+.pedido-item-qty  { color: rgba(255,255,255,0.4); font-size:11px; white-space:nowrap; }
+.pedido-item-preco{ color: #ffd166; font-family: var(--font-mono,monospace); font-size:12px; white-space:nowrap; }
+
+.pedido-totais {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.pedido-total-box {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.pedido-total-box-label {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 5px;
+}
+.pedido-total-box-val {
+  font-family: var(--font-mono, monospace);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd166;
+}
+
+.pedido-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.pedido-action-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  font-family: var(--font-body, sans-serif);
+}
+.pedido-action-btn:hover { opacity: 0.85; }
+.pedido-action-btn:active { transform: scale(0.97); }
+.pedido-action-btn.confirmar { background: rgba(58,140,255,0.15); border-color: rgba(58,140,255,0.4); color: #60aaff; }
+.pedido-action-btn.entregar  { background: rgba(39,174,96,0.15);  border-color: rgba(39,174,96,0.4);  color: #5ae698; }
+.pedido-action-btn.cancelar  { background: rgba(231,76,60,0.12);  border-color: rgba(231,76,60,0.35); color: #ff6b6b; }
+
+@media (max-width: 600px) {
+  .pedidos-topbar { flex-direction: column; align-items: flex-start; }
+  .pedidos-topbar-right { width: 100%; }
+  .pedidos-search-wrap { flex: 1; min-width: 0; }
+  .pedido-card-header { flex-wrap: wrap; gap: 8px; }
+  .pedido-card-date { display: none; }
+}
+</style>
+
+
+<div class="cart-overlay" id="cart-overlay" onclick="handleOverlayClick(event)">
+  <div class="cart-panel">
+    <div class="cart-header">
+      <h2>Carrinho</h2>
+      <button class="close-btn" onclick="closeCart()">&#x2715;</button>
+    </div>
+    <div class="cart-no-price-warning" id="cart-no-price-warning">
+      <span class="cart-warn-icon">⚠️</span>
+      <div class="cart-warn-text">
+        <span class="cart-warn-title">Total sujeito a alteração</span>
+        <span class="cart-warn-desc">Um ou mais itens do carrinho ainda não têm preço definido. O valor final será ajustado assim que os preços forem estabelecidos.</span>
+        <span class="cart-warn-items" id="cart-warn-items-list"></span>
+      </div>
+    </div>
+    <div class="cart-list" id="cart-list">
+      <div class="cart-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        <span>Carrinho vazio</span>
+      </div>
+    </div>
+    <div class="cart-footer" id="cart-footer" style="display:none">
+      <div class="cart-total">
+        <span>TOTAL DE ITENS</span>
+        <strong id="cart-total-num">0</strong>
+      </div>
+      <div id="cart-taxa-aviso" class="taxa-aviso" style="display:none">
+        <span class="taxa-aviso-icon">⚠️</span>
+        <span class="taxa-aviso-text">Compras abaixo de <strong>10kk</strong> têm uma taxa de <strong>+5kk</strong>.</span>
+      </div>
+      <div class="cart-grand-total" id="cart-grand-total-block" style="display:none">
+        <!-- subtotal / taxa rows (mantidos para lógica JS) -->
+        <div class="cart-grand-row" style="display:none">
+          <span class="cart-grand-label">Subtotal KK</span>
+          <span class="cart-grand-val" id="cart-grand-kk">—</span>
+        </div>
+        <div id="cart-taxa-row" class="cart-taxa-row" style="display:none">
+          <span class="cart-taxa-label">Taxa (compra &lt; 10kk)</span>
+          <span class="cart-taxa-val">+5kk</span>
+        </div>
+        <div class="cart-grand-row" id="cart-total-final-row" style="display:none">
+          <span class="cart-grand-label">Total Final KK</span>
+          <span class="cart-grand-val" id="cart-grand-kk-final" style="color:var(--gold-bright)">—</span>
+        </div>
+        <div class="cart-grand-row" style="display:none">
+          <span class="cart-grand-label">Total R$</span>
+          <span class="cart-grand-val-brl" id="cart-grand-brl">—</span>
+        </div>
+
+        <!-- ── SELETOR DE MODO DE PAGAMENTO ── -->
+        <div class="pay-mode-selector">
+          <button class="pay-mode-btn kk active" onclick="setPayMode('kk')">⚔ KK</button>
+          <button class="pay-mode-btn brl" onclick="setPayMode('brl')">💵 PIX R$</button>
+          <button class="pay-mode-btn mix" onclick="setPayMode('mix')">⚡ Misto</button>
+        </div>
+
+        <!-- KK puro -->
+        <div class="pay-block active" id="pay-block-kk">
+          <div class="pay-kk-row">
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Total em KK</span>
+            <span class="pay-kk-total" id="pay-kk-total">—</span>
+          </div>
+          <div class="pay-kk-brl-hint" id="pay-kk-brl-hint">equivale a —</div>
+        </div>
+
+        <!-- BRL puro -->
+        <div class="pay-block" id="pay-block-brl">
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Total via PIX</div>
+          <div class="pay-brl-total" id="pay-brl-total">—</div>
+          <div class="pay-brl-kk-hint" id="pay-brl-kk-hint">equivale a —</div>
+        </div>
+
+        <!-- Misto -->
+        <div class="pay-block" id="pay-block-mix">
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Dividir pagamento</div>
+          <div class="pay-mix-row">
+            <span class="pay-mix-label">KK</span>
+            <input class="pay-mix-input kk-input" id="mix-kk-input" type="number" min="0" placeholder="0" oninput="onMixKkChange(this.value)" />
+          </div>
+          <div class="pay-mix-row">
+            <span class="pay-mix-label">R$</span>
+            <input class="pay-mix-input brl-input" id="mix-brl-input" type="number" min="0" step="0.01" placeholder="0,00" oninput="onMixBrlChange(this.value)" />
+          </div>
+          <div class="pay-mix-divider"></div>
+          <div class="pay-mix-balance" id="mix-balance">Preencha os valores acima</div>
+        </div>
+      </div>
+      <div class="nick-field-wrap" id="nick-field-wrap">
+        <div class="nick-field-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Conta vinculada
+        </div>
+        <div class="nick-display" id="cart-nick-display">—</div>
+      </div>
+      <div class="contact-btns-row">
+        <button class="send-order-btn" id="send-order-btn" onclick="enviarPedido()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Enviar Pedido
+        </button>
+      </div>
+      <button class="clear-btn" onclick="clearCart()">Limpar Carrinho</button>
+    </div>
+  </div>
+</div>
+
+<script src="tabs-config.js"></script>
+<script src="dados.js"></script>
+<script src="respawn_patch_modal.js"></script>
+<script src="app.js"></script>
+<script>
+// ── Aplica TABS_CONFIG: oculta abas desabilitadas ────────────────────────
+(function() {
+  if (typeof TABS_CONFIG === 'undefined') return;
+
+  var firstEnabled = null;
+
+  Object.keys(TABS_CONFIG).forEach(function(tab) {
+    if (TABS_CONFIG[tab] === false) {
+      // Oculta o botão da aba
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        var oc = btn.getAttribute('onclick') || '';
+        if (oc.indexOf("'" + tab + "'") !== -1) btn.style.display = 'none';
+      });
+      // Oculta o conteúdo da aba
+      var content = document.getElementById('tab-' + tab);
+      if (content) content.style.display = 'none';
+    } else {
+      if (!firstEnabled) firstEnabled = tab;
+    }
+  });
+
+  // Ativa a primeira aba habilitada
+  if (firstEnabled) {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+
+    var firstBtn = null;
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
+    });
+    if (firstBtn) firstBtn.classList.add('active');
+
+    var firstContent = document.getElementById('tab-' + firstEnabled);
+    if (firstContent) firstContent.classList.add('active');
+  }
+})();
+</script>
+
+
+
+<!-- ===================== WELCOME MODAL ===================== -->
+<div id="welcome-overlay">
+  <div class="welcome-modal">
+    <div class="welcome-logo-wrap">
+      <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="36,4 68,20 68,52 36,68 4,52 4,20" fill="none" stroke="rgba(58,140,255,0.7)" stroke-width="1.5"/>
+        <polygon points="36,10 62,24 62,48 36,62 10,48 10,24" fill="rgba(58,140,255,0.08)" stroke="rgba(240,180,41,0.5)" stroke-width="1"/>
+        <text x="36" y="44" font-family="Cinzel,serif" font-size="22" font-weight="900" fill="url(#wg)" text-anchor="middle">PA</text>
+        <defs>
+          <linearGradient id="wg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#60aaff"/>
+            <stop offset="100%" stop-color="#f0b429"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="welcome-title">Bem-vindo!</div>
+    <div class="welcome-subtitle">PokeAlliance Shop — Filipi</div>
+    <div class="welcome-divider"></div>
+    <div class="welcome-info-cards">
+      <div class="welcome-info-card">
+        <span class="welcome-info-icon">🛒</span>
+        <div class="welcome-info-text">
+          <strong>Serviços, não estoque</strong>
+          <p>Este site não possui estoque físico. Aqui você contrata serviços — cada pedido é tratado individualmente com total atenção.</p>
+        </div>
+      </div>
+      <div class="welcome-info-card">
+        <span class="welcome-info-icon">📦</span>
+        <div class="welcome-info-text">
+          <strong>Prazo de entrega</strong>
+          <p style="margin-bottom:6px">Os prazos variam conforme o tipo do pedido:</p>
+          <p>🔵 <strong style="color:var(--blue-bright)">UB:</strong> <strong style="color:var(--blue-bright)">4 a 7 dias úteis</strong></p>
+          <p>🟡 <strong style="color:var(--gold-bright)">Premier Ball / Alliance Ball:</strong> <strong style="color:var(--gold-bright)">7 a 10 dias úteis</strong></p>
+          <p>🟠 <strong style="color:#ff9f43">Packs de itens 10k+:</strong> <strong style="color:#ff9f43">acima de 10 dias</strong></p>
+        </div>
+      </div>
+      <div class="welcome-info-card gold">
+        <span class="welcome-info-icon">⭐</span>
+        <div class="welcome-info-text">
+          <strong>Super Raros</strong>
+          <p>Pokémons marcados como <strong style="color:var(--gold)">Super Raro</strong> têm prazo estendido de <strong style="color:var(--gold)">10 a 20 dias</strong> devido à dificuldade de obtenção.</p>
+        </div>
+      </div>
+    </div>
+    <button class="welcome-enter-btn" onclick="closeWelcomeAndAskTutorial()">
+      ⬟ Entrar na Loja
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Deseja fazer o tutorial? -->
+<div id="tutorial-ask-overlay" style="
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(4,6,14,0.88);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+">
+  <div style="
+    background:linear-gradient(145deg,#0d1628 0%,#080f1e 100%);
+    border:1px solid rgba(56,140,255,0.35);
+    border-radius:20px;
+    padding:40px 36px 32px;
+    max-width:420px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 0 60px rgba(58,140,255,0.18),inset 0 1px 0 rgba(255,255,255,0.06);
+    position:relative;
+    overflow:hidden;
+    animation:welcomeSlideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+  ">
+    <div style="
+      position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,transparent,var(--blue),var(--gold),var(--blue),transparent);
+    "></div>
+    <div style="font-size:44px;margin-bottom:16px">🧭</div>
+    <div style="
+      font-family:var(--font-title);font-size:18px;font-weight:900;
+      letter-spacing:3px;text-transform:uppercase;
+      background:linear-gradient(135deg,#fff 0%,var(--blue-bright) 50%,var(--gold) 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      margin-bottom:10px;
+    ">Deseja fazer o tutorial?</div>
+    <div style="
+      font-family:var(--font-body);font-size:14px;font-weight:500;
+      color:var(--muted);line-height:1.6;margin-bottom:28px;
+    ">Aprenda a usar todas as funcionalidades da loja em poucos passos. Você pode pular a qualquer momento.</div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button onclick="document.getElementById('tutorial-ask-overlay').style.display='none'; startTutorial();" style="
+        flex:1;max-width:160px;
+        padding:13px 20px;
+        background:linear-gradient(135deg,var(--blue) 0%,#1a6fe8 100%);
+        color:#fff;border:none;border-radius:12px;
+        font-family:var(--font-title);font-size:12px;font-weight:700;
+        letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+        box-shadow:0 4px 20px var(--glow-blue);
+        transition:all 0.2s;
+      " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        ✓ Sim, quero!
+      </button>
+      <button onclick="document.getElementById('tutorial-ask-overlay').style.display='none'; try{localStorage.setItem('tut_seen','1')}catch(e){}" style="
+        flex:1;max-width:160px;
+        padding:13px 20px;
+        background:rgba(255,255,255,0.05);
+        color:var(--muted);border:1px solid var(--border);border-radius:12px;
+        font-family:var(--font-title);font-size:12px;font-weight:700;
+        letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+        transition:all 0.2s;
+      " onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+        ✕ Pular
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast: item sem preço -->
+<div id="no-price-toast">
+  <span class="toast-icon">⚠️</span>
+  <div class="toast-body">
+    <span class="toast-title">Atenção — item sem preço!</span>
+    <span class="toast-msg" id="no-price-toast-msg">Este item ainda não tem valor definido. O total do carrinho será atualizado quando o preço for estabelecido.</span>
+  </div>
+</div>
+
+<!-- ===================== TUTORIAL INTERATIVO ===================== -->
+
+<style>
+/* ── Captura List: Broke Badge ── */
+.captura-list-broke {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px 2px 5px;
+  background: rgba(255, 90, 50, 0.10);
+  border: 1px solid rgba(255, 90, 50, 0.28);
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.captura-list-broke .broke-icon { font-size: 10px; }
+.captura-list-broke .broke-label {
+  color: rgba(255,150,110,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 9px;
+}
+.captura-list-broke .broke-val {
+  color: #ff9060;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── Brokes Wiki Page ── */
+.brokes-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.brokes-hero {
+  text-align: center;
+  padding: 36px 20px 28px;
+  margin-bottom: 28px;
+  background: linear-gradient(145deg, rgba(255,90,50,0.08) 0%, rgba(255,60,30,0.04) 100%);
+  border: 1px solid rgba(255,90,50,0.2);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.brokes-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,90,50,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.brokes-hero-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 16px rgba(255,90,50,0.5));
+}
+.brokes-hero-title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, #ff9060 60%, #ff4a20 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.brokes-hero-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+.brokes-section {
+  margin-bottom: 28px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.brokes-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.brokes-section-icon { font-size: 15px; }
+.brokes-section-note {
+  padding: 8px 20px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,150,80,0.8);
+  background: rgba(255,100,30,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  letter-spacing: 0.3px;
+}
+
+/* Table */
+.brokes-table-wrap { overflow-x: auto; padding: 0; }
+.brokes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.brokes-table thead tr {
+  background: rgba(255,255,255,0.04);
+}
+.brokes-table th {
+  padding: 10px 20px;
+  text-align: left;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.brokes-table td {
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+.brokes-table tbody tr:last-child td { border-bottom: none; }
+.brokes-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+
+.broke-val-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.broke-number {
+  font-family: var(--font-mono, monospace);
+  font-size: 15px;
+  font-weight: 700;
+  color: #ff9060;
+}
+.broke-unit {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: rgba(255,150,100,0.6);
+  letter-spacing: 1px;
+}
+.broke-approx {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  color: rgba(255,150,100,0.5);
+  margin-right: 1px;
+}
+.broke-question {
+  font-family: var(--font-mono, monospace);
+  font-size: 18px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.3);
+}
+.broke-tbd {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-left: 4px;
+}
+.broke-equiv {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+.tier-mythical-row td { opacity: 0.6; }
+
+/* Balls grid */
+.brokes-balls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+}
+.brokes-ball-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 16px 14px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+.brokes-ball-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+}
+.brokes-ball-card--elemental { border-color: rgba(150,100,255,0.2); }
+.brokes-ball-emoji {
+  font-size: 36px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 48px;
+}
+.brokes-ball-name {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.brokes-ball-rate {
+  display: inline-block;
+  font-family: var(--font-mono, monospace);
+  font-size: 20px;
+  font-weight: 900;
+  padding: 4px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.rate-ub { color: var(--gold); background: rgba(255,209,102,0.1); }
+.rate-pb { color: #fff; background: rgba(255,255,255,0.08); }
+.rate-ab { color: #60d0ff; background: rgba(96,208,255,0.08); }
+.rate-el { color: #b060ff; background: rgba(176,96,255,0.1); }
+.brokes-ball-desc {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+}
+
+/* Obs list */
+.brokes-obs-list { padding: 8px 20px 16px; }
+.brokes-obs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.brokes-obs-item:last-child { border-bottom: none; }
+.brokes-obs-item--highlight {
+  color: #fff;
+  background: rgba(255,90,50,0.07);
+  margin: 4px -8px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border-bottom: none;
+}
+.brokes-obs-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: rgba(255,90,50,0.15);
+  border: 1px solid rgba(255,90,50,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff9060;
+  margin-top: 1px;
+}
+.brokes-obs-text strong { color: #fff; }
+</style>
+
+<script src="tutorial.js"></script>
+
+<style>
+/* ── Wiki Subtabs — sticky nativo, sem JS de placeholder ── */
+#wiki-subtabs-sentinel { display: none; }
+#wiki-subtabs-placeholder { display: none !important; }
+
+#wiki-subtabs {
+  position: sticky;
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px));
+  z-index: 200;
+  background: rgba(6, 10, 22, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(58, 140, 255, 0.25);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.6);
+  padding: 10px 24px;
+}
+
+/* wiki-controls gruda abaixo do header + tabs (subtabs não existem mais na wiki nova) */
+.wiki-controls {
+  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px)) !important;
+}
+
+/* ══════════════════════════════════════════════
+   PUNCHING BAG WIKI STYLES
+══════════════════════════════════════════════ */
+.pb-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+.pb-hero {
+  position: relative;
+  text-align: center;
+  padding: 40px 24px 32px;
+  margin-bottom: 32px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,90,30,0.12) 0%, rgba(255,180,0,0.08) 50%, rgba(30,90,255,0.10) 100%);
+  border: 1px solid rgba(255,120,40,0.25);
+  overflow: hidden;
+}
+.pb-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,100,30,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pb-hero-icon {
+  font-size: 52px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 16px rgba(255,120,40,0.5));
+  animation: pb-bounce 2.5s ease-in-out infinite;
+}
+@keyframes pb-bounce {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-8px) rotate(5deg); }
+}
+.pb-hero-title {
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 8px;
+  text-shadow: 0 0 30px rgba(255,120,40,0.4);
+}
+.pb-hero-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.5px;
+}
+
+/* ── How To Section ── */
+.pb-howto {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 28px;
+}
+.pb-howto-title {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,180,60,0.9);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pb-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pb-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.pb-step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255,120,40,0.18);
+  border: 1px solid rgba(255,120,40,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff9060;
+  margin-top: 1px;
+}
+.pb-step strong { color: #fff; }
+.pb-step .pb-tag-dd {
+  display: inline-block;
+  background: rgba(58,140,255,0.15);
+  border: 1px solid rgba(58,140,255,0.3);
+  color: #60a5fa;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+}
+.pb-step .pb-tag-kk {
+  display: inline-block;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.28);
+  color: #4ade80;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+}
+.pb-tip-box {
+  margin-top: 12px;
+  background: rgba(255,200,0,0.07);
+  border: 1px solid rgba(255,200,0,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(255,220,100,0.85);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+/* ── Stats Table ── */
+.pb-section {
+  margin-bottom: 28px;
+}
+.pb-section-title {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pb-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+}
+.pb-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.pb-stat-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  cursor: default;
+}
+.pb-stat-card:hover {
+  background: rgba(255,255,255,0.055);
+  border-color: rgba(255,120,40,0.3);
+  transform: translateY(-2px);
+}
+.pb-stat-icon { font-size: 22px; margin-bottom: 6px; }
+.pb-stat-name {
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 6px;
+}
+.pb-stat-bonus {
+  font-family: var(--font-mono, monospace);
+  font-size: 17px;
+  font-weight: 900;
+  color: #ff9060;
+}
+.pb-stat-per-lvl {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  margin-top: 3px;
+}
+
+/* ── Calculator ── */
+.pb-calc-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,120,40,0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.pb-calc-header {
+  background: rgba(255,100,30,0.1);
+  border-bottom: 1px solid rgba(255,120,40,0.15);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pb-calc-header-icon { font-size: 20px; }
+.pb-calc-header-text {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #fff;
+}
+.pb-calc-body { padding: 20px; }
+.pb-calc-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.pb-calc-label {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  min-width: 90px;
+}
+.pb-level-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.pb-level-input {
+  width: 90px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,120,40,0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff9060;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.pb-level-input:focus { border-color: rgba(255,120,40,0.7); }
+.pb-level-slider {
+  flex: 1;
+  min-width: 120px;
+  accent-color: #ff7030;
+  cursor: pointer;
+  height: 4px;
+}
+.pb-level-max {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+}
+/* Results grid */
+.pb-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 8px;
+}
+.pb-result-cell {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+  transition: border-color 0.25s, background 0.25s;
+}
+.pb-result-cell.has-bonus {
+  border-color: rgba(255,120,40,0.25);
+  background: rgba(255,90,20,0.06);
+}
+.pb-result-icon { font-size: 16px; margin-bottom: 4px; }
+.pb-result-name {
+  font-family: var(--font-title);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 6px;
+}
+.pb-result-val {
+  font-family: var(--font-mono, monospace);
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  transition: color 0.25s;
+}
+.pb-result-cell.has-bonus .pb-result-val { color: #ff9060; }
+.pb-result-sub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 2px;
+}
+.pb-zero-msg {
+  text-align: center;
+  padding: 20px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── Bag variants section ── */
+.pb-bags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.pb-bag-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 18px 14px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.pb-bag-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,120,40,0.3);
+  transform: translateY(-2px);
+}
+.pb-bag-icon { font-size: 36px; margin-bottom: 8px; }
+.pb-bag-name {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.pb-bag-poke {
+  display: inline-block;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(255,120,40,0.12);
+  color: #ff9060;
+  margin-bottom: 8px;
+}
+.pb-bag-desc {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.5;
+}
+
+/* ===== ROUPAS DE SPEED ===== */
+.rsp-page { padding: 20px 0 60px; }
+.rsp-hero { text-align:center; padding:28px 20px 36px; }
+.rsp-hero-icon { font-size:48px; line-height:1; margin-bottom:10px; }
+.rsp-hero-title {
+  font-family: var(--font-title);
+  font-size:26px; font-weight:900; color:#fff;
+  letter-spacing:3px; margin-bottom:8px;
+}
+.rsp-hero-sub {
+  font-family: var(--font-body);
+  font-size:14px; color:rgba(255,255,255,0.38);
+}
+.rsp-card {
+  border-radius:18px;
+  border:1.5px solid var(--rsp-borda, rgba(255,255,255,0.12));
+  background: var(--rsp-bg, rgba(255,255,255,0.04));
+  margin-bottom:14px;
+  overflow:hidden;
+  transition: border-color .25s, box-shadow .25s;
+}
+.rsp-card.open {
+  border-color: var(--rsp-cor, #fff);
+  box-shadow: 0 0 40px var(--rsp-glow, rgba(255,255,255,0.1)), 0 6px 30px rgba(0,0,0,0.5);
+}
+.rsp-head {
+  display:flex; align-items:center; gap:16px;
+  padding:20px 24px; cursor:pointer; user-select:none;
+  transition: background .2s;
+}
+.rsp-head:hover { background:rgba(255,255,255,0.025); }
+.rsp-badge {
+  width:52px; height:52px; border-radius:14px; flex-shrink:0;
+  background: var(--rsp-bg2, rgba(255,255,255,0.07));
+  border: 1px solid var(--rsp-borda, rgba(255,255,255,0.12));
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px;
+}
+.rsp-head-info { flex:1; min-width:0; }
+.rsp-nome {
+  font-family: var(--font-title);
+  font-size:17px; font-weight:700; color:var(--rsp-cor,#fff); letter-spacing:0.5px;
+  margin-bottom:4px;
+}
+.rsp-subtitulo {
+  font-family: var(--font-body);
+  font-size:13px; color:rgba(255,255,255,0.42);
+}
+.rsp-pill {
+  font-family: var(--font-mono,monospace);
+  font-size:12px; font-weight:700;
+  padding:6px 14px; border-radius:20px;
+  border:1px solid var(--rsp-borda,rgba(255,255,255,0.15));
+  color:var(--rsp-cor,#fff); background:var(--rsp-bg,rgba(255,255,255,0.05));
+  white-space:nowrap; flex-shrink:0;
+}
+.rsp-arrow {
+  width:22px; height:22px; flex-shrink:0;
+  color:rgba(255,255,255,0.3);
+  transition: transform .35s cubic-bezier(.4,0,.2,1), color .2s;
+}
+.rsp-card.open .rsp-arrow { transform:rotate(180deg); color:var(--rsp-cor,#fff); }
+.rsp-body {
+  max-height:0; overflow:hidden;
+  transition: max-height .45s cubic-bezier(.4,0,.2,1), opacity .3s;
+  opacity:0;
+}
+.rsp-card.open .rsp-body { max-height:700px; opacity:1; }
+.rsp-expanded {
+  display:grid;
+  grid-template-columns:1.3fr 1fr;
+  gap:22px;
+  padding:0 24px 28px;
+  align-items:start;
+}
+@media(max-width:640px){ .rsp-expanded{ grid-template-columns:1fr; } }
+.rsp-img-box {
+  border-radius:14px; overflow:hidden;
+  border:1px solid var(--rsp-borda,rgba(255,255,255,0.1));
+  background:rgba(0,0,0,0.25); line-height:0;
+}
+.rsp-img-box img {
+  width:100%; height:auto;
+  max-height:400px; object-fit:contain; display:block;
+}
+.rsp-info { display:flex; flex-direction:column; gap:20px; }
+.rsp-info-label {
+  font-family: var(--font-title);
+  font-size:9px; font-weight:700; letter-spacing:2.5px;
+  text-transform:uppercase; color:rgba(255,255,255,0.28);
+  margin-bottom:7px;
+}
+.rsp-terreno-row { display:flex; align-items:center; gap:10px; }
+.rsp-terreno-emoji { font-size:30px; }
+.rsp-terreno-name {
+  font-family: var(--font-title);
+  font-size:22px; font-weight:700; color:var(--rsp-cor,#fff);
+}
+.rsp-req-box {
+  border-radius:14px;
+  border:1px solid var(--rsp-borda,rgba(255,255,255,0.1));
+  background:rgba(0,0,0,0.2);
+  padding:16px 18px;
+  display:flex; align-items:center; gap:14px;
+}
+.rsp-req-num {
+  font-family: var(--font-mono,monospace);
+  font-size:38px; font-weight:900; color:var(--rsp-cor,#fff); line-height:1;
+}
+.rsp-req-pedra {
+  font-family: var(--font-title);
+  font-size:15px; font-weight:700; color:#fff; margin-bottom:4px;
+}
+.rsp-req-hint {
+  font-family: var(--font-body);
+  font-size:12px; color:rgba(255,255,255,0.35);
+}
+.rsp-sep { height:1px; background:linear-gradient(90deg,var(--rsp-borda,rgba(255,255,255,0.1)),transparent); }
+.rsp-dica {
+  font-family: var(--font-body);
+  font-size:13px; color:rgba(255,255,255,0.45);
+  line-height:1.65; font-style:italic;
+}
+</style>
+
+
+<!-- WIKI LOOKUP POPUP -->
+<div id="wiki-popup-overlay">
+  <div id="wiki-popup">
+    <button id="wiki-popup-close" onclick="closeWikiPopup()">✕</button>
+    <div id="wiki-popup-title"></div>
+    <div id="wiki-popup-sub"></div>
+    <div id="wiki-popup-grid"></div>
+    <div id="wiki-popup-empty" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ── Sistema de Autenticação PokeAlliance (Supabase) ──────────────── -->
+<!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
+<!-- user-storage.js foi REMOVIDO — dados agora vêm do banco Supabase    -->
+<script src="supabase-client.js"></script>
+<script src="session.js"></script>
+<script src="schema-compat.js"></script> 
+<script src="auth.js"></script>
+<script src="login.js"></script>
+<!-- ── Feature flag kanban (remover esta linha = rollback instantâneo) ── -->
+<script>window.PA_KANBAN_ENABLED = true;</script>
+
+<script src="toast.js"></script>
+<script src="confirm-modal.js"></script>
+<script src="filipi-ui.js"></script>
+
+<!-- ── Sistema de Pedidos v2 ── -->
+<script src="orders-storage.js"></script>
+<script src="orders-progress.js"></script>
+<script src="notifications.js"></script>
+<script src="notifications-ui.js"></script> 
+<script src="orders-notifications.js"></script>
+<script src="queue-privacy.js"></script>
+<script src="orders-admin.js"></script>
+<script src="delivery-system.js"></script>
+
+<!-- ── Kanban (novos arquivos) ── -->
+<link rel="stylesheet" href="orders-kanban.css">
+<script src="orders-kanban.js"></script>
+
+<!-- ── Mobile patch — Aba Pedidos (deve vir por último) ── -->
+<link rel="stylesheet" href="mobile.css">
+
+<script src="orders-ui.js"></script>
+<script src="orders-integration-patch.js"></script>
+<script src="pedidos.js"></script>
+<script src="realtime-manager.js"></script>
+<script src="pedidos-realtime.js"></script>
+<script src="sla-realtime-ui.js"></script>
+<script>
+  // Inicializa a sessão assim que o DOM estiver pronto.
+  // Session.init() recupera sessão persistida e atualiza o header automaticamente.
+  // É async — o .catch() garante que erros críticos não fiquem silenciosos.
+  // Módulos que dependem do JWT podem aguardar com: await Session.ready()
+  document.addEventListener("DOMContentLoaded", function() {
+    Session.init().catch(function(err) {
+      console.error('[App] Erro crítico na inicialização da sessão:', err);
+    });
+  });
+</script>
+
+<script src="mobile-ux.js"></script>
+<script src="item-card-popup.js"></script>
+<script src="wiki-cards-upgrade.js"></script>
+<script src="quest-modal.js"></script>
+
+<!-- Renderizadores de módulos (ordem não importa entre si) -->
+<script src="tierlist.js"></script>
+<script src="tierlist-types.js"></script>
+<script src="tierlist-popup.js"></script>
+<script src="filter-smart.js"></script>
+<script src="wiki-boost.js"></script>
+<script src="wiki-star-ascension.js"></script>
+<script src="wiki-up150.js"></script>
+<script src="wiki-minimap.js"></script>
+<script src="wiki-medals.js"></script>
+<script src="wiki-medals-buffs.js"></script>
+
+<!-- Runtime de navegação — deve vir APÓS todos os renderizadores -->
+<script src="wiki-nav.js"></script>
+<script src="wiki-modules-ext.js"></script>
+<script src="nav-runtime.js"></script>
+
+<script>
+  // ── Service Worker ────────────────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    var _swRefreshed = false;
+
+    // Sempre que um novo SW assumir o controle, recarrega a página 1x
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (!_swRefreshed) {
+        _swRefreshed = true;
+        window.location.reload();
+      }
+    });
+
+window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js', {
+        updateViaCache: 'none'
+      }).then(function(reg) {
+        reg.update();
+
+        // MOBILE FIX: SW novo pode já estar em waiting de uma visita anterior
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      }).catch(function(err) {
+        console.warn('[SW] Registro falhou:', err);
+      });
+    });
+  }
+</script>
+
+
+<style>
+.send-order-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #3a8cff 0%, #1a5fcc 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(58,140,255,0.35);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.send-order-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(58,140,255,0.5); }
+.send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
+.send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+</style>
+<script>
+function enviarPedido() {
   var btn = document.getElementById('send-order-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   if (typeof submitPedido === 'function') {
@@ -9,7 +2260,36 @@
     if (typeof showToast === 'function') showToast('Erro: função de envio não encontrada em pedidos.js', 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Pedido'; }
   }
-}</script><style>.send-order-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-radius:12px;border:none;cursor:pointer;font-family:var(--font-title, 'Cinzel', serif);font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:linear-gradient(135deg,#3a8cff 0,#1a5fcc 100%);color:#fff;box-shadow:0 4px 20px rgba(58,140,255,.35);transition:transform .15s,box-shadow .15s,opacity .15s}.send-order-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(58,140,255,.5)}.send-order-btn:active{transform:translateY(0);box-shadow:0 2px 10px rgba(58,140,255,.25)}.send-order-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}</style><script>function enviarPedido() {
+}
+</script>
+
+<style>
+.send-order-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #3a8cff 0%, #1a5fcc 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(58,140,255,0.35);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.send-order-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(58,140,255,0.5); }
+.send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
+.send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+</style>
+<script>
+function enviarPedido() {
   var btn = document.getElementById('send-order-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   if (typeof sendToWhatsApp === 'function') {
@@ -23,4 +2303,12 @@
     if (typeof showToast === 'function') showToast('Erro: pedidos.js não carregado', 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Enviar Pedido'; }
   }
-}</script></body></html>
+}
+</script>
+<script src="captura-redesign.js"></script>
+<script src="packages.logic.js"></script>
+<script src="packages.render.js"></script>
+<script src="items.logic.js"></script>
+<script src="items.render.js"></script>
+</body>
+</html>
