@@ -518,7 +518,7 @@ function renderCart() {
     if (gtKkFinalEl && hasTaxa) gtKkFinalEl.textContent = gtFinalData.label;
     document.getElementById('cart-grand-total-block').style.display = 'block';
     // Atualiza painel de pagamento
-    updatePayDisplay(grandTotalRaw, grandTotalFinal, parseFloat((grandTotalFinal / 1000000 * 1.70).toFixed(2)));
+    updatePayDisplay(grandTotalRaw, grandTotalFinal, parseFloat((grandTotalFinal / 1000000 * KK_TO_BRL).toFixed(2)));
   } else {
     document.getElementById('cart-grand-total-block').style.display = 'none';
     if (taxaAviso) taxaAviso.style.display = 'none';
@@ -627,8 +627,8 @@ function onMixKkChange(val) {
   const kkPaid  = Math.max(0, parseFloat(val) || 0);
   // kk inserido é em unidades de kk (ex: 5 = 5kk = 5_000_000)
   const kkPaidRaw = kkPaid * 1000000;
-  const remaining = _payTotalBrl - (kkPaidRaw / 1000000 * 1.70);
-  const brlLeft = Math.max(0, _payTotalBrl - (kkPaidRaw / 1000000 * 1.70));
+  const remaining = _payTotalBrl - (kkPaidRaw / 1000000 * KK_TO_BRL);
+  const brlLeft = Math.max(0, _payTotalBrl - (kkPaidRaw / 1000000 * KK_TO_BRL));
   // Atualiza campo BRL
   document.getElementById('mix-brl-input').value = brlLeft > 0 ? brlLeft.toFixed(2) : '0.00';
   updateMixBalance(kkPaidRaw, brlLeft);
@@ -638,13 +638,13 @@ function onMixBrlChange(val) {
   const brlPaid = Math.max(0, parseFloat(val) || 0);
   const brlLeft = Math.max(0, _payTotalBrl - brlPaid);
   // converte o restante em KK
-  const kkLeft  = brlLeft / 1.70; // 1kk = R$1.70
+  const kkLeft  = brlLeft / KK_TO_BRL; // lê de financial_config via APP_CONFIG
   document.getElementById('mix-kk-input').value = kkLeft > 0 ? kkLeft.toFixed(4) : '0';
   updateMixBalance(kkLeft * 1000000, brlPaid);
 }
 
 function updateMixBalance(kkPaidRaw, brlPaid) {
-  const totalPaidBrl = (kkPaidRaw / 1000000 * 1.70) + brlPaid;
+  const totalPaidBrl = (kkPaidRaw / 1000000 * KK_TO_BRL) + brlPaid;
   const diff = totalPaidBrl - _payTotalBrl;
   const el   = document.getElementById('mix-balance');
   const kkData = formatKK(kkPaidRaw);
@@ -2427,83 +2427,9 @@ function getBrokeForTag(tag) {
 
 // ===================== CAPTURA =====================
 // Formato: { name: "Nome", price: <raw kk igual RAW>, image: "url" }
-// Exemplos de preço: 1000000 = 1kk | 5000000 = 5kk | 500000 = 500k | 0 = sem preço
-const POKEMONS = [
-{ name: "Shiny Ampharos",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/DecvtNB.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Arbok",       price: 5000000,   tag: "t3",         image: "https://i.imgur.com/Lx8tTwy.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Ariados",     price: 5000000,   tag: "t3",         image: "https://i.imgur.com/4qVdNjM.gif", bannerImage: "https://i.imgur.com/V4IXR51.png" },
-{ name: "Shiny Bellossom",   price: 5000000,   tag: "t3",         image: "https://i.imgur.com/vo0GY2X.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Blastoise",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/9iQ7wNL.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Charizard", price: 38000000, tag: "t1", image: "https://i.imgur.com/SrQU5gi.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Crobat",      price: 10000000,   tag: "t2",         image: "https://i.imgur.com/agzGxZH.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
-{ name: "Shiny Donphan",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/9xd9h6l.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Dugtrio",     price: 5000000,   tag: "t3",         image: "https://i.imgur.com/F9jJz0e.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Dusknoir",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/A0bWaq4.gif", bannerImage: "https://i.imgur.com/HuybbPn.png" },
-{ name: "Shiny Espeon",      price: 42000000,  tag: "t1",         image: "https://i.imgur.com/Zws7DJo.gif", bannerImage: "https://i.imgur.com/ASiZi1K.png" },
-{ name: "Shiny Exeggutor",   price: 10000000,   tag: "t2",         image: "https://i.imgur.com/OpvTaP1.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Farfetch'd",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/Vo6volA.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
-{ name: "Shiny Fearow",      price: 5000000,   tag: "t3",         image: "https://i.imgur.com/wNR2Ija.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
-{ name: "Shiny Feraligatr",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/DP4YWT1.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Flareon",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/9UowZtR.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Florges",     price: 170000000, tag: "super-raro", image: "https://i.imgur.com/fynxTta.gif", bannerImage: "https://i.imgur.com/j3HaXTh.png" },
-{ name: "Shiny Golem",       price: 38000000,  tag: "t1",         image: "https://i.imgur.com/6Wphle1.gif", bannerImage: "https://i.imgur.com/GvD1Mtq.png" },
-{ name: "Shiny Grambull",    price: 10000000,   tag: "t2",         image: "https://i.imgur.com/lPlawhM.gif", bannerImage: "https://i.imgur.com/j3HaXTh.png" },
-{ name: "Shiny Hitmonchan",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/5XHDbmn.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Hitmonlee",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/uzewWkj.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Hitmontop",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/YWsKw3O.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Jolteon",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/3Jc5ZUX.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Jynx",        price: 38000000,  tag: "t1",         image: "https://i.imgur.com/VNGVJBo.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },
-{ name: "Shiny Luxray",      price: 170000000, tag: "super-raro", image: "https://i.imgur.com/sWnyJd1.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Magneton",    price: 10000000,   tag: "t2",         image: "https://i.imgur.com/ZcDUckg.gif", bannerImage: "https://i.imgur.com/GleRjiM.png" },
-{ name: "Shiny Meganium",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/eJvTQJ7.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Nidoking",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/xeDriFy.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Nidoqueen",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/iIMkTqF.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Ninetales",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/u0sGCqg.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Pidgeot",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/pHY01e0.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
-{ name: "Shiny Politoad",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/yLbIDLz.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Poliwrath",   price: 38000000,  tag: "t1",         image: "https://i.imgur.com/W6WAMQH.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Primeape",    price: 5000000,   tag: "t3",         image: "https://i.imgur.com/14eRtXp.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Raichu",      price: 38000000,  tag: "t1",         image: "https://i.imgur.com/EbsLav0.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Rhydon",      price: 10000000,   tag: "t2",         image: "https://i.imgur.com/N0xE5Jd.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Sandslash",   price: 5000000,   tag: "t3",         image: "https://i.imgur.com/KXpdDgh.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Starmie",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/y0z0Tkt.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Steelix",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zY5AuG0.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Magcargo",     price: 38000000,  tag: "t1",         image: "https://i.imgur.com/dGiBfxE.gif", bannerImage: "https://i.imgur.com/GvD1Mtq.png" },
-{ name: "Shiny Tangela",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/CkrSdpJ.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Heracross",     price: 15000000,   tag: "t2",         image: "https://i.imgur.com/r1hdJz1.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Onix",     price: 10000000,   tag: "t2",         image: "https://i.imgur.com/VO2wrSz.gif", bannerImage: "https://i.imgur.com/GvD1Mtq.png" },
-{ name: "Shiny Tangrowth",   price: 170000000, tag: "super-raro", image: "https://i.imgur.com/Ep4wVmN.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Tentacruel",  price: 38000000,  tag: "t1", dive: true, image: "https://i.imgur.com/I9J30Si.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Torterra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/yp3SFUz.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Machamp",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/rVgDyg7.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Typhlosion",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/2BtRLDx.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Umbreon",     price: 42000000,  tag: "t1",         image: "https://i.imgur.com/G5vLr8q.gif", bannerImage: "https://i.imgur.com/7Luj4az.png" },
-{ name: "Shiny Vaporeon",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZiHkl9v.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
-{ name: "Shiny Venusaur",    price: 38000000,  tag: "t1",         image: "https://i.imgur.com/gmZVZIS.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Victreebel",  price: 5000000,   tag: "t3",         image: "https://i.imgur.com/Wz5rU8G.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Vileplume",   price: 10000000,   tag: "t2",         image: "https://i.imgur.com/62jbqox.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Shiny Xatu",        price: 10000000,   tag: "t2",         image: "https://i.imgur.com/I3KwmrR.gif", bannerImage: "https://i.imgur.com/HuybbPn.png" },
-{ name: "Dusknoir",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/yIyXLpT.gif", bannerImage: "https://i.imgur.com/HuybbPn.png" },
-{ name: "Luxray",            price: 32000000,  tag: "t1",         image: "https://i.imgur.com/vLUBjp6.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Tangrowth",         price: 32000000,  tag: "t1",         image: "https://i.imgur.com/EpEQ1Wx.gif", bannerImage: "https://i.imgur.com/YjKxtoE.png" },
-{ name: "Torterra",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/PBn3OXz.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Dodrio",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/X5uC13u.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
-{ name: "Shiny Kingdra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/ZPszNYT.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
- <!-- { name: "Shiny Kabutops",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/t7vEAaB.gif" }, -->
-{ name: "Shiny Arcanine",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/BqakQU0.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
-{ name: "Shiny Kangaskhan",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/wgjSoja.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
-{ name: "Shiny Lapras",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/nVzbMx2.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },
-{ name: "Shiny Qwilfish",     price: 10000000,   tag: "t3", dive: true,  image: "https://i.imgur.com/FYlu9Rd.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Slowking",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/koy11aG.gif", bannerImage: "https://i.imgur.com/ASiZi1K.png" },
-{ name: "Shiny Skarmory",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/B2l8aVE.gif", bannerImage: "https://i.imgur.com/GleRjiM.png" },
-{ name: "Shiny Toxicroak",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/BUSWRd6.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Misdreavus",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/mgtoi05.gif", bannerImage: "https://i.imgur.com/HuybbPn.png" },
-{ name: "Shiny Rapidash",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/1dWZFHK.gif", bannerImage: "https://i.imgur.com/Yv2WEYc.png" },
-{ name: "Shiny Muk",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/zWWBobI.gif", bannerImage: "https://i.imgur.com/xfX0ReE.png" },
-{ name: "Shiny Marowak",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/ZzOu7hp.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
-{ name: "Shiny Mantine",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/wfiogx3.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
-{ name: "Shiny Delibird",     price: 10000000,   tag: "t3",         image: "https://i.imgur.com/HC4VMvm.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },
-];
+// POKEMONS migrado para Supabase (catalog_pokemons)
+// db-bootstrap.js popula window.POKEMONS[] automaticamente
+const POKEMONS = window.POKEMONS || [];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
 
