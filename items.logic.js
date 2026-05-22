@@ -1,43 +1,25 @@
 /**
- * items.logic.js
+ * items.logic.js  v2
  * ─────────────────────────────────────────────────────────────────────────────
- * SOURCE OF TRUTH para todo o estado da aba de itens.
- *
- * REGRA: nenhum outro arquivo declara variáveis de estado de itens da UI.
- * A lógica de carrinho (cart, addToCart, removeFromCart) permanece em app.js
- * pois é compartilhada com pacotes e outros módulos.
- *
- * Carregado APÓS app.js (que define items, cart, formatKK, getTag, etc.)
+ * SOURCE OF TRUTH: estado, filtros, helpers de HTML para a aba de itens.
+ * Carregado APÓS app.js (que define items[], cart{}, formatKK, etc.)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ESTADO CENTRALIZADO
+   ESTADO
    ═══════════════════════════════════════════════════════════════════════════ */
 
 window.itemsState = {
-  searchQuery:    '',     // string — termo atual de busca
-  activeFilter:   'all',  // string — filtro ativo (tier/tag/all)
-  initialRender:  true,   // boolean — controla animação de entrada
+  searchQuery:   '',
+  activeFilter:  'all',
+  initialRender: true,
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MAPEAMENTOS PUROS (sem estado, sem DOM)
+   MAPEAMENTOS PUROS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/**
- * Retorna a tag visual do item: 'shiny' | 'orb' | 'essence' | 'normal'
- * Replica getTag() de app.js com escopo local para desacoplamento.
- */
-function getItemTag(item) {
-  var n = (item.name || '').toLowerCase();
-  if (n.includes('shiny'))   return 'shiny';
-  if (n.includes('orb'))     return 'orb';
-  if (n.includes('essence')) return 'essence';
-  return 'normal';
-}
-
-/** Mapa de URL fragment → tipo pokémon (para cor dinâmica do preço) */
 var ITEM_BANNER_TYPE_MAP = [
   { url: 'zpRe43i', type: 'water'    },
   { url: 'GleRjiM', type: 'steel'    },
@@ -59,109 +41,79 @@ var ITEM_BANNER_TYPE_MAP = [
   { url: 'OKsJXh7', type: 'fighting' },
 ];
 
-/** Paleta de cores por tipo pokémon */
 var ITEM_TYPE_COLORS = {
-  fire:     '#ff6a00',
-  water:    '#00aaff',
-  electric: '#ffe600',
-  grass:    '#44cc00',
-  ice:      '#80e8ff',
-  psychic:  '#ff44bb',
-  ghost:    '#9900ff',
-  dragon:   '#ffaa00',
-  dark:     '#6666cc',
-  fairy:    '#ff66bb',
-  poison:   '#aa00cc',
-  ground:   '#cc8800',
-  rock:     '#aa8855',
-  bug:      '#99cc00',
-  flying:   '#aabbff',
-  steel:    '#ccddee',
-  normal:   '#bbbbbb',
-  fighting: '#ff4400',
+  fire: '#ff6a00', water: '#00aaff', electric: '#ffe600', grass: '#44cc00',
+  ice: '#80e8ff', psychic: '#ff44bb', ghost: '#9900ff', dragon: '#ffaa00',
+  dark: '#6666cc', fairy: '#ff66bb', poison: '#aa00cc', ground: '#cc8800',
+  rock: '#aa8855', bug: '#99cc00', flying: '#aabbff', steel: '#ccddee',
+  normal: '#bbbbbb', fighting: '#ff4400',
 };
 
-/** Tier filters reconhecidos */
 var ITEM_TIER_FILTERS = ['t1','t2','t3','t4','t5','hard','mark'];
 
-/**
- * Retorna o tipo pokémon de um item a partir da bannerImage URL.
- * @param {string} bannerImage
- * @returns {string|null}
- */
-function getItemPokeType(bannerImage) {
-  if (!bannerImage) return null;
-  var match = ITEM_BANNER_TYPE_MAP.find(function(m) {
-    return bannerImage.includes(m.url);
-  });
-  return match ? match.type : null;
+function getItemTag(item) {
+  var n = (item.name || '').toLowerCase();
+  if (n.includes('shiny'))   return 'shiny';
+  if (n.includes('orb'))     return 'orb';
+  if (n.includes('essence')) return 'essence';
+  return 'normal';
 }
 
-/**
- * Retorna a cor primária para o preço de um item.
- * @param {object} item
- * @returns {string} cor hex/css
- */
+function getItemPokeType(bannerImage) {
+  if (!bannerImage) return null;
+  var m = ITEM_BANNER_TYPE_MAP.find(function(x) { return bannerImage.includes(x.url); });
+  return m ? m.type : null;
+}
+
 function getItemPriceColor(item) {
-  var tag      = getItemTag(item);
-  var pokeType = getItemPokeType(item.bannerImage);
-  if (pokeType && ITEM_TYPE_COLORS[pokeType]) return ITEM_TYPE_COLORS[pokeType];
+  var tag  = getItemTag(item);
+  var type = getItemPokeType(item.bannerImage);
+  if (type && ITEM_TYPE_COLORS[type]) return ITEM_TYPE_COLORS[type];
   if (tag === 'shiny') return '#ffd166';
-  return '#60aaff';
+  return '#4a9aff';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FILTRO E BUSCA
+   FILTRO
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/**
- * Aplica busca + filtro sobre o array global `items`.
- * @param {string} query  — texto de busca (já em lowercase)
- * @param {string} filter — valor do select de filtro
- * @returns {Array} itens visíveis
- */
 function filterItems(query, filter) {
   return items.filter(function(item) {
     var tag  = getItemTag(item);
     var tier = (item.tier || '').toLowerCase();
-
     var matchQ = !query || item.name.toLowerCase().includes(query);
-
-    var isTierFilter = ITEM_TIER_FILTERS.includes(filter);
+    var isTier = ITEM_TIER_FILTERS.includes(filter);
     var matchF =
       filter === 'all'
-      || (isTierFilter && tier === filter)
-      || (!isTierFilter && filter === 'normal' && !item.tier && tag === 'normal')
-      || (!isTierFilter && filter !== 'normal' && tag === filter);
-
+      || (isTier  && tier === filter)
+      || (!isTier && filter === 'normal' && !item.tier && tag === 'normal')
+      || (!isTier && filter !== 'normal' && tag === filter);
     return matchQ && matchF;
   });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   HELPERS DE HTML PARCIAL
-   (small pieces sem estrutura de card completo)
+   HTML BUILDERS (novo layout horizontal)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Gera HTML do banner tag (acima da imagem) */
 function buildItemBannerHtml(item) {
   if (!item.bannerImage && !item.banner) return '';
   if (item.bannerImage) {
-    return '<div class="item-card-banner has-img"><img src="' + item.bannerImage +
-      '" alt="tipo" loading="lazy" onerror="this.parentElement.style.display=\'none\'" /></div>';
+    return '<div class="item-card-banner has-img">' +
+      '<img src="' + item.bannerImage + '" alt="tipo" loading="lazy" onerror="this.parentElement.style.display=\'none\'" />' +
+      '</div>';
   }
   return '<div class="item-card-banner text-only">' + item.banner + '</div>';
 }
 
-/** Gera HTML da tier tag */
 function buildItemTierHtml(tier) {
   if (!tier) return '';
   var cfg = {
-    t1:   { label: 'T1',   cls: 'item-tier-t1'   },
-    t2:   { label: 'T2',   cls: 'item-tier-t2'   },
-    t3:   { label: 'T3',   cls: 'item-tier-t3'   },
-    t4:   { label: 'T4',   cls: 'item-tier-t4'   },
-    t5:   { label: 'T5',   cls: 'item-tier-t5'   },
+    t1: { label: 'T1', cls: 'item-tier-t1' },
+    t2: { label: 'T2', cls: 'item-tier-t2' },
+    t3: { label: 'T3', cls: 'item-tier-t3' },
+    t4: { label: 'T4', cls: 'item-tier-t4' },
+    t5: { label: 'T5', cls: 'item-tier-t5' },
     hard: { label: 'HARD', cls: 'item-tier-hard' },
     mark: { label: 'MARK', cls: 'item-tier-mark' },
   }[tier.toLowerCase()];
@@ -169,112 +121,92 @@ function buildItemTierHtml(tier) {
   return '<span class="item-tier-tag ' + cfg.cls + '">' + cfg.label + '</span>';
 }
 
-/** Gera HTML da evo tag */
 function buildItemEvoHtml(evo) {
   if (!evo) return '';
   var cfg = {
-    evo1: { label: 'EVO 1', cls: 'item-evo-1' },
-    evo2: { label: 'EVO 2', cls: 'item-evo-2' },
+    evo1: { label: 'EVO 1', cls: '' },
+    evo2: { label: 'EVO 2', cls: '' },
     evo3: { label: 'EVO 3', cls: 'item-evo-3' },
-  }[evo.toLowerCase()];
+  }[(evo || '').toLowerCase()];
   if (!cfg) return '';
   return '<span class="item-evo-tag ' + cfg.cls + '">' + cfg.label + '</span>';
 }
 
-/** Gera HTML do bloco de preço (unit + total) */
 function buildItemPriceHtml(item, typeColor) {
   var priceData = (typeof formatKK === 'function') ? formatKK(item.price) : null;
   if (!priceData) {
     return '<div class="item-price-block"><span class="item-price-none">sem preço</span></div>';
   }
-  var dimColor = typeColor + 'aa';
   return (
     '<div class="item-price-block">' +
-      '<div class="item-price-row">' +
-        '<span class="item-price-label">Unit.</span>' +
-        '<span class="item-price-kk" style="color:' + typeColor + ';text-shadow:0 0 10px ' + typeColor + '55">' + priceData.label + '</span>' +
-        '<span class="item-price-brl" style="color:' + dimColor + '">' + priceData.brl + '</span>' +
+      '<div class="item-price-main">' +
+        '<span class="item-price-kk" style="color:' + typeColor + ';text-shadow:0 0 16px ' + typeColor + '44">' + priceData.label + '</span>' +
+        '<span class="item-price-brl">' + priceData.brl + '</span>' +
       '</div>' +
-      '<div class="item-price-sep" style="background:linear-gradient(90deg,' + typeColor + '33,transparent 80%)"></div>' +
-      '<div class="item-price-row" id="item-total-row-' + item._idx + '">' +
-        '<span class="item-price-label">Total</span>' +
-        '<span class="item-price-total-kk" style="color:' + typeColor + '99" id="item-total-kk-' + item._idx + '">' + priceData.label + '</span>' +
+      '<div class="item-price-total-row">' +
+        '<span class="item-price-total-label">total</span>' +
+        '<span class="item-price-total-kk" style="color:' + typeColor + '66" id="item-total-kk-' + item._idx + '">' + priceData.label + '</span>' +
         '<span class="item-price-total-brl" id="item-total-brl-' + item._idx + '">' + priceData.brl + '</span>' +
       '</div>' +
     '</div>'
   );
 }
 
-/** Gera HTML dos botões de pack (+500 / +1000) */
-function buildItemPackFooterHtml(item, typeColor) {
-  var priceData    = (typeof formatKK === 'function') ? formatKK(item.price) : null;
-  var pack500Data  = item.price ? formatKK(item.price * 500)  : null;
-  var pack1000Data = item.price ? formatKK(item.price * 1000) : null;
+function buildItemPackFooterHtml(item) {
   var i = item._idx;
+  var p500  = item.price ? formatKK(item.price * 500)  : null;
+  var p1000 = item.price ? formatKK(item.price * 1000) : null;
 
-  var p500Label = pack500Data
-    ? '<span class="item-pack-btn-qty">+500</span><span class="item-pack-btn-price">' + pack500Data.label + '</span><span class="item-pack-btn-brl">' + pack500Data.brl + '</span>'
+  var lbl500 = p500
+    ? '<span class="item-pack-btn-qty">+500</span><span class="item-pack-btn-price">' + p500.label + '</span><span class="item-pack-btn-brl">' + p500.brl + '</span>'
     : '<span class="item-pack-btn-qty">+500</span>';
 
-  var p1000Label = pack1000Data
-    ? '<span class="item-pack-btn-qty">+1000</span><span class="item-pack-btn-price">' + pack1000Data.label + '</span><span class="item-pack-btn-brl">' + pack1000Data.brl + '</span>'
+  var lbl1000 = p1000
+    ? '<span class="item-pack-btn-qty">+1000</span><span class="item-pack-btn-price">' + p1000.label + '</span><span class="item-pack-btn-brl">' + p1000.brl + '</span>'
     : '<span class="item-pack-btn-qty">+1000</span>';
 
   return (
-    '<div class="item-pack-footer">' +
-      '<button class="item-pack-btn item-pack-btn-500" id="itembtn-500-' + i + '" onclick="addPackToCart(' + i + ', 500)">' + p500Label + '</button>' +
-      '<button class="item-pack-btn item-pack-btn-1000" onclick="addPackToCart(' + i + ', 1000)">' + p1000Label + '</button>' +
-    '</div>'
+    '<button class="item-pack-btn item-pack-btn-500" id="itembtn-500-' + i + '" onclick="addPackToCart(' + i + ',500)">' + lbl500 + '</button>' +
+    '<button class="item-pack-btn item-pack-btn-1000" onclick="addPackToCart(' + i + ',1000)">' + lbl1000 + '</button>' +
+    '<div class="item-footer-spacer"></div>'
   );
 }
 
-/** Gera HTML do footer manual (qty input + add button + remove inline) */
 function buildItemManualFooterHtml(item) {
   var i      = item._idx;
   var inCart = (typeof cart !== 'undefined') && cart[i] > 0;
   return (
-    '<div class="item-manual-footer">' +
-      '<input type="number" class="item-qty-input" id="item-qty-' + i + '" value="1" min="1" max="100000"' +
-        ' oninput="const v=parseInt(this.value,10);this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v);itemUpdateTotalPrice(' + i + ',this.value)"' +
-        ' onkeydown="if(event.key===\'-\'||event.key===\'e\')event.preventDefault()" />' +
-      '<div class="item-footer-added" style="flex:1">' +
-        '<button class="item-add-btn' + (inCart ? ' added' : '') + '" id="item-addbtn-' + i + '" onclick="itemAddToCart(' + i + ')" style="flex:1">' +
-          '<span id="item-addbtn-label-' + i + '">' + (inCart ? ('✓ ' + cart[i].toLocaleString()) : '⬟ Adicionar') + '</span>' +
-        '</button>' +
-        (inCart
-          ? '<button class="item-rem-btn" id="item-rembtn-' + i + '" onclick="itemRemoveFromCart(' + i + ')" title="Remover do carrinho">&#x2715;</button>'
-          : '<span id="item-rembtn-' + i + '"></span>'
-        ) +
-      '</div>' +
+    '<input type="number" class="item-qty-input" id="item-qty-' + i + '" value="1" min="1" max="100000"' +
+      ' oninput="var v=parseInt(this.value,10);this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v);itemUpdateTotalPrice(' + i + ',this.value)"' +
+      ' onkeydown="if(event.key===\'-\'||event.key===\'e\')event.preventDefault()" />' +
+    '<div style="display:flex;align-items:center;gap:5px;flex:1">' +
+      '<button class="item-add-btn' + (inCart ? ' added' : '') + '" id="item-addbtn-' + i + '" onclick="itemAddToCart(' + i + ')" style="flex:1">' +
+        '<span id="item-addbtn-label-' + i + '">' + (inCart ? ('✓ ' + cart[i].toLocaleString()) : 'Adicionar') + '</span>' +
+      '</button>' +
+      (inCart
+        ? '<button class="item-rem-btn" id="item-rembtn-' + i + '" onclick="itemRemoveFromCart(' + i + ')" title="Remover">✕</button>'
+        : '<span id="item-rembtn-' + i + '"></span>'
+      ) +
     '</div>'
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PONTOS DE ENTRADA DE EVENTOS (bridge para cart em app.js)
+   CART BRIDGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/**
- * Atualiza display de preço total quando qty muda.
- * Bridge para a lógica em app.js (updateTotalPrice) usando novos IDs.
- */
 function itemUpdateTotalPrice(i, rawVal) {
   var qty  = Math.max(1, parseInt(rawVal, 10) || 1);
   var item = items[i];
   if (!item || !item.price) return;
-  var total = item.price * qty;
-  var data  = (typeof formatKK === 'function') ? formatKK(total) : null;
+  var data = (typeof formatKK === 'function') ? formatKK(item.price * qty) : null;
   if (!data) return;
-  var kkEl  = document.getElementById('item-total-kk-' + i);
+  var kkEl  = document.getElementById('item-total-kk-'  + i);
   var brlEl = document.getElementById('item-total-brl-' + i);
   if (kkEl)  kkEl.textContent  = data.label;
   if (brlEl) brlEl.textContent = data.brl;
 }
 
-/**
- * Adiciona item ao carrinho via input de qty.
- * Atualiza botões com os IDs novos do módulo.
- */
 function itemAddToCart(i) {
   var input = document.getElementById('item-qty-' + i);
   var val   = parseInt(input ? input.value : 1, 10);
@@ -289,44 +221,33 @@ function itemAddToCart(i) {
 
   if (typeof updateCartBadge === 'function') updateCartBadge();
 
-  // Atualiza botão do módulo de itens
   var btn = document.getElementById('item-addbtn-' + i);
   var lbl = document.getElementById('item-addbtn-label-' + i);
-  if (btn) {
-    btn.classList.add('added');
-    btn.classList.add('just-added');
-    setTimeout(function() { btn.classList.remove('just-added'); }, 300);
-  }
+  if (btn) { btn.classList.add('added', 'just-added'); setTimeout(function() { btn.classList.remove('just-added'); }, 250); }
   if (lbl) lbl.textContent = '✓ ' + cart[i].toLocaleString();
 
-  // Troca span vazio por botão de remover
   var remSlot = document.getElementById('item-rembtn-' + i);
   if (remSlot && remSlot.tagName === 'SPAN') {
     var remBtn       = document.createElement('button');
     remBtn.className = 'item-rem-btn';
     remBtn.id        = 'item-rembtn-' + i;
     remBtn.title     = 'Remover do carrinho';
-    remBtn.innerHTML = '&#x2715;';
+    remBtn.textContent = '✕';
     remBtn.onclick   = function() { itemRemoveFromCart(i); };
     remSlot.replaceWith(remBtn);
   }
 
   var overlay = document.getElementById('cart-overlay');
-  if (overlay && overlay.classList.contains('open') && typeof renderCart === 'function') {
-    renderCart();
-  }
+  if (overlay && overlay.classList.contains('open') && typeof renderCart === 'function') renderCart();
 }
 
-/**
- * Remove item do carrinho e reseta botões do módulo.
- */
 function itemRemoveFromCart(i) {
   delete cart[i];
 
   var btn = document.getElementById('item-addbtn-' + i);
   var lbl = document.getElementById('item-addbtn-label-' + i);
   if (btn) btn.classList.remove('added');
-  if (lbl) lbl.textContent = '⬟ Adicionar';
+  if (lbl) lbl.textContent = 'Adicionar';
 
   var remBtn = document.getElementById('item-rembtn-' + i);
   if (remBtn && remBtn.tagName === 'BUTTON') {

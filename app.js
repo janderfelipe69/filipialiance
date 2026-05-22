@@ -645,7 +645,7 @@ function removeFromCart(i) {
   const addBtn = document.getElementById('item-addbtn-' + i);
   const addLbl = document.getElementById('item-addbtn-label-' + i);
   if (addBtn) addBtn.classList.remove('added');
-  if (addLbl) addLbl.textContent = '⬟ Adicionar';
+  if (addLbl) addLbl.textContent = 'Adicionar';
   const remBtn = document.getElementById('item-rembtn-' + i);
   if (remBtn && remBtn.tagName === 'BUTTON') {
     const span = document.createElement('span');
@@ -664,7 +664,7 @@ function clearCart() {
     const addBtn = document.getElementById('item-addbtn-' + k);
     const addLbl = document.getElementById('item-addbtn-label-' + k);
     if (addBtn) addBtn.classList.remove('added');
-    if (addLbl) addLbl.textContent = '⬟ Adicionar';
+    if (addLbl) addLbl.textContent = 'Adicionar';
     const remBtn = document.getElementById('item-rembtn-' + k);
     if (remBtn && remBtn.tagName === 'BUTTON') {
       const span = document.createElement('span');
@@ -2297,7 +2297,7 @@ function removePackageFromCart(pi) {
     const addBtn2 = document.getElementById('item-addbtn-' + idx);
     const addLbl2 = document.getElementById('item-addbtn-label-' + idx);
     if (addBtn2) { addBtn2.classList.remove('added'); }
-    if (addLbl2) { addLbl2.textContent = '\u2B1F Adicionar'; }
+    if (addLbl2) { addLbl2.textContent = 'Adicionar'; }
     const remBtn = document.getElementById('item-rembtn-' + idx);
     if (remBtn && remBtn.tagName === 'BUTTON') {
       const span = document.createElement('span');
