@@ -217,17 +217,27 @@ function _buildPagamentoInfo(grandTotalFinal) {
 }
 
 function _showToastMsg(titulo, msg) {
-  const toast      = document.getElementById('no-price-toast');
-  const toastMsg   = document.getElementById('no-price-toast-msg');
-  const toastTitle = toast ? toast.querySelector('.toast-title') : null;
-  if (!toast) return;
-  if (toastTitle) toastTitle.textContent = titulo;
-  if (toastMsg)   toastMsg.textContent   = msg;
-  toast.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => {
-    toast.classList.remove('show');
-    if (toastTitle) toastTitle.textContent = 'Atenção — item sem preço!';
+  // Usa o sistema global de toasts (toast.js) para feedback de pedido.
+  // NÃO reutiliza #no-price-toast — aquele elemento é exclusivo de "item sem preço".
+  if (typeof showToast === 'function') {
+    const type = titulo.startsWith('✅') ? 'success' : 'error';
+    showToast(titulo + (msg ? ' — ' + msg : ''), type);
+    return;
+  }
+  // Fallback: cria toast temporário sem sequestrar o #no-price-toast
+  const fb = document.createElement('div');
+  fb.style.cssText = 'position:fixed;bottom:32px;right:20px;z-index:99999;'
+    + 'background:rgba(6,11,26,.97);border:1px solid rgba(255,255,255,.12);'
+    + 'border-radius:12px;padding:13px 18px;font-family:Rajdhani,sans-serif;'
+    + 'font-size:14px;font-weight:600;color:#dde8ff;max-width:340px;'
+    + 'box-shadow:0 8px 32px rgba(0,0,0,.6);';
+  fb.textContent = titulo + (msg ? ' — ' + msg : '');
+  document.body.appendChild(fb);
+  setTimeout(() => {
+    fb.style.transition = 'opacity .35s,transform .35s';
+    fb.style.opacity = '0';
+    fb.style.transform = 'translateY(8px)';
+    setTimeout(() => fb.remove(), 380);
   }, 5000);
 }
 
@@ -355,6 +365,7 @@ async function sendToDiscord() {
 }
 
 // ===================== TOAST SEM PREÇO =====================
+// Timer próprio — não compartilhado com _showToastMsg nem addPackageToCartDirect
 let _toastTimer = null;
 function showNoPriceToast(itemName) {
   const toast = document.getElementById('no-price-toast');
@@ -2272,14 +2283,12 @@ function addPackageToCartDirect(pi) {
   });
 
   if (noPriceNames.length > 0) {
-    const toast = document.getElementById('no-price-toast');
-    const msg = document.getElementById('no-price-toast-msg');
-    if (toast && msg) {
-      msg.textContent = 'O pacote contém ' + noPriceNames.length + ' item(ns) sem preço definido: ' + noPriceNames.join(', ') + '. O total será ajustado quando os preços forem estabelecidos.';
-      toast.classList.add('show');
-      clearTimeout(_toastTimer);
-      _toastTimer = setTimeout(() => toast.classList.remove('show'), 6000);
-    }
+    // Delega para showNoPriceToast para usar o timer centralizado
+    const firstName = noPriceNames[0];
+    const extra = noPriceNames.length > 1
+      ? ` (e mais ${noPriceNames.length - 1} item${noPriceNames.length > 2 ? 's' : ''})`
+      : '';
+    showNoPriceToast(firstName + extra);
   }
   updateCartBadge();
 
