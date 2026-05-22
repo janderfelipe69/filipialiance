@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="packages.css" />
   <link rel="stylesheet" href="packages.animations.css" />
+  <link rel="stylesheet" href="items.css" />
+  <link rel="stylesheet" href="items.animations.css" />
   <link rel="stylesheet" href="mobile-patch.css" />
   <link rel="stylesheet" href="auth.css" />
 </head>
@@ -137,15 +139,15 @@
 <div class="tab-content active" id="tab-itens">
 
 <!-- CONTROLS -->
-<div class="controls">
-  <div class="search-wrap">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+<div class="items-controls">
+  <div class="items-search-wrap">
+    <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
       <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    <input type="text" id="search" placeholder="Buscar item..." oninput="clearTimeout(_searchTimer); _searchTimer = setTimeout(render, 150)" />
+    <input type="text" class="items-search-input" id="items-search" placeholder="Buscar item..." />
   </div>
-  <select id="filter" onchange="render()">
+  <select class="items-filter-select" id="items-filter">
     <option value="all">Todos</option>
     <option value="t1">T1</option>
     <option value="t2">T2</option>
@@ -159,12 +161,12 @@
     <option value="essence">Essências</option>
     <option value="normal">Sem tag</option>
   </select>
-  <span class="count-label" id="count-label">— itens</span>
+  <span class="items-count-label" id="items-count-label">— itens</span>
 </div>
 
 <!-- GRID -->
-<div class="grid-wrap">
-  <div class="grid" id="grid"></div>
+<div class="items-grid-wrap">
+  <div class="items-grid" id="items-grid"></div>
 </div>
 
 </div><!-- /tab-itens -->
@@ -2304,5 +2306,7 @@ function enviarPedido() {
 <script src="captura-redesign.js"></script>
 <script src="packages.logic.js"></script>
 <script src="packages.render.js"></script>
+<script src="items.logic.js"></script>
+<script src="items.render.js"></script>
 </body>
 </html>

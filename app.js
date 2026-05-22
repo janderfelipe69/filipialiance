@@ -44,7 +44,6 @@ const cart = {};
 let pkgCartCount = {};
 let _searchTimer;
 let _capturaSearchTimer;
-let _initialRender = true;
 
 function getTag(item) {
   const n = item.name.toLowerCase();
@@ -168,118 +167,7 @@ function buildParticlesHtml(type) {
   return `<div class="type-particles type-${type}">${spans}</div>`;
 }
 
-function render() {
-  const q = document.getElementById('search').value.toLowerCase();
-  const f = document.getElementById('filter').value;
-  const grid = document.getElementById('grid');
 
-  const visible = items.filter((item) => {
-    const tag = getTag(item);
-    const tier = (item.tier || '').toLowerCase();
-    const matchQ = !q || item.name.toLowerCase().includes(q);
-    const isTierFilter = ['t1','t2','t3','t4','t5','hard','mark'].includes(f);
-    const matchF = f === 'all'
-      || (isTierFilter && tier === f)
-      || (!isTierFilter && f === 'normal' && !item.tier && tag === 'normal')
-      || (!isTierFilter && !['normal'].includes(f) && tag === f);
-    return matchQ && matchF;
-  });
-
-  document.getElementById('count-label').textContent = visible.length + ' itens';
-
-  if (!visible.length) {
-    grid.innerHTML = '<div class="no-results">Nenhum item encontrado.</div>';
-    return;
-  }
-
-  grid.innerHTML = visible.map((item, vi) => {
-    const i = item._idx;
-    const tag = getTag(item);
-    const inCart = cart[i] > 0;
-    const src = '';
-    const priceData = formatKK(item.price);
-    const pack500Data = item.price ? formatKK(item.price * 500) : null;
-    const pack1000Data = item.price ? formatKK(item.price * 1000) : null;
-
-    // Cor do tipo para os preços
-    const pokeType = getTypeFromBanner(item.bannerImage);
-    const typeColor = (pokeType && TYPE_COLORS[pokeType]) ? TYPE_COLORS[pokeType] : (tag === 'shiny' ? '#ffd166' : '#60aaff');
-    const typeColorDim = typeColor + 'aa'; // ~67% opacity via hex
-
-    const priceHtml = priceData
-      ? `<div class="price-block">
-          <div class="price-row">
-            <span class="price-label">Unit.</span>
-            <span class="price-kk" style="color:${typeColor};text-shadow:0 0 10px ${typeColor}55">${priceData.label}</span>
-            <span class="price-brl" style="color:${typeColorDim}">${priceData.brl}</span>
-          </div>
-          <div class="price-sep" style="background:linear-gradient(90deg,${typeColor}33,transparent 80%)"></div>
-          <div class="price-row" id="total-row-${i}">
-            <span class="price-label">Total</span>
-            <span class="price-total-kk" style="color:${typeColor}99" id="total-kk-${i}">${priceData.label}</span>
-            <span class="price-total-brl" id="total-brl-${i}">${priceData.brl}</span>
-          </div>
-        </div>`
-      : `<div class="item-price"><span class="price-none">sem preço</span></div>`;
-    const isGif = item.image && /\.gif$/i.test(item.image);
-    const imgSrc = isGif ? getShowdownStaticSprite(item.name) : item.image;
-    const imgGif = isGif ? getShowdownSprite(item.name) : '';
-    const imgHtml = item.image
-      ? `<div class="item-img-wrap">
-           <img class="card-img${isGif ? ' card-img--gif' : ''}"
-                src="${imgSrc}"
-                ${isGif ? `data-gif="${imgGif}"` : ''}
-                alt="${item.name}"
-                loading="lazy" decoding="async"
-                onerror="this.parentElement.style.display='none'" />
-         </div>`
-      : '';
-    const pack500Label = pack500Data ? `<span class="pack-btn-qty">+500</span><span class="pack-btn-price">${pack500Data.label}</span><span class="pack-btn-brl">${pack500Data.brl}</span>` : `<span class="pack-btn-qty">+500</span>`;
-    const pack1000Label = pack1000Data ? `<span class="pack-btn-qty">+1000</span><span class="pack-btn-price">${pack1000Data.label}</span><span class="pack-btn-brl">${pack1000Data.brl}</span>` : `<span class="pack-btn-qty">+1000</span>`;
-    const animClass = _initialRender ? ' card-anim' : '';
-    const dataType = pokeType ? ` data-type="${pokeType}"` : '';
-    return `<div class="card${tag === 'shiny' ? ' is-shiny' : ''}${animClass}"${dataType}>
-      ${getBannerHtml(item)}
-      ${imgHtml}
-      <div class="item-name">${item.name}<button class="wiki-lookup-btn" onclick="openWikiLookup('${item.name.replace(/'/g,"\\'")}', event)" title="Ver drops na Wiki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></div>
-      ${getTierHtml(item.tier)}
-      ${getEvoHtml(item.evo)}
-      ${src}
-      ${priceHtml}
-      <div class="card-footer pack-footer">
-        <button class="pack-btn pack-btn-500" id="addbtn-${i}" onclick="addPackToCart(${i}, 500)">
-          ${pack500Label}
-        </button>
-        <button class="pack-btn pack-btn-1000" onclick="addPackToCart(${i}, 1000)">
-          ${pack1000Label}
-        </button>
-      </div>
-      <div class="card-footer manual-footer">
-        <input type="number" id="qty-${i}" value="1" min="1" max="100000" oninput="const v=parseInt(this.value,10); this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v); updateTotalPrice(${i}, this.value)" onkeydown="if(event.key==='-'||event.key==='e')event.preventDefault()" />
-        <div class="card-footer-added" style="flex:1">
-          <button class="add-btn${inCart ? ' added' : ''}" id="manualaddbtn-${i}" onclick="addToCart(${i})" style="flex:1">
-            <span id="addbtn-label-${i}">${inCart ? '✓ ' + cart[i].toLocaleString() : '⬟ Adicionar'}</span>
-          </button>
-          ${inCart ? `<button class="inline-rem-btn" id="rembtn-${i}" onclick="removeFromCart(${i})" title="Remover do carrinho">&#x2715;</button>` : `<span id="rembtn-${i}"></span>`}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  _initialRender = false;
-}
-
-function updateTotalPrice(i, rawVal) {
-  const qty = Math.max(1, parseInt(rawVal, 10) || 1);
-  const item = items[i];
-  if (!item || !item.price) return;
-  const totalPrice = item.price * qty;
-  const data = formatKK(totalPrice);
-  if (!data) return;
-  const kkEl = document.getElementById('total-kk-' + i);
-  const brlEl = document.getElementById('total-brl-' + i);
-  if (kkEl) kkEl.textContent = data.label;
-  if (brlEl) brlEl.textContent = data.brl;
-}
 
 
 // onNickInput removida — campo de nick removido do formulário (etapa 2)
@@ -483,54 +371,42 @@ function addPackToCart(i, qty) {
   cart[i] = (cart[i] || 0) + qty;
   if (!items[i].price) showNoPriceToast(items[i].name);
   updateCartBadge();
-  // Atualiza botão 500 como "added" e mostra quantidade total
-  const btn = document.getElementById('addbtn-' + i);
-  if (btn) btn.classList.add('added');
-  // Mostra botão remover inline se ainda não estiver visível
-  const remSlot = document.getElementById('rembtn-' + i);
+  // Atualiza botões do módulo de itens (novos IDs)
+  const btn500 = document.getElementById('itembtn-500-' + i);
+  if (btn500) btn500.classList.add('added');
+  const addBtn = document.getElementById('item-addbtn-' + i);
+  const addLbl = document.getElementById('item-addbtn-label-' + i);
+  if (addBtn) addBtn.classList.add('added');
+  if (addLbl) addLbl.textContent = '✓ ' + cart[i].toLocaleString();
+  // Troca span vazio por botão de remover
+  const remSlot = document.getElementById('item-rembtn-' + i);
   if (remSlot && remSlot.tagName === 'SPAN') {
     const remBtn = document.createElement('button');
-    remBtn.className = 'inline-rem-btn';
-    remBtn.id = 'rembtn-' + i;
+    remBtn.className = 'item-rem-btn';
+    remBtn.id = 'item-rembtn-' + i;
     remBtn.title = 'Remover do carrinho';
     remBtn.innerHTML = '\u2715';
-    remBtn.onclick = () => removeFromCart(i);
+    remBtn.onclick = () => itemRemoveFromCart(i);
     remSlot.replaceWith(remBtn);
   }
   if (document.getElementById('cart-overlay').classList.contains('open')) renderCart();
 }
 
 function addToCart(i) {
-  const input = document.getElementById('qty-' + i);
+  // Delega para itemAddToCart do módulo de itens quando disponível
+  if (typeof itemAddToCart === 'function') {
+    itemAddToCart(i);
+    return;
+  }
+  // Fallback legacy
+  const input = document.getElementById('item-qty-' + i);
   let val = parseInt(input ? input.value : 1, 10);
   if (isNaN(val) || val < 1) val = 1;
   if (val > 100000) val = 100000;
   cart[i] = (cart[i] || 0) + val;
-  // Avisa se o item não tem preço definido
-  if (!items[i].price) {
-    showNoPriceToast(items[i].name);
-  }
+  if (!items[i].price) showNoPriceToast(items[i].name);
   updateCartBadge();
-  // Atualiza label do botão com a quantidade total no carrinho
-  const btn = document.getElementById('addbtn-' + i);
-  const lbl = document.getElementById('addbtn-label-' + i);
-  if (btn) { btn.classList.add('added'); }
-  if (lbl) { lbl.textContent = '\u2713 ' + cart[i].toLocaleString(); }
-  // Mostra botão remover inline se ainda não estiver visível
-  const remSlot = document.getElementById('rembtn-' + i);
-  if (remSlot && remSlot.tagName === 'SPAN') {
-    const remBtn = document.createElement('button');
-    remBtn.className = 'inline-rem-btn';
-    remBtn.id = 'rembtn-' + i;
-    remBtn.title = 'Remover do carrinho';
-    remBtn.innerHTML = '\u2715';
-    remBtn.onclick = () => removeFromCart(i);
-    remSlot.replaceWith(remBtn);
-  }
-  // Atualiza carrinho se estiver aberto
-  if (document.getElementById('cart-overlay').classList.contains('open')) {
-    renderCart();
-  }
+  if (document.getElementById('cart-overlay').classList.contains('open')) renderCart();
 }
 
 function updateCartBadge() {
@@ -766,34 +642,38 @@ function updateMixBalance(kkPaidRaw, brlPaid) {
 
 function removeFromCart(i) {
   delete cart[i];
-  // Reseta botão adicionar
-  const btn = document.getElementById('addbtn-' + i);
-  const lbl = document.getElementById('addbtn-label-' + i);
-  if (btn) { btn.classList.remove('added'); }
-  if (lbl) { lbl.textContent = 'Adicionar'; }
-  // Remove botão inline de remover, volta para span vazio
-  const remBtn = document.getElementById('rembtn-' + i);
+  // Reseta botões do módulo de itens (novos IDs)
+  const addBtn = document.getElementById('item-addbtn-' + i);
+  const addLbl = document.getElementById('item-addbtn-label-' + i);
+  if (addBtn) addBtn.classList.remove('added');
+  if (addLbl) addLbl.textContent = '⬟ Adicionar';
+  const remBtn = document.getElementById('item-rembtn-' + i);
   if (remBtn && remBtn.tagName === 'BUTTON') {
     const span = document.createElement('span');
-    span.id = 'rembtn-' + i;
+    span.id = 'item-rembtn-' + i;
     remBtn.replaceWith(span);
   }
+  // Reseta botão pack-500
+  const btn500 = document.getElementById('itembtn-500-' + i);
+  if (btn500) btn500.classList.remove('added');
   updateCartBadge();
   renderCart();
 }
 
 function clearCart() {
   Object.keys(cart).forEach(k => {
-    const btn = document.getElementById('addbtn-' + k);
-    const lbl = document.getElementById('addbtn-label-' + k);
-    if (btn) { btn.classList.remove('added'); }
-    if (lbl) { lbl.textContent = 'Adicionar'; }
-    const remBtn = document.getElementById('rembtn-' + k);
+    const addBtn = document.getElementById('item-addbtn-' + k);
+    const addLbl = document.getElementById('item-addbtn-label-' + k);
+    if (addBtn) addBtn.classList.remove('added');
+    if (addLbl) addLbl.textContent = '⬟ Adicionar';
+    const remBtn = document.getElementById('item-rembtn-' + k);
     if (remBtn && remBtn.tagName === 'BUTTON') {
       const span = document.createElement('span');
-      span.id = 'rembtn-' + k;
+      span.id = 'item-rembtn-' + k;
       remBtn.replaceWith(span);
     }
+    const btn500 = document.getElementById('itembtn-500-' + k);
+    if (btn500) btn500.classList.remove('added');
     delete cart[k];
   });
   // Reseta botões de pacote
@@ -2376,18 +2256,18 @@ function addPackageToCartDirect(pi) {
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + qty;
     if (!items[idx].price) noPriceNames.push(name);
-    const btn = document.getElementById('addbtn-' + idx);
-    const lbl = document.getElementById('addbtn-label-' + idx);
-    if (btn) btn.classList.add('added');
-    if (lbl) lbl.textContent = '\u2713 ' + cart[idx].toLocaleString();
-    const remSlot = document.getElementById('rembtn-' + idx);
+    const addBtn = document.getElementById('item-addbtn-' + idx);
+    const addLbl = document.getElementById('item-addbtn-label-' + idx);
+    if (addBtn) addBtn.classList.add('added');
+    if (addLbl) addLbl.textContent = '\u2713 ' + cart[idx].toLocaleString();
+    const remSlot = document.getElementById('item-rembtn-' + idx);
     if (remSlot && remSlot.tagName === 'SPAN') {
       const remBtn = document.createElement('button');
-      remBtn.className = 'inline-rem-btn';
-      remBtn.id = 'rembtn-' + idx;
+      remBtn.className = 'item-rem-btn';
+      remBtn.id = 'item-rembtn-' + idx;
       remBtn.title = 'Remover do carrinho';
       remBtn.innerHTML = '\u2715';
-      remBtn.onclick = () => removeFromCart(idx);
+      remBtn.onclick = () => itemRemoveFromCart(idx);
       remSlot.replaceWith(remBtn);
     }
   });
@@ -2415,14 +2295,14 @@ function removePackageFromCart(pi) {
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     delete cart[idx];
-    const btn = document.getElementById('addbtn-' + idx);
-    const lbl = document.getElementById('addbtn-label-' + idx);
-    if (btn) { btn.classList.remove('added'); }
-    if (lbl) { lbl.textContent = 'Adicionar'; }
-    const remBtn = document.getElementById('rembtn-' + idx);
+    const addBtn2 = document.getElementById('item-addbtn-' + idx);
+    const addLbl2 = document.getElementById('item-addbtn-label-' + idx);
+    if (addBtn2) { addBtn2.classList.remove('added'); }
+    if (addLbl2) { addLbl2.textContent = '\u2B1F Adicionar'; }
+    const remBtn = document.getElementById('item-rembtn-' + idx);
     if (remBtn && remBtn.tagName === 'BUTTON') {
       const span = document.createElement('span');
-      span.id = 'rembtn-' + idx;
+      span.id = 'item-rembtn-' + idx;
       remBtn.replaceWith(span);
     }
   });
@@ -2490,7 +2370,7 @@ function removePackageFromCart(pi) {
 // Shine div ainda é injetado para o efeito CSS funcionar
 (function() {
   function injectShine() {
-    document.querySelectorAll('.card:not([data-shine])').forEach(function(card) {
+    document.querySelectorAll('.item-card:not([data-shine])').forEach(function(card) {
       card.setAttribute('data-shine','1');
       var shine = document.createElement('div');
       shine.className = 'card-shine';
@@ -2498,7 +2378,8 @@ function removePackageFromCart(pi) {
     });
   }
   var obs = new MutationObserver(injectShine);
-  obs.observe(document.getElementById('grid'), { childList: true, subtree: true });
+  var _itemsGridEl = document.getElementById('items-grid');
+  if (_itemsGridEl) obs.observe(_itemsGridEl, { childList: true, subtree: true });
   var pkgSidebar = document.getElementById('pkg-sidebar-list');
   if (pkgSidebar) obs.observe(pkgSidebar, { childList: true, subtree: true });
   var capturaGrid = document.getElementById('captura-grid');
@@ -2519,7 +2400,7 @@ function removePackageFromCart(pi) {
 const _origAddToCart = addToCart;
 addToCart = function(i) {
   _origAddToCart(i);
-  const card = document.querySelector(`#addbtn-${i}`)?.closest('.card');
+  const card = document.querySelector(`#item-addbtn-${i}`)?.closest('.item-card');
   if (card) { card.classList.remove('burst'); void card.offsetWidth; card.classList.add('burst'); }
 };
 
@@ -2939,8 +2820,7 @@ function handleCapturaOverlayClick(e) {
   if (e.target === document.getElementById('captura-overlay')) closeCapturaModal();
 }
 
-render();
-
+// renderItems() é chamado por items.render.js (initItemsModule)
 
 // ── GIF Hover Manager ────────────────────────────────────────────────────────
 // Padrão: PNG estático (leve, zero GPU).
@@ -2964,15 +2844,15 @@ render();
   }
 
   function bindAll() {
-    document.querySelectorAll('.card, .captura-card').forEach(bindCard);
+    document.querySelectorAll('.item-card, .captura-card').forEach(bindCard);
   }
 
   bindAll();
 
   var mo = new MutationObserver(bindAll);
-  var gridEl = document.getElementById('grid');
   var capturaGridEl = document.getElementById('captura-grid');
-  if (gridEl)        mo.observe(gridEl,        { childList: true });
+  var itemsGridEl = document.getElementById('items-grid');
+  if (itemsGridEl)   mo.observe(itemsGridEl,   { childList: true });
   if (capturaGridEl) mo.observe(capturaGridEl, { childList: true });
 })();
 
@@ -2997,7 +2877,7 @@ render();
 
   // Observa cards iniciais e re-observa a cada render
   function observeCards() {
-    document.querySelectorAll('.card, .captura-card').forEach(c => observer.observe(c));
+    document.querySelectorAll('.item-card, .captura-card').forEach(c => observer.observe(c));
   }
 
   // Intercepta render para re-observar após cada atualização
