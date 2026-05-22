@@ -32,7 +32,11 @@
 
 /* ─── Tab wrapper ───────────────────────────────────────────────────────────── */
 
-#tab-itens {
+/* #tab-itens must NOT set display — .tab-content { display:none } controls visibility.
+   The flex layout lives on .items-wrap instead. */
+#tab-itens { background: var(--ic-deep); }
+
+.items-wrap {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -42,7 +46,7 @@
 }
 
 /* fundo pontilhado sutil */
-#tab-itens::before {
+.items-wrap::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -52,7 +56,7 @@
   z-index: 0;
 }
 
-#tab-itens > * { position: relative; z-index: 1; }
+.items-wrap > * { position: relative; z-index: 1; }
 
 /* ─── Barra de controles ────────────────────────────────────────────────────── */
 
