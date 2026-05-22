@@ -1,0 +1,83 @@
+/* =============================================================================
+   PACKAGES — Animations
+   Arquivo: packages.animations.css
+   Regras:
+   • Apenas transform e opacity (não dispara layout/paint)
+   • Sem box-shadow animado, sem filter animado
+   • Sem backdrop-filter
+   • Todas as durações ≤ 300ms exceto estados de "atenção" (pulse leve)
+   ============================================================================= */
+
+/* ─── Card selecionado — entrada suave ─────────────────────────────────────── */
+
+@keyframes pkg-card-select {
+  from { opacity: 0.6; transform: scale(0.97); }
+  to   { opacity: 1;   transform: scale(1);    }
+}
+.pkg-sidebar-item.active {
+  animation: pkg-card-select 0.18s ease-out both;
+}
+
+/* ─── Painel de detalhe — fade ao trocar de pacote ─────────────────────────── */
+
+@keyframes pkg-detail-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.pkg-detail-header,
+.pkg-slot-tabs,
+.pkg-detail-body,
+.pkg-detail-footer {
+  animation: pkg-detail-in 0.2s ease-out both;
+}
+
+/* ─── Linha de item — entrada em cascade ───────────────────────────────────── */
+
+@keyframes pkg-row-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+.pkg-detail-row {
+  animation: pkg-row-in 0.16s ease-out both;
+}
+
+/* ─── Warning badge de preço — pulso leve de opacidade ─────────────────────── */
+
+@keyframes pkg-warn-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+.pkg-slot-no-price-warn {
+  animation: pkg-warn-pulse 2.4s ease-in-out infinite;
+}
+
+/* ─── Botão "Adicionar" — feedback de clique ────────────────────────────────── */
+
+@keyframes pkg-btn-confirm {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(0.93); }
+  100% { transform: scale(1);    }
+}
+.pkg-detail-add-btn:active {
+  animation: pkg-btn-confirm 0.2s ease-out both;
+}
+
+/* ─── Badge de carrinho — pop ao aparecer ───────────────────────────────────── */
+
+@keyframes pkg-badge-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1);   }
+}
+.pkg-card-cart-badge {
+  animation: pkg-badge-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ─── Estado vazio — fade-in suave ──────────────────────────────────────────── */
+
+@keyframes pkg-empty-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.pkg-detail-empty {
+  animation: pkg-empty-in 0.25s ease-out both;
+}
