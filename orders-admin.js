@@ -562,10 +562,57 @@ const OrdersAdmin = (() => {
       `;
     }
 
-    // ETA ou info de fila
+    // ── ETA / SLA / Timer realtime ────────────────────────────────────────
+    // Timer persistente: calcula SEMPRE a partir do started_at do banco.
+    // Nunca usa setInterval em memória — o tempo é now - started_at.
+
+    function _fmtElapsed(ms) {
+      if (!ms || ms < 0) return '0m';
+      const totalMin = Math.floor(ms / 60000);
+      const d = Math.floor(totalMin / 1440);
+      const h = Math.floor((totalMin % 1440) / 60);
+      const m = totalMin % 60;
+      const parts = [];
+      if (d > 0) parts.push(d + 'd');
+      if (h > 0) parts.push(h + 'h');
+      parts.push(m + 'm');
+      return parts.join(' ');
+    }
+
     let slaInfoHTML = '';
+
     if (status === 'in_progress' && eta) {
       const overdue = eta.slaStatus === 'overdue';
+      // Tempo decorrido calculado agora a partir do started_at (persistente após reload)
+      const elapsedMs  = order.started_at ? (Date.now() - new Date(order.started_at).getTime()) : 0;
+      const elapsedFmt = _fmtElapsed(elapsedMs);
+      // SLA em ms
+      const slaMs = (sla.maxDays || 7) * 86400000;
+      // Tempo restante
+      const remainMs  = slaMs - elapsedMs;
+      const remainFmt = remainMs > 0 ? _fmtElapsed(remainMs) : '0m';
+      // Atraso
+      const overdueMs  = Math.max(0, elapsedMs - slaMs);
+      const overdueFmt = _fmtElapsed(overdueMs);
+      // ID único do timer para este pedido (permite múltiplos painéis)
+      const timerId = `oa-elapsed-${supabaseId}`;
+
+      // Inicia tick do timer se o DOM existir (atualiza a cada 60s)
+      setTimeout(function() {
+        const el = document.getElementById(timerId);
+        if (!el || !order.started_at) return;
+        function _tick() {
+          const newElapsed = Date.now() - new Date(order.started_at).getTime();
+          el.textContent = _fmtElapsed(newElapsed);
+        }
+        const iv = setInterval(_tick, 60000);
+        // Limpa ao fechar o painel (quando elemento sair do DOM)
+        const obs = new MutationObserver(function() {
+          if (!document.getElementById(timerId)) { clearInterval(iv); obs.disconnect(); }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }, 0);
+
       slaInfoHTML = `
         <div class="oa-sla-info ${overdue ? 'overdue' : ''}">
           <div class="oa-sla-row">
@@ -573,7 +620,11 @@ const OrdersAdmin = (() => {
             <span class="oa-sla-val">${OrdersProgress.formatDate(order.started_at)}</span>
           </div>
           <div class="oa-sla-row">
-            <span class="oa-sla-label">SLA</span>
+            <span class="oa-sla-label">Tempo decorrido</span>
+            <span class="oa-sla-val" id="${timerId}" style="color:${overdue ? '#f87171' : '#60aaff'}">${elapsedFmt}</span>
+          </div>
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">SLA total</span>
             <span class="oa-sla-val">${sla.label}</span>
           </div>
           <div class="oa-sla-row">
@@ -582,10 +633,44 @@ const OrdersAdmin = (() => {
           </div>
           <div class="oa-sla-row">
             <span class="oa-sla-label">Status</span>
-            <span class="oa-sla-val ${overdue ? 'text-red' : 'text-green'}">${eta.label}</span>
+            <span class="oa-sla-val ${overdue ? 'text-red' : 'text-green'}">${
+              overdue
+                ? `⚠️ SLA expirado há ${overdueFmt}`
+                : `✅ ${remainFmt} restantes`
+            }</span>
           </div>
           <div class="oa-progress-bar">
             <div class="oa-progress-fill" style="width:${eta.progressPct}%; background:${overdue ? '#ef4444' : '#3a8cff'}"></div>
+          </div>
+        </div>
+      `;
+    } else if (status === 'completed') {
+      // Duração real do serviço
+      const durMin = order.actual_duration_minutes || null;
+      const wasLate = order.expired === true;
+      let durLabel = '';
+      if (durMin !== null) {
+        durLabel = _fmtElapsed(durMin * 60000);
+      } else if (order.started_at && order.completed_at) {
+        const ms = new Date(order.completed_at).getTime() - new Date(order.started_at).getTime();
+        durLabel = _fmtElapsed(ms);
+      }
+      slaInfoHTML = `
+        <div class="oa-sla-info" style="border-color:${wasLate ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}; background:${wasLate ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.06)'}">
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">Concluído em</span>
+            <span class="oa-sla-val" style="color:${wasLate ? '#f87171' : '#4ade80'}">
+              ${wasLate ? `⚠️ ${durLabel} (com atraso)` : `✅ ${durLabel}`}
+            </span>
+          </div>
+          ${order.completed_at ? `
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">Data conclusão</span>
+            <span class="oa-sla-val">${OrdersProgress.formatDate(order.completed_at)}</span>
+          </div>` : ''}
+          <div class="oa-sla-row">
+            <span class="oa-sla-label">SLA acordado</span>
+            <span class="oa-sla-val">${sla.label}</span>
           </div>
         </div>
       `;

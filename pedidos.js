@@ -102,6 +102,10 @@
       service_quantity: parseInt(p.service_quantity || 1, 10),
       sla_min_days:     p.sla_min_days || null,  // null = SLA não calculado ainda
       sla_max_days:     p.sla_max_days || null,
+      // ── SLA persistente (v2) ─────────────────────────────────────
+      sla_hours:              p.sla_hours              || null,
+      actual_duration_minutes: p.actual_duration_minutes || null,
+      expired:                p.expired                || false,
       // ────────────────────────
 
       items:   items,
@@ -172,7 +176,9 @@
       '&limit=500' +
       '&select=id,nick_jogo,status,status_v3,created_at,' +
               'started_at,completed_at,service_type,service_quantity,' +
-              'sla_min_days,sla_max_days,itens,total_kk,total_brl,' +
+              'sla_min_days,sla_max_days,sla_hours,' +
+              'actual_duration_minutes,expired,' +
+              'itens,total_kk,total_brl,' +
               'subtotal_kk,subtotal_brl,pagamento_modo,pagamento_kk,' +
               'pagamento_brl,taxa_servico,admin_notes,user_id';
 

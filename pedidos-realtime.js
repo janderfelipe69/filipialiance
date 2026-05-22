@@ -1,58 +1,49 @@
 // ============================================================
-// pedidos-realtime.js — v1
+// pedidos-realtime.js — v2
 // PokeAlliance Shop
 //
-// Módulo dedicado ao Realtime de PEDIDOS via WebSocket Phoenix.
+// Módulo de integração realtime para PEDIDOS e ENTREGAS.
 //
-// FUNCIONALIDADES:
-//   - Escuta INSERT, UPDATE e DELETE na tabela `pedidos`
-//   - Atualiza DOM imediatamente (sem reload)
-//   - Deduplicação de eventos por ID + timestamp
-//   - Evita subscribe duplicado / múltiplos canais
-//   - Reconexão automática após queda
-//   - Logs padronizados [Realtime] para diagnóstico
+// v2 — integra com RealtimeManager (realtime-manager.js):
+//   - Escuta CustomEvent 'pedidos:changed'  → atualiza cache + re-renderiza
+//   - Escuta CustomEvent 'delivery:changed' → refresh gallery + pedidos
+//   - Escuta CustomEvent 'orders:refresh'   → re-renderiza (compat)
+//   - Mantém WebSocket próprio como FALLBACK se RealtimeManager não estiver presente
 //
-// DEPENDÊNCIAS (carregue nesta ordem no HTML):
-//   supabase-client.js  → SUPABASE_URL, SUPABASE_KEY
-//   session.js          → Session.getCurrentUser(), onAuthChange
-//   orders-storage.js   → OrdersStorage
-//   orders-ui.js        → OrdersUI.render()
-//   pedidos.js          → _supabaseToOrderStorage (via pedidosCarregar)
-//   pedidos-realtime.js ← este arquivo
+// DEPENDÊNCIAS (carregar nesta ordem):
+//   supabase-client.js
+//   session.js
+//   schema-compat.js
+//   orders-storage.js
+//   orders-ui.js
+//   pedidos.js
+//   realtime-manager.js  ← NOVO (opcional: se ausente, usa WebSocket próprio)
+//   pedidos-realtime.js  ← este arquivo
 // ============================================================
 
 ;(function (global) {
   'use strict';
 
-  // ── Estado interno ────────────────────────────────────────────────────
-  var _ws             = null;      // WebSocket ativo
-  var _wsActive       = false;     // canal confirmado (phx_reply ok)
-  var _subscribeRef   = 0;         // incrementa a cada nova conexão
-  var _heartbeat      = null;      // setInterval do heartbeat
-  var _reconnectTimer = null;      // setTimeout do reconnect
-  var _destroyed      = false;     // true após stopRealtime() definitivo
-  var _authHandler    = null;      // referência para remover listener
+  // ── Estado interno (WebSocket próprio — fallback) ─────────────────────
+  var _ws             = null;
+  var _wsActive       = false;
+  var _subscribeRef   = 0;
+  var _heartbeat      = null;
+  var _reconnectTimer = null;
+  var _destroyed      = false;
+  var _authHandler    = null;
+  var _eventsAttached = false;
 
-  // Deduplicação: guarda "id:evento:ts" dos últimos eventos processados
+  // Deduplicação
   var _seenEvents = new Set();
   var SEEN_MAX    = 300;
 
-  // ── Helpers internos ──────────────────────────────────────────────────
+  // ── Logging ────────────────────────────────────────────────────────────
+  function _log()  { console.log.apply(console,  ['[PedidosRealtime]'].concat(Array.prototype.slice.call(arguments))); }
+  function _warn() { console.warn.apply(console, ['[PedidosRealtime]'].concat(Array.prototype.slice.call(arguments))); }
+  function _err()  { console.error.apply(console,['[PedidosRealtime]'].concat(Array.prototype.slice.call(arguments))); }
 
-  function _log()  {
-    var a = Array.prototype.slice.call(arguments);
-    console.log.apply(console, ['[Realtime]'].concat(a));
-  }
-  function _warn() {
-    var a = Array.prototype.slice.call(arguments);
-    console.warn.apply(console, ['[Realtime]'].concat(a));
-  }
-  function _err()  {
-    var a = Array.prototype.slice.call(arguments);
-    console.error.apply(console, ['[Realtime]'].concat(a));
-  }
-
-  // Gera chave de deduplicação para um evento
+  // ── Helpers ────────────────────────────────────────────────────────────
   function _eventKey(tipo, record) {
     var ts = (record && (record.updated_at || record.created_at)) || '';
     return tipo + ':' + (record && record.id) + ':' + ts;
@@ -67,9 +58,6 @@
   }
 
   // ── Conversor: row Supabase → objeto OrdersStorage ────────────────────
-  // Espelha a lógica de _supabaseToOrderStorage() em pedidos.js
-  // para poder atualizar o cache local sem um fetch completo.
-
   function _rowToStorage(p) {
     var itens = Array.isArray(p.itens) ? p.itens : [];
     try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch (e) { itens = []; }
@@ -115,6 +103,10 @@
       service_quantity: parseInt(p.service_quantity || 1, 10),
       sla_min_days:     p.sla_min_days || null,
       sla_max_days:     p.sla_max_days || null,
+      // v2: campos SLA persistente
+      sla_hours:              p.sla_hours              || null,
+      actual_duration_minutes: p.actual_duration_minutes || null,
+      expired:                p.expired                || false,
       items:   items,
       progress: (statusV3 === 'completed') ? 100 : 0,
       notifications: [],
@@ -131,13 +123,11 @@
     };
   }
 
-  // ── Atualização do cache local (OrdersStorage / localStorage) ─────────
-
+  // ── Cache operations ───────────────────────────────────────────────────
   function _applyInsert(record) {
     if (typeof OrdersStorage === 'undefined') return;
     var storageId = 'sb_' + record.id;
     var orders    = OrdersStorage.getAllOrders();
-    // Evita duplicar se já existe
     if (orders.find(function (o) { return o.id === storageId; })) {
       _log('INSERT já presente no cache — ignorando:', storageId);
       return;
@@ -158,12 +148,10 @@
     var orders    = OrdersStorage.getAllOrders();
     var idx       = orders.findIndex(function (o) { return o.id === storageId; });
     if (idx === -1) {
-      // Pedido novo que chegou via UPDATE (ex.: admin criou e já atualizou antes do INSERT chegar)
       _log('UPDATE para pedido desconhecido — inserindo:', storageId);
       _applyInsert(record);
       return;
     }
-    // Merge: mantém campos calculados locais, sobrescreve dados do banco
     var updated = Object.assign({}, orders[idx], _rowToStorage(record));
     orders[idx] = updated;
     try {
@@ -186,26 +174,27 @@
     }
   }
 
-  // ── Renderização imediata da UI ───────────────────────────────────────
-
+  // ── Renderização ───────────────────────────────────────────────────────
   function _renderUI() {
     if (typeof OrdersUI !== 'undefined' && typeof OrdersUI.render === 'function') {
       OrdersUI.render();
     } else if (typeof OrdersKanban !== 'undefined' && typeof OrdersKanban.render === 'function') {
       OrdersKanban.render();
-    } else {
-      // fallback para render legado em pedidos.js
-      if (typeof global.pedidosCarregar === 'function') {
-        global.pedidosCarregar();
-      }
+    } else if (typeof global.pedidosCarregar === 'function') {
+      global.pedidosCarregar();
     }
   }
 
-  // ── Processamento de evento realtime ──────────────────────────────────
+  function _refreshDelivery() {
+    if (typeof DeliveryGallery !== 'undefined' && typeof DeliveryGallery.refresh === 'function') {
+      DeliveryGallery.refresh();
+    }
+  }
 
-  function _handleEvent(tipo, record) {
+  // ── Processamento de evento realtime de pedidos ────────────────────────
+  function _handlePedidoEvent(tipo, record) {
     if (!record || !record.id) {
-      _warn('Evento', tipo, 'sem record.id — ignorando');
+      _warn('Evento pedidos', tipo, 'sem record.id — ignorando');
       return;
     }
 
@@ -216,7 +205,7 @@
     }
     _markSeen(key);
 
-    _log('pedido ' + tipo.toLowerCase() + 'do — id:', record.id, '| status:', record.status_v3 || record.status || '?');
+    _log('pedido ' + tipo.toLowerCase() + ' — id:', record.id, '| status:', record.status_v3 || record.status || '?');
 
     if (tipo === 'INSERT') {
       _applyInsert(record);
@@ -226,21 +215,48 @@
       _applyDelete(record);
     }
 
-    // Re-renderiza sem reload de página
     _renderUI();
   }
 
-  // ── Extrai record dos 3 formatos possíveis do Supabase Realtime ───────
-  //   Formato 1 (mais comum): msg.payload.data.type + msg.payload.data.record
-  //   Formato 2 (phoenix raw): msg.payload.type + msg.payload.record
-  //   Formato 3 (alguns builds): msg.payload.new
+  // ── Escuta de CustomEvents do RealtimeManager ─────────────────────────
+  function _attachGlobalEventListeners() {
+    if (_eventsAttached) return;
+    _eventsAttached = true;
+
+    // Pedidos: INSERT, UPDATE, DELETE
+    global.addEventListener('pedidos:changed', function (e) {
+      var detail = e.detail || {};
+      if (detail.event && detail.record) {
+        _log('pedidos:changed recebido — event:', detail.event);
+        _handlePedidoEvent(detail.event, detail.record);
+      }
+    });
+
+    // Entregas: refresh gallery + lista de pedidos
+    global.addEventListener('delivery:changed', function (e) {
+      var detail = e.detail || {};
+      _log('delivery:changed recebido — event:', detail.event, '| id:', detail.record && detail.record.id);
+      _refreshDelivery();
+      // Re-renderiza pedidos (pode ter progresso atualizado)
+      _renderUI();
+    });
+
+    // Compat: orders:refresh (dispatchado por delivery-system.js ao remover entrega)
+    global.addEventListener('orders:refresh', function (e) {
+      _log('orders:refresh recebido:', e.detail && e.detail.source);
+      _renderUI();
+    });
+
+    _log('CustomEvent listeners registrados.');
+  }
+
+  // ── WebSocket próprio (FALLBACK — usado se RealtimeManager não estiver) ─
 
   function _extractRecord(msg) {
     var tipo   = null;
     var record = null;
 
     if (msg.event === 'postgres_changes') {
-      // [DataNormalize] Usa normalizeRealtimeRecord (schema-compat.js) quando disponível
       if (typeof normalizeRealtimeRecord === 'function') {
         var _rt = normalizeRealtimeRecord(msg, 'pedidos');
         if (_rt.record) { tipo = _rt.event || tipo; record = _rt.record; }
@@ -251,7 +267,7 @@
         tipo   = msg.payload.type;
         record = msg.payload.record;
       } else if (msg.payload && msg.payload.new && Object.keys(msg.payload.new).length) {
-        tipo   = 'INSERT';   // convenção: payload.new → INSERT/UPDATE
+        tipo   = 'INSERT';
         record = msg.payload.new;
       } else if (msg.payload && msg.payload.old && Object.keys(msg.payload.old).length) {
         tipo   = 'DELETE';
@@ -261,8 +277,6 @@
 
     return { tipo: tipo, record: record };
   }
-
-  // ── WebSocket / Phoenix channel ───────────────────────────────────────
 
   function _connect() {
     var myRef = ++_subscribeRef;
@@ -275,7 +289,7 @@
       + '?apikey=' + (global.SUPABASE_KEY || '')
       + '&vsn=1.0.0';
 
-    _log('Iniciando WebSocket para tabela pedidos (ref=' + myRef + ')…');
+    _log('Fallback WebSocket para tabela pedidos (ref=' + myRef + ')…');
 
     var ws;
     try {
@@ -290,23 +304,16 @@
 
     ws.onopen = function () {
       if (myRef !== _subscribeRef) { ws.close(); return; }
-      _log('canal conectado (ref=' + myRef + ')');
+      _log('fallback canal conectado (ref=' + myRef + ')');
 
-      // Heartbeat a cada 25s para manter conexão viva
       _heartbeat = setInterval(function () {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(msgRef++),
-          }));
+          ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(msgRef++) }));
         }
       }, 25000);
 
-      // Inscreve canal pedidos — escuta INSERT, UPDATE e DELETE
-      var channel = 'realtime:public:pedidos';
-      _log('Inscrevendo canal:', channel);
-
       ws.send(JSON.stringify({
-        topic:   channel,
+        topic:   'realtime:public:pedidos',
         event:   'phx_join',
         payload: {
           config: {
@@ -325,28 +332,22 @@
 
     ws.onmessage = function (evt) {
       if (myRef !== _subscribeRef) return;
-
       var msg;
       try { msg = JSON.parse(evt.data); } catch (e) { return; }
 
-      // Canal confirmado
       if (msg.event === 'phx_reply' && msg.payload && msg.payload.status === 'ok') {
         _wsActive = true;
-        _log('canal conectado — escutando INSERT | UPDATE | DELETE em pedidos');
+        _log('fallback canal confirmado — escutando pedidos');
         return;
       }
-
-      // Erro de canal
       if (msg.event === 'phx_error') {
-        _err('phx_error — canal rejeitado:', msg.payload);
+        _err('phx_error:', msg.payload);
         return;
       }
-
-      // Eventos postgres_changes
       if (msg.event === 'postgres_changes') {
         var extracted = _extractRecord(msg);
         if (extracted.tipo && extracted.record) {
-          _handleEvent(extracted.tipo, extracted.record);
+          _handlePedidoEvent(extracted.tipo, extracted.record);
         }
       }
     };
@@ -358,18 +359,15 @@
 
     ws.onclose = function (evt) {
       if (myRef !== _subscribeRef) return;
-      _log('canal removido (ref=' + myRef + ') | code:', evt.code, '| reason:', evt.reason || '(sem motivo)');
+      _log('fallback canal removido (ref=' + myRef + ') code:', evt.code);
       _wsActive = false;
       clearInterval(_heartbeat);
       _heartbeat = null;
 
       if (_destroyed) return;
-
-      // Reconexão automática após 12s
       _reconnectTimer = setTimeout(function () {
-        if (myRef !== _subscribeRef) return;
-        if (_destroyed) return;
-        _log('Reconectando…');
+        if (myRef !== _subscribeRef || _destroyed) return;
+        _log('Reconectando fallback…');
         _connect();
       }, 12000);
     };
@@ -387,84 +385,77 @@
     }
   }
 
-  // ── API Pública ───────────────────────────────────────────────────────
+  // ── API Pública ────────────────────────────────────────────────────────
 
-  /**
-   * Inicia o realtime de pedidos.
-   * Chamado automaticamente no login — chamar manualmente apenas se necessário.
-   */
   function startRealtime() {
-    // [SchemaCompat] RealtimeGuard: previne subscriptions duplicadas
-    if (typeof SchemaCompat !== 'undefined' && SchemaCompat.RealtimeGuard.isActive('pedidos-realtime')) {
-      _log('RealtimeGuard: canal ja ativo — ignorando subscribe duplicado');
+    // Sempre registra listeners globais (independente de usar RealtimeManager ou não)
+    _attachGlobalEventListeners();
+
+    // Se RealtimeManager estiver disponível, ele cuida do WebSocket — sem duplicar
+    if (typeof global.RealtimeManager !== 'undefined') {
+      _log('RealtimeManager detectado — usando eventos globais (sem WebSocket próprio).');
       return;
     }
-    if (
-      _wsActive &&
-      _ws &&
-      _ws.readyState === WebSocket.OPEN
-    ) {
-      _log('Já ativo — ignorando subscribe duplicado.');
+
+    // Fallback: WebSocket próprio para a tabela pedidos
+    if (typeof SchemaCompat !== 'undefined' && SchemaCompat.RealtimeGuard && SchemaCompat.RealtimeGuard.isActive('pedidos-realtime')) {
+      _log('RealtimeGuard: canal já ativo — ignorando.');
+      return;
+    }
+    if (_wsActive && _ws && _ws.readyState === WebSocket.OPEN) {
+      _log('Fallback já ativo — ignorando.');
       return;
     }
     _stopInternal();
     _connect();
   }
 
-  /**
-   * Para o realtime definitivamente (ex.: logout).
-   */
   function stopRealtime() {
     _destroyed = true;
     _subscribeRef++;
     _stopInternal();
     _seenEvents.clear();
-    _log('canal removido definitivamente.');
+    _log('parado definitivamente.');
   }
 
-  /**
-   * Retorna true se o WebSocket está conectado e o canal confirmado.
-   */
   function isActive() {
+    if (typeof global.RealtimeManager !== 'undefined') return global.RealtimeManager.isActive();
     return _wsActive && _ws && _ws.readyState === WebSocket.OPEN;
   }
 
-  // ── Inicialização automática via Session ──────────────────────────────
-
+  // ── Bootstrap automático ──────────────────────────────────────────────
   function _bootstrap() {
     if (typeof Session === 'undefined') {
-      _warn('Session não disponível — realtime de pedidos não será iniciado automaticamente.');
+      _warn('Session não disponível — realtime não será iniciado automaticamente.');
       return;
     }
 
     _authHandler = function (event, user) {
       if (event === 'login' && user) {
-        _log('Login detectado — iniciando realtime de pedidos…');
+        _log('Login detectado — iniciando…');
         startRealtime();
       } else if (event === 'logout') {
-        _log('Logout detectado — parando realtime de pedidos.');
+        _log('Logout detectado — parando…');
         stopRealtime();
-        _destroyed = false; // permite reiniciar no próximo login
+        _destroyed = false;
       }
     };
 
     Session.onAuthChange(_authHandler);
   }
 
-  // Garante execução após DOM pronto
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _bootstrap, { once: true });
   } else {
     _bootstrap();
   }
 
-  // ── Exporta globalmente ───────────────────────────────────────────────
   global.PedidosRealtime = {
     startRealtime: startRealtime,
     stopRealtime:  stopRealtime,
     isActive:      isActive,
   };
 
-  _log('módulo carregado.');
+  _log('módulo carregado (v2).');
 
 })(window);
