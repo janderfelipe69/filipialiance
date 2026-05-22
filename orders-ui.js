@@ -20,7 +20,8 @@ const OrdersUI = (() => {
     expandedPanels: new Set(),
     expandedHistory: new Set(),
     // PATCH 5.3: view mode — 'list' mantém comportamento existente; 'kanban' delega ao OrdersKanban
-    viewMode: 'list',
+    // DEFAULT: kanban. Restaura preferência salva; fallback = 'kanban'
+    viewMode: (localStorage.getItem('orders_view_mode') || 'kanban'),
   };
 
   // ── Inicialização ──────────────────────────────────────────────────────
@@ -36,17 +37,21 @@ const OrdersUI = (() => {
     _injectStyles();
     _setupTopbar();
 
-    // PATCH 5.4: kanban só para admin, só se OrdersKanban estiver carregado
-    // Feature flag: window.PA_KANBAN_ENABLED = true (setado externamente ou aqui)
-    // Para habilitar: adicionar <script>window.PA_KANBAN_ENABLED=true;</script> antes dos scripts
+    // PATCH 5.4 (v2): kanban é o modo padrão para todos.
+    // Preferência do localStorage já carregada no _state.viewMode acima.
     const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
     const kanbanAvailable = typeof OrdersKanban !== 'undefined';
-    const flagEnabled = !!window.PA_KANBAN_ENABLED;
 
-    if (kanbanAvailable && flagEnabled && isAdmin) {
-      _state.viewMode = 'kanban';
+    // Responsividade: em mobile estreito sem preferência salva, fallback para lista
+    const isMobileNarrow = window.innerWidth < 520;
+    const hasSavedPref   = localStorage.getItem('orders_view_mode') !== null;
+    if (isMobileNarrow && !hasSavedPref) {
+      _state.viewMode = 'list';
+    }
+
+    if (kanbanAvailable && _state.viewMode === 'kanban') {
       OrdersKanban.init();
-      console.log('[OrdersUI] 🗂 Modo kanban ativado para admin.');
+      console.log('[OrdersUI] \u{1F5C2} Modo kanban ativado (padrão).');
     }
 
     _ensureKanbanContainer();
@@ -55,11 +60,7 @@ const OrdersUI = (() => {
 
     if (typeof Session !== 'undefined') {
       Session.onAuthChange(() => {
-        // Re-avalia acesso ao kanban quando sessão muda
-        const nowAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
-        if (!nowAdmin && _state.viewMode === 'kanban') {
-          _state.viewMode = 'list';
-        }
+        // Sessão mudou — mantém preferência do usuário (kanban é padrão para todos)
         render();
       });
     }
@@ -639,8 +640,7 @@ const OrdersUI = (() => {
   // Injeta o botão de alternância kanban/lista na topbar existente.
   // Só aparece para admins com OrdersKanban disponível e flag ativa.
   function _injectViewToggle() {
-    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
-    if (!isAdmin || typeof OrdersKanban === 'undefined' || !window.PA_KANBAN_ENABLED) return;
+    if (typeof OrdersKanban === 'undefined') return;
     if (document.getElementById('kb-view-toggle')) return;
 
     const topbarRight = document.querySelector('.pedidos-topbar-right');
@@ -665,10 +665,10 @@ const OrdersUI = (() => {
   }
 
   function _toggleViewMode() {
-    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
-    if (!isAdmin) return; // segurança extra
-
     _state.viewMode = _state.viewMode === 'kanban' ? 'list' : 'kanban';
+
+    // Persiste preferência no localStorage
+    try { localStorage.setItem('orders_view_mode', _state.viewMode); } catch(e) {}
 
     // Atualiza o botão
     const btn = document.getElementById('kb-view-toggle');
@@ -677,7 +677,20 @@ const OrdersUI = (() => {
       btn.innerHTML = _state.viewMode === 'kanban' ? '☰ Lista' : '⊞ Kanban';
     }
 
-    render();
+    // Transição suave: fade out → render → fade in
+    const kanbanEl = document.getElementById('pedidos-kanban');
+    const listaEl  = document.getElementById('pedidos-lista');
+    const targets  = [kanbanEl, listaEl].filter(Boolean);
+    targets.forEach(el => { el.style.transition = 'opacity 0.18s ease'; el.style.opacity = '0'; });
+
+    setTimeout(function() {
+      render();
+      targets.forEach(el => { el.style.opacity = '1'; });
+      // Limpa transition após completar para não interferir em outros estilos
+      setTimeout(function() {
+        targets.forEach(el => { el.style.transition = ''; });
+      }, 200);
+    }, 150);
   }
 
   // ── Estilos ─────────────────────────────────────────────────────────────
