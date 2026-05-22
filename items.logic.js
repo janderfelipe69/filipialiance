@@ -166,9 +166,10 @@ function buildItemPackFooterHtml(item) {
     : '<span class="item-pack-btn-qty">+1000</span>';
 
   return (
-    '<button class="item-pack-btn item-pack-btn-500" id="itembtn-500-' + i + '" onclick="addPackToCart(' + i + ',500)">' + lbl500 + '</button>' +
-    '<button class="item-pack-btn item-pack-btn-1000" onclick="addPackToCart(' + i + ',1000)">' + lbl1000 + '</button>' +
-    '<div class="item-footer-spacer"></div>'
+    '<div class="item-pack-group">' +
+      '<button class="item-pack-btn item-pack-btn-500" id="itembtn-500-' + i + '" onclick="addPackToCart(' + i + ',500)">' + lbl500 + '</button>' +
+      '<button class="item-pack-btn item-pack-btn-1000" onclick="addPackToCart(' + i + ',1000)">' + lbl1000 + '</button>' +
+    '</div>'
   );
 }
 
@@ -179,8 +180,8 @@ function buildItemManualFooterHtml(item) {
     '<input type="number" class="item-qty-input" id="item-qty-' + i + '" value="1" min="1" max="100000"' +
       ' oninput="var v=parseInt(this.value,10);this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v);itemUpdateTotalPrice(' + i + ',this.value)"' +
       ' onkeydown="if(event.key===\'-\'||event.key===\'e\')event.preventDefault()" />' +
-    '<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;">' +
-      '<button class="item-add-btn' + (inCart ? ' added' : '') + '" id="item-addbtn-' + i + '" onclick="itemAddToCart(' + i + ')" style="flex:1">' +
+    '<div class="item-cta-group">' +
+      '<button class="item-add-btn' + (inCart ? ' added' : '') + '" id="item-addbtn-' + i + '" onclick="itemAddToCart(' + i + ')">' +
         '<span id="item-addbtn-label-' + i + '">' + (inCart ? ('✓ ' + cart[i].toLocaleString()) : 'Adicionar') + '</span>' +
       '</button>' +
       (inCart

@@ -576,9 +576,26 @@
 .item-card-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   padding: 12px 20px 16px;
-  /* sem overflow: visible permite botão de texto completo */
+}
+
+/* grupo esquerdo: pack buttons lado a lado */
+.item-pack-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* grupo direito: qty + botão adicionar */
+.item-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
 }
 
 /* ─── Pack buttons ───────────────────────────────────────────────────────────── */
@@ -636,9 +653,6 @@
   opacity: 0.6;
 }
 
-/* ─── Spacer ─────────────────────────────────────────────────────────────────── */
-
-.item-footer-spacer { flex: 1; min-width: 4px; }
 
 /* ─── Qty input ──────────────────────────────────────────────────────────────── */
 
@@ -678,10 +692,7 @@
   cursor: pointer;
   text-transform: uppercase;
   position: relative;
-  overflow: hidden;
-  white-space: nowrap;
   min-height: 42px;
-  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
