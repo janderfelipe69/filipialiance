@@ -175,8 +175,8 @@ function buildParticlesHtml(type) {
 // ============================================================
 // Supabase — configuração
 // ============================================================
-const SUPABASE_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
+// SUPABASE_URL and SUPABASE_KEY are defined in supabase-client.js (single source of truth)
+// app.js reads them from window.SUPABASE_URL / window.SUPABASE_KEY
 
 // ── helpers compartilhados pelas duas funções ─────────────────────────────────
 
@@ -2468,7 +2468,7 @@ const POKEMONS = [
 { name: "Torterra",          price: 32000000,  tag: "t1",         image: "https://i.imgur.com/PBn3OXz.gif", bannerImage: "https://i.imgur.com/JPcD2l3.png" },
 { name: "Shiny Dodrio",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/X5uC13u.gif", bannerImage: "https://i.imgur.com/npGjQae.png" },
 { name: "Shiny Kingdra",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/ZPszNYT.gif", bannerImage: "https://i.imgur.com/zpRe43i.png" },
- <!-- { name: "Shiny Kabutops",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/t7vEAaB.gif" }, -->
+// { name: "Shiny Kabutops",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/t7vEAaB.gif" },
 { name: "Shiny Arcanine",    price: 170000000, tag: "super-raro", image: "https://i.imgur.com/BqakQU0.gif", bannerImage: "https://i.imgur.com/O8TONGE.png" },
 { name: "Shiny Kangaskhan",  price: 170000000,  tag: "super-raro",         image: "https://i.imgur.com/wgjSoja.gif", bannerImage: "https://i.imgur.com/OKsJXh7.png" },
 { name: "Shiny Lapras",  price: 38000000,  tag: "t1",         image: "https://i.imgur.com/nVzbMx2.gif", bannerImage: "https://i.imgur.com/ssFz0sA.png" },

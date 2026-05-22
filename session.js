@@ -182,13 +182,17 @@ const Session = (() => {
       return null;
     }
     console.log('[Session] 📋 Carregando perfil para user_id:', authUserId);
+    // SECURITY: cache is read-only for non-sensitive fields.
+    // role is NEVER trusted from localStorage — always re-fetched from DB.
+    // This prevents self-promotion via: localStorage.setItem('pa_sb_user_cache', JSON.stringify({...user, role:'admin'}))
+    let _cachedNonSensitive = null;
     try {
       const cached = localStorage.getItem(KEYS.USER_CACHE);
       if (cached) {
         const parsed = JSON.parse(cached);
+        // Only use cache for display fields, never for role/permissions
         if (parsed && parsed.id === authUserId) {
-          console.log('[Session] 📋 Perfil do cache:', parsed.nickname);
-          return parsed;
+          _cachedNonSensitive = { nickname: parsed.nickname, server: parsed.server, avatar: parsed.avatar };
         }
       }
     } catch (_) {}
