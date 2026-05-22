@@ -724,8 +724,14 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
-  if (tab === 'pacotes') renderPackages();
-  if (tab === 'captura') renderCaptura();
+  if (tab === 'pacotes') {
+    if (window.__dbReady) renderPackages();
+    else document.addEventListener('db:ready', function() { renderPackages(); }, { once: true });
+  }
+  if (tab === 'captura') {
+    if (window.__dbReady) renderCaptura();
+    else document.addEventListener('db:ready', function() { renderCaptura(); }, { once: true });
+  }
   if (tab === 'wiki') renderWiki();
 }
 
@@ -7123,3 +7129,12 @@ function closeHeldModalBtn() {
   if (root) root.innerHTML = '';
   document.body.style.overflow = '';
 }
+// Re-renderiza a aba ativa quando o db-bootstrap terminar
+document.addEventListener('db:ready', function() {
+  var activeTab = document.querySelector('.tab-content.active');
+  if (!activeTab) return;
+  var id = activeTab.id || '';
+  if (id === 'tab-captura'  && typeof renderCaptura  === 'function') renderCaptura();
+  if (id === 'tab-pacotes'  && typeof renderPackages === 'function') renderPackages();
+  if (id === 'tab-itens'    && typeof renderItems    === 'function') renderItems();
+});
