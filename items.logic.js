@@ -179,7 +179,7 @@ function buildItemManualFooterHtml(item) {
     '<input type="number" class="item-qty-input" id="item-qty-' + i + '" value="1" min="1" max="100000"' +
       ' oninput="var v=parseInt(this.value,10);this.value=(isNaN(v)||v<1)?1:(v>100000?100000:v);itemUpdateTotalPrice(' + i + ',this.value)"' +
       ' onkeydown="if(event.key===\'-\'||event.key===\'e\')event.preventDefault()" />' +
-    '<div style="display:flex;align-items:center;gap:5px;flex:1">' +
+    '<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;">' +
       '<button class="item-add-btn' + (inCart ? ' added' : '') + '" id="item-addbtn-' + i + '" onclick="itemAddToCart(' + i + ')" style="flex:1">' +
         '<span id="item-addbtn-label-' + i + '">' + (inCart ? ('✓ ' + cart[i].toLocaleString()) : 'Adicionar') + '</span>' +
       '</button>' +
