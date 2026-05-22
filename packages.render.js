@@ -184,8 +184,9 @@ function buildSlotTabHTML(pkg, pi, slot, slotIdx, isActive) {
     var n = slot[i][0], q = slot[i][1];
     if (isPkgItemDisabled(pi, slotIdx, n)) { disabledCount++; continue; }
     var it = getPkgItemData(n);
-    if (it && it.price) slotTotal += it.price * q;
-    else noPriceCount++;
+    if (it && it.price !== null && it.price > 0) slotTotal += it.price * q;
+    else if (!it || it.price === null) noPriceCount++;
+    // price === 0: craftable/free item, not counted as no-price
   }
 
   var activeCount = slot.length - disabledCount;
@@ -224,7 +225,7 @@ function buildSlotTabHTML(pkg, pi, slot, slotIdx, isActive) {
 function buildItemRowHTML(name, qty, pi, si) {
   var disabled  = isPkgItemDisabled(pi, si, name);
   var item      = getPkgItemData(name);
-  var lineTotal = (!disabled && item && item.price && qty > 0) ? item.price * qty : 0;
+  var lineTotal = (!disabled && item && item.price !== null && item.price > 0 && qty > 0) ? item.price * qty : 0;
   var priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
   var safeName  = name.replace(/'/g, "\\'");
 

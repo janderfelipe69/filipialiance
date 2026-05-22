@@ -597,7 +597,7 @@
 
   /* ─── HELPERS ───────────────────────────────────────────────── */
   function getItemRarity(item) {
-    if (!item || !item.price) return 'common';
+    if (!item || item.price === null) return 'common';
     const p = item.price;
     if (p >= 50000) return 'legendary';
     if (p >= 10000) return 'epic';
@@ -739,7 +739,7 @@
         const noPriceCount = slot.filter(([n]) => {
           if (typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, idx, n)) return false;
           const it = typeof getPkgItemData === 'function' ? getPkgItemData(n) : null;
-          return !it || !it.price;
+          return !it || it.price === null;
         }).length;
         const slotTotal = slot.reduce((s, [n, q]) => {
           if (typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, idx, n)) return s;
@@ -778,7 +778,7 @@
     const rowsHtml = currentSlot.map(([name, qty]) => {
       const disabled = typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, si, name);
       const item     = typeof getPkgItemData === 'function' ? getPkgItemData(name) : null;
-      const lineTotal = !disabled && item && item.price && qty > 0 ? item.price * qty : 0;
+      const lineTotal = !disabled && item && item.price !== null && item.price > 0 && qty > 0 ? item.price * qty : 0;
       const priceData = lineTotal > 0 && typeof formatKK === 'function' ? formatKK(lineTotal) : null;
       const rarity    = getItemRarity(item);
       const emoji     = getItemEmoji(name);

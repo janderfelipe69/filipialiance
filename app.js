@@ -33,7 +33,7 @@ const items = [];
 const seen = new Set();
 RAW.forEach(([name, image, price, tier, evo]) => {
   const key = name + '|' + (image || '');
-  if (!seen.has(key)) { seen.add(key); items.push({ name, image: image || '', price: price || 0, tier: tier || '', evo: evo || '' }); }
+  if (!seen.has(key)) { seen.add(key); items.push({ name, image: image || '', price: (price !== undefined && price !== null) ? Number(price) : null, tier: tier || '', evo: evo || '' }); }
 });
 // Store original index on each item for O(1) lookup
 items.forEach((item, i) => { item._idx = i; });
@@ -293,7 +293,7 @@ async function sendToWhatsApp() {
   const itensPedido = keys.map(k => {
     const item    = items[k];
     const qty     = cart[k];
-    const unitRaw = item.price || 0;
+    const unitRaw = item.price ?? 0;
     const totRaw  = unitRaw * qty;
     return {
       nome:            item.name,
@@ -379,7 +379,7 @@ function showNoPriceToast(itemName) {
 
 function addPackToCart(i, qty) {
   cart[i] = (cart[i] || 0) + qty;
-  if (!items[i].price) showNoPriceToast(items[i].name);
+  if (items[i].price === null) showNoPriceToast(items[i].name);
   updateCartBadge();
   // Atualiza botões do módulo de itens (novos IDs)
   const btn500 = document.getElementById('itembtn-500-' + i);
@@ -414,7 +414,7 @@ function addToCart(i) {
   if (isNaN(val) || val < 1) val = 1;
   if (val > 100000) val = 100000;
   cart[i] = (cart[i] || 0) + val;
-  if (!items[i].price) showNoPriceToast(items[i].name);
+  if (items[i].price === null) showNoPriceToast(items[i].name);
   updateCartBadge();
   if (document.getElementById('cart-overlay').classList.contains('open')) renderCart();
 }
@@ -476,7 +476,7 @@ function renderCart() {
   const total = keys.reduce((s, k) => s + cart[k], 0);
   const grandTotalRaw = keys.reduce((s, k) => {
     const item = items[k];
-    return s + (item && item.price ? item.price * cart[k] : 0);
+    return s + (item && item.price !== null ? (item.price ?? 0) * cart[k] : 0);
   }, 0);
   document.getElementById('cart-total-num').textContent = total.toLocaleString();
   footer.style.display = 'block';
@@ -512,7 +512,7 @@ function renderCart() {
   }
 
   // Verifica itens sem preço e exibe aviso
-  const noPriceItems = keys.filter(k => !items[k].price);
+  const noPriceItems = keys.filter(k => items[k].price === null);
   const warnBanner = document.getElementById('cart-no-price-warning');
   const warnList   = document.getElementById('cart-warn-items-list');
   if (warnBanner) {
@@ -2195,7 +2195,7 @@ function updatePkgQty(idx, val) {
   const qty = Math.max(0, parseInt(val, 10) || 0);
   currentPkgState[idx].qty = qty;
   const item = getPkgItemData(currentPkgState[idx].name);
-  const lineTotal = item && item.price && qty > 0 ? item.price * qty : 0;
+  const lineTotal = item && item.price !== null && item.price > 0 && qty > 0 ? item.price * qty : 0;
   const priceEl = document.getElementById('pkg-price-' + idx);
   if (priceEl) priceEl.textContent = lineTotal > 0 ? formatKK(lineTotal).label : '—';
   updatePkgTotal();
@@ -2214,7 +2214,7 @@ function updatePkgTotal() {
   let totalRaw = 0;
   currentPkgState.forEach(entry => {
     const item = getPkgItemData(entry.name);
-    if (item && item.price && entry.qty > 0) totalRaw += item.price * entry.qty;
+    if (item && item.price !== null && item.price > 0 && entry.qty > 0) totalRaw += item.price * entry.qty;
   });
   const totalBlock = document.getElementById('pkg-modal-total');
   if (totalBlock) {
@@ -2265,7 +2265,7 @@ function addPackageToCartDirect(pi) {
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + qty;
-    if (!items[idx].price) noPriceNames.push(name);
+    if (items[idx].price === null) noPriceNames.push(name);
     const addBtn = document.getElementById('item-addbtn-' + idx);
     const addLbl = document.getElementById('item-addbtn-label-' + idx);
     if (addBtn) addBtn.classList.add('added');

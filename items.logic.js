@@ -154,8 +154,8 @@ function buildItemPriceHtml(item, typeColor) {
 
 function buildItemPackFooterHtml(item) {
   var i = item._idx;
-  var p500  = item.price ? formatKK(item.price * 500)  : null;
-  var p1000 = item.price ? formatKK(item.price * 1000) : null;
+  var p500  = (item.price !== null && item.price > 0) ? formatKK(item.price * 500)  : null;
+  var p1000 = (item.price !== null && item.price > 0) ? formatKK(item.price * 1000) : null;
 
   var lbl500 = p500
     ? '<span class="item-pack-btn-qty">+500</span><span class="item-pack-btn-price">' + p500.label + '</span><span class="item-pack-btn-brl">' + p500.brl + '</span>'
@@ -199,7 +199,7 @@ function buildItemManualFooterHtml(item) {
 function itemUpdateTotalPrice(i, rawVal) {
   var qty  = Math.max(1, parseInt(rawVal, 10) || 1);
   var item = items[i];
-  if (!item || !item.price) return;
+  if (!item || item.price === null || item.price === 0) return;
   var data = (typeof formatKK === 'function') ? formatKK(item.price * qty) : null;
   if (!data) return;
   var kkEl  = document.getElementById('item-total-kk-'  + i);
@@ -216,7 +216,7 @@ function itemAddToCart(i) {
 
   cart[i] = (cart[i] || 0) + val;
 
-  if (items[i] && !items[i].price && typeof showNoPriceToast === 'function') {
+  if (items[i] && items[i].price === null && typeof showNoPriceToast === 'function') {
     showNoPriceToast(items[i].name);
   }
 
