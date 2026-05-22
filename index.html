@@ -218,6 +218,20 @@
 
 <!-- TAB: CAPTURA -->
 <div class="tab-content" id="tab-captura">
+  <!-- Premium Captura Hero Header -->
+  <div id="captura-hero" style="position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(10,6,30,0) 0%,rgba(100,40,200,0.06) 50%,rgba(10,6,30,0) 100%);border-bottom:1px solid rgba(160,80,255,0.12);padding:20px 24px 16px;">
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
+      <div style="position:absolute;top:-60px;left:20%;width:400px;height:200px;background:radial-gradient(ellipse,rgba(160,80,255,0.07) 0%,transparent 70%);"></div>
+      <div style="position:absolute;top:-40px;right:10%;width:280px;height:160px;background:radial-gradient(ellipse,rgba(58,140,255,0.06) 0%,transparent 70%);"></div>
+    </div>
+    <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:var(--font-title);font-size:18px;font-weight:900;letter-spacing:3px;text-transform:uppercase;background:linear-gradient(135deg,#fff 0%,rgba(160,80,255,1) 45%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Captura</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-top:3px;">MARKETPLACE PREMIUM · POKÉMON SHINY</div>
+      </div>
+      <span class="pkg-count-label" id="captura-count-label" style="font-family:var(--font-mono);font-size:10px;background:rgba(160,80,255,0.08);border:1px solid rgba(160,80,255,0.2);border-radius:20px;padding:5px 12px;color:rgba(255,255,255,0.45);letter-spacing:1px;">— pokémons</span>
+    </div>
+  </div>
   <div class="captura-controls">
     <div class="search-wrap">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -327,7 +341,6 @@
         </button>
       </div>
     </div>
-    <span class="pkg-count-label" id="captura-count-label">— pokémons</span>
   </div>
   <div class="captura-wrap">
     <div class="captura-grid" id="captura-grid"></div>
@@ -2285,5 +2298,6 @@ function enviarPedido() {
   }
 }
 </script>
+<script src="captura-redesign.js"></script>
 </body>
 </html>
