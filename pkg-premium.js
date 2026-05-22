@@ -27,8 +27,6 @@
               #06090f !important;
   position: relative;
 }
-
-/* Subtle animated background grid */
 .packages-wrap::before {
   content: '';
   position: absolute;
@@ -56,7 +54,6 @@
   position: relative;
   backdrop-filter: blur(10px);
 }
-
 .pkg-cat-btn {
   display: flex !important;
   align-items: center !important;
@@ -125,7 +122,7 @@
   z-index: 1;
 }
 
-/* ═══ SIDEBAR — BUILD SELECTION ═══ */
+/* ═══ SIDEBAR ═══ */
 .pkg-sidebar {
   width: 280px !important;
   flex-shrink: 0 !important;
@@ -135,7 +132,6 @@
   flex-direction: column !important;
   overflow: hidden !important;
 }
-
 .pkg-sidebar-header {
   padding: 16px 18px 12px !important;
   border-bottom: 1px solid rgba(58,140,255,0.1) !important;
@@ -155,7 +151,7 @@
   text-transform: uppercase !important;
 }
 
-/* ═══ PACKAGE GRID CARDS ═══ */
+/* ═══ PACKAGE LIST CARDS ═══ */
 .pkg-sidebar-list {
   flex: 1 !important;
   overflow-y: auto !important;
@@ -201,7 +197,6 @@
   border-color: rgba(34,197,94,0.4) !important;
   border-left-color: #22c55e !important;
 }
-
 .pkg-sidebar-item-icon {
   width: 46px !important;
   height: 46px !important;
@@ -221,7 +216,6 @@
   object-fit: contain !important;
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--pkg-color, #60aaff) 60%, transparent)) !important;
 }
-
 .pkg-sidebar-item-info {
   flex: 1 !important;
   min-width: 0 !important;
@@ -240,23 +234,19 @@
   text-overflow: unset !important;
   line-height: 1.3 !important;
 }
-.pkg-sidebar-item.active .pkg-sidebar-item-name {
-  color: #fff !important;
-}
+.pkg-sidebar-item.active .pkg-sidebar-item-name { color: #fff !important; }
 .pkg-sidebar-item-sub {
   font-family: 'Share Tech Mono', monospace !important;
   font-size: 10px !important;
   color: rgba(255,255,255,0.3) !important;
   letter-spacing: 0.5px !important;
 }
-
 .pkg-sidebar-item-price-preview {
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: color-mix(in srgb, var(--pkg-color, #ffd700) 90%, white);
   opacity: 0.85;
 }
-
 .pkg-card-cart-badge {
   position: absolute !important;
   top: 7px !important;
@@ -279,7 +269,6 @@
   overflow: hidden !important;
   background: transparent !important;
 }
-
 .pkg-detail-empty {
   flex: 1 !important;
   display: flex !important;
@@ -289,11 +278,7 @@
   gap: 20px !important;
   color: rgba(100,140,200,0.3) !important;
 }
-.pkg-detail-empty-icon {
-  font-size: 60px !important;
-  opacity: 0.15 !important;
-  filter: grayscale(1);
-}
+.pkg-detail-empty-icon { font-size: 60px !important; opacity: 0.15 !important; filter: grayscale(1); }
 .pkg-detail-empty-text {
   font-family: 'Rajdhani', sans-serif !important;
   font-size: 14px !important;
@@ -313,126 +298,60 @@
   gap: 20px;
 }
 .pprem-header-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 64px; height: 64px; border-radius: 12px;
   background: color-mix(in srgb, var(--pkg-color, #60aaff) 15%, #080e1f);
   border: 2px solid color-mix(in srgb, var(--pkg-color, #60aaff) 40%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   box-shadow: 0 0 28px color-mix(in srgb, var(--pkg-color, #60aaff) 25%, transparent),
               inset 0 0 20px rgba(0,0,0,0.4);
   overflow: hidden;
 }
-.pprem-header-icon img {
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--pkg-color, #60aaff) 80%, transparent));
-}
+.pprem-header-icon img { width: 42px; height: 42px; object-fit: contain;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--pkg-color, #60aaff) 80%, transparent)); }
 .pprem-header-info { flex: 1; min-width: 0; }
 .pprem-pkg-cat {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--pkg-color, #60aaff);
-  opacity: 0.8;
-  margin-bottom: 4px;
+  font-family: 'Rajdhani', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--pkg-color, #60aaff); opacity: 0.8; margin-bottom: 4px;
 }
 .pprem-pkg-name {
-  font-family: 'Cinzel', serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 1px;
-  line-height: 1.1;
-  margin-bottom: 8px;
+  font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700;
+  color: #fff; letter-spacing: 1px; line-height: 1.1; margin-bottom: 8px;
 }
-.pprem-pkg-badges {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+.pprem-pkg-badges { display: flex; gap: 8px; flex-wrap: wrap; }
 .pprem-badge {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 3px;
-  border: 1px solid;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; padding: 3px 9px;
+  border-radius: 3px; border: 1px solid;
 }
-.pprem-badge-slots {
-  background: rgba(58,140,255,0.1);
-  border-color: rgba(58,140,255,0.35);
-  color: #7ab4ff;
-}
-.pprem-badge-items {
-  background: rgba(255,200,50,0.08);
-  border-color: rgba(255,200,50,0.3);
-  color: #ffd166;
-}
-.pprem-badge-cart {
-  background: rgba(34,197,94,0.12);
-  border-color: rgba(34,197,94,0.4);
-  color: #4ade80;
-}
+.pprem-badge-slots { background: rgba(58,140,255,0.1); border-color: rgba(58,140,255,0.35); color: #7ab4ff; }
+.pprem-badge-items { background: rgba(255,200,50,0.08); border-color: rgba(255,200,50,0.3); color: #ffd166; }
+.pprem-badge-cart { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.4); color: #4ade80; }
 
-/* ── Slot Selector (talent tree style) ── */
-.pprem-slot-section {
-  padding: 16px 28px 0;
-  flex-shrink: 0;
-}
+/* ── Slot Selector ── */
+.pprem-slot-section { padding: 16px 28px 0; flex-shrink: 0; }
 .pprem-slot-label {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: rgba(100,140,200,0.5);
-  margin-bottom: 10px;
+  font-family: 'Rajdhani', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: rgba(100,140,200,0.5); margin-bottom: 10px;
 }
 .pprem-slot-track {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  position: relative;
-  padding-bottom: 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: flex; align-items: center; gap: 0; position: relative;
+  padding-bottom: 16px; overflow-x: auto; scrollbar-width: none;
 }
 .pprem-slot-track::-webkit-scrollbar { display: none; }
 .pprem-slot-connector {
-  height: 2px;
-  flex: 1;
-  min-width: 20px;
-  background: rgba(58,140,255,0.15);
-  flex-shrink: 0;
-  transition: background 0.25s;
+  height: 2px; flex: 1; min-width: 20px;
+  background: rgba(58,140,255,0.15); flex-shrink: 0; transition: background 0.25s;
 }
 .pprem-slot-connector.passed {
   background: color-mix(in srgb, var(--pkg-color, #60aaff) 50%, transparent);
 }
 .pprem-slot-node {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 2px solid rgba(58,140,255,0.2);
-  background: rgba(6,9,20,0.9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  position: relative;
-  transition: all 0.22s ease;
-  gap: 2px;
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 2px solid rgba(58,140,255,0.2); background: rgba(6,9,20,0.9);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; position: relative;
+  transition: all 0.22s ease; gap: 2px;
 }
 .pprem-slot-node:hover {
   border-color: color-mix(in srgb, var(--pkg-color, #60aaff) 60%, transparent);
@@ -445,109 +364,61 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--pkg-color, #60aaff) 20%, transparent),
               0 0 20px color-mix(in srgb, var(--pkg-color, #60aaff) 30%, transparent);
 }
-.pprem-slot-node.disabled-all {
-  opacity: 0.35;
-  filter: grayscale(0.8);
-}
+.pprem-slot-node.disabled-all { opacity: 0.35; filter: grayscale(0.8); }
 .pprem-slot-node-num {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(200,220,255,0.7);
-  line-height: 1;
+  font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700;
+  color: rgba(200,220,255,0.7); line-height: 1;
 }
 .pprem-slot-node.active .pprem-slot-node-num { color: #fff; }
 .pprem-slot-node-count {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 8px;
-  color: rgba(150,180,240,0.5);
-  letter-spacing: 0.3px;
-  line-height: 1;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: rgba(150,180,240,0.5); letter-spacing: 0.3px; line-height: 1;
 }
 .pprem-slot-node.active .pprem-slot-node-count {
   color: color-mix(in srgb, var(--pkg-color, #60aaff) 80%, white);
 }
 .pprem-slot-price-tag {
-  position: absolute;
-  bottom: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 8px;
-  color: rgba(255,200,80,0.75);
-  white-space: nowrap;
+  position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: rgba(255,200,80,0.75); white-space: nowrap;
 }
 .pprem-slot-warn-dot {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #f59e0b;
+  position: absolute; top: 2px; right: 2px; width: 8px; height: 8px;
+  border-radius: 50%; background: #f59e0b;
   animation: warnPulse 2s ease-in-out infinite;
 }
 
 /* ── Completion Bar ── */
-.pprem-completion {
-  padding: 10px 28px 14px;
-  flex-shrink: 0;
-}
+.pprem-completion { padding: 10px 28px 14px; flex-shrink: 0; }
 .pprem-completion-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
 }
 .pprem-completion-label {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: rgba(100,140,200,0.5);
+  font-family: 'Rajdhani', sans-serif; font-size: 10px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; color: rgba(100,140,200,0.5);
 }
 .pprem-completion-val {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: var(--pkg-color, #60aaff);
-  font-weight: 700;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--pkg-color, #60aaff); font-weight: 700;
 }
 .pprem-bar-track {
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.05);
-  overflow: hidden;
-  position: relative;
+  height: 5px; border-radius: 3px; background: rgba(255,255,255,0.05); overflow: hidden;
 }
 .pprem-bar-fill {
-  height: 100%;
-  border-radius: 3px;
+  height: 100%; border-radius: 3px;
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--pkg-color, #60aaff) 60%, #001020),
     var(--pkg-color, #60aaff));
-  transition: width 0.4s ease;
-  position: relative;
+  transition: width 0.4s ease; position: relative;
 }
 .pprem-bar-fill::after {
-  content: '';
-  position: absolute;
-  right: 0; top: 0; bottom: 0;
-  width: 20px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
-  border-radius: 3px;
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3)); border-radius: 3px;
 }
-.pprem-slots-visual {
-  display: flex;
-  gap: 4px;
-  margin-top: 8px;
-}
+.pprem-slots-visual { display: flex; gap: 4px; margin-top: 8px; }
 .pprem-slot-pip {
-  flex: 1;
-  height: 6px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.06);
+  flex: 1; height: 6px; border-radius: 2px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06);
   transition: all 0.3s ease;
 }
 .pprem-slot-pip.filled {
@@ -562,227 +433,107 @@
 
 /* ── Item List ── */
 .pprem-items-section {
-  flex: 1;
-  overflow-y: auto;
-  padding: 6px 28px 10px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(58,140,255,0.2) transparent;
+  flex: 1; overflow-y: auto; padding: 6px 28px 10px;
+  scrollbar-width: thin; scrollbar-color: rgba(58,140,255,0.2) transparent;
 }
 .pprem-items-section::-webkit-scrollbar { width: 4px; }
 .pprem-items-section::-webkit-scrollbar-thumb { background: rgba(58,140,255,0.2); border-radius: 2px; }
 
 .pprem-item-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin-bottom: 5px;
-  border: 1px solid rgba(255,255,255,0.04);
-  background: rgba(255,255,255,0.015);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, opacity 0.2s;
+  display: flex; align-items: center; gap: 14px; padding: 10px 14px;
+  border-radius: 6px; margin-bottom: 5px;
+  border: 1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.015);
+  cursor: pointer; transition: background 0.15s, border-color 0.15s, opacity 0.2s;
   user-select: none;
 }
-.pprem-item-row:hover {
-  background: rgba(58,140,255,0.06);
-  border-color: rgba(58,140,255,0.2);
-}
+.pprem-item-row:hover { background: rgba(58,140,255,0.06); border-color: rgba(58,140,255,0.2); }
 .pprem-item-row.row-disabled {
-  opacity: 0.35;
-  filter: grayscale(0.6);
-  background: rgba(255,50,50,0.02);
-  border-color: rgba(255,50,50,0.1);
+  opacity: 0.35; filter: grayscale(0.6);
+  background: rgba(255,50,50,0.02); border-color: rgba(255,50,50,0.1);
 }
 .pprem-item-row.row-disabled .pprem-item-name {
-  text-decoration: line-through;
-  text-decoration-color: rgba(255,100,100,0.4);
+  text-decoration: line-through; text-decoration-color: rgba(255,100,100,0.4);
 }
-
 .pprem-item-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-  overflow: hidden;
+  width: 36px; height: 36px; border-radius: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0; overflow: hidden;
 }
-
 .pprem-item-rarity {
-  width: 3px;
-  height: 36px;
-  border-radius: 2px;
-  flex-shrink: 0;
+  width: 3px; height: 36px; border-radius: 2px; flex-shrink: 0;
   background: var(--rarity-color, rgba(100,160,255,0.4));
   box-shadow: 0 0 6px var(--rarity-color, rgba(100,160,255,0.3));
 }
-
 .pprem-item-name {
-  flex: 1;
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(220,230,255,0.85);
-  letter-spacing: 0.3px;
-  text-transform: capitalize;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  flex: 1; font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600;
+  color: rgba(220,230,255,0.85); letter-spacing: 0.3px; text-transform: capitalize;
+  min-width: 0; display: flex; align-items: center; gap: 8px;
 }
-
 .pprem-item-qty {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px;
-  font-weight: 700;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--pkg-color, #60aaff);
   background: color-mix(in srgb, var(--pkg-color, #60aaff) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--pkg-color, #60aaff) 25%, transparent);
-  border-radius: 4px;
-  padding: 2px 9px;
-  flex-shrink: 0;
-  min-width: 44px;
-  text-align: center;
+  border-radius: 4px; padding: 2px 9px; flex-shrink: 0; min-width: 44px; text-align: center;
 }
-
 .pprem-item-price {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: rgba(255,200,80,0.85);
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: rgba(255,200,80,0.85); min-width: 70px; text-align: right; flex-shrink: 0;
 }
-
 .pprem-item-toggle {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 10px;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s;
-  flex-shrink: 0;
-  color: rgba(255,100,100,0.8);
-  font-weight: 700;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; font-size: 10px; opacity: 0;
+  transition: opacity 0.15s, background 0.15s; flex-shrink: 0;
+  color: rgba(255,100,100,0.8); font-weight: 700;
 }
-.pprem-item-row:hover .pprem-item-toggle {
-  opacity: 1;
-  background: rgba(255,80,80,0.12);
-}
+.pprem-item-row:hover .pprem-item-toggle { opacity: 1; background: rgba(255,80,80,0.12); }
 .pprem-item-row.row-disabled .pprem-item-toggle {
-  opacity: 1;
-  color: rgba(80,200,120,0.9);
-  background: rgba(80,200,120,0.1);
+  opacity: 1; color: rgba(80,200,120,0.9); background: rgba(80,200,120,0.1);
 }
-
 .pprem-disabled-label {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: rgba(255,100,100,0.55);
-  letter-spacing: 0.5px;
-  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: rgba(255,100,100,0.55); letter-spacing: 0.5px; text-decoration: none;
 }
-
 .wiki-lookup-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 3px;
-  opacity: 0.3;
-  transition: opacity 0.15s;
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
+  background: none; border: none; cursor: pointer; padding: 0 3px;
+  opacity: 0.3; transition: opacity 0.15s; display: inline-flex;
+  align-items: center; vertical-align: middle;
 }
 .wiki-lookup-btn:hover { opacity: 0.9; }
-.wiki-lookup-btn svg {
-  width: 12px;
-  height: 12px;
-  stroke: rgba(100,160,255,0.8);
-}
+.wiki-lookup-btn svg { width: 12px; height: 12px; stroke: rgba(100,160,255,0.8); }
 
 /* ── Summary Footer ── */
 .pprem-footer {
-  padding: 14px 28px;
-  border-top: 1px solid rgba(58,140,255,0.1);
-  background: rgba(4,6,14,0.9);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
-  backdrop-filter: blur(10px);
+  padding: 14px 28px; border-top: 1px solid rgba(58,140,255,0.1);
+  background: rgba(4,6,14,0.9); display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0; backdrop-filter: blur(10px);
 }
-
-.pprem-summary-grid {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-}
-.pprem-summary-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.pprem-summary-grid { display: flex; gap: 20px; flex: 1; }
+.pprem-summary-stat { display: flex; flex-direction: column; gap: 2px; }
 .pprem-summary-stat-label {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: rgba(100,140,200,0.4);
+  font-family: 'Rajdhani', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: rgba(100,140,200,0.4);
 }
 .pprem-summary-stat-val {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--pkg-color, #60aaff);
-  line-height: 1;
+  font-family: 'Share Tech Mono', monospace; font-size: 15px;
+  font-weight: 700; color: var(--pkg-color, #60aaff); line-height: 1;
 }
-.pprem-summary-stat-sub {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: rgba(255,200,80,0.7);
-}
-
-.pprem-footer-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-shrink: 0;
-}
-
+.pprem-summary-stat-sub { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: rgba(255,200,80,0.7); }
+.pprem-footer-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .pprem-add-btn {
-  background: linear-gradient(135deg, 
+  background: linear-gradient(135deg,
     color-mix(in srgb, var(--pkg-color, #3a8cff) 80%, #001020),
     color-mix(in srgb, var(--pkg-color, #3a8cff) 50%, #000b1a));
   border: 1px solid color-mix(in srgb, var(--pkg-color, #3a8cff) 60%, transparent);
-  border-radius: 6px;
-  color: #fff;
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  padding: 11px 24px;
-  cursor: pointer;
-  transition: all 0.22s ease;
-  text-transform: uppercase;
+  border-radius: 6px; color: #fff; font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 2px; padding: 11px 24px;
+  cursor: pointer; transition: all 0.22s ease; text-transform: uppercase;
   box-shadow: 0 4px 20px color-mix(in srgb, var(--pkg-color, #3a8cff) 25%, transparent);
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
+  white-space: nowrap; position: relative; overflow: hidden;
 }
 .pprem-add-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
+  content: ''; position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%);
   pointer-events: none;
 }
@@ -796,89 +547,33 @@
   border-color: rgba(34,197,94,0.5) !important;
   box-shadow: 0 4px 20px rgba(34,197,94,0.25) !important;
 }
-
 .pprem-rem-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
-  background: rgba(255,60,60,0.06);
-  border: 1px solid rgba(255,60,60,0.2);
-  color: rgba(255,100,100,0.6);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 6px;
+  background: rgba(255,60,60,0.06); border: 1px solid rgba(255,60,60,0.2);
+  color: rgba(255,100,100,0.6); font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
 }
-.pprem-rem-btn:hover {
-  background: rgba(255,60,60,0.15);
-  border-color: rgba(255,80,80,0.5);
-  color: #ff6b6b;
-}
+.pprem-rem-btn:hover { background: rgba(255,60,60,0.15); border-color: rgba(255,80,80,0.5); color: #ff6b6b; }
+.pprem-divider { height: 1px; background: rgba(58,140,255,0.08); margin: 0 28px 10px; flex-shrink: 0; }
 
-/* ── Divider between slot section and items ── */
-.pprem-divider {
-  height: 1px;
-  background: rgba(58,140,255,0.08);
-  margin: 0 28px 10px;
-  flex-shrink: 0;
-}
-
-/* ── Rarity item colors ── */
+/* ── Rarity ── */
 .rarity-common   { --rarity-color: rgba(180,190,200,0.5); }
 .rarity-uncommon { --rarity-color: rgba(80,200,120,0.6); }
 .rarity-rare     { --rarity-color: rgba(58,140,255,0.7); }
 .rarity-epic     { --rarity-color: rgba(160,80,255,0.7); }
 .rarity-legendary{ --rarity-color: rgba(255,165,0,0.8); }
 
-/* ── Slot no-price badge ── */
-.pprem-no-price-warn {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 8px;
-  font-weight: 700;
-  color: #f59e0b;
-  letter-spacing: 0.5px;
-  background: rgba(240,140,0,0.12);
-  border: 1px solid rgba(240,140,0,0.3);
-  border-radius: 3px;
-  padding: 1px 5px;
-  animation: warnPulse 2.2s ease-in-out infinite;
-}
-
 /* ── Mobile ── */
 @media (max-width: 640px) {
-  .pkg-sidebar {
-    width: 220px !important;
-  }
-  .pprem-header {
-    padding: 14px 16px 12px;
-    gap: 12px;
-  }
-  .pprem-header-icon {
-    width: 48px;
-    height: 48px;
-  }
-  .pprem-pkg-name {
-    font-size: 15px;
-  }
-  .pprem-slot-section,
-  .pprem-completion,
-  .pprem-items-section,
-  .pprem-footer {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-  .pprem-summary-grid {
-    gap: 12px;
-  }
-  .pprem-summary-stat-val {
-    font-size: 12px;
-  }
+  .pkg-sidebar { width: 220px !important; }
+  .pprem-header { padding: 14px 16px 12px; gap: 12px; }
+  .pprem-header-icon { width: 48px; height: 48px; }
+  .pprem-pkg-name { font-size: 15px; }
+  .pprem-slot-section, .pprem-completion,
+  .pprem-items-section, .pprem-footer { padding-left: 16px; padding-right: 16px; }
+  .pprem-summary-grid { gap: 12px; }
+  .pprem-summary-stat-val { font-size: 12px; }
 }
 @media (max-width: 480px) {
   .pkg-sidebar { width: 0 !important; overflow: hidden !important; display: none !important; }
@@ -896,14 +591,11 @@
 .pprem-completion { animation: ppremSlideIn 0.3s ease 0.08s both; }
 .pprem-items-section { animation: ppremSlideIn 0.3s ease 0.1s both; }
 .pprem-footer     { animation: ppremSlideIn 0.3s ease 0.14s both; }
-
-/* hide old style injected by app.js that conflicts */
-#pkg-talent-style, #pkg-sidebar-name-patch { /* allowed to exist, our rules override */ }
     `;
     document.head.appendChild(s);
   }
 
-  /* ─── ITEM RARITY HELPER ─────────────────────────────────────── */
+  /* ─── HELPERS ───────────────────────────────────────────────── */
   function getItemRarity(item) {
     if (!item || !item.price) return 'common';
     const p = item.price;
@@ -925,7 +617,6 @@
     if (n.includes('horn') || n.includes('antenna')) return '📡';
     if (n.includes('gem') || n.includes('jewel') || n.includes('crystal')) return '💎';
     if (n.includes('scale') || n.includes('shell')) return '🛡';
-    if (n.includes('tooth') || n.includes('fang')) return '🦷';
     if (n.includes('fire'))    return '🔥';
     if (n.includes('water') || n.includes('fin')) return '💧';
     if (n.includes('ice') || n.includes('frost')) return '❄️';
@@ -936,45 +627,46 @@
     if (n.includes('grass') || n.includes('leaf')) return '🌿';
     if (n.includes('core') || n.includes('magnet')) return '🔩';
     if (n.includes('star'))    return '⭐';
-    if (n.includes('bow') || n.includes('ribbon')) return '🎀';
-    if (n.includes('feather') || n.includes('crest')) return '🪶';
-    if (n.includes('beak') || n.includes('bird')) return '🐦';
     if (n.includes('frog') || n.includes('toad')) return '🐸';
     if (n.includes('snake') || n.includes('cobra')) return '🐍';
     if (n.includes('bear') || n.includes('panda')) return '🐻';
     if (n.includes('dragon')) return '🐉';
     if (n.includes('ghost')) return '👻';
-    if (n.includes('micro') || n.includes('loud')) return '🎤';
     if (n.includes('egg')) return '🥚';
     return '📦';
   }
 
-  /* ─── OVERRIDE: renderPackages ──────────────────────────────── */
-  window.renderPackages = function () {
-    injectPremiumCSS();
-
+  /* ─── CORE RENDER: sidebar list ─────────────────────────────── */
+  function _renderSidebar() {
     const sidebarList = document.getElementById('pkg-sidebar-list');
     if (!sidebarList) return;
 
-    // Render category tabs (keep original logic)
-    renderPkgCatTabs();
-
+    // Safety: if PACKAGES doesn't exist or is empty, show nothing but don't crash
     if (!window.PACKAGES || !PACKAGES.length) {
       sidebarList.innerHTML = `<div style="padding:20px;font-family:'Rajdhani',sans-serif;font-size:12px;letter-spacing:2px;color:rgba(100,140,200,0.3);text-align:center;text-transform:uppercase">Nenhum pacote</div>`;
       return;
     }
 
-    const filtered = PACKAGES.map((pkg, pi) => ({ pkg, pi }))
-      .filter(({ pkg }) => activePkgCat === 'all' || getPkgCategory(pkg.name) === activePkgCat);
+    // Build filtered list — with SAFETY FALLBACK: if filter yields nothing, show all
+    let filtered = PACKAGES.map((pkg, pi) => ({ pkg, pi }))
+      .filter(({ pkg }) => {
+        if (typeof activePkgCat === 'undefined' || activePkgCat === 'all') return true;
+        return typeof getPkgCategory === 'function'
+          ? getPkgCategory(pkg.name) === activePkgCat
+          : true;
+      });
+
+    // FALLBACK: never show empty list if there are packages
+    if (filtered.length === 0) filtered = PACKAGES.map((pkg, pi) => ({ pkg, pi }));
 
     sidebarList.innerHTML = filtered.map(({ pkg, pi }) => {
-      const icon = getPkgIcon(pkg.name);
-      const isActive = activePkgIdx === pi;
-      const added = pkgCartCount && pkgCartCount[pi] ? pkgCartCount[pi] : 0;
-      const pkgColor = getPkgTypeColor(pkg.name);
-      const allItems = getPkgAllItems(pkg);
-      const totalRaw = getPkgTotal(pkg, pi);
-      const totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
+      const icon   = typeof getPkgIcon === 'function' ? getPkgIcon(pkg.name) : '📦';
+      const isActive = (typeof activePkgIdx !== 'undefined') && activePkgIdx === pi;
+      const added  = (window.pkgCartCount && pkgCartCount[pi]) ? pkgCartCount[pi] : 0;
+      const pkgColor = typeof getPkgTypeColor === 'function' ? getPkgTypeColor(pkg.name) : '#60aaff';
+      const allItems = typeof getPkgAllItems === 'function' ? getPkgAllItems(pkg) : [];
+      const totalRaw = typeof getPkgTotal === 'function' ? getPkgTotal(pkg, pi) : 0;
+      const totalData = totalRaw > 0 && typeof formatKK === 'function' ? formatKK(totalRaw) : null;
 
       return `<div class="pkg-sidebar-item${isActive ? ' active' : ''}${added ? ' is-in-cart' : ''}"
         onclick="selectPkg(${pi})" style="--pkg-color:${pkgColor}">
@@ -988,66 +680,79 @@
       </div>`;
     }).join('');
 
-    if (activePkgIdx !== null) renderPkgDetail(activePkgIdx);
-  };
+    // Auto-select first if nothing is selected
+    const currentIdx = typeof activePkgIdx !== 'undefined' ? activePkgIdx : null;
+    if (currentIdx === null && filtered.length > 0) {
+      const firstPi = filtered[0].pi;
+      if (typeof activePkgIdx !== 'undefined') window.activePkgIdx = firstPi;
+      _renderDetail(firstPi);
+    } else if (currentIdx !== null) {
+      _renderDetail(currentIdx);
+    }
+  }
 
-  /* ─── OVERRIDE: renderPkgDetail ────────────────────────────── */
-  window.renderPkgDetail = function (pi) {
-    injectPremiumCSS();
+  /* ─── CORE RENDER: detail panel ─────────────────────────────── */
+  function _renderDetail(pi) {
     const detail = document.getElementById('pkg-detail');
     if (!detail) return;
 
-    const pkg = PACKAGES[pi];
-    if (!pkg) return;
+    if (!window.PACKAGES || pi === null || pi === undefined || !PACKAGES[pi]) return;
 
-    const pkgColor = getPkgTypeColor(pkg.name);
-    const pkgIcon  = getPkgIcon(pkg.name);
-    const pkgCat   = getPkgCategory(pkg.name);
-    const catMeta  = PKG_CAT_META[pkgCat] || { label: pkgCat, icon: '📌' };
+    const pkg      = PACKAGES[pi];
+    const pkgColor = typeof getPkgTypeColor === 'function' ? getPkgTypeColor(pkg.name) : '#60aaff';
+    const pkgIcon  = typeof getPkgIcon === 'function' ? getPkgIcon(pkg.name) : '📦';
+    const pkgCat   = typeof getPkgCategory === 'function' ? getPkgCategory(pkg.name) : 'outros';
+    const catMeta  = (window.PKG_CAT_META && PKG_CAT_META[pkgCat]) || { label: pkgCat, icon: '📌' };
 
-    const added    = pkgCartCount && pkgCartCount[pi] ? pkgCartCount[pi] : 0;
-    const slots    = pkg.slots || [getPkgAllItems(pkg)];
+    const added   = (window.pkgCartCount && pkgCartCount[pi]) ? pkgCartCount[pi] : 0;
+    const slots   = pkg.slots || (typeof getPkgAllItems === 'function' ? [getPkgAllItems(pkg)] : [[]]);
     const hasSlots = slots.length > 1;
 
-    if (activeSlotByPkg[pi] === undefined) activeSlotByPkg[pi] = 0;
-    const si = Math.min(activeSlotByPkg[pi], slots.length - 1);
-    const currentSlot = slots[si];
+    if (typeof activeSlotByPkg !== 'undefined' && activeSlotByPkg[pi] === undefined) {
+      activeSlotByPkg[pi] = 0;
+    }
+    const si = typeof activeSlotByPkg !== 'undefined'
+      ? Math.min(activeSlotByPkg[pi] || 0, slots.length - 1)
+      : 0;
+    const currentSlot = slots[si] || [];
 
-    const allItems = getPkgAllItems(pkg);
-    const totalRaw = getPkgTotal(pkg, pi);
-    const totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
-    const activeCount = getPkgActiveItems(pkg, pi).length;
+    const allItems   = typeof getPkgAllItems === 'function' ? getPkgAllItems(pkg) : [];
+    const totalRaw   = typeof getPkgTotal === 'function' ? getPkgTotal(pkg, pi) : 0;
+    const totalData  = totalRaw > 0 && typeof formatKK === 'function' ? formatKK(totalRaw) : null;
+    const activeCount = typeof getPkgActiveItems === 'function' ? getPkgActiveItems(pkg, pi).length : allItems.length;
 
-    // Compute per-slot active status for slot pips
+    // Slot pip stats
     const slotStats = slots.map((slot, idx) => {
-      const active = slot.filter(([n]) => !isPkgItemDisabled(pi, idx, n)).length;
+      const active = slot.filter(([n]) =>
+        typeof isPkgItemDisabled === 'function' ? !isPkgItemDisabled(pi, idx, n) : true
+      ).length;
       return { total: slot.length, active };
     });
 
-    // ── Slot Nodes HTML ──
+    // Slot nodes
     let slotNodesHtml = '';
     if (hasSlots) {
       slotNodesHtml = slots.map((slot, idx) => {
-        const slotTotal = slot.reduce((s, [n, q]) => {
-          if (isPkgItemDisabled(pi, idx, n)) return s;
-          const it = getPkgItemData(n);
-          return s + (it && it.price ? it.price * q : 0);
-        }, 0);
-        const slotData = slotTotal > 0 ? formatKK(slotTotal) : null;
-        const disabledCount = slot.filter(([n]) => isPkgItemDisabled(pi, idx, n)).length;
+        const disabledCount = slot.filter(([n]) =>
+          typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, idx, n)
+        ).length;
         const noPriceCount = slot.filter(([n]) => {
-          if (isPkgItemDisabled(pi, idx, n)) return false;
-          const it = getPkgItemData(n);
+          if (typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, idx, n)) return false;
+          const it = typeof getPkgItemData === 'function' ? getPkgItemData(n) : null;
           return !it || !it.price;
         }).length;
-        const isActive = idx === si;
+        const slotTotal = slot.reduce((s, [n, q]) => {
+          if (typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, idx, n)) return s;
+          const it = typeof getPkgItemData === 'function' ? getPkgItemData(n) : null;
+          return s + (it && it.price ? it.price * q : 0);
+        }, 0);
+        const slotData = slotTotal > 0 && typeof formatKK === 'function' ? formatKK(slotTotal) : null;
+        const isActive    = idx === si;
         const isDisabledAll = disabledCount === slot.length;
-        const isPassed = idx < si;
-
-        const connector = idx < slots.length - 1
+        const isPassed    = idx < si;
+        const connector   = idx < slots.length - 1
           ? `<div class="pprem-slot-connector${isPassed || isActive ? ' passed' : ''}"></div>`
           : '';
-
         return `
           <div class="pprem-slot-node${isActive ? ' active' : ''}${isDisabledAll ? ' disabled-all' : ''}"
             onclick="selectPkgSlot(${pi}, ${idx})" style="--pkg-color:${pkgColor}">
@@ -1055,12 +760,11 @@
             <div class="pprem-slot-node-count">${slot.length - disabledCount}/${slot.length}</div>
             ${noPriceCount > 0 ? `<div class="pprem-slot-warn-dot" title="${noPriceCount} s/preço"></div>` : ''}
             ${slotData ? `<div class="pprem-slot-price-tag">${slotData.label}</div>` : ''}
-          </div>
-          ${connector}`;
+          </div>${connector}`;
       }).join('');
     }
 
-    // Slot pips visual
+    // Slot pips
     const slotPipsHtml = slots.map((_, idx) => {
       const st = slotStats[idx];
       const pct = st.total > 0 ? st.active / st.total : 0;
@@ -1068,17 +772,17 @@
       return `<div class="pprem-slot-pip ${cls}" style="--pkg-color:${pkgColor}" title="Slot ${idx+1}: ${st.active}/${st.total}"></div>`;
     }).join('');
 
-    const completePct = allItems.length > 0
-      ? Math.round(activeCount / allItems.length * 100) : 0;
+    const completePct = allItems.length > 0 ? Math.round(activeCount / allItems.length * 100) : 0;
 
-    // ── Item Rows ──
+    // Item rows
     const rowsHtml = currentSlot.map(([name, qty]) => {
-      const disabled = isPkgItemDisabled(pi, si, name);
-      const item = getPkgItemData(name);
+      const disabled = typeof isPkgItemDisabled === 'function' && isPkgItemDisabled(pi, si, name);
+      const item     = typeof getPkgItemData === 'function' ? getPkgItemData(name) : null;
       const lineTotal = !disabled && item && item.price && qty > 0 ? item.price * qty : 0;
-      const priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
-      const rarity = getItemRarity(item);
-      const emoji = getItemEmoji(name);
+      const priceData = lineTotal > 0 && typeof formatKK === 'function' ? formatKK(lineTotal) : null;
+      const rarity    = getItemRarity(item);
+      const emoji     = getItemEmoji(name);
+      const safeName  = name.replace(/'/g, "\\'");
 
       const priceHtml = disabled
         ? `<span class="pprem-disabled-label">removido</span>`
@@ -1087,13 +791,13 @@
           : `<span class="pprem-item-price" style="opacity:0.3">—</span>`;
 
       return `<div class="pprem-item-row${disabled ? ' row-disabled' : ''} rarity-${rarity}"
-        onclick="togglePkgItem(${pi}, ${si}, '${name.replace(/'/g, "\\'")}')"
+        onclick="togglePkgItem(${pi}, ${si}, '${safeName}')"
         style="--pkg-color:${pkgColor}">
         <div class="pprem-item-icon">${emoji}</div>
         <div class="pprem-item-rarity"></div>
         <div class="pprem-item-name">
           ${name}
-          <button class="wiki-lookup-btn" onclick="openWikiLookup('${name.replace(/'/g, "\\'")}', event)" title="Ver drops na Wiki">
+          <button class="wiki-lookup-btn" onclick="openWikiLookup('${safeName}', event)" title="Ver drops na Wiki">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
         </div>
@@ -1106,7 +810,6 @@
     const addedClass = added ? ' added' : '';
     const addedLabel = added ? `✓ Adicionado ×${added}` : '+ Adicionar ao Carrinho';
 
-    // ── Full Detail HTML ──
     detail.innerHTML = `
       <div class="pprem-header" style="--pkg-color:${pkgColor}">
         <div class="pprem-header-icon">${pkgIcon}</div>
@@ -1174,32 +877,82 @@
         </div>
       </div>`;
 
-    // Inject remove button if in cart
     if (added) {
       const remSlot = document.getElementById('pprem-rem-' + pi);
       if (remSlot) {
         remSlot.innerHTML = `<button class="pprem-rem-btn" onclick="removePackageFromCart(${pi})" title="Remover do carrinho">✕</button>`;
       }
     }
-  };
-
-  /* Also override selectPkgSlot to call our renderPkgDetail */
-  const _origSelectPkgSlot = window.selectPkgSlot;
-  window.selectPkgSlot = function (pi, si) {
-    activeSlotByPkg[pi] = si;
-    window.renderPkgDetail(pi);
-  };
-
-  /* ─── Run CSS immediately ─────────────────────────────────── */
-  injectPremiumCSS();
-
-  /* ─── Re-render if tab is already open ───────────────────── */
-  if (document.getElementById('tab-pacotes') &&
-      document.getElementById('tab-pacotes').classList.contains('active')) {
-    setTimeout(() => {
-      if (typeof renderPackages === 'function') renderPackages();
-    }, 100);
   }
 
-  console.log('[pkg-premium] Loaded ✓');
+  /* ─── PATCH app.js FUNCTION DECLARATIONS ─────────────────────
+   *
+   * THE ROOT BUG:
+   * app.js uses  `function renderPackages() {}`  — a function DECLARATION.
+   * JS hoists these into the local scope and they cannot be replaced by
+   * assigning window.renderPackages = fn from an external script.
+   *
+   * When switchTab('pacotes') or nav-runtime.js calls renderPackages(),
+   * the JS engine resolves the identifier via scope chain and hits the
+   * original hoisted declaration in app.js — ignoring window.renderPackages.
+   *
+   * FIX: We wait for DOMContentLoaded (guaranteeing app.js has run),
+   * then overwrite the property on window AND on the global object so that
+   * bare `renderPackages()` calls resolve to our version.
+   * ─────────────────────────────────────────────────────────────── */
+  function patchFunctions() {
+    injectPremiumCSS();
+
+    // Override renderPackages
+    window.renderPackages = function () {
+      if (typeof renderPkgCatTabs === 'function') renderPkgCatTabs();
+      _renderSidebar();
+    };
+
+    // Override renderPkgDetail
+    window.renderPkgDetail = function (pi) {
+      _renderDetail(pi);
+    };
+
+    // Override selectPkgSlot so it calls our detail renderer
+    window.selectPkgSlot = function (pi, si) {
+      if (typeof activeSlotByPkg !== 'undefined') activeSlotByPkg[pi] = si;
+      _renderDetail(pi);
+    };
+
+    console.log('[pkg-premium] Functions patched ✓');
+  }
+
+  /* ─── TIMING: patch after all scripts have run ────────────────
+   * app.js loads before pkg-premium.js, so by DOMContentLoaded
+   * all function declarations exist. We overwrite them on window
+   * which is what bare-name calls resolve to in non-strict global scope.
+   * We also do an immediate patch in case DOMContentLoaded already fired.
+   * ─────────────────────────────────────────────────────────────── */
+
+  // Inject CSS immediately (no dependency on app.js)
+  injectPremiumCSS();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      patchFunctions();
+      // Small delay so nav-runtime / url-hash finish their own DOMContentLoaded handlers
+      setTimeout(function () {
+        if (document.getElementById('tab-pacotes') &&
+            document.getElementById('tab-pacotes').classList.contains('active')) {
+          window.renderPackages();
+        }
+      }, 50);
+    });
+  } else {
+    // DOM already loaded (script is deferred or bottom-of-body)
+    patchFunctions();
+    setTimeout(function () {
+      if (document.getElementById('tab-pacotes') &&
+          document.getElementById('tab-pacotes').classList.contains('active')) {
+        window.renderPackages();
+      }
+    }, 50);
+  }
+
 })();
