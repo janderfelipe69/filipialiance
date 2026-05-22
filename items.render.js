@@ -220,5 +220,10 @@ function _itemsSetupBurst() {
   _itemsSetupVisibilityObserver();
   _itemsSetupBurst();
 
-  renderItems();
+  // Aguarda db-bootstrap.js terminar antes de renderizar
+  if (window.__dbReady) {
+    renderItems();
+  } else {
+    document.addEventListener('db:ready', function() { renderItems(); }, { once: true });
+  }
 })();
