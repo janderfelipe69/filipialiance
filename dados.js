@@ -571,10 +571,8 @@ const RAW_WIKI = [
 //   ]}
 // ============================================================
 
-const PACKAGES = [
-  // Dados migrados para Supabase (catalog_packages)
-  // db-bootstrap.js popula window.PACKAGES[] automaticamente
-];
+var PACKAGES = window.PACKAGES = window.PACKAGES || [];
+// Dados migrados para Supabase — db-bootstrap.js popula este array
 
 // ============================================================
 // SEÇÃO 4 — CONFIGURAÇÕES GERAIS
@@ -582,4 +580,4 @@ const PACKAGES = [
 
 // KK_TO_BRL migrado para financial_config no Supabase
 // db-bootstrap.js popula window.KK_TO_BRL e window.APP_CONFIG automaticamente
-const KK_TO_BRL = (window.APP_CONFIG && window.APP_CONFIG.kk_to_brl) ? window.APP_CONFIG.kk_to_brl : 1.70;
+var KK_TO_BRL = (window.APP_CONFIG && window.APP_CONFIG.kk_to_brl) ? window.APP_CONFIG.kk_to_brl : 1.70;

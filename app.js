@@ -29,7 +29,7 @@ function _calcCapturaFinalPrice(poke, ball) {
   return (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
 }
 
-const items = [];
+var items = window.items = window.items || [];
 const seen = new Set();
 RAW.forEach(([name, image, price, tier, evo]) => {
   const key = name + '|' + (image || '');
@@ -2435,7 +2435,7 @@ function getBrokeForTag(tag) {
 // Formato: { name: "Nome", price: <raw kk igual RAW>, image: "url" }
 // POKEMONS migrado para Supabase (catalog_pokemons)
 // db-bootstrap.js popula window.POKEMONS[] automaticamente
-const POKEMONS = window.POKEMONS || [];
+var POKEMONS = window.POKEMONS = window.POKEMONS || [];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
 
