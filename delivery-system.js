@@ -1229,10 +1229,26 @@
 
   // ── Inicializa galeria ao entrar na aba ─────────────────────
   function _onEntregasTab(tab) {
-    if (tab === 'entregas') {
-      if (!DeliveryGallery._loaded) DeliveryGallery.init();
-      else DeliveryGallery.refresh();
-    }
+    if (tab !== 'entregas') return;
+
+    // Aguarda Session.ready() antes de qualquer fetch — evita aba vazia após F5.
+    const sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
+      ? Session.ready()
+      : Promise.resolve();
+
+    sessionReady
+      .then(function () {
+        if (!DeliveryGallery._loaded) {
+          console.log('[DeliveryGallery] aba entregas — iniciando pela primeira vez');
+          return DeliveryGallery.init();
+        } else {
+          console.log('[DeliveryGallery] aba entregas — refresh');
+          return DeliveryGallery.refresh();
+        }
+      })
+      .catch(function (err) {
+        console.error('[DeliveryGallery] falha ao inicializar aba entregas:', err);
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -1240,7 +1256,15 @@
       NavRuntime.onTabSwitch('after', 'delivery-system-gallery', _onEntregasTab);
     }
     const activeTab = document.querySelector('.tab-content.active')?.id;
-    if (activeTab === 'tab-entregas') DeliveryGallery.init();
+    if (activeTab === 'tab-entregas') {
+      // Aba entregas já ativa no carregamento — aguarda sessão antes de init
+      const sessionReady = (typeof Session !== 'undefined' && typeof Session.ready === 'function')
+        ? Session.ready()
+        : Promise.resolve();
+      sessionReady
+        .then(function () { return DeliveryGallery.init(); })
+        .catch(function (err) { console.error('[DeliveryGallery] DOMContentLoaded init fail:', err); });
+    }
   });
 
 })(typeof window !== 'undefined' ? window : this);

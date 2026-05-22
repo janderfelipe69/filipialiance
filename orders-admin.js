@@ -80,11 +80,21 @@ const OrdersAdmin = (() => {
       const raw = await res.text();
 
       let data = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch (parseErr) {
+        console.error('[OrdersAdmin] start_service parse fail', parseErr, raw);
+      }
 
-      if (!res.ok || (data && data.success === false)) {
+      if (!res.ok) {
         const err = (data && (data.message || data.error || data.hint)) || raw || `HTTP ${res.status}`;
         if (typeof showToast === 'function') showToast((data && (data.message || data.error)) || raw || `Erro ao iniciar serviço (${res.status})`, 'error');
         return { success: false, error: err };
+      }
+
+      if (!data) {
+        console.error('[OrdersAdmin] start_service retornou body vazio ou inválido. raw:', raw);
+        throw new Error('Resposta inválida da RPC start_service');
       }
 
 
@@ -175,35 +185,36 @@ const OrdersAdmin = (() => {
           // [FIX DELIVERY_MODAL] Helper para montar orderData a partir de um objeto de pedido
           function _buildOrderData(order) {
             const _s = typeof safe === 'function' ? safe : (v, f) => (v || f || '-');
+            // Supabase retorna "itens" (JSONB); cache local usa "items" — normaliza aqui uma vez.
+            const items = order.items || order.itens || [];
             // Suporte a campos EN canônicos + aliases PT
-            const serviceItems = (order.items && order.items.length)
-              ? order.items.map(i => i.name || i.item || '').filter(Boolean).join(', ')
+            const serviceItems = (items.length)
+              ? items.map(i => i.name || i.nome || i.item || '').filter(Boolean).join(', ')
               : null;
             // ── item_name + quantity a partir de items[] ──────────────────────
-            const _items = order.items || [];
-            const _isPokemonType = (order.service_type || order.tipo_pedido || '').toLowerCase().includes('pokemon');
+            const _isPokemonType = (order.service_type || '').toLowerCase().includes('pokemon');
             // pokemon: pega do primeiro item (campo pokemon ou name) ou do campo direto
             const _pokemon = _s(
-              (_items[0]) ? (_items[0].pokemon || (_isPokemonType ? _items[0].name : null)) : null ||
-              order.pokemon_name || order.pokemon_nome, ''
+              (items[0]) ? (items[0].pokemon || (_isPokemonType ? (items[0].name || items[0].nome) : null)) : null,
+              ''
             );
             // item_name: itens não-pokemon — concatena nomes
-            const _itemName = !_isPokemonType && _items.length
-              ? _items.map(i => i.name || i.nome || '').filter(Boolean).join(', ')
+            const _itemName = !_isPokemonType && items.length
+              ? items.map(i => i.name || i.nome || '').filter(Boolean).join(', ')
               : null;
             // quantity: soma qtdTotal de todos os itens
-            const _quantity = _items.length
-              ? _items.reduce((s, i) => s + parseInt(i.qtdTotal || i.quantidade || i.qty || 1, 10), 0)
+            const _quantity = items.length
+              ? items.reduce((s, i) => s + parseInt(i.qtdTotal || i.quantidade || i.qty || 1, 10), 0)
               : (order.service_quantity || null);
 
             return {
-              // nick: suporte a todos os aliases conhecidos
-              nick:         _s(order.nickname || order.userNickname || order.nick || order.cliente_nick, '—'),
-              // player_name: nick real do jogador no jogo
-              player_name:  _s(order.nickname || order.userNickname || order.nick_jogo || order.nick || order.cliente_nick, null),
-              // service: alias usado por _buildModalHTML + canonical EN
-              service:      _s(serviceItems || order.service_name  || order.servico_nome  || order.service_type, '—'),
-              service_name: _s(serviceItems || order.service_name  || order.servico_nome  || order.service_type, '—'),
+              // nick: nick_jogo é o único campo de nick retornado pelo banco agora
+              nick:         _s(order.nick_jogo || order.nickname || order.nick || order.cliente_nick, '—'),
+              // player_name: idem
+              player_name:  _s(order.nick_jogo || order.nickname || order.nick || order.cliente_nick, null),
+              // service: quando não há service_name no banco, usa service_type como fallback
+              service:      _s(serviceItems || order.service_name  || order.service_type, '—'),
+              service_name: _s(serviceItems || order.service_name  || order.service_type, '—'),
               // pokemon: alias usado por _buildModalHTML + canonical EN
               pokemon:      _pokemon,
               pokemon_name: _pokemon,
@@ -211,8 +222,8 @@ const OrdersAdmin = (() => {
               item_name:    _itemName || null,
               quantity:     _quantity,
               // tipo: alias usado por _buildModalHTML + canonical EN
-              tipo:         _s(order.service_type || order.tipo_pedido || order.type || order.tipo, '—'),
-              service_type: _s(order.service_type || order.tipo_pedido || order.type || order.tipo, '—'),
+              tipo:         _s(order.service_type || order.type || order.tipo, '—'),
+              service_type: _s(order.service_type || order.type || order.tipo, '—'),
               // created_at: para calcular tempo total do pedido
               created_at:   order.created_at || order.createdAt || order.timestamp || null,
             };
@@ -247,17 +258,24 @@ const OrdersAdmin = (() => {
                 if (!jwt) { DeliveryAdmin.openModal(supabaseOrderId, {}); return; }
                 const res = await fetch(
                   window.SUPABASE_URL + '/rest/v1/pedidos?id=eq.' + supabaseOrderId +
-                  '&select=id,nickname,nick,nick_jogo,service_name,servico_nome,pokemon_name,pokemon_nome,service_type,tipo_pedido,service_quantity,itens,created_at&limit=1',
+                  '&select=id,nick_jogo,itens,created_at,started_at,completed_at,service_type,service_quantity,status&limit=1',
                   { headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_KEY, 'Authorization': 'Bearer ' + jwt } }
                 );
                 if (res.ok) {
                   const rows = await res.json();
                   if (rows && rows[0]) {
+                    console.log('[OrdersAdmin] delivery modal — pedido carregado:', rows[0].id, '| status:', rows[0].status);
                     orderData = _buildOrderData(rows[0]);
                   } else {
+                    console.warn('[OrdersAdmin] delivery modal — pedido não encontrado para id:', supabaseOrderId);
                   }
+                } else {
+                  const errBody = await res.json().catch(() => ({}));
+                  console.error('[OrdersAdmin] delivery modal — HTTP', res.status, errBody.message || errBody);
                 }
               } catch (fetchErr) {
+                console.error('[OrdersAdmin] delivery modal fetch fail', fetchErr);
+                if (typeof showToast === 'function') showToast('Falha ao carregar dados do pedido', 'error');
               }
               DeliveryAdmin.openModal(supabaseOrderId, orderData);
             })();
