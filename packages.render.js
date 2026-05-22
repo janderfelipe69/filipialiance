@@ -1,67 +1,130 @@
 /**
- * packages.render.js
+ * packages.render.js  v2 — MMORPG Premium Redesign
  * ─────────────────────────────────────────────────────────────────────────────
  * Responsabilidade única: construir e injetar HTML da aba de pacotes.
  *
- * Estado lido SEMPRE de window.pkgState (definido em packages.logic.js).
- * Nenhuma variável de estado declarada aqui.
- * Nenhum CSS injetado. Nenhum observer. Nenhum hack.
- *
- * Funções públicas (chamadas por app.js e packages.logic.js):
- *   renderPkgCatTabs()   — barra de categorias
- *   renderPackages()     — sidebar de cards
- *   renderPkgDetail(pi)  — painel de detalhe
+ * Mudanças v2:
+ *   • buildPkgCardHTML      — sidebar compacta 2-col com glow por tipo
+ *   • buildHeroHeaderHTML   — hero banner cinematográfico por pacote
+ *   • buildSlotTabHTML      — build-system visual com tier indicator
+ *   • buildItemRowHTML      — reward cards com sprite + qty destacada
+ *   • renderEmptyState      — featured packages ao invés de estado vazio
+ *   • renderPkgDetail       — orquestra tudo acima
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BUILDERS DE HTML — funções puras, sem efeito colateral
+   HELPERS LOCAIS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function buildPkgCardHTML(pkg, pi, isActive, cartCount) {
-  var icon      = getPkgIcon(pkg.name);
-  var pkgColor  = getPkgTypeColor(pkg.name);
-  var allItems  = getPkgAllItems(pkg);
-  var itemQty   = allItems.length;
-  var itemLabel = itemQty === 1 ? 'item' : 'itens';
+function _pkgCategoryColor(name) {
+  var n = (name || '').toLowerCase();
+  if (n.startsWith('gym'))                               return '#ffd166';
+  if (n.startsWith('talent'))                            return '#c084fc';
+  if (n.startsWith('full'))                              return '#38bdf8';
+  if (n.startsWith('reduces') || n.startsWith('reduce')) return '#fb923c';
+  // fallback to type-based color from logic.js
+  return getPkgTypeColor(name);
+}
 
-  var badgeHTML  = cartCount
+function _pkgCategoryLabel(name) {
+  var n = (name || '').toLowerCase();
+  if (n.startsWith('gym'))                               return 'Gym';
+  if (n.startsWith('talent'))                            return 'Talents';
+  if (n.startsWith('full'))                              return 'Full Pack';
+  if (n.startsWith('reduces') || n.startsWith('reduce')) return 'Reduces';
+  return 'Special';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUILDERS DE HTML
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Card compacto para a sidebar (grid 2 colunas).
+ * Visual: ícone centralizado, nome pequeno, badge de qty.
+ */
+function buildPkgCardHTML(pkg, pi, isActive, cartCount) {
+  var icon     = getPkgIcon(pkg.name);
+  var color    = _pkgCategoryColor(pkg.name);
+  var allItems = getPkgAllItems(pkg);
+  var itemQty  = allItems.length;
+
+  var badgeHTML = cartCount
     ? '<div class="pkg-card-cart-badge">✓ ×' + cartCount + '</div>'
     : '';
 
   var cls = 'pkg-sidebar-item'
-    + (isActive    ? ' active'     : '')
-    + (cartCount   ? ' is-in-cart' : '');
+    + (isActive  ? ' active'     : '')
+    + (cartCount ? ' is-in-cart' : '');
 
   return '<div class="' + cls + '"'
     + ' onclick="selectPkg(' + pi + ')"'
-    + ' style="--pkg-color:' + pkgColor + '">'
+    + ' style="--pkg-color:' + color + '">'
     + badgeHTML
     + '<div class="pkg-sidebar-item-icon">' + icon + '</div>'
     + '<div class="pkg-sidebar-item-info">'
     +   '<div class="pkg-sidebar-item-name">' + pkg.name + '</div>'
-    +   '<div class="pkg-sidebar-item-sub">' + itemQty + ' ' + itemLabel + '</div>'
+    +   '<div class="pkg-sidebar-item-sub">' + itemQty + ' itens</div>'
     + '</div>'
     + '</div>';
 }
 
+/**
+ * Hero header cinematográfico do pacote selecionado.
+ * Inclui: ícone grande, nome em destaque, tags de categoria + qty,
+ * preço em KK + BRL, tag "Best Value" se aplicável.
+ */
+function buildHeroHeaderHTML(pkg, pi) {
+  var icon      = getPkgIcon(pkg.name);
+  var color     = _pkgCategoryColor(pkg.name);
+  var catLabel  = _pkgCategoryLabel(pkg.name);
+  var allItems  = getPkgAllItems(pkg);
+  var totalRaw  = getPkgTotal(pkg, pi);
+  var totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
+  var slots     = pkg.slots || [allItems];
+
+  // Heurística "Best Value": pacotes Full ou com muitos itens
+  var n = (pkg.name || '').toLowerCase();
+  var isBestValue = n.startsWith('full') || allItems.length >= 8;
+
+  var tagsHTML = ''
+    + '<span class="pkg-hero-tag pkg-hero-tag-cat">' + catLabel + '</span>'
+    + '<span class="pkg-hero-tag pkg-hero-tag-items">' + allItems.length + ' itens · ' + slots.length + ' slot' + (slots.length > 1 ? 's' : '') + '</span>'
+    + (isBestValue ? '<span class="pkg-hero-tag pkg-hero-tag-best">⭐ Best Value</span>' : '');
+
+  var priceHTML = totalData
+    ? '<span class="pkg-hero-price-kk">' + totalData.label + '</span>'
+    + '<span class="pkg-hero-price-brl">' + totalData.brl + '</span>'
+    : '<span class="pkg-hero-price-kk" style="opacity:0.3;font-size:13px">preço não definido</span>';
+
+  return '<div class="pkg-detail-hero" style="--pkg-color:' + color + '">'
+    + '<div class="pkg-detail-hero-inner">'
+    +   '<div class="pkg-detail-hero-icon">' + icon + '</div>'
+    +   '<div class="pkg-detail-hero-info">'
+    +     '<div class="pkg-detail-title">' + pkg.name + '</div>'
+    +     '<div class="pkg-detail-hero-tags">' + tagsHTML + '</div>'
+    +     '<div class="pkg-detail-hero-price">' + priceHTML + '</div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+/**
+ * Botão de slot no estilo build-system com tier indicator.
+ */
 function buildSlotTabHTML(pkg, pi, slot, slotIdx, isActive) {
   var disabledCount = 0;
   var slotTotal     = 0;
   var noPriceCount  = 0;
+  var color         = _pkgCategoryColor(pkg.name);
 
   for (var i = 0; i < slot.length; i++) {
     var n = slot[i][0], q = slot[i][1];
-    if (isPkgItemDisabled(pi, slotIdx, n)) {
-      disabledCount++;
-      continue;
-    }
+    if (isPkgItemDisabled(pi, slotIdx, n)) { disabledCount++; continue; }
     var it = getPkgItemData(n);
-    if (it && it.price) {
-      slotTotal += it.price * q;
-    } else {
-      noPriceCount++;
-    }
+    if (it && it.price) slotTotal += it.price * q;
+    else noPriceCount++;
   }
 
   var activeCount = slot.length - disabledCount;
@@ -82,27 +145,40 @@ function buildSlotTabHTML(pkg, pi, slot, slotIdx, isActive) {
     : '';
 
   return '<button class="' + cls + '"'
+    + ' style="--pkg-color:' + color + '"'
     + ' onclick="selectPkgSlot(' + pi + ', ' + slotIdx + ')">'
-    +   '<span class="pkg-slot-btn-label">' + getSlotLabel(pkg, slotIdx) + '</span>'
-    +   priceHTML
-    +   '<span class="pkg-slot-btn-count">' + activeCount + '/' + slot.length + ' itens</span>'
-    +   warnHTML
+    +   '<span class="pkg-slot-btn-tier">' + (slotIdx + 1) + '</span>'
+    +   '<span class="pkg-slot-btn-text">'
+    +     '<span class="pkg-slot-btn-label">' + getSlotLabel(pkg, slotIdx) + '</span>'
+    +     priceHTML
+    +     '<span class="pkg-slot-btn-count">' + activeCount + '/' + slot.length + ' itens</span>'
+    +     warnHTML
+    +   '</span>'
     + '</button>';
 }
 
+/**
+ * Reward card de item — horizontal, com sprite, nome forte e qty destacada.
+ */
 function buildItemRowHTML(name, qty, pi, si) {
   var disabled  = isPkgItemDisabled(pi, si, name);
   var item      = getPkgItemData(name);
   var lineTotal = (!disabled && item && item.price && qty > 0) ? item.price * qty : 0;
   var priceData = lineTotal > 0 ? formatKK(lineTotal) : null;
-
   var safeName  = name.replace(/'/g, "\\'");
+
+  // Tenta obter sprite do item se disponível
+  var spriteHTML;
+  if (item && item.img) {
+    spriteHTML = '<img src="' + item.img + '" alt="' + name + '" />';
+  } else {
+    spriteHTML = '<span class="pkg-detail-row-icon-char">◆</span>';
+  }
 
   var priceHTML = disabled
     ? '<span class="row-disabled-label">removido</span>'
     : (priceData ? priceData.label : '—');
 
-  var iconChar   = disabled ? '○' : '◆';
   var toggleChar = disabled ? '↩' : '✕';
 
   var wikiBtn = '<button class="wiki-lookup-btn"'
@@ -116,13 +192,52 @@ function buildItemRowHTML(name, qty, pi, si) {
 
   return '<div class="pkg-detail-row' + (disabled ? ' row-disabled' : '') + '"'
     + ' onclick="togglePkgItem(' + pi + ', ' + si + ', \'' + safeName + '\')">'
-    +   '<div class="pkg-detail-row-icon">' + iconChar + '</div>'
+    +   '<div class="pkg-detail-row-icon">' + spriteHTML + '</div>'
     +   '<span class="pkg-detail-row-name">' + name + wikiBtn + '</span>'
     +   '<div class="pkg-detail-row-right">'
     +     '<span class="pkg-detail-row-price">' + priceHTML + '</span>'
     +     '<span class="pkg-detail-row-qty">×' + qty.toLocaleString() + '</span>'
     +     '<span class="pkg-row-toggle-btn">' + toggleChar + '</span>'
     +   '</div>'
+    + '</div>';
+}
+
+/**
+ * Estado vazio — mostra featured packages ao invés de tela em branco.
+ */
+function buildEmptyStateHTML() {
+  // Pega até 6 pacotes para mostrar como featured
+  var featured = [];
+  var limit = Math.min(PACKAGES.length, 6);
+  for (var i = 0; i < limit; i++) {
+    featured.push({ pkg: PACKAGES[i], pi: i });
+  }
+
+  var cardsHTML = '';
+  for (var f = 0; f < featured.length; f++) {
+    var pkg   = featured[f].pkg;
+    var pi    = featured[f].pi;
+    var icon  = getPkgIcon(pkg.name);
+    var color = _pkgCategoryColor(pkg.name);
+    var items = getPkgAllItems(pkg);
+
+    var totalRaw  = getPkgTotal(pkg, pi);
+    var totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
+    var priceStr  = totalData ? totalData.label : '—';
+
+    cardsHTML += '<div class="pkg-empty-card"'
+      + ' style="--pkg-color:' + color + '"'
+      + ' onclick="selectPkg(' + pi + ')">'
+      +   '<div class="pkg-empty-card-icon">' + icon + '</div>'
+      +   '<div class="pkg-empty-card-name">' + pkg.name + '</div>'
+      +   '<div class="pkg-empty-card-sub">' + priceStr + ' · ' + items.length + ' itens</div>'
+      + '</div>';
+  }
+
+  return '<div class="pkg-detail-empty">'
+    + '<div class="pkg-empty-featured-title">Pacotes Disponíveis</div>'
+    + '<div class="pkg-empty-grid">' + cardsHTML + '</div>'
+    + '<div class="pkg-empty-hint">Selecione um pacote para ver os detalhes</div>'
     + '</div>';
 }
 
@@ -152,9 +267,9 @@ function renderPkgCatTabs() {
         if (getPkgCategory(PACKAGES[j].name) === cat) count++;
       }
     }
-    var meta       = PKG_CAT_META[cat] || { label: cat, icon: '📌' };
-    var activeCls  = pkgState.activePkgCat === cat ? ' active' : '';
-    html += '<button class="pkg-cat-btn' + activeCls + '"'
+    var meta      = PKG_CAT_META[cat] || { label: cat, icon: '📌' };
+    var activeCls = pkgState.activePkgCat === cat ? ' active' : '';
+    html += '<button class="pkg-cat-btn' + activeCls + '" data-cat="' + cat + '"'
       + ' onclick="selectPkgCat(\'' + cat + '\')">'
       +   '<span class="pkg-cat-icon">' + meta.icon + '</span>'
       +   meta.label
@@ -168,7 +283,6 @@ function renderPackages() {
   var sidebarList = document.getElementById('pkg-sidebar-list');
   if (!sidebarList) return;
 
-  // Garante que PACKAGES existe e está carregado
   if (typeof PACKAGES === 'undefined' || !PACKAGES.length) {
     sidebarList.innerHTML =
       '<div style="grid-column:1/-1;padding:20px;text-align:center;'
@@ -189,9 +303,9 @@ function renderPackages() {
 
   var html = '';
   for (var f = 0; f < filtered.length; f++) {
-    var pkg  = filtered[f].pkg;
-    var pi   = filtered[f].pi;
-    var cnt  = pkgState.cartCount[pi] || 0;
+    var pkg = filtered[f].pkg;
+    var pi  = filtered[f].pi;
+    var cnt = pkgState.cartCount[pi] || 0;
     html += buildPkgCardHTML(pkg, pi, pkgState.activePkgIdx === pi, cnt);
   }
   sidebarList.innerHTML = html;
@@ -205,12 +319,18 @@ function renderPkgDetail(pi) {
   var detail = document.getElementById('pkg-detail');
   if (!detail) return;
 
-  var pkg      = PACKAGES[pi];
+  // Estado vazio — mostrar featured packages
+  if (pi === null || pi === undefined) {
+    detail.innerHTML = buildEmptyStateHTML();
+    return;
+  }
+
+  var pkg = PACKAGES[pi];
   if (!pkg) return;
 
-  var totalRaw  = getPkgTotal(pkg, pi);
+  var color    = _pkgCategoryColor(pkg.name);
+  var totalRaw = getPkgTotal(pkg, pi);
   var totalData = totalRaw > 0 ? formatKK(totalRaw) : null;
-
   var added    = pkgState.cartCount[pi] || 0;
   var allItems = getPkgAllItems(pkg);
   var slots    = pkg.slots || [allItems];
@@ -221,45 +341,40 @@ function renderPkgDetail(pi) {
   var si          = Math.min(pkgState.activeSlotByPkg[pi], slots.length - 1);
   var currentSlot = slots[si];
 
-  // Header
-  var activeCount = getPkgActiveItems(pkg, pi).length;
-  var totalCount  = allItems.length;
-  var countLabel  = activeCount < totalCount
-    ? activeCount + '/' + totalCount + ' itens ativos · ' + slots.length + ' ' + (slots.length === 1 ? 'slot' : 'slots')
-    : totalCount + ' itens · ' + slots.length + ' ' + (slots.length === 1 ? 'slot' : 'slots');
+  // ── Hero header ──
+  var heroHTML = buildHeroHeaderHTML(pkg, pi);
 
-  var headerHTML = '<div class="pkg-detail-header">'
-    + '<div class="pkg-detail-title">' + pkg.name + '</div>'
-    + '<div class="pkg-detail-meta">'
-    +   '<span class="pkg-detail-count">' + countLabel + '</span>'
-    +   (totalData ? '<span class="pkg-detail-price">' + totalData.label + ' · ' + totalData.brl + '</span>' : '')
-    + '</div>'
-    + '</div>';
-
+  // ── Slot tabs (build system) ──
   var slotTabsHTML = '';
   if (hasSlots) {
-    slotTabsHTML = '<div class="pkg-slot-tabs" id="pkg-slot-tabs-' + pi + '">';
+    var tabsInner = '';
     for (var s = 0; s < slots.length; s++) {
-      slotTabsHTML += buildSlotTabHTML(pkg, pi, slots[s], s, s === si);
+      if (s > 0) tabsInner += '<div class="pkg-slot-connector"></div>';
+      tabsInner += buildSlotTabHTML(pkg, pi, slots[s], s, s === si);
     }
-    slotTabsHTML += '</div>';
+    slotTabsHTML = '<div class="pkg-slot-tabs" style="--pkg-color:' + color + '">'
+      + '<div class="pkg-slot-tabs-label">Build Slots</div>'
+      + '<div class="pkg-slot-tabs-row">' + tabsInner + '</div>'
+      + '</div>';
   }
 
+  // ── Reward cards ──
   var rowsHTML = '';
   for (var r = 0; r < currentSlot.length; r++) {
     rowsHTML += buildItemRowHTML(currentSlot[r][0], currentSlot[r][1], pi, si);
   }
 
+  // ── Footer ──
   var addedCls   = added ? ' added' : '';
   var addedLabel = added ? '✓ Adicionado ×' + added : '+ Adicionar ao Carrinho';
 
-  var footerHTML = '<div class="pkg-detail-footer">'
+  var footerHTML = '<div class="pkg-detail-footer" style="--pkg-color:' + color + '">'
     + '<div class="pkg-detail-total-block">'
     + (totalData
         ? '<span class="pkg-detail-total-label">Total ativo</span>'
           + '<span class="pkg-detail-total-kk">' + totalData.label + '</span>'
           + '<span class="pkg-detail-total-brl">' + totalData.brl + '</span>'
-        : '<span class="pkg-detail-total-label" style="color:var(--muted)">preço não definido</span>')
+        : '<span class="pkg-detail-total-label" style="opacity:0.4">preço não definido</span>')
     + '</div>'
     + '<div id="pkgrem-detail-' + pi + '"></div>'
     + '<button class="pkg-detail-add-btn' + addedCls + '"'
@@ -270,8 +385,10 @@ function renderPkgDetail(pi) {
     + '</div>';
 
   // Injeta tudo de uma vez — sem reflow parcial
-  detail.innerHTML = headerHTML + slotTabsHTML
-    + '<div class="pkg-detail-body" id="pkg-detail-body-' + pi + '">' + rowsHTML + '</div>'
+  detail.innerHTML = heroHTML + slotTabsHTML
+    + '<div class="pkg-detail-body" id="pkg-detail-body-' + pi + '" style="--pkg-color:' + color + '">'
+    + rowsHTML
+    + '</div>'
     + footerHTML;
 
   // Botão remover se já está no carrinho
