@@ -200,6 +200,7 @@ function _buildPagamentoInfo(grandTotalFinal) {
   let pagamento_modo = mode;
   let pagamento_kk   = null;
   let pagamento_brl  = null;
+  let pagamento_dd   = null;
 
   if (mode === 'kk') {
     const kkD = formatKK(_payTotalKk || grandTotalFinal);
@@ -207,6 +208,10 @@ function _buildPagamentoInfo(grandTotalFinal) {
   } else if (mode === 'brl') {
     pagamento_brl = (grandTotalFinal / 1000000 * KK_TO_BRL)
       .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  } else if (mode === 'dd') {
+    // DD sempre inteiro — Math.round obrigatório
+    const totalBrl = grandTotalFinal / 1000000 * KK_TO_BRL;
+    pagamento_dd = brlToDd(totalBrl);
   } else if (mode === 'mix') {
     const kkVal  = parseFloat(document.getElementById('mix-kk-input')?.value)  || 0;
     const brlVal = parseFloat(document.getElementById('mix-brl-input')?.value) || 0;
@@ -216,7 +221,7 @@ function _buildPagamentoInfo(grandTotalFinal) {
       ? brlVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       : null;
   }
-  return { pagamento_modo, pagamento_kk, pagamento_brl };
+  return { pagamento_modo, pagamento_kk, pagamento_brl, pagamento_dd };
 }
 
 function _showToastMsg(titulo, msg) {
@@ -314,7 +319,7 @@ async function sendToWhatsApp() {
     };
   });
 
-  const { pagamento_modo, pagamento_kk, pagamento_brl } = _buildPagamentoInfo(grandTotalFinal);
+  const { pagamento_modo, pagamento_kk, pagamento_brl, pagamento_dd } = _buildPagamentoInfo(grandTotalFinal);
 
   const payload = {
     nick_jogo:      nick,
@@ -331,6 +336,7 @@ async function sendToWhatsApp() {
     pagamento_modo,
     pagamento_kk,
     pagamento_brl,
+    pagamento_dd:   pagamento_dd || null,
     status:         'pendente',
     status_v3:      'waiting_queue',
     user_id:        _sessionUser ? (_sessionUser.id || null) : null,
@@ -562,6 +568,14 @@ function updatePayDisplay(totalKkRaw, totalFinalKkRaw, totalFinalBrl) {
   const kkHint = kkData ? kkData.label + ' KK' : '—';
   document.getElementById('pay-brl-total').textContent    = brlStr;
   document.getElementById('pay-brl-kk-hint').textContent  = 'equivale a ' + kkHint;
+
+  // DD block — sempre inteiro, Math.round obrigatório
+  const _ddRate = (window.APP_CONFIG && window.APP_CONFIG.dd_to_brl) || DD_TO_BRL || 0.70;
+  const ddTotal = Math.round(totalFinalBrl / _ddRate);
+  const ddEl = document.getElementById('pay-dd-total');
+  const ddHintEl = document.getElementById('pay-dd-brl-hint');
+  if (ddEl)     ddEl.textContent     = ddTotal > 0 ? ddTotal.toLocaleString('pt-BR') + ' DD' : '—';
+  if (ddHintEl) ddHintEl.textContent = ddTotal > 0 ? 'equivale a ' + totalFinalBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
 
   // Mix: reset inputs quando o total muda
   if (_currentPayMode === 'mix') syncMixInputs(true);
@@ -2398,9 +2412,7 @@ POKEMONS.forEach(p => {
 });
 
 const BALLS = [
-  { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",    mult: 1.0 },
-  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "#e8e8e8",       mult: 0.6 },
-  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "#b67fff",       mult: 0.6 },
+  { id: "ultra", name: "Ultra Ball", emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)", mult: 1.0 },
 ];
 
 // ── Regras de ETA por raridade (captura) ────────────────────────────────────
@@ -2508,9 +2520,9 @@ function renderCaptura() {
 
 function openCapturaModal(idx) {
   currentCapturaIdx = idx;
-  selectedBall = 'ultra'; // default — BallsSelector pode substituir antes de confirmCaptura
+  selectedBall = 'ultra'; // única ball disponível — pré-selecionada
   const poke = POKEMONS[idx];
-  const ball = BALLS[0]; // Ultra Ball (exibição do modal — preço real calculado em confirmCaptura)
+  const ball = BALLS[0]; // Ultra Ball
   const diveMultiplier = poke.dive ? 1.30 : 1.0;
   const effectiveBasePrice = (poke.price !== null && poke.price !== undefined) ? Math.round(poke.price * diveMultiplier) : poke.price;
   const finalPrice = _calcCapturaFinalPrice(poke, ball);
@@ -2582,15 +2594,7 @@ async function confirmCaptura() {
     return;
   }
 
-  // ── Lê ball escolhida no BallsSelector (fallback: ultra) ─────────────────
-  const _ballId    = (window._selectedBallType && window._selectedBallIdx === currentCapturaIdx)
-    ? window._selectedBallType : 'ultra';
-  const ball       = BALLS.find(b => b.id === _ballId) || BALLS[0];
-  // Limpa estado global após leitura
-  window._selectedBallType   = null;
-  window._selectedBallPrices = null;
-  window._selectedBallIdx    = null;
-
+  const ball    = BALLS[0]; // Ultra Ball — única opção
   const pokeData = POKEMONS[currentCapturaIdx];
   const finalPrice = _calcCapturaFinalPrice(pokeData, ball);
   const priceData  = formatKK(finalPrice);
@@ -2605,13 +2609,12 @@ async function confirmCaptura() {
 
   // ── 3. Monta item normalizado para o campo itens (JSONB) ─────────────────
   const itemSupabase = {
-    nome:           pokeData.name + ' (' + ball.name + ')',
+    nome:           pokeData.name + ' (Ultra Ball)',
     quantidade:     1,
     type:           'capture',
     pokemon:        pokeData.name,
     tier:           pokeData.tag || '',
-    ball:           ball.name,
-    ball_type:      ball.id,
+    ball:           'Ultra Ball',
     preco_unit_raw: finalPrice || 0,
     preco_unit_kk:  priceData ? priceData.label : '—',
     preco_unit_brl: priceData ? priceData.brl   : '—',
@@ -2625,19 +2628,15 @@ async function confirmCaptura() {
     ? (subtotalRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     : '—';
 
-  // Preço calculado em BRL numérico (para salvar em calculated_price_brl)
-  const _calcPriceBRL = subtotalRaw > 0
-    ? Math.round(subtotalRaw / 1000000 * KK_TO_BRL * 100) / 100
-    : 0;
-
   const payload = {
     user_id:          user.id || null,
     nick_jogo:        nick,
     status:           'pendente',
     status_v3:        'waiting_queue',
-    tipo_servico:     serviceType,
-    service_type:     serviceType,
-    service_quantity: 1,
+    tipo_servico:     serviceType,      // campo legível
+    service_type:     serviceType,      // campo usado pelo start_service RPC
+    service_quantity: 1,               // 1 pokémon por pedido de captura
+    // started_at, sla_min_days, sla_max_days ficam NULL → preenchidos pelo start_service()
     started_at:       null,
     sla_min_days:     null,
     sla_max_days:     null,
@@ -2647,13 +2646,6 @@ async function confirmCaptura() {
     total_kk:         subtotalKK,
     total_brl:        subtotalBRL,
     taxa_servico:     false,
-    // ── Campos do sistema de balls ────────────────────────────────────────
-    ball_type:             ball.id,
-    calculated_price_brl:  _calcPriceBRL,
-    calculated_price_kk:   finalPrice || 0,
-    calculated_price_dd:   0,
-    ball_returned:         false,
-    client_supplied_balls: true,
   };
 
   console.log('[CAPTURA v4] Salvando no Supabase...', payload);

@@ -583,3 +583,7 @@ var PACKAGES = window.PACKAGES;
 // KK_TO_BRL migrado para financial_config no Supabase
 // db-bootstrap.js popula window.KK_TO_BRL e window.APP_CONFIG automaticamente
 var KK_TO_BRL = (window.APP_CONFIG && window.APP_CONFIG.kk_to_brl) ? window.APP_CONFIG.kk_to_brl : 1.70;
+// DD: sempre inteiro (Math.round) — 1 DD = R$ 0,70
+var DD_TO_BRL = (window.APP_CONFIG && window.APP_CONFIG.dd_to_brl) ? window.APP_CONFIG.dd_to_brl : 0.70;
+function brlToDd(brl) { return (brl && brl > 0) ? Math.round(brl / DD_TO_BRL) : 0; }
+function ddToBrl(dd)  { return (dd  && dd  > 0) ? dd * DD_TO_BRL : 0; }

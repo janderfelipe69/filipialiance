@@ -1178,6 +1178,7 @@
         <div class="pay-mode-selector">
           <button class="pay-mode-btn kk active" onclick="setPayMode('kk')">⚔ KK</button>
           <button class="pay-mode-btn brl" onclick="setPayMode('brl')">💵 PIX R$</button>
+          <button class="pay-mode-btn dd" onclick="setPayMode('dd')">💎 DD</button>
           <button class="pay-mode-btn mix" onclick="setPayMode('mix')">⚡ Misto</button>
         </div>
 
@@ -1195,6 +1196,16 @@
           <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Total via PIX</div>
           <div class="pay-brl-total" id="pay-brl-total">—</div>
           <div class="pay-brl-kk-hint" id="pay-brl-kk-hint">equivale a —</div>
+        </div>
+
+        <!-- DD -->
+        <div class="pay-block" id="pay-block-dd">
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Total em DD</div>
+          <div class="pay-dd-total" id="pay-dd-total">—</div>
+          <div class="pay-dd-brl-hint" id="pay-dd-brl-hint">equivale a —</div>
+          <div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,0.28);margin-top:6px;line-height:1.4">
+            1 DD = R$ 0,70 · valor sempre inteiro (sem decimais)
+          </div>
         </div>
 
         <!-- Misto -->
