@@ -172,7 +172,6 @@
   function openEditItem(item) {
     // Load drops for this item
     sbGet('catalog_item_drops?item_id=eq.' + item.id + '&select=id,pokemon_name,drop_qty')
-      .then(function(r) { return r.json(); })
       .then(function(drops) {
         var dropsHtml = drops.map(function(d) {
           return '<div class="admin-item-row" id="drop-row-'+d.id+'">' +
@@ -249,7 +248,6 @@
 
   function reloadItems() {
     sbGet('catalog_items?select=id,name,price_brl,drop_tier&is_active=eq.true&order=name')
-      .then(function(r) { return r.json(); })
       .then(function(rows) {
         global.items.length = 0;
         rows.forEach(function(r, i) {
@@ -339,7 +337,6 @@
 
   function reloadPokemons() {
     sbGet('catalog_pokemons?select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order')
-      .then(function(r) { return r.json(); })
       .then(function(rows) {
         var cfg = global.APP_CONFIG || {};
         var kkToBrl  = cfg.kk_to_brl  || 1.70;
@@ -381,7 +378,6 @@
     if (!pkg) return;
     openModal('🗑️ Remover Pacote', '<p style="color:#ffaaaa">Desativar <strong>'+pkg.name+'</strong>?</p>', function(close) {
       sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
-        .then(function(r) { return r.json(); })
         .then(function(rows) {
           if (!rows || !rows[0]) throw new Error('Pacote não encontrado');
           return sbFetch('PATCH', 'catalog_packages?id=eq.' + rows[0].id, { is_active: false });
