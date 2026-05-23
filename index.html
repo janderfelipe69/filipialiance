@@ -2129,7 +2129,7 @@
 <script src="schema-compat.js"></script> 
 <script src="auth.js"></script>
 <script src="login.js"></script>
-<!-- ── Feature flag kanban (remover esta linha = rollback instantâneo) ── -->
+<!-- ── Feature flag kanban: ativo, mas orders-ui.js restringe a admins ── -->
 <script>window.PA_KANBAN_ENABLED = true;</script>
 
 <script src="toast.js"></script>
@@ -2170,6 +2170,55 @@
   document.addEventListener("DOMContentLoaded", function() {
     Session.init().catch(function(err) {
       console.error('[App] Erro crítico na inicialização da sessão:', err);
+    });
+  });
+
+  // ── DIAGNÓSTICO AUTOMÁTICO ──────────────────────────────────────────────
+  // Roda após login e mostra no console o estado completo do sistema.
+  // Remover quando o sistema estiver estável.
+  // ────────────────────────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof Session === 'undefined') return;
+    Session.onAuthChange(function(event, user) {
+      if (event !== 'login' || !user) return;
+      setTimeout(async function() {
+        var jwt = Session.getAccessToken();
+        var SB_URL = window.SUPABASE_URL;
+        var SB_KEY = window.SUPABASE_KEY;
+        console.group('🔍 [DIAG] Sistema pós-login — ' + (user.nickname || user.email));
+        console.log('role:', user.role, '| id:', user.id, '| SESSION_READY:', window.SESSION_READY);
+        console.log('PA_KANBAN_ENABLED:', window.PA_KANBAN_ENABLED);
+        console.log('JWT:', jwt ? '✅ presente' : '❌ AUSENTE');
+        // Testa RLS da tabela pedidos
+        try {
+          var r = await fetch(SB_URL + '/rest/v1/pedidos?limit=5&select=id,status_v3,user_id', {
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt }
+          });
+          var d = await r.json();
+          console.log('pedidos RLS → HTTP', r.status, '| retornou:', Array.isArray(d) ? d.length + ' registros' : d);
+          if (Array.isArray(d) && d.length === 0) {
+            console.warn('⚠️ RLS retornou [] — verifique public.users e policies da tabela pedidos');
+          }
+        } catch(e) { console.error('pedidos fetch erro:', e.message); }
+        // Testa se usuário existe em public.users
+        try {
+          var ru = await fetch(SB_URL + '/rest/v1/users?id=eq.' + user.id + '&select=id,role,nickname', {
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt }
+          });
+          var du = await ru.json();
+          if (Array.isArray(du) && du.length === 0) {
+            console.error('❌ USUÁRIO NÃO EXISTE EM public.users — execute fix-rls-and-users.sql no Supabase');
+          } else {
+            console.log('public.users → OK:', du[0]);
+          }
+        } catch(e) { console.error('users fetch erro:', e.message); }
+        // Estado do storage
+        if (typeof OrdersStorage !== 'undefined') {
+          var orders = OrdersStorage.getAllOrders();
+          console.log('OrdersStorage:', orders.length, 'pedidos em cache');
+        }
+        console.groupEnd();
+      }, 500);
     });
   });
 </script>

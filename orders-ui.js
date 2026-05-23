@@ -38,11 +38,13 @@ const OrdersUI = (() => {
     _injectStyles();
     _setupTopbar();
 
-    // Kanban é EXCLUSIVO para admins. Clientes sempre ficam em 'list'.
+    // Kanban é EXCLUSIVO para admins E requer a feature flag ativa.
+    // PA_KANBAN_ENABLED é definido em index.html; false = desligado para todos.
     const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
     const kanbanAvailable = typeof OrdersKanban !== 'undefined';
+    const kanbanFlagOn = !!window.PA_KANBAN_ENABLED;
 
-    if (isAdmin && kanbanAvailable) {
+    if (isAdmin && kanbanAvailable && kanbanFlagOn) {
       // Admin: restaura preferência salva (padrão = 'list' se nunca salvou)
       const savedPref = localStorage.getItem('orders_view_mode');
       if (savedPref === 'kanban') {
@@ -143,7 +145,8 @@ const OrdersUI = (() => {
     // força 'list' aqui como última linha de defesa.
     if (_state.viewMode === 'kanban' && typeof OrdersKanban !== 'undefined') {
       const _isAdminNow = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
-      if (!_isAdminNow) {
+      const _flagNow    = !!window.PA_KANBAN_ENABLED;
+      if (!_isAdminNow || !_flagNow) {
         _state.viewMode = 'list';
         try { localStorage.removeItem('orders_view_mode'); } catch (_e) {}
       } else {
@@ -658,7 +661,7 @@ const OrdersUI = (() => {
   // EXCLUSIVO para admins — clientes nunca vêem este botão.
   function _injectViewToggle() {
     const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
-    if (!isAdmin || typeof OrdersKanban === 'undefined') return;
+    if (!isAdmin || typeof OrdersKanban === 'undefined' || !window.PA_KANBAN_ENABLED) return;
     if (document.getElementById('kb-view-toggle')) return;
 
     const topbarRight = document.querySelector('.pedidos-topbar-right');
