@@ -74,6 +74,8 @@
         var el = document.getElementById('total-count');
         if (el) el.textContent = global.items.length + ' itens no índice';
         console.log('[CatalogService] items loaded:', global.items.length);
+        console.log('[CatalogService] window.items === global.items:', window.items === global.items);
+        console.log('[CatalogService] items[0]:', global.items[0] ? global.items[0].name : 'VAZIO');
       });
   }
 
@@ -144,6 +146,7 @@
           if (item) item.bannerImage = p.bannerImage;
         });
         console.log('[CatalogService] pokemons loaded:', global.POKEMONS.length);
+        console.log('[CatalogService] POKEMONS[0]:', global.POKEMONS[0] ? global.POKEMONS[0].name : 'VAZIO');
       });
   }
 

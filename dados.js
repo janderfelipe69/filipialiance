@@ -571,8 +571,10 @@ const RAW_WIKI = [
 //   ]}
 // ============================================================
 
-var PACKAGES = window.PACKAGES = window.PACKAGES || [];
-// Dados migrados para Supabase — db-bootstrap.js popula este array
+// Garante que PACKAGES e window.PACKAGES são o MESMO array
+if (!window.PACKAGES) window.PACKAGES = [];
+var PACKAGES = window.PACKAGES;
+// db-bootstrap.js popula via window.PACKAGES
 
 // ============================================================
 // SEÇÃO 4 — CONFIGURAÇÕES GERAIS
