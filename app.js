@@ -2412,7 +2412,9 @@ POKEMONS.forEach(p => {
 });
 
 const BALLS = [
-  { id: "ultra", name: "Ultra Ball", emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)", mult: 1.0 },
+  { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",  mult: 1.0 },
+  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "#e8e8e8",     mult: 0.6 },
+  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "#b67fff",     mult: 0.6 },
 ];
 
 // ── Regras de ETA por raridade (captura) ────────────────────────────────────
