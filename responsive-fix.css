@@ -709,23 +709,6 @@ body {
     font-size: 16px !important;
   }
 
-  /* ── WELCOME MODAL ── */
-  .welcome-modal {
-    padding: 28px var(--pad-mobile) 22px !important;
-    border-radius: 18px !important;
-    max-height: 95vh;
-    overflow-y: auto;
-  }
-
-  .welcome-title {
-    font-size: 16px !important;
-    letter-spacing: 2px !important;
-  }
-
-  .welcome-enter-btn {
-    min-height: var(--tap) !important;
-  }
-
   /* ── MODAIS GERAIS ── */
   .captura-overlay {
     align-items: flex-end !important;

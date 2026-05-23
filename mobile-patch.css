@@ -34,7 +34,6 @@ html, body {
   .card-aurora,
   .seller-name,
   header::after,
-  .welcome-modal::before,
   .moon-icon,
   .server-tag::before,
   .tier-hard,
@@ -408,30 +407,6 @@ html, body {
     min-width: var(--tap-min);
     min-height: var(--tap-min);
     border-radius: 10px;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════
-   WELCOME MODAL — mobile
-══════════════════════════════════════════════════════════════ */
-@media (max-width: 540px) {
-  .welcome-modal {
-    padding: 28px 18px 22px;
-    border-radius: 18px;
-    max-height: 95vh;
-    overflow-y: auto;
-  }
-
-  .welcome-logo-wrap svg { width: 52px; height: 52px; }
-  .welcome-title { font-size: 17px; letter-spacing: 2.5px; }
-  .welcome-subtitle { font-size: 10px; letter-spacing: 2px; margin-bottom: 20px; }
-  .welcome-info-card { padding: 12px 14px; gap: 10px; }
-  .welcome-info-icon { font-size: 18px; }
-  .welcome-info-text p { font-size: 13px; }
-  .welcome-enter-btn {
-    min-height: var(--tap-min);
-    font-size: 12px;
-    letter-spacing: 1.5px;
   }
 }
 
