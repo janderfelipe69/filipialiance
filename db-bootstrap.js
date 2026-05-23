@@ -136,7 +136,7 @@
 
   // ── 4. catalog_pokemons ──────────────────────────────────────────────────
   function loadPokemons() {
-    return _get('catalog_pokemons', 'select=id,name,price_brl,tier,image_url,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order').then(function(rows) {
+    return _get('catalog_pokemons', 'select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order').then(function(rows) {
       var arr = rows.map(function(r) {
         return {
           id:                  r.id,
