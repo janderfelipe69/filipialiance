@@ -552,6 +552,17 @@ function setPayMode(mode) {
   document.querySelectorAll('.pay-block').forEach(b => b.classList.remove('active'));
   document.getElementById('pay-block-' + mode).classList.add('active');
   if (mode === 'mix') syncMixInputs();
+  // Recalcula DD ao entrar no modo — garante valor atualizado mesmo sem re-abrir carrinho
+  if (mode === 'dd' && _payTotalBrl > 0) {
+    const _ddRate = (window.APP_CONFIG && window.APP_CONFIG.dd_to_brl) || 0.70;
+    const ddTotal = Math.round(_payTotalBrl / _ddRate);
+    const ddEl = document.getElementById('pay-dd-total');
+    const ddHintEl = document.getElementById('pay-dd-brl-hint');
+    if (ddEl)     ddEl.textContent     = ddTotal > 0 ? ddTotal.toLocaleString('pt-BR') + ' DD' : '—';
+    if (ddHintEl) ddHintEl.textContent = ddTotal > 0
+      ? 'equivale a ' + _payTotalBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : '';
+  }
 }
 
 function updatePayDisplay(totalKkRaw, totalFinalKkRaw, totalFinalBrl) {
