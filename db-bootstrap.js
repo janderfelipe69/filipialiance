@@ -71,13 +71,13 @@
       rows.forEach(function(r) {
         if (seen.has(r.name)) return;
         seen.add(r.name);
-        var raw = brlToRaw(r.price_brl);
+        var raw = brlToRaw(parseFloat(r.price_brl));
         arr.push({
           id:        r.id,
           name:      r.name,
           image:     '',
           price:     raw,
-          price_brl: r.price_brl || null,
+          price_brl: r.price_brl ? parseFloat(r.price_brl) : null,
           price_kk:  brlToKk(r.price_brl),
           price_dd:  brlToDd(r.price_brl),
           tier:      r.drop_tier || '',
@@ -141,10 +141,10 @@
         return {
           id:                  r.id,
           name:                r.name,
-          price:               brlToRaw(r.price_brl),
-          price_brl:           r.price_brl || null,
-          price_kk:            brlToKk(r.price_brl),
-          price_dd:            brlToDd(r.price_brl),
+          price:               brlToRaw(parseFloat(r.price_brl)),
+          price_brl:           r.price_brl ? parseFloat(r.price_brl) : null,
+          price_kk:            brlToKk(parseFloat(r.price_brl)),
+          price_dd:            brlToDd(parseFloat(r.price_brl)),
           tag:                 r.tier || '',
           image:               r.image_url || '',
           bannerImage:         r.banner_image_url || '',

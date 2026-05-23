@@ -323,11 +323,15 @@
     fetch(global.SUPABASE_URL + '/rest/v1/catalog_pokemons?select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order', { headers: sbHeaders() })
       .then(function(r) { return r.json(); })
       .then(function(rows) {
+        var cfg = global.APP_CONFIG || {};
+        var kkToBrl  = cfg.kk_to_brl  || 1.70;
+        var rawPerKk = cfg.raw_per_kk || 1000000;
         global.POKEMONS.length = 0;
         rows.forEach(function(r, i) {
+          var raw = r.price_brl ? Math.floor(r.price_brl / kkToBrl * rawPerKk) : null;
           global.POKEMONS.push({
             id: r.id, name: r.name,
-            price: null, price_brl: r.price_brl,
+            price: raw, price_brl: r.price_brl,
             tag: r.tier || '', image: '', bannerImage: r.banner_image_url || '',
             dive: !!r.is_dive, avg_capture_minutes: r.avg_capture_minutes || 10080,
             _idx: i,
