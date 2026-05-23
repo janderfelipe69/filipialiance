@@ -408,6 +408,30 @@
   function _init() {
     if (_initialized) return;
     _initialized = true;
+
+    // Registra callback de auth change — garante que pedidosCarregar() rode
+    // quando o usuário faz login APÓS o DOMContentLoaded (caso mais comum em SPA).
+    // Sem isso: usuário abre aba pedidos antes do login → aba fica vazia para sempre.
+    if (typeof Session !== 'undefined' && typeof Session.onAuthChange === 'function') {
+      Session.onAuthChange(function (event) {
+        if (event === 'login') {
+          // Delay para garantir que Session.isAdmin() já foi resolvido
+          // (profile carregado) antes do render.
+          setTimeout(function () {
+            if (typeof global.pedidosCarregar === 'function') {
+              _log('onAuthChange(login) — disparando pedidosCarregar()');
+              global.pedidosCarregar();
+            }
+          }, 100);
+        } else if (event === 'logout') {
+          // Limpa cache local ao fazer logout — evita vazar dados de outro usuário
+          try { localStorage.removeItem('pa_orders_v2'); } catch (_e) {}
+          if (typeof OrdersUI !== 'undefined') OrdersUI.render();
+          else if (typeof OrdersKanban !== 'undefined') OrdersKanban.render();
+        }
+      });
+    }
+
     var tabPedidos = document.getElementById('tab-pedidos');
     if (tabPedidos && tabPedidos.classList.contains('active')) {
       // OBRIGATÓRIO: aguarda sessão completa antes de qualquer fetch/render

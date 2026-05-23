@@ -102,6 +102,19 @@ const OrdersKanban = (() => {
     const user    = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
 
+    // Se a sessão ainda não está pronta (usuário não logado ou perfil não carregado),
+    // mostra estado de carregamento em vez de renderizar kanban vazio.
+    // Evita falso "sem pedidos" antes de pedidosCarregar() terminar.
+    if (!window.SESSION_READY) {
+      container.innerHTML = '<div class="kb-loading" style="display:flex;align-items:center;justify-content:center;padding:48px;color:rgba(255,255,255,0.3);font-size:13px;gap:10px;">'
+        + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>'
+        + 'Carregando pedidos…</div>';
+      if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+        Session.ready().then(function () { render(); }).catch(function () { render(); });
+      }
+      return;
+    }
+
     // Fonte de dados: OrdersStorage (já sincronizado pelo pedidos.js)
     const allOrders = typeof OrdersStorage !== 'undefined' ? OrdersStorage.getAllOrders() : [];
 
@@ -344,6 +357,7 @@ const OrdersKanban = (() => {
     style.textContent = `
       /* Este CSS é importado de orders-kanban.css quando disponível.
          Este bloco inline é o fallback caso o CSS externo não carregue. */
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
   }
