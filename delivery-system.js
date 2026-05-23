@@ -616,33 +616,9 @@
           order_created_at: orderData?.created_at   || null,
           concluido_at:     new Date().toISOString(),
         };
-        const insertedRows = await DeliveryDB.insert(payload);
-        const deliveryId = insertedRows && insertedRows[0] && insertedRows[0].id;
+        await DeliveryDB.insert(payload);
 
         if (progressFill) progressFill.style.width = '75%';
-
-        // ── PASSO 2.5: Modal de pagamento (DeliveryFinancial) ──
-        // Abre modal obrigatório pedindo forma de pagamento antes de continuar
-        if (deliveryId && typeof DeliveryFinancial !== 'undefined') {
-          await new Promise(function(resolve) {
-            DeliveryFinancial.openPaymentModal(
-              {
-                id:           deliveryId,
-                service_name: payload.service_name,
-                pokemon_name: payload.pokemon_name,
-                price_raw:    orderData && orderData.price_raw ? orderData.price_raw : null,
-              },
-              function(paymentData) {
-                // Salva dados de pagamento na linha recém inserida
-                DeliveryFinancial.savePaymentOnDelivery(deliveryId, paymentData)
-                  .catch(function(e) {
-                    console.warn('[Entrega] pagamento salvo com erro (não crítico):', e.message);
-                  })
-                  .finally(resolve);
-              }
-            );
-          });
-        }
 
         // ── PASSO 3: UPDATE pedidos → status = 'concluido' ──
         await DeliveryAdmin._updatePedidoStatus(orderId);
@@ -1037,9 +1013,14 @@
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
             ENTREGUE
           </div>
+
+          <div class="dg-card-financial" id="dg-fin-${entry.id}">
+            ${typeof DeliveryFinancial !== 'undefined' ? DeliveryFinancial.buildCardSection(entry, isAdmin) : ''}
+          </div>
         </div>
       `;
 
+      el.dataset.deliveryId = entry.id;
       return el;
     },
 
