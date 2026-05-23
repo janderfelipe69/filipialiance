@@ -240,11 +240,36 @@
   </div>
   <div class="captura-controls">
     <div class="search-wrap">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
-        <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
-      <input type="text" id="captura-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_capturaSearchTimer); _capturaSearchTimer = setTimeout(renderCaptura, 150)" />
+      <input
+        type="text"
+        id="captura-search"
+        placeholder="Buscar Pokémon..."
+        autocomplete="off"
+        spellcheck="false"
+        oninput="
+          clearTimeout(_capturaSearchTimer);
+          _capturaSearchTimer = setTimeout(renderCaptura, 150);
+          var clr = this.parentElement.querySelector('.captura-search-clear');
+          if(clr) clr.classList.toggle('visible', this.value.length > 0);
+        "
+      />
+      <button
+        class="captura-search-clear"
+        type="button"
+        title="Limpar busca"
+        aria-label="Limpar busca"
+        onclick="
+          var inp = document.getElementById('captura-search');
+          inp.value = '';
+          this.classList.remove('visible');
+          renderCaptura();
+          inp.focus();
+        "
+      >✕</button>
     </div>
     <select id="captura-filter" onchange="renderCaptura()">
       <option value="all">Todos</option>
@@ -347,6 +372,7 @@
         </button>
       </div>
     </div>
+    <div class="captura-controls-spacer" aria-hidden="true"></div>
   </div>
   <div class="captura-wrap">
     <div class="captura-grid" id="captura-grid"></div>
@@ -2128,6 +2154,7 @@
 <!-- ── Mobile patch — Aba Pedidos (deve vir por último) ── -->
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="responsive-fix.css">
+<link rel="stylesheet" href="captura-toolbar.css">
 
 <script src="orders-ui.js"></script>
 <script src="orders-integration-patch.js"></script>

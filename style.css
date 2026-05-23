@@ -1255,14 +1255,20 @@ header::after {
 
 /* ===================== CAPTURA ===================== */
 .captura-controls {
-  position: sticky;
-  top: calc(var(--header-h, 0px) + var(--tabs-h, 0px));
-  z-index: 180;
-  background: rgba(4,6,14,0.95);
+  /* BUG FIX: position declarado duas vezes causava z-index incorreto.
+     A versão final está em captura-toolbar.css que carrega depois.
+     Mantemos aqui apenas o fallback base sem conflito. */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: rgba(4,6,14,0.97);
   border-bottom: 1px solid var(--border);
-  padding: 14px clamp(16px, 4vw, 32px);
-  position: relative;
-  z-index: 1;
+  position: sticky;
+  top: 0;
+  z-index: 180;
+  flex-shrink: 0;
 }
 
 .captura-grid {

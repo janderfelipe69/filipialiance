@@ -34,14 +34,8 @@
   --cr-super: #fb923c; --cr-shiny: #fde68a; --cr-gold: #ffd166;
 }
 
-/* ─── Controls bar ─────────────────────────────────────────────── */
-.captura-controls {
-  padding: 12px 20px !important;
-  gap: 10px !important;
-  flex-wrap: wrap;
-  background: rgba(4,6,14,0.97) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-}
+/* ─── Controls bar — definição em captura-toolbar.css ──────────── */
+/* (removido daqui para evitar conflito com o arquivo dedicado)     */
 
 /* ─── Grid premium ─────────────────────────────────────────────── */
 .captura-grid {
