@@ -90,6 +90,10 @@ var BallsSelector = (function () {
     var r = Math.round(d * 10) / 10;
     return r === Math.round(r) ? r + ' dias' : '~' + r + ' dias';
   }
+  function _fmtDD(v) {
+    if (!v || v <= 0) return '';
+    return Math.round(v).toLocaleString('pt-BR') + ' DD';
+  }
 
   /* ── Cálculo de preço (exibição — validado no backend) ───── */
   function _calc(pokemon, ballType) {
