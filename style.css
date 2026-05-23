@@ -575,7 +575,7 @@ header::after {
 .enviar-pedido-btn:active { transform: translateY(0); }
 .enviar-pedido-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-
+.clear-btn {
   width: 100%;
   background: transparent;
   border: 1px solid rgba(255,100,100,0.25);
@@ -1456,6 +1456,7 @@ header::after {
 @keyframes ultraRaroGlow { 0%,100% { text-shadow: 0 0 6px rgba(255,40,120,0.6); } 50% { text-shadow: 0 0 18px rgba(255,40,120,1), 0 0 30px rgba(255,40,120,0.4); } }
 @keyframes legendaryGlow  { 0%,100% { text-shadow: 0 0 8px rgba(240,150,0,0.6); } 50% { text-shadow: 0 0 20px rgba(240,150,0,1), 0 0 35px rgba(240,150,0,0.4); } }
 @keyframes mythicalGlow   { 0%,100% { text-shadow: 0 0 8px rgba(200,40,255,0.6); } 50% { text-shadow: 0 0 20px rgba(200,40,255,1), 0 0 35px rgba(200,40,255,0.4); } }
+.cpk-card[data-tier="dive"], .captura-card-dive {
   color: #00e5ff;
   box-shadow: 0 0 10px rgba(0,200,255,0.35);
   animation: diveWave 3s ease-in-out infinite;
