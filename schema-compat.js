@@ -365,6 +365,10 @@
   // Cache das colunas reais após introspecção. null = ainda não resolvido.
   let _resolvedColumns = null;
   let _resolvingPromise = null;
+  // Cache do schema REAL do banco (todas as colunas retornadas pelo SELECT *).
+  // Separado de _resolvedColumns (que filtra por role/DESIRED).
+  // Permite que resolveSelectAdmin() valide financeiras contra o banco real.
+  let _realSchemaColumns = null;
 
   /**
    * Introspecta o schema real de delivery_proofs.
@@ -440,6 +444,9 @@
 
       let confirmed;
       if (realCols && realCols.length > 0) {
+        // Salva schema real COMPLETO para uso em resolveSelectAdmin()
+        _realSchemaColumns = realCols;
+
         confirmed = DESIRED_COLUMNS.filter(col => {
           if (BANNED_FROM_SELECT.includes(col)) {
             console.error('[SchemaAudit] ❌ coluna banida em DESIRED_COLUMNS:', col, '— removida');
@@ -460,6 +467,7 @@
       } else {
         // Introspecção falhou: usa DESIRED_COLUMNS filtrado de banidas.
         // Não inclui nenhuma coluna com histórico de causar HTTP 400.
+        _realSchemaColumns = null; // sem schema real — resolveSelectAdmin usará safe-fail
         confirmed = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c));
         console.warn('[SchemaAudit] ⚠️ Usando fallback (sem introspecção):', confirmed.join(', '));
       }
@@ -501,13 +509,29 @@
    */
   async function resolveSelectAdmin() {
     const base = await _resolveSelectColumns();
-    // Adiciona financeiras que existam no banco
     const baseCols = base.split(',');
+
+    // [SchemaAudit] CRÍTICO: cruzar financeiras com schema REAL antes de adicionar.
+    // _realSchemaColumns é preenchido por _resolveSelectColumns() via SELECT * introspecção.
+    // Se introspecção falhou (_realSchemaColumns === null), omite financeiras (safe-fail):
+    // admin perde campos financeiros mas as entregas aparecem — nunca HTTP 400 por coluna inexistente.
     const extra = FINANCIAL_COLUMNS.filter(function(c) {
-      return !baseCols.includes(c);
+      if (baseCols.includes(c)) return false; // já está na base
+      if (_realSchemaColumns === null) {
+        console.warn('[SchemaAudit] resolveSelectAdmin: schema real desconhecido — coluna "' + c + '" omitida (safe-fail)');
+        return false;
+      }
+      const exists = _realSchemaColumns.includes(c);
+      if (!exists) {
+        console.warn('[SchemaAudit] resolveSelectAdmin: coluna financeira "' + c + '" não existe no banco — omitida do SELECT admin');
+      }
+      return exists;
     });
+
     if (!extra.length) return base;
-    return base + ',' + extra.join(',');
+    const adminSelect = base + ',' + extra.join(',');
+    console.log('[SchemaAudit] resolveSelectAdmin SELECT:', adminSelect);
+    return adminSelect;
   }
 
   /**
@@ -518,6 +542,7 @@
   function _resetCache() {
     _resolvedColumns = null;
     _resolvingPromise = null;
+    _realSchemaColumns = null;
     console.warn('[SchemaAudit] Cache de colunas invalidado — próxima query re-introspecta o banco');
   }
 

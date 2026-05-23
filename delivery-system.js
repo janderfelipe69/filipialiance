@@ -221,13 +221,38 @@
         const msg = e.message || e.error || `Erro ao carregar entregas (HTTP ${res.status})`;
         console.error('[Entrega] ❌ GET delivery_proofs falhou HTTP', res.status, '| message:', e.message, '| hint:', e.hint);
         console.error('[Entrega] ❌ SELECT usado:', _selectCols);
-        // [SchemaAudit] Guard: detecta coluna inexistente
+
+        // [SchemaAudit] Guard: detecta coluna inexistente — tenta fallback CORE imediatamente.
+        // Invalida cache E retenta com colunas CORE garantidas, para não retornar [] ao usuário.
         if (e.message && e.message.includes('does not exist')) {
           const colMatch = e.message.match(/column\s+["']?(\S+?)["']?\s+does not exist/i);
           if (colMatch) {
             const badCol = colMatch[1].replace(/^delivery_proofs\./, '');
-            // Invalida cache para forçar re-introspecção na próxima chamada
+            console.warn('[Entrega] ⚠️ Coluna inexistente detectada:', badCol, '— invalidando cache e retentando com SELECT CORE');
             if (typeof SchemaCompat !== 'undefined') SchemaCompat._resetCache && SchemaCompat._resetCache();
+
+            // Retry imediato com colunas CORE garantidas (sem financeiras, sem opcionais)
+            const _CORE_SAFE = 'id,order_id,service_name,pokemon_name,service_type,image_url,cliente_nick,delivered_by,created_at,descricao';
+            const retryUrl = `${SB_URL}/rest/v1/${TABLE}` +
+              `?select=${_CORE_SAFE}` +
+              `&order=created_at.desc` +
+              `&limit=${limit}`;
+            try {
+              const retryRes = await fetch(retryUrl, { headers: _headers(jwt) });
+              if (retryRes.ok) {
+                console.log('[Entrega] ✅ Retry CORE bem-sucedido após erro de coluna inexistente');
+                const retryRows = await retryRes.json();
+                retryRows.forEach(row => {
+                  if (!row.image_url && Array.isArray(row.prints) && row.prints[0]?.url) {
+                    row.image_url = row.prints[0].url;
+                  }
+                  if (!Array.isArray(row.prints)) row.prints = [];
+                });
+                return retryRows;
+              }
+            } catch (_retryErr) {
+              console.error('[Entrega] ❌ Retry CORE também falhou:', _retryErr.message);
+            }
           }
         }
         return [];
@@ -622,10 +647,14 @@
           quantity:         orderData?.quantity     || null,
           order_created_at: orderData?.created_at   || null,
           concluido_at:     new Date().toISOString(),
-          price_brl:        orderData && (orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
-                            ? parseFloat(orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
-                            : null,
+          // [SchemaAudit] price_brl NÃO é coluna de delivery_proofs — é do catálogo.
+          // Removido do INSERT para evitar HTTP 400. O valor financeiro é salvo
+          // via DeliveryFinancial.savePaymentOnDelivery() no passo 2.5 abaixo.
         };
+        // Guarda price_brl em memória apenas para o modal de pagamento (passo 2.5)
+        const _orderPriceBrl = orderData && (orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
+          ? parseFloat(orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
+          : null;
         const insertedRows = await DeliveryDB.insert(payload);
         const deliveryId = insertedRows && insertedRows[0] && insertedRows[0].id;
 
@@ -639,9 +668,7 @@
                 id:           deliveryId,
                 service_name: payload.service_name,
                 pokemon_name: payload.pokemon_name,
-                price_brl:    orderData && (orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
-                              ? parseFloat(orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
-                              : null,
+                price_brl:    _orderPriceBrl, // valor financeiro em memória — nunca veio da tabela
               },
               function(paymentData) {
                 DeliveryFinancial.savePaymentOnDelivery(deliveryId, paymentData)
