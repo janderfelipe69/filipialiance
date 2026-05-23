@@ -2398,7 +2398,9 @@ POKEMONS.forEach(p => {
 });
 
 const BALLS = [
-  { id: "ultra", name: "Ultra Ball", emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)", mult: 1.0 },
+  { id: "ultra",    name: "Ultra Ball",    emoji: '<img src="https://i.imgur.com/D5T6Dgw.png" style="width:40px;height:40px;object-fit:contain" />', color: "var(--gold)",    mult: 1.0 },
+  { id: "premier",  name: "Premier Ball",  emoji: '<img src="https://i.imgur.com/sIwvw2L.png" style="width:40px;height:40px;object-fit:contain" />', color: "#e8e8e8",       mult: 0.6 },
+  { id: "alliance", name: "Alliance Ball", emoji: '<img src="https://i.imgur.com/QFXUD5f.png" style="width:40px;height:40px;object-fit:contain" />', color: "#b67fff",       mult: 0.6 },
 ];
 
 // ── Regras de ETA por raridade (captura) ────────────────────────────────────
@@ -2506,9 +2508,9 @@ function renderCaptura() {
 
 function openCapturaModal(idx) {
   currentCapturaIdx = idx;
-  selectedBall = 'ultra'; // única ball disponível — pré-selecionada
+  selectedBall = 'ultra'; // default — BallsSelector pode substituir antes de confirmCaptura
   const poke = POKEMONS[idx];
-  const ball = BALLS[0]; // Ultra Ball
+  const ball = BALLS[0]; // Ultra Ball (exibição do modal — preço real calculado em confirmCaptura)
   const diveMultiplier = poke.dive ? 1.30 : 1.0;
   const effectiveBasePrice = (poke.price !== null && poke.price !== undefined) ? Math.round(poke.price * diveMultiplier) : poke.price;
   const finalPrice = _calcCapturaFinalPrice(poke, ball);
@@ -2580,7 +2582,15 @@ async function confirmCaptura() {
     return;
   }
 
-  const ball    = BALLS[0]; // Ultra Ball — única opção
+  // ── Lê ball escolhida no BallsSelector (fallback: ultra) ─────────────────
+  const _ballId    = (window._selectedBallType && window._selectedBallIdx === currentCapturaIdx)
+    ? window._selectedBallType : 'ultra';
+  const ball       = BALLS.find(b => b.id === _ballId) || BALLS[0];
+  // Limpa estado global após leitura
+  window._selectedBallType   = null;
+  window._selectedBallPrices = null;
+  window._selectedBallIdx    = null;
+
   const pokeData = POKEMONS[currentCapturaIdx];
   const finalPrice = _calcCapturaFinalPrice(pokeData, ball);
   const priceData  = formatKK(finalPrice);
@@ -2595,12 +2605,13 @@ async function confirmCaptura() {
 
   // ── 3. Monta item normalizado para o campo itens (JSONB) ─────────────────
   const itemSupabase = {
-    nome:           pokeData.name + ' (Ultra Ball)',
+    nome:           pokeData.name + ' (' + ball.name + ')',
     quantidade:     1,
     type:           'capture',
     pokemon:        pokeData.name,
     tier:           pokeData.tag || '',
-    ball:           'Ultra Ball',
+    ball:           ball.name,
+    ball_type:      ball.id,
     preco_unit_raw: finalPrice || 0,
     preco_unit_kk:  priceData ? priceData.label : '—',
     preco_unit_brl: priceData ? priceData.brl   : '—',
@@ -2614,15 +2625,19 @@ async function confirmCaptura() {
     ? (subtotalRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     : '—';
 
+  // Preço calculado em BRL numérico (para salvar em calculated_price_brl)
+  const _calcPriceBRL = subtotalRaw > 0
+    ? Math.round(subtotalRaw / 1000000 * KK_TO_BRL * 100) / 100
+    : 0;
+
   const payload = {
     user_id:          user.id || null,
     nick_jogo:        nick,
     status:           'pendente',
     status_v3:        'waiting_queue',
-    tipo_servico:     serviceType,      // campo legível
-    service_type:     serviceType,      // campo usado pelo start_service RPC
-    service_quantity: 1,               // 1 pokémon por pedido de captura
-    // started_at, sla_min_days, sla_max_days ficam NULL → preenchidos pelo start_service()
+    tipo_servico:     serviceType,
+    service_type:     serviceType,
+    service_quantity: 1,
     started_at:       null,
     sla_min_days:     null,
     sla_max_days:     null,
@@ -2632,6 +2647,13 @@ async function confirmCaptura() {
     total_kk:         subtotalKK,
     total_brl:        subtotalBRL,
     taxa_servico:     false,
+    // ── Campos do sistema de balls ────────────────────────────────────────
+    ball_type:             ball.id,
+    calculated_price_brl:  _calcPriceBRL,
+    calculated_price_kk:   finalPrice || 0,
+    calculated_price_dd:   0,
+    ball_returned:         false,
+    client_supplied_balls: true,
   };
 
   console.log('[CAPTURA v4] Salvando no Supabase...', payload);
