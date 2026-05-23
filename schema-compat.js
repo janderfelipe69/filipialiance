@@ -366,10 +366,14 @@
     }
 
     // Estratégia 1: pega um registro real e lê suas chaves
+    // Usa JWT do usuário se disponível (RLS pode bloquear anon key)
+    const _jwt = (typeof Session !== 'undefined' && Session.getAccessToken)
+      ? (Session.getAccessToken() || sbKey)
+      : sbKey;
     try {
       const res = await fetch(
         `${sbUrl}/rest/v1/delivery_proofs?select=*&limit=1&order=id.desc`,
-        { headers: { apikey: sbKey, Authorization: 'Bearer ' + sbKey, Accept: 'application/json' } }
+        { headers: { apikey: sbKey, Authorization: 'Bearer ' + _jwt, Accept: 'application/json' } }
       );
 
       if (!res.ok) {
@@ -391,7 +395,7 @@
       console.warn('[SchemaAudit] Tabela vazia — tentando Content-Range...');
       const res0 = await fetch(
         `${sbUrl}/rest/v1/delivery_proofs?select=*&limit=0`,
-        { headers: { apikey: sbKey, Authorization: 'Bearer ' + sbKey,
+        { headers: { apikey: sbKey, Authorization: 'Bearer ' + _jwt,
             Accept: 'application/json', Prefer: 'count=exact' } }
       );
       // PostgREST retorna Content-Range: 0-0/0 mesmo para tabela vazia,
