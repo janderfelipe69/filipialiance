@@ -15,24 +15,17 @@
   }
 
   function getJwt() {
-    // Session.js guarda em _accessToken (variável privada)
-    // mas expõe via Session.getAccessToken() — chama no momento do fetch
-    try {
-      if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
-        var t = Session.getAccessToken();
-        if (t) return t;
-      }
-    } catch(e) {}
-    // Fallback: localStorage key definida em session.js: 'pa_sb_access_token'
-    try {
-      var stored = localStorage.getItem('pa_sb_access_token');
-      if (stored) return stored;
-    } catch(e) {}
+    // Session.js mantém o token em memória — sempre disponível após login
+    if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
+      return Session.getAccessToken();
+    }
     return null;
   }
 
   function sbHeaders() {
     var jwt = getJwt();
+    if (!jwt) console.warn('[admin-panel] JWT não disponível — usando anon key');
+    else console.log('[admin-panel] JWT ok:', jwt.substring(0,20) + '...');
     return {
       'Content-Type':  'application/json',
       'apikey':        global.SUPABASE_KEY,
