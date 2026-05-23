@@ -160,42 +160,74 @@
   // Abre o modal genérico de pagamento/edição
   // entry: { id, service_name, pokemon_name, price_brl, payment_method, payment_value_kk, payment_value_dd, payment_value, obs_financeiro, delivered_at }
   // onSave(updates): callback com o objeto de updates para o Supabase
+  // ── Cálculo canônico de valor por método ────────────────────
+  // 1 KK = R$ 1,70 | 1 DD = R$ 0,70 | DD sempre inteiro | KK decimal
+  function calculatePaymentValue(brl, method) {
+    if (!brl || brl <= 0) return 0;
+    var cfg = getConfig();
+    switch (method) {
+      case 'real': return Number(parseFloat(brl).toFixed(2));
+      case 'kk':   return Number((brl / cfg.kkRate).toFixed(2));
+      case 'dd':   return Math.round(brl / cfg.ddRate);
+      default:     return 0;
+    }
+  }
+
+  // ── Formata data para exibição legível ───────────────────────
+  function _fmtDeliveredAt(iso) {
+    if (!iso) return null;
+    try {
+      var d = new Date(iso);
+      var dd   = String(d.getDate()).padStart(2, '0');
+      var mm   = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = d.getFullYear();
+      var hh   = String(d.getHours()).padStart(2, '0');
+      var min  = String(d.getMinutes()).padStart(2, '0');
+      return dd + '/' + mm + '/' + yyyy + ' às ' + hh + ':' + min;
+    } catch (_) { return null; }
+  }
+
   function openModal(entry, title, onSave) {
     closeModal();
 
     var currentMethod = entry.payment_method || '';
     var priceBrl = entry.price_brl ? parseFloat(entry.price_brl) : null;
 
-    // Calcula sugestões
+    // Calcula sugestões com a função canônica
     var suggested = priceBrl ? {
-      real: parseFloat(priceBrl.toFixed(2)),
-      kk:   brlToKk(priceBrl),
-      dd:   brlToDd(priceBrl),
+      real: calculatePaymentValue(priceBrl, 'real'),
+      kk:   calculatePaymentValue(priceBrl, 'kk'),
+      dd:   calculatePaymentValue(priceBrl, 'dd'),
     } : null;
 
     // Valor inicial no input:
     // — Se já tem método+valor salvo → usa o valor salvo
-    // — Se não tem método mas tem price_brl → pré-preenche com o valor sugerido do método padrão (REAL)
+    // — Se não tem método mas tem price_brl → pré-seleciona REAL e preenche
     var defaultMethod = currentMethod;
     var initVal;
-    if (currentMethod === 'kk')   initVal = entry.payment_value_kk  || '';
-    else if (currentMethod === 'dd')   initVal = entry.payment_value_dd  || '';
-    else if (currentMethod === 'real') initVal = entry.payment_value     || '';
+    if (currentMethod === 'kk')        initVal = entry.payment_value_kk || '';
+    else if (currentMethod === 'dd')   initVal = entry.payment_value_dd || '';
+    else if (currentMethod === 'real') initVal = entry.payment_value    || '';
     else if (suggested) {
-      // Novo pedido sem pagamento — pré-seleciona REAL e preenche o valor
       defaultMethod = 'real';
       initVal = suggested.real;
     } else {
       initVal = '';
     }
 
+    // Data de entrega — apenas exibição, não editável
+    var deliveredAt = entry.delivered_at || entry.created_at || null;
+    var deliveredLabel = _fmtDeliveredAt(deliveredAt);
+
     var serviceLabel = entry.service_name || entry.pokemon_name || '—';
 
     var html =
       '<div id="df-modal">' +
         '<h3>' + title + '</h3>' +
-        (serviceLabel !== '—' ? '<p style="color:#888;font-size:12px;margin:0 0 12px">Serviço: <strong style="color:#c0c8ff">' + serviceLabel + '</strong>' +
-          (priceBrl ? ' · <span style="color:#4a9aff">' + fmtBrl(priceBrl) + '</span>' : '') + '</p>' : '') +
+        (serviceLabel !== '—'
+          ? '<p style="color:#888;font-size:12px;margin:0 0 12px">Serviço: <strong style="color:#c0c8ff">' + serviceLabel + '</strong>' +
+            (priceBrl ? ' · <span style="color:#4a9aff">' + fmtBrl(priceBrl) + '</span>' : '') + '</p>'
+          : '') +
         '<label class="df-lbl">Forma de pagamento</label>' +
         '<div class="df-methods">' +
           '<button class="df-meth' + (defaultMethod === 'real' ? ' sel-real' : '') + '" data-m="real" onclick="DeliveryFinancial._pick(this)">💵 REAL</button>' +
@@ -207,8 +239,9 @@
         '<div class="df-hint" id="df-hint">' + (suggested && defaultMethod ? _hintText(defaultMethod, suggested) : '') + '</div>' +
         '<label class="df-lbl">Observação (opcional)</label>' +
         '<input class="df-inp" id="df-obs" value="' + (entry.obs_financeiro || '') + '" placeholder="ex: pago via pix">' +
-        '<label class="df-lbl">Data da entrega</label>' +
-        '<input class="df-inp" id="df-date" type="datetime-local" value="' + (entry.delivered_at ? entry.delivered_at.slice(0, 16) : '') + '">' +
+        (deliveredLabel
+          ? '<p style="margin:14px 0 0;font-size:11px;color:#555;">📅 Entregue em <span style="color:#7eb3ff">' + deliveredLabel + '</span></p>'
+          : '') +
         '<div class="df-footer">' +
           (entry.payment_method ? '<button class="df-btn-remove" id="df-btn-remove">🗑 Remover</button>' : '') +
           '<button class="df-btn-cancel" id="df-btn-cancel">Cancelar</button>' +
@@ -228,8 +261,8 @@
         if (!confirm('Remover dados de pagamento desta entrega?')) return;
         sbPatch(entry.id, { payment_method: null, payment_value: null, payment_value_kk: null, payment_value_dd: null, obs_financeiro: null })
           .then(function() {
-            if (_findEntry(entry.id)) {
-              var e2 = _findEntry(entry.id);
+            var e2 = _findEntry(entry.id);
+            if (e2) {
               e2.payment_method = null; e2.payment_value = null;
               e2.payment_value_kk = null; e2.payment_value_dd = null;
             }
@@ -240,27 +273,26 @@
       };
     }
 
-    // Guarda suggested para uso no _pick
-    global._df_suggested = suggested;
+    // Guarda estado para uso no _pick
+    global._df_suggested    = suggested;
     global._df_currentMethod = defaultMethod;
+    global._df_priceBrl     = priceBrl;
 
     document.getElementById('df-btn-save').onclick = function() {
       var m   = global._df_currentMethod;
       var val = parseFloat(document.getElementById('df-val').value);
       var obs = document.getElementById('df-obs').value.trim() || null;
-      var dt  = document.getElementById('df-date').value || null;
 
-      if (!m)            { _toast('Selecione a forma de pagamento', false); return; }
+      if (!m)               { _toast('Selecione a forma de pagamento', false); return; }
       if (!val || val <= 0) { _toast('Informe o valor recebido', false); return; }
 
       var updates = {
         payment_method:   m,
-        payment_value:    m === 'real' ? parseFloat(val.toFixed(2)) : null,
-        payment_value_kk: m === 'kk'   ? Number(val.toFixed(2))     : null,
-        payment_value_dd: m === 'dd'   ? Math.round(val)             : null,
+        payment_value:    m === 'real' ? Number(val.toFixed(2)) : null,
+        payment_value_kk: m === 'kk'   ? Number(val.toFixed(2)) : null,
+        payment_value_dd: m === 'dd'   ? Math.round(val)        : null,
         obs_financeiro:   obs,
       };
-      if (dt) updates.delivered_at = new Date(dt).toISOString();
 
       onSave(updates);
     };
@@ -288,15 +320,18 @@
 
     // Preenche valor sugerido
     var suggested = global._df_suggested;
+    var priceBrl  = global._df_priceBrl;
     var inp  = document.getElementById('df-val');
     var hint = document.getElementById('df-hint');
 
     if (suggested) {
-      var s = suggested[m];
       hint.textContent = _hintText(m, suggested);
-      // Sempre preenche com o valor sugerido do novo método
-      // (o usuário pode sobrescrever manualmente depois)
-      inp.value = m === 'dd' ? Math.round(s) : Number(s.toFixed(2));
+      // Sempre recalcula o valor com base no price_brl ao trocar de método
+      if (priceBrl) {
+        inp.value = calculatePaymentValue(priceBrl, m);
+      } else if (!inp.value || parseFloat(inp.value) === 0) {
+        inp.value = m === 'dd' ? Math.round(suggested[m]) : Number(suggested[m].toFixed(2));
+      }
     }
   };
 
@@ -450,6 +485,7 @@
     injectIntoExistingCards: injectIntoExistingCards,
     brlToKk:               brlToKk,
     brlToDd:               brlToDd,
+    calculatePaymentValue: calculatePaymentValue,
   });
 
   console.log('[DeliveryFinancial] ✅ carregado');

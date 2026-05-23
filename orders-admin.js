@@ -209,7 +209,8 @@ const OrdersAdmin = (() => {
 
             return {
               // Preço do serviço — para cálculo automático no modal de pagamento
-              price_brl:    parseFloat(order.total_brl || order.subtotal_brl || order.pagamento_brl || 0) || null,
+              price_brl:    parseFloat(order.total_brl || order.subtotal_brl || order.pagamento_brl ||
+                                       order._totalBRL || order._pagBRL || 0) || null,
               // nick: nick_jogo é o único campo de nick retornado pelo banco agora
               nick:         _s(order.nick_jogo || order.nickname || order.nick || order.cliente_nick, '—'),
               // player_name: idem
