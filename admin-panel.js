@@ -351,22 +351,11 @@
   var POKE_TIERS = ['t1','t2','t3','super-raro','ultra-raro','legendary','mythical'];
 
   function openAddPokemon() {
-    // Expõe o mapa para uso inline no oninput
     window._adminTypeBannerMap = TYPE_BANNER_MAP;
-
+    window._adminGetType       = _getTypeForPokemon;
     var html =
       '<label class="admin-label">Nome do Pokémon * <small style="color:#4a9aff">(tipagem detectada automaticamente)</small></label>' +
-      '<input class="admin-field" id="ap-name" placeholder="ex: Shiny Charizard"' +
-      ' oninput="(function(){' +
-        'var n=document.getElementById(\'ap-name\').value.trim();' +
-        'var t=typeof _getTypeForPokemon===\'function\'?_getTypeForPokemon(n):null;' +
-        'var b=t&&window._adminTypeBannerMap?window._adminTypeBannerMap[t]:null;' +
-        'var el=document.getElementById(\'ap-type-preview\');' +
-        'if(!el)return;' +
-        'if(t&&b)el.innerHTML=\'<img src="\'+b+\'" style="height:26px;vertical-align:middle;border-radius:4px;margin-right:6px" onerror="this.style.display=\\'none\\'"><span style="color:#aef;font-size:.82rem;text-transform:capitalize">\'+t+\'</span>\';' +
-        'else if(n)el.innerHTML=\'<span style="color:#888;font-size:.82rem">tipo não reconhecido — sem banner</span>\';' +
-        'else el.innerHTML=\'\';' +
-      '})()">' +
+      '<input class="admin-field" id="ap-name" placeholder="ex: Shiny Charizard" oninput="window._adminPreviewType(&apos;ap-name&apos;,&apos;ap-type-preview&apos;)">' +
       '<div id="ap-type-preview" style="min-height:28px;margin:-2px 0 8px;display:flex;align-items:center"></div>' +
       '<div class="admin-row" style="margin-top:0">' +
         '<div style="flex:1"><label class="admin-label">Preço (R$) *</label><input class="admin-field" id="ap-price" type="number" step="0.01" min="0" placeholder="64.60"></div>' +
@@ -386,7 +375,6 @@
       var etaText = val('ap-eta') || '7 dias';
       var etaMin  = etaText.includes('45') ? 64800 : 10080;
       var isDive  = document.getElementById('ap-dive').checked;
-      // Auto-detecta banner pelo tipo do pokémon
       var bannerUrl = _getBannerForPokemon(name);
       sbFetch('POST', 'catalog_pokemons', {
         name:                name,
@@ -398,7 +386,7 @@
         is_active:           true,
       }).then(function() {
         var detectedType = _getTypeForPokemon(name);
-        showToast('Pokémon adicionado!' + (detectedType ? ' Tipo: ' + detectedType : ''));
+        showToast('Pokémon adicionado!' + (detectedType ? ' Tipo: ' + detectedType : ' (tipo não detectado)'));
         close();
         reloadPokemons();
       }).catch(function(e) { showToast('Erro: ' + e.message, false); });
@@ -407,43 +395,32 @@
 
   function openEditPokemon(poke) {
     window._adminTypeBannerMap = TYPE_BANNER_MAP;
-    var etaDays = poke.avg_capture_minutes >= 60000 ? '45 dias' : '7 dias';
-    // Detecta tipo atual
-    var currentType   = _getTypeForPokemon(poke.name);
+    window._adminGetType       = _getTypeForPokemon;
+    var etaDays      = poke.avg_capture_minutes >= 60000 ? '45 dias' : '7 dias';
+    var currentType  = _getTypeForPokemon(poke.name);
     var currentBanner = poke.bannerImage || (currentType ? TYPE_BANNER_MAP[currentType] : '');
-    var typePreviewHtml = currentType && currentBanner
-      ? '<img src="' + currentBanner + '" style="height:26px;vertical-align:middle;border-radius:4px;margin-right:6px">' +
-        '<span style="color:#aef;font-size:.82rem;text-transform:capitalize">' + currentType + '</span>'
+    var previewHtml  = currentType && currentBanner
+      ? '<img src="' + currentBanner + '" style="height:26px;vertical-align:middle;border-radius:4px;margin-right:6px"><span style="color:#aef;font-size:.82rem;text-transform:capitalize">' + currentType + '</span>'
       : '<span style="color:#888;font-size:.82rem">tipo não reconhecido</span>';
 
     var html =
-      '<label class="admin-label">Nome <small style="color:#4a9aff">(alterar nome re-detecta o tipo)</small></label>' +
-      '<input class="admin-field" id="ep-name" value="'+poke.name+'"' +
-      ' oninput="(function(){' +
-        'var n=document.getElementById(\'ep-name\').value.trim();' +
-        'var t=typeof _getTypeForPokemon===\'function\'?_getTypeForPokemon(n):null;' +
-        'var b=t&&window._adminTypeBannerMap?window._adminTypeBannerMap[t]:null;' +
-        'var el=document.getElementById(\'ep-type-preview\');' +
-        'if(!el)return;' +
-        'if(t&&b)el.innerHTML=\'<img src="\'+b+\'" style="height:26px;vertical-align:middle;border-radius:4px;margin-right:6px"><span style="color:#aef;font-size:.82rem;text-transform:capitalize">\'+t+\'</span>\';' +
-        'else if(n)el.innerHTML=\'<span style="color:#888;font-size:.82rem">tipo não reconhecido</span>\';' +
-      '})()">' +
-      '<div id="ep-type-preview" style="min-height:28px;margin:-2px 0 8px;display:flex;align-items:center">' + typePreviewHtml + '</div>' +
+      '<label class="admin-label">Nome <small style="color:#4a9aff">(alterar re-detecta o tipo)</small></label>' +
+      '<input class="admin-field" id="ep-name" value="' + poke.name + '" oninput="window._adminPreviewType(&apos;ep-name&apos;,&apos;ep-type-preview&apos;)">' +
+      '<div id="ep-type-preview" style="min-height:28px;margin:-2px 0 8px;display:flex;align-items:center">' + previewHtml + '</div>' +
       '<div class="admin-row" style="margin-top:0">' +
-        '<div style="flex:1"><label class="admin-label">Preço (R$)</label><input class="admin-field" id="ep-price" type="number" step="0.01" value="'+(poke.price_brl||'')+'">' + '</div>' +
+        '<div style="flex:1"><label class="admin-label">Preço (R$)</label><input class="admin-field" id="ep-price" type="number" step="0.01" value="' + (poke.price_brl || '') + '"></div>' +
         '<div style="flex:1"><label class="admin-label">Tier</label><select class="admin-field" id="ep-tier">' +
           POKE_TIERS.map(function(t){return '<option value="'+t+'"'+(poke.tag===t?' selected':'')+'>'+t+'</option>';}).join('') +
         '</select></div>' +
       '</div>' +
       '<label class="admin-label">Tempo estimado</label>' +
-      '<input class="admin-field" id="ep-eta" value="'+etaDays+'" placeholder="ex: 7 dias">' +
-      '<div style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#aaa;font-size:.82rem"><input type="checkbox" id="ep-dive"'+(poke.dive?' checked':'')+'> É Dive</label></div>';
+      '<input class="admin-field" id="ep-eta" value="' + etaDays + '" placeholder="ex: 7 dias">' +
+      '<div style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#aaa;font-size:.82rem"><input type="checkbox" id="ep-dive"' + (poke.dive ? ' checked' : '') + '> É Dive</label></div>';
 
     openModal('✏️ Editar: ' + poke.name, html, function(close) {
-      var newName  = val('ep-name');
-      var etaText  = val('ep-eta');
-      var etaMin   = etaText.includes('45') ? 64800 : 10080;
-      // Re-detecta banner se nome mudou
+      var newName   = val('ep-name');
+      var etaText   = val('ep-eta');
+      var etaMin    = etaText.includes('45') ? 64800 : 10080;
       var newBanner = _getBannerForPokemon(newName) || poke.bannerImage || null;
       sbFetch('PATCH', 'catalog_pokemons?id=eq.' + poke.id, {
         name:                newName,
@@ -456,6 +433,7 @@
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     });
   }
+
   function openDeletePokemon(poke) {
     openModal('🗑️ Remover Pokémon', '<p style="color:#ffaaaa">Desativar <strong>'+poke.name+'</strong>?</p>', function(close) {
       sbFetch('PATCH', 'catalog_pokemons?id=eq.' + poke.id, { is_active: false })
@@ -587,6 +565,26 @@
       return r;
     };
   });
+
+  // Expõe a função de preview de tipagem globalmente
+  // (chamada via oninput nos formulários de add/edit pokémon)
+  global._adminPreviewType = function(inputId, previewId) {
+    var nameEl    = document.getElementById(inputId);
+    var previewEl = document.getElementById(previewId);
+    if (!nameEl || !previewEl) return;
+    var name   = nameEl.value.trim();
+    var type   = typeof _getTypeForPokemon === 'function' ? _getTypeForPokemon(name) : null;
+    var banner = type && window._adminTypeBannerMap ? window._adminTypeBannerMap[type] : null;
+    if (type && banner) {
+      previewEl.innerHTML =
+        '<img src="' + banner + '" style="height:26px;vertical-align:middle;border-radius:4px;margin-right:6px" onerror="this.style.display=\'none\'">' +
+        '<span style="color:#aef;font-size:.82rem;text-transform:capitalize">' + type + '</span>';
+    } else if (name) {
+      previewEl.innerHTML = '<span style="color:#888;font-size:.82rem">tipo não reconhecido — sem banner</span>';
+    } else {
+      previewEl.innerHTML = '';
+    }
+  };
 
 }(window));
 
