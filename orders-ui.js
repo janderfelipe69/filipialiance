@@ -19,9 +19,10 @@ const OrdersUI = (() => {
     search: '',
     expandedPanels: new Set(),
     expandedHistory: new Set(),
-    // PATCH 5.3: view mode — 'list' mantém comportamento existente; 'kanban' delega ao OrdersKanban
-    // DEFAULT: kanban. Restaura preferência salva; fallback = 'kanban'
-    viewMode: (localStorage.getItem('orders_view_mode') || 'kanban'),
+    // viewMode: 'list' é o padrão seguro para todos.
+    // Kanban é restrito a admins — só restaura preferência salva se o usuário
+    // for admin (verificado em init() após Session.ready()).
+    viewMode: 'list',
   };
 
   // ── Inicialização ──────────────────────────────────────────────────────
@@ -37,21 +38,24 @@ const OrdersUI = (() => {
     _injectStyles();
     _setupTopbar();
 
-    // PATCH 5.4 (v2): kanban é o modo padrão para todos.
-    // Preferência do localStorage já carregada no _state.viewMode acima.
+    // Kanban é EXCLUSIVO para admins. Clientes sempre ficam em 'list'.
     const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
     const kanbanAvailable = typeof OrdersKanban !== 'undefined';
 
-    // Responsividade: em mobile estreito sem preferência salva, fallback para lista
-    const isMobileNarrow = window.innerWidth < 520;
-    const hasSavedPref   = localStorage.getItem('orders_view_mode') !== null;
-    if (isMobileNarrow && !hasSavedPref) {
+    if (isAdmin && kanbanAvailable) {
+      // Admin: restaura preferência salva (padrão = 'list' se nunca salvou)
+      const savedPref = localStorage.getItem('orders_view_mode');
+      if (savedPref === 'kanban') {
+        _state.viewMode = 'kanban';
+      }
+      if (_state.viewMode === 'kanban') {
+        OrdersKanban.init();
+        console.log('[OrdersUI] 🗂 Modo kanban ativado (preferência admin).');
+      }
+    } else {
+      // Cliente ou kanban indisponível: sempre lista, nunca kanban
       _state.viewMode = 'list';
-    }
-
-    if (kanbanAvailable && _state.viewMode === 'kanban') {
-      OrdersKanban.init();
-      console.log('[OrdersUI] \u{1F5C2} Modo kanban ativado (padrão).');
+      try { localStorage.removeItem('orders_view_mode'); } catch (_e) {}
     }
 
     _ensureKanbanContainer();
@@ -60,7 +64,13 @@ const OrdersUI = (() => {
 
     if (typeof Session !== 'undefined') {
       Session.onAuthChange(() => {
-        // Sessão mudou — mantém preferência do usuário (kanban é padrão para todos)
+        // Quando a sessão muda, re-avalia o acesso ao kanban.
+        // Se o usuário não é admin, força lista — kanban é exclusivo para admins.
+        const nowAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+        if (!nowAdmin && _state.viewMode === 'kanban') {
+          _state.viewMode = 'list';
+          try { localStorage.removeItem('orders_view_mode'); } catch (_e) {}
+        }
         render();
       });
     }
@@ -129,18 +139,25 @@ const OrdersUI = (() => {
       return;
     }
 
-    // PATCH 5.3: se modo kanban estiver ativo, delega e retorna
+    // Kanban: exclusivo para admins. Se cliente de alguma forma tiver viewMode='kanban',
+    // força 'list' aqui como última linha de defesa.
     if (_state.viewMode === 'kanban' && typeof OrdersKanban !== 'undefined') {
-      const kanbanEl = document.getElementById('pedidos-kanban');
-      const listaEl  = document.getElementById('pedidos-lista');
-      const loadingEl = document.getElementById('pedidos-loading');
-      const emptyEl  = document.getElementById('pedidos-empty');
-      if (kanbanEl)  kanbanEl.style.display  = '';
-      if (listaEl)   listaEl.style.display   = 'none';
-      if (loadingEl) loadingEl.style.display  = 'none';
-      if (emptyEl)   emptyEl.style.display    = 'none';
-      OrdersKanban.render();
-      return;
+      const _isAdminNow = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+      if (!_isAdminNow) {
+        _state.viewMode = 'list';
+        try { localStorage.removeItem('orders_view_mode'); } catch (_e) {}
+      } else {
+        const kanbanEl = document.getElementById('pedidos-kanban');
+        const listaEl  = document.getElementById('pedidos-lista');
+        const loadingEl = document.getElementById('pedidos-loading');
+        const emptyEl  = document.getElementById('pedidos-empty');
+        if (kanbanEl)  kanbanEl.style.display  = '';
+        if (listaEl)   listaEl.style.display   = 'none';
+        if (loadingEl) loadingEl.style.display  = 'none';
+        if (emptyEl)   emptyEl.style.display    = 'none';
+        OrdersKanban.render();
+        return;
+      }
     }
 
     // ── Modo lista (comportamento original — não alterado) ───────────────
@@ -638,9 +655,10 @@ const OrdersUI = (() => {
   }
 
   // Injeta o botão de alternância kanban/lista na topbar existente.
-  // Só aparece para admins com OrdersKanban disponível e flag ativa.
+  // EXCLUSIVO para admins — clientes nunca vêem este botão.
   function _injectViewToggle() {
-    if (typeof OrdersKanban === 'undefined') return;
+    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+    if (!isAdmin || typeof OrdersKanban === 'undefined') return;
     if (document.getElementById('kb-view-toggle')) return;
 
     const topbarRight = document.querySelector('.pedidos-topbar-right');
@@ -665,10 +683,14 @@ const OrdersUI = (() => {
   }
 
   function _toggleViewMode() {
+    // Guard: apenas admins podem alternar para kanban
+    const isAdmin = typeof OrdersAdmin !== 'undefined' ? OrdersAdmin.isCurrentUserAdmin() : false;
+    if (!isAdmin) return;
+
     _state.viewMode = _state.viewMode === 'kanban' ? 'list' : 'kanban';
 
-    // Persiste preferência no localStorage
-    try { localStorage.setItem('orders_view_mode', _state.viewMode); } catch(e) {}
+    // Persiste preferência no localStorage (só para admins)
+    try { localStorage.setItem('orders_view_mode', _state.viewMode); } catch (e) {}
 
     // Atualiza o botão
     const btn = document.getElementById('kb-view-toggle');
