@@ -9,9 +9,7 @@
 
   var PAYMENT_LABELS = { kk: '💎 KK', real: '💵 REAL', dd: '🟡 DD' };
 
-  // ── Conversões com regras corretas ───────────────────────────
-  // KK: 2 casas decimais, SEM arredondamento (5 KK, 4.12 KK)
-  // DD: SEMPRE inteiro, arredondamento matemático (12 DD, 13 DD)
+  // ── Taxas de conversão (lidas do APP_CONFIG) ──────────────
   function getConfig() {
     var cfg = global.APP_CONFIG || {};
     return {
@@ -20,29 +18,68 @@
     };
   }
 
-  function brlToKk(brl) {
+  // ── Cálculo canônico: BRL → método ───────────────────────
+  // KK: decimal permitido (ex: 38.00)
+  // DD: sempre inteiro via Math.round
+  function calcValue(brl, method) {
     if (!brl || brl <= 0) return 0;
-    var r = getConfig().kkRate;
-    return Number((brl / r).toFixed(2)) * 1; // ex: 5, 4.12, 32
-  }
-
-  function brlToDd(brl) {
-    if (!brl || brl <= 0) return 0;
-    var r = getConfig().ddRate;
-    return Math.round(brl / r); // ex: 12, 10, 13 — sempre inteiro
+    var cfg = getConfig();
+    switch (method) {
+      case 'real': return Number(parseFloat(brl).toFixed(2));
+      case 'kk':   return Number((brl / cfg.kkRate).toFixed(2));
+      case 'dd':   return Math.round(brl / cfg.ddRate);
+      default:     return 0;
+    }
   }
 
   function fmtBrl(n) {
     return 'R$ ' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  function fmtKk(n) { return (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' KK'; }
+  function fmtDd(n) { return Math.round(n || 0) + ' DD'; }
 
-  function fmtKk(n)  { return (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' KK'; }
-  function fmtDd(n)  { return Math.round(n || 0) + ' DD'; }
+  // ── Busca price_brl no catálogo pelo nome do serviço ─────
+  // Ordem de busca: POKEMONS → items → fallback null
+  function _lookupCatalogPrice(entry) {
+    var name = (entry.pokemon_name || entry.service_name || '').trim().toLowerCase();
+    if (!name) return null;
 
-  // ── Auth ─────────────────────────────────────────────────────
-  function getJwt() {
-    if (typeof Session !== 'undefined' && Session.getAccessToken) return Session.getAccessToken();
+    // 1. catalog_pokemons
+    var pokemons = global.POKEMONS || [];
+    for (var i = 0; i < pokemons.length; i++) {
+      if ((pokemons[i].name || '').trim().toLowerCase() === name) {
+        return pokemons[i].price_brl || null;
+      }
+    }
+
+    // 2. catalog_items
+    var items = global.items || [];
+    for (var j = 0; j < items.length; j++) {
+      if ((items[j].name || '').trim().toLowerCase() === name) {
+        return items[j].price_brl || null;
+      }
+    }
+
     return null;
+  }
+
+  // ── Formata data para exibição ────────────────────────────
+  function _fmtDate(iso) {
+    if (!iso) return null;
+    try {
+      var d    = new Date(iso);
+      var dd   = String(d.getDate()).padStart(2, '0');
+      var mm   = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = d.getFullYear();
+      var hh   = String(d.getHours()).padStart(2, '0');
+      var min  = String(d.getMinutes()).padStart(2, '0');
+      return dd + '/' + mm + '/' + yyyy + ' às ' + hh + ':' + min;
+    } catch (_) { return null; }
+  }
+
+  // ── Auth ──────────────────────────────────────────────────
+  function getJwt() {
+    return (typeof Session !== 'undefined' && Session.getAccessToken) ? Session.getAccessToken() : null;
   }
   function isAdmin() {
     return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
@@ -52,7 +89,7 @@
     return Session.ready().then(function() { return getJwt(); });
   }
 
-  // ── Supabase PATCH ───────────────────────────────────────────
+  // ── Supabase PATCH ────────────────────────────────────────
   function sbPatch(id, updates) {
     return getJwtAsync().then(function(jwt) {
       if (!jwt) throw new Error('Sessão expirada');
@@ -72,10 +109,9 @@
     });
   }
 
-  // ── CSS ──────────────────────────────────────────────────────
+  // ── CSS ───────────────────────────────────────────────────
   var css = document.createElement('style');
   css.textContent = [
-    // Seção financeira dentro do card
     '.dg-card-financial{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}',
     '.df-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.03em}',
     '.df-badge-kk{background:rgba(74,154,255,.15);color:#4a9aff;border:1px solid rgba(74,154,255,.3)}',
@@ -86,59 +122,60 @@
     '.df-edit-btn:hover{background:rgba(74,154,255,.15)}',
     // Modal
     '#df-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}',
-    '#df-modal{background:#13162a;border:1px solid #2a2d45;border-radius:14px;padding:24px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;color:#e0e4ff}',
-    '#df-modal h3{margin:0 0 16px;font-size:1.05rem;color:#7eb3ff}',
-    '.df-lbl{font-size:11px;color:#777;margin-top:14px;margin-bottom:4px;display:block}',
+    '#df-modal{background:#13162a;border:1px solid #2a2d45;border-radius:14px;padding:24px;width:100%;max-width:420px;color:#e0e4ff}',
+    '#df-modal h3{margin:0 0 4px;font-size:1.05rem;color:#7eb3ff}',
+    '.df-service-row{font-size:12px;color:#888;margin:0 0 18px}',
+    '.df-service-row strong{color:#c0c8ff}',
+    '.df-price-row{font-size:11px;color:#555;margin-bottom:16px}',
+    // Botões de método — maiores, com valor exibido abaixo
+    '.df-methods{display:flex;gap:8px;margin-bottom:16px}',
+    '.df-meth{flex:1;padding:12px 6px 10px;border-radius:9px;border:2px solid #1e2035;background:#0d0f1e;color:#555;font-size:11px;cursor:pointer;text-align:center;transition:all .15s;line-height:1.3}',
+    '.df-meth:hover{border-color:#333;color:#aaa}',
+    '.df-meth .df-meth-label{font-size:13px;font-weight:700;display:block;margin-bottom:3px}',
+    '.df-meth .df-meth-val{font-size:11px;opacity:.75;display:block}',
+    '.df-meth.sel-real{border-color:#22c55e;background:rgba(34,197,94,.1);color:#22c55e}',
+    '.df-meth.sel-kk{border-color:#4a9aff;background:rgba(74,154,255,.1);color:#4a9aff}',
+    '.df-meth.sel-dd{border-color:#f59e0b;background:rgba(245,158,11,.1);color:#f59e0b}',
+    '.df-lbl{font-size:11px;color:#777;margin-top:12px;margin-bottom:4px;display:block}',
     '.df-inp{width:100%;padding:9px 11px;background:#0d0f1e;border:1px solid #2a2d45;border-radius:7px;color:#e0e4ff;font-size:14px;box-sizing:border-box}',
     '.df-inp:focus{outline:none;border-color:#4a9aff}',
-    '.df-methods{display:flex;gap:8px;margin-top:4px}',
-    '.df-meth{flex:1;padding:9px 4px;border-radius:7px;border:2px solid #1e2035;background:#0d0f1e;color:#666;font-size:12px;cursor:pointer;text-align:center;transition:all .15s}',
-    '.df-meth:hover{border-color:#333;color:#aaa}',
-    '.df-meth.sel-real{border-color:#22c55e;background:rgba(34,197,94,.1);color:#22c55e;font-weight:700}',
-    '.df-meth.sel-kk{border-color:#4a9aff;background:rgba(74,154,255,.1);color:#4a9aff;font-weight:700}',
-    '.df-meth.sel-dd{border-color:#f59e0b;background:rgba(245,158,11,.1);color:#f59e0b;font-weight:700}',
-    '.df-hint{font-size:11px;color:#4a9aff;margin-top:3px;min-height:14px}',
+    '.df-date-info{margin:14px 0 0;font-size:11px;color:#555}',
+    '.df-date-info span{color:#7eb3ff}',
     '.df-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}',
     '.df-btn-cancel{padding:8px 16px;border-radius:7px;border:1px solid #2a2d45;background:transparent;color:#777;cursor:pointer}',
     '.df-btn-save{padding:8px 20px;border-radius:7px;border:none;background:#4a9aff;color:#fff;font-weight:700;cursor:pointer}',
     '.df-btn-save:hover{background:#3a8aef}',
+    '.df-btn-save:disabled{opacity:.45;cursor:default}',
     '.df-btn-remove{padding:8px 14px;border-radius:7px;border:1px solid rgba(255,80,80,.3);background:rgba(255,80,80,.06);color:#ff9090;cursor:pointer;margin-right:auto}',
+    '.df-no-price{font-size:12px;color:#f59e0b;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:10px 12px;margin-bottom:14px}',
   ].join('\n');
   document.head.appendChild(css);
 
-  // ── Badge HTML (usado dentro do card) ────────────────────────
+  // ── Badge HTML no card ────────────────────────────────────
   function buildBadgeHtml(entry) {
     var m = entry.payment_method;
     if (!m) return '<span class="df-badge df-badge-none">sem pagamento</span>';
-    var val = m === 'kk'   ? fmtKk(entry.payment_value_kk)
-            : m === 'dd'   ? fmtDd(entry.payment_value_dd)
+    var val = m === 'kk'  ? fmtKk(entry.payment_value_kk)
+            : m === 'dd'  ? fmtDd(entry.payment_value_dd)
             : fmtBrl(entry.payment_value);
     return '<span class="df-badge df-badge-' + m + '">' + PAYMENT_LABELS[m] + ' · ' + val + '</span>';
   }
 
-  // ── Seção financeira injetada no _buildCard ──────────────────
-  // Chamada diretamente do template do delivery-system.js
   function buildCardSection(entry, adminFlag) {
-    var badge = buildBadgeHtml(entry);
+    var badge   = buildBadgeHtml(entry);
     var editBtn = (adminFlag || isAdmin())
       ? '<button class="df-edit-btn" onclick="event.stopPropagation();DeliveryFinancial.openEditModal(\'' + entry.id + '\')">✏️ Editar pagamento</button>'
       : '';
     return badge + editBtn;
   }
 
-  // ── Atualiza seção financeira de um card já renderizado ──────
   function refreshCardSection(entryId) {
     var entry = _findEntry(entryId);
     if (!entry) return;
-    // Tenta pelo data-delivery-id
     var card = document.querySelector('[data-delivery-id="' + entryId + '"]');
     if (!card) {
-      // Fallback: id do container
-      card = document.getElementById('dg-fin-' + entryId);
-      if (card) {
-        card.innerHTML = buildCardSection(entry, isAdmin());
-        return;
-      }
+      var el = document.getElementById('dg-fin-' + entryId);
+      if (el) el.innerHTML = buildCardSection(entry, isAdmin());
       return;
     }
     var fin = card.querySelector('.dg-card-financial') || document.getElementById('dg-fin-' + entryId);
@@ -151,106 +188,79 @@
       : null;
   }
 
-  // ── Modal compartilhado ──────────────────────────────────────
+  // ── Modal ─────────────────────────────────────────────────
   function closeModal() {
     var el = document.getElementById('df-overlay');
     if (el) el.remove();
   }
 
-  // Abre o modal genérico de pagamento/edição
-  // entry: { id, service_name, pokemon_name, price_brl, payment_method, payment_value_kk, payment_value_dd, payment_value, obs_financeiro, delivered_at }
-  // onSave(updates): callback com o objeto de updates para o Supabase
-  // ── Cálculo canônico de valor por método ────────────────────
-  // 1 KK = R$ 1,70 | 1 DD = R$ 0,70 | DD sempre inteiro | KK decimal
-  function calculatePaymentValue(brl, method) {
-    if (!brl || brl <= 0) return 0;
-    var cfg = getConfig();
-    switch (method) {
-      case 'real': return Number(parseFloat(brl).toFixed(2));
-      case 'kk':   return Number((brl / cfg.kkRate).toFixed(2));
-      case 'dd':   return Math.round(brl / cfg.ddRate);
-      default:     return 0;
-    }
-  }
-
-  // ── Formata data para exibição legível ───────────────────────
-  function _fmtDeliveredAt(iso) {
-    if (!iso) return null;
-    try {
-      var d = new Date(iso);
-      var dd   = String(d.getDate()).padStart(2, '0');
-      var mm   = String(d.getMonth() + 1).padStart(2, '0');
-      var yyyy = d.getFullYear();
-      var hh   = String(d.getHours()).padStart(2, '0');
-      var min  = String(d.getMinutes()).padStart(2, '0');
-      return dd + '/' + mm + '/' + yyyy + ' às ' + hh + ':' + min;
-    } catch (_) { return null; }
-  }
-
+  // Abre o modal de pagamento.
+  // entry: { id, service_name, pokemon_name, price_brl, payment_method,
+  //          payment_value, payment_value_kk, payment_value_dd,
+  //          obs_financeiro, delivered_at, created_at }
   function openModal(entry, title, onSave) {
     closeModal();
 
-    var currentMethod = entry.payment_method || '';
-    var priceBrl = entry.price_brl ? parseFloat(entry.price_brl) : null;
+    // 1. Busca o preço: primeiro no entry (já salvo), depois no catálogo
+    var priceBrl = entry.price_brl
+      ? parseFloat(entry.price_brl)
+      : _lookupCatalogPrice(entry);
 
-    // Calcula sugestões com a função canônica
-    var suggested = priceBrl ? {
-      real: calculatePaymentValue(priceBrl, 'real'),
-      kk:   calculatePaymentValue(priceBrl, 'kk'),
-      dd:   calculatePaymentValue(priceBrl, 'dd'),
+    // 2. Calcula os 3 valores fixos do catálogo
+    var prices = priceBrl ? {
+      real: calcValue(priceBrl, 'real'),
+      kk:   calcValue(priceBrl, 'kk'),
+      dd:   calcValue(priceBrl, 'dd'),
     } : null;
 
-    // Valor inicial no input:
-    // — Se já tem método+valor salvo → usa o valor salvo
-    // — Se não tem método mas tem price_brl → pré-seleciona REAL e preenche
-    var defaultMethod = currentMethod;
-    var initVal;
-    if (currentMethod === 'kk')        initVal = entry.payment_value_kk || '';
-    else if (currentMethod === 'dd')   initVal = entry.payment_value_dd || '';
-    else if (currentMethod === 'real') initVal = entry.payment_value    || '';
-    else if (suggested) {
-      defaultMethod = 'real';
-      initVal = suggested.real;
-    } else {
-      initVal = '';
-    }
+    // 3. Método já registrado (edição) ou nenhum (novo)
+    var currentMethod = entry.payment_method || '';
 
-    // Data de entrega — apenas exibição, não editável
-    var deliveredAt = entry.delivered_at || entry.created_at || null;
-    var deliveredLabel = _fmtDeliveredAt(deliveredAt);
+    // 4. Data da entrega — só exibição
+    var dateLabel = _fmtDate(entry.delivered_at || entry.created_at || null);
 
     var serviceLabel = entry.service_name || entry.pokemon_name || '—';
+
+    // ── Monta HTML dos botões de método ──────────────────────
+    function _methBtn(m, icon, label) {
+      var val  = prices ? (m === 'real' ? fmtBrl(prices.real) : m === 'kk' ? fmtKk(prices.kk) : fmtDd(prices.dd)) : '—';
+      var sel  = currentMethod === m ? ' sel-' + m : '';
+      return '<button class="df-meth' + sel + '" data-m="' + m + '" onclick="DeliveryFinancial._pick(this)">' +
+        '<span class="df-meth-label">' + icon + ' ' + label + '</span>' +
+        '<span class="df-meth-val">' + val + '</span>' +
+        '</button>';
+    }
 
     var html =
       '<div id="df-modal">' +
         '<h3>' + title + '</h3>' +
-        (serviceLabel !== '—'
-          ? '<p style="color:#888;font-size:12px;margin:0 0 12px">Serviço: <strong style="color:#c0c8ff">' + serviceLabel + '</strong>' +
-            (priceBrl ? ' · <span style="color:#4a9aff">' + fmtBrl(priceBrl) + '</span>' : '') + '</p>'
+        '<p class="df-service-row">Serviço: <strong>' + serviceLabel + '</strong>' +
+          (priceBrl ? ' &nbsp;·&nbsp; <span style="color:#4a9aff">' + fmtBrl(priceBrl) + '</span>' : '') +
+        '</p>' +
+        (!prices
+          ? '<div class="df-no-price">⚠️ Preço não encontrado no catálogo. Selecione o método e informe o valor manualmente.</div>'
           : '') +
-        '<label class="df-lbl">Forma de pagamento</label>' +
         '<div class="df-methods">' +
-          '<button class="df-meth' + (defaultMethod === 'real' ? ' sel-real' : '') + '" data-m="real" onclick="DeliveryFinancial._pick(this)">💵 REAL</button>' +
-          '<button class="df-meth' + (defaultMethod === 'kk'   ? ' sel-kk'   : '') + '" data-m="kk"   onclick="DeliveryFinancial._pick(this)">💎 KK</button>' +
-          '<button class="df-meth' + (defaultMethod === 'dd'   ? ' sel-dd'   : '') + '" data-m="dd"   onclick="DeliveryFinancial._pick(this)">🟡 DD</button>' +
+          _methBtn('real', '💵', 'REAL') +
+          _methBtn('kk',   '💎', 'KK') +
+          _methBtn('dd',   '🟡', 'DD') +
         '</div>' +
-        '<label class="df-lbl">Valor recebido</label>' +
-        '<input class="df-inp" id="df-val" type="number" step="0.01" min="0" value="' + initVal + '" placeholder="0">' +
-        '<div class="df-hint" id="df-hint">' + (suggested && defaultMethod ? _hintText(defaultMethod, suggested) : '') + '</div>' +
+        // Mostra input de valor apenas quando o preço não está no catálogo
+        (!prices
+          ? '<label class="df-lbl">Valor recebido</label><input class="df-inp" id="df-val" type="number" step="0.01" min="0" value="" placeholder="0">'
+          : '<input type="hidden" id="df-val" value="">') +
         '<label class="df-lbl">Observação (opcional)</label>' +
         '<input class="df-inp" id="df-obs" value="' + (entry.obs_financeiro || '') + '" placeholder="ex: pago via pix">' +
-        (deliveredLabel
-          ? '<p style="margin:14px 0 0;font-size:11px;color:#555;">📅 Entregue em <span style="color:#7eb3ff">' + deliveredLabel + '</span></p>'
-          : '') +
+        (dateLabel ? '<p class="df-date-info">📅 Entregue em <span>' + dateLabel + '</span></p>' : '') +
         '<div class="df-footer">' +
           (entry.payment_method ? '<button class="df-btn-remove" id="df-btn-remove">🗑 Remover</button>' : '') +
           '<button class="df-btn-cancel" id="df-btn-cancel">Cancelar</button>' +
-          '<button class="df-btn-save"   id="df-btn-save">Salvar</button>' +
+          '<button class="df-btn-save" id="df-btn-save"' + (!currentMethod ? ' disabled' : '') + '>Salvar</button>' +
         '</div>' +
       '</div>';
 
     var overlay = document.createElement('div');
-    overlay.id = 'df-overlay';
+    overlay.id  = 'df-overlay';
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
@@ -262,35 +272,45 @@
         sbPatch(entry.id, { payment_method: null, payment_value: null, payment_value_kk: null, payment_value_dd: null, obs_financeiro: null })
           .then(function() {
             var e2 = _findEntry(entry.id);
-            if (e2) {
-              e2.payment_method = null; e2.payment_value = null;
-              e2.payment_value_kk = null; e2.payment_value_dd = null;
-            }
+            if (e2) { e2.payment_method = null; e2.payment_value = null; e2.payment_value_kk = null; e2.payment_value_dd = null; }
             closeModal();
             refreshCardSection(entry.id);
             _toast('Pagamento removido.', false);
-          }).catch(function(e) { _toast('Erro: ' + e.message, false); });
+          }).catch(function(err) { _toast('Erro: ' + err.message, false); });
       };
     }
 
-    // Guarda estado para uso no _pick
-    global._df_suggested    = suggested;
-    global._df_currentMethod = defaultMethod;
-    global._df_priceBrl     = priceBrl;
+    // Guarda estado para _pick
+    global._df_prices      = prices;
+    global._df_priceBrl    = priceBrl;
+    global._df_currentMethod = currentMethod;
 
     document.getElementById('df-btn-save').onclick = function() {
       var m   = global._df_currentMethod;
-      var val = parseFloat(document.getElementById('df-val').value);
       var obs = document.getElementById('df-obs').value.trim() || null;
 
-      if (!m)               { _toast('Selecione a forma de pagamento', false); return; }
-      if (!val || val <= 0) { _toast('Informe o valor recebido', false); return; }
+      if (!m) { _toast('Selecione a forma de pagamento', false); return; }
+
+      // Valor: do catálogo (fixo) ou do input manual
+      var pBrl = global._df_priceBrl;
+      var realVal, kkVal, ddVal;
+      if (pBrl) {
+        realVal = calcValue(pBrl, 'real');
+        kkVal   = calcValue(pBrl, 'kk');
+        ddVal   = calcValue(pBrl, 'dd');
+      } else {
+        var manualVal = parseFloat(document.getElementById('df-val').value) || 0;
+        if (!manualVal) { _toast('Informe o valor recebido', false); return; }
+        realVal = m === 'real' ? Number(manualVal.toFixed(2)) : null;
+        kkVal   = m === 'kk'  ? Number(manualVal.toFixed(2)) : null;
+        ddVal   = m === 'dd'  ? Math.round(manualVal)        : null;
+      }
 
       var updates = {
         payment_method:   m,
-        payment_value:    m === 'real' ? Number(val.toFixed(2)) : null,
-        payment_value_kk: m === 'kk'   ? Number(val.toFixed(2)) : null,
-        payment_value_dd: m === 'dd'   ? Math.round(val)        : null,
+        payment_value:    m === 'real' ? realVal : null,
+        payment_value_kk: m === 'kk'  ? kkVal   : null,
+        payment_value_dd: m === 'dd'  ? ddVal   : null,
         obs_financeiro:   obs,
       };
 
@@ -298,85 +318,72 @@
     };
   }
 
-  function _hintText(method, suggested) {
-    if (!suggested) return '';
-    if (method === 'real') return 'Sugerido: ' + fmtBrl(suggested.real);
-    if (method === 'kk')   return 'Sugerido: ' + fmtKk(suggested.kk);
-    if (method === 'dd')   return 'Sugerido: ' + fmtDd(suggested.dd);
-    return '';
-  }
-
-  // Chamado pelos botões de método no modal
+  // Chamado ao clicar num botão de método
   global.DeliveryFinancial = global.DeliveryFinancial || {};
   global.DeliveryFinancial._pick = function(btn) {
     var m = btn.dataset.m;
     global._df_currentMethod = m;
 
-    // Visual
-    document.querySelectorAll('.df-meth').forEach(function(b) {
-      b.className = 'df-meth';
-    });
+    document.querySelectorAll('.df-meth').forEach(function(b) { b.className = 'df-meth'; });
     btn.classList.add('sel-' + m);
 
-    // Preenche valor sugerido
-    var suggested = global._df_suggested;
-    var priceBrl  = global._df_priceBrl;
-    var inp  = document.getElementById('df-val');
-    var hint = document.getElementById('df-hint');
+    // Habilita o botão Salvar
+    var saveBtn = document.getElementById('df-btn-save');
+    if (saveBtn) saveBtn.disabled = false;
 
-    if (suggested) {
-      hint.textContent = _hintText(m, suggested);
-      // Sempre recalcula o valor com base no price_brl ao trocar de método
+    // Se não há catálogo, preenche o input manual com a conversão do valor digitado
+    var prices = global._df_prices;
+    var priceBrl = global._df_priceBrl;
+    var inp = document.getElementById('df-val');
+
+    if (inp && inp.type === 'number') {
+      // Input manual visível: preenche com conversão do que já foi digitado
+      var cur = parseFloat(inp.value) || 0;
       if (priceBrl) {
-        inp.value = calculatePaymentValue(priceBrl, m);
-      } else if (!inp.value || parseFloat(inp.value) === 0) {
-        inp.value = m === 'dd' ? Math.round(suggested[m]) : Number(suggested[m].toFixed(2));
+        inp.value = calcValue(priceBrl, m);
       }
     }
   };
 
-  // ── Modal ao finalizar entrega (chamado pelo delivery-system) ─
+  // ── Modal ao finalizar entrega ────────────────────────────
   function openPaymentModal(entry, onConfirm) {
     openModal(entry, '💳 Registrar Pagamento', function(updates) {
       closeModal();
       onConfirm({
-        method: updates.payment_method,
-        value:  updates.payment_value || updates.payment_value_kk || updates.payment_value_dd,
-        obs:    updates.obs_financeiro,
-        _updates: updates, // objeto completo para savePaymentOnDelivery
+        method:   updates.payment_method,
+        value:    updates.payment_value || updates.payment_value_kk || updates.payment_value_dd,
+        obs:      updates.obs_financeiro,
+        _updates: updates,
       });
     });
   }
 
-  // ── Modal de edição de entrega existente ─────────────────────
+  // ── Modal de edição de entrega existente ──────────────────
   function openEditModal(deliveryId) {
     var entry = _findEntry(deliveryId);
-    if (!entry) {
-      _toast('Entrega não encontrada na lista', false);
-      return;
-    }
+    if (!entry) { _toast('Entrega não encontrada na lista', false); return; }
 
-    // Se já tem price_brl, abre direto
-    if (entry.price_brl) {
+    // Tenta resolver price_brl: catálogo primeiro, pedido original como fallback
+    var catalogPrice = _lookupCatalogPrice(entry);
+    if (catalogPrice) {
+      entry.price_brl = catalogPrice;
       openModal(entry, '✏️ Editar Entrega', _editSave(deliveryId, entry));
       return;
     }
 
-    // Tenta buscar price do pedido original via order_id
+    // Fallback: busca total_brl do pedido original no banco
     var orderId = entry.order_id || entry.pedido_id;
     if (orderId && SB_URL && SB_KEY) {
       getJwtAsync().then(function(jwt) {
         var headers = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
         if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
         return fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + orderId +
-          '&select=total_brl,subtotal_brl,pagamento_brl,price_brl&limit=1', { headers: headers });
+          '&select=total_brl,subtotal_brl,pagamento_brl&limit=1', { headers: headers });
       }).then(function(r) { return r.ok ? r.json() : []; })
         .then(function(rows) {
           var row = rows && rows[0];
           if (row) {
-            entry.price_brl = parseFloat(
-              row.price_brl || row.total_brl || row.subtotal_brl || row.pagamento_brl || 0
-            ) || null;
+            entry.price_brl = parseFloat(row.total_brl || row.subtotal_brl || row.pagamento_brl || 0) || null;
           }
           openModal(entry, '✏️ Editar Entrega', _editSave(deliveryId, entry));
         })
@@ -401,7 +408,7 @@
     };
   }
 
-  // ── Salva pagamento ao finalizar entrega ─────────────────────
+  // ── Salva pagamento ao finalizar entrega ──────────────────
   function savePaymentOnDelivery(deliveryId, paymentData) {
     var updates = paymentData._updates || {
       payment_method:   paymentData.method,
@@ -412,15 +419,13 @@
       delivered_at:     new Date().toISOString(),
     };
     return sbPatch(deliveryId, updates).then(function() {
-      // Atualiza entry local se estiver na galeria
       var entry = _findEntry(deliveryId);
       if (entry) Object.assign(entry, updates);
       refreshCardSection(deliveryId);
     });
   }
 
-  // ── Injeta seção financeira nos cards já renderizados ────────
-  // Para cards renderizados antes deste módulo carregar
+  // ── Injeta seção financeira nos cards existentes ──────────
   function injectIntoExistingCards() {
     if (!global.DeliveryGallery || !global.DeliveryGallery._data) return;
     global.DeliveryGallery._data.forEach(function(entry) {
@@ -429,7 +434,6 @@
         finEl.innerHTML = buildCardSection(entry, isAdmin());
         finEl.dataset.dfInjected = '1';
       }
-      // Fallback: card sem o container (versão antiga sem o patch)
       var card = document.querySelector('[data-delivery-id="' + entry.id + '"]');
       if (card) {
         var existing = card.querySelector('.dg-card-financial');
@@ -439,33 +443,26 @@
           fin.id = 'dg-fin-' + entry.id;
           fin.innerHTML = buildCardSection(entry, isAdmin());
           var body = card.querySelector('.dg-card-body');
-          if (body) body.appendChild(fin);
-          else card.appendChild(fin);
+          if (body) body.appendChild(fin); else card.appendChild(fin);
         }
       }
     });
   }
 
-  // ── Hook no DeliveryGallery.refresh ─────────────────────────
   function _hookGallery() {
     if (!global.DeliveryGallery || global.DeliveryGallery._dfHooked) return;
     global.DeliveryGallery._dfHooked = true;
     var orig = global.DeliveryGallery.refresh.bind(global.DeliveryGallery);
     global.DeliveryGallery.refresh = function() {
-      return orig().then(function() {
-        setTimeout(injectIntoExistingCards, 150);
-      });
+      return orig().then(function() { setTimeout(injectIntoExistingCards, 150); });
     };
   }
 
   document.addEventListener('db:ready', function() {
-    setTimeout(function() {
-      _hookGallery();
-      injectIntoExistingCards();
-    }, 500);
+    setTimeout(function() { _hookGallery(); injectIntoExistingCards(); }, 500);
   });
 
-  // ── Toast ────────────────────────────────────────────────────
+  // ── Toast ─────────────────────────────────────────────────
   function _toast(msg, ok) {
     var t = document.createElement('div');
     t.textContent = msg;
@@ -476,16 +473,14 @@
     setTimeout(function() { t.remove(); }, 3000);
   }
 
-  // ── API pública ───────────────────────────────────────────────
+  // ── API pública ───────────────────────────────────────────
   Object.assign(global.DeliveryFinancial, {
-    buildCardSection:      buildCardSection,
-    openPaymentModal:      openPaymentModal,
-    openEditModal:         openEditModal,
-    savePaymentOnDelivery: savePaymentOnDelivery,
+    buildCardSection:        buildCardSection,
+    openPaymentModal:        openPaymentModal,
+    openEditModal:           openEditModal,
+    savePaymentOnDelivery:   savePaymentOnDelivery,
     injectIntoExistingCards: injectIntoExistingCards,
-    brlToKk:               brlToKk,
-    brlToDd:               brlToDd,
-    calculatePaymentValue: calculatePaymentValue,
+    calcValue:               calcValue,
   });
 
   console.log('[DeliveryFinancial] ✅ carregado');
