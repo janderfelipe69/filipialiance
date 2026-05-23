@@ -15,7 +15,20 @@
   }
 
   function getJwt() {
-    return typeof Session !== 'undefined' ? Session.getAccessToken() : null;
+    // Session.js guarda em _accessToken (variável privada)
+    // mas expõe via Session.getAccessToken() — chama no momento do fetch
+    try {
+      if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
+        var t = Session.getAccessToken();
+        if (t) return t;
+      }
+    } catch(e) {}
+    // Fallback: localStorage key definida em session.js: 'pa_sb_access_token'
+    try {
+      var stored = localStorage.getItem('pa_sb_access_token');
+      if (stored) return stored;
+    } catch(e) {}
+    return null;
   }
 
   function sbHeaders() {
