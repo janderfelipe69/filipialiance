@@ -852,9 +852,14 @@
 
       // Calcula preço BRL usando taxa global (se disponível)
       var diveMultiplier = poke.dive ? 1.30 : 1.0;
+      // price está em KK raw (ex: 38000000 = 38kk)
+      // A mesma fórmula usada em formatKK() e confirmCaptura():  raw / 1000000 * KK_TO_BRL
+      var diveMultiplier = poke.dive ? 1.30 : 1.0;
       var priceKK  = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
-      var rateKK   = window.RATE_KK_BRL || window._rateKkBrl || 0;
-      var priceBRL = rateKK ? Math.round(priceKK * rateKK * 100) / 100 : 0;
+      var kkRate   = (typeof KK_TO_BRL !== 'undefined' && KK_TO_BRL)
+        ? KK_TO_BRL
+        : ((window.APP_CONFIG && window.APP_CONFIG.kk_to_brl) ? window.APP_CONFIG.kk_to_brl : 1.70);
+      var priceBRL = priceKK > 0 ? Math.round(priceKK / 1000000 * kkRate * 100) / 100 : 0;
 
       var pokemonData = {
         id:             poke.id   || null,

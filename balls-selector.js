@@ -69,9 +69,21 @@ var BallsSelector = (function () {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
   function _fmtKK(v) {
-    if (!v && v !== 0) return '—';
-    if (v >= 1000) return (v / 1000).toFixed(1) + 'M KK';
-    return v.toFixed(2) + ' KK';
+    if (!v || v <= 0) return '—';
+    // price_kk vem em valor raw igual ao app.js (ex: 38000000 = 38kk)
+    if (v >= 1000000000) {
+      var n = v / 1000000000;
+      return (n % 1 === 0 ? n.toFixed(0) : parseFloat(n.toFixed(2))) + 'kkk';
+    }
+    if (v >= 1000000) {
+      var n = v / 1000000;
+      return (n % 1 === 0 ? n.toFixed(0) : parseFloat(n.toFixed(2))) + 'kk';
+    }
+    if (v >= 1000) {
+      var n = v / 1000;
+      return (n % 1 === 0 ? n.toFixed(0) : parseFloat(n.toFixed(2))) + 'k';
+    }
+    return v.toString();
   }
   function _fmtDays(d) {
     if (!d) return '—';
