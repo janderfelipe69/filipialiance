@@ -734,6 +734,16 @@
   text-align: center;
 }
 
+/* preço em DD */
+.pkg-buy-price-dd {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: #c084fc;
+  opacity: 0.75;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
 .pkg-buy-price-na {
   font-family: var(--font-mono, monospace);
   font-size: 10px;

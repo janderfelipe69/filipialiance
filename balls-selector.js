@@ -166,6 +166,7 @@ var BallsSelector = (function () {
       + savingsBadge
       + '</div>'
       + '<div style="font-size:11.5px;color:rgba(255,255,255,0.32);margin-top:2px;font-family:var(--font-mono,monospace);">' + _fmtKK(calc.price_kk) + '</div>'
+      + (calc.price_dd > 0 ? '<div style="font-size:10px;color:#c084fc;opacity:0.75;margin-top:1px;font-family:var(--font-mono,monospace);">' + _fmtDD(calc.price_dd) + '</div>' : '')
       + '</div>'
 
       // Prazo
@@ -215,7 +216,7 @@ var BallsSelector = (function () {
     var daysEl  = document.getElementById('balls-sum-days');
 
     if (ballEl)  { ballEl.textContent = cfg.label; ballEl.style.color = cfg.color; }
-    if (priceEl) { priceEl.textContent = _fmtBRL(calc.price_brl) + ' / ' + _fmtKK(calc.price_kk); }
+    if (priceEl) { priceEl.textContent = _fmtBRL(calc.price_brl) + ' / ' + _fmtKK(calc.price_kk) + (calc.price_dd > 0 ? ' / ' + _fmtDD(calc.price_dd) : ''); }
     if (daysEl)  { daysEl.textContent = _fmtDays(calc.days); }
   }
 

@@ -142,6 +142,7 @@ function buildHeroHeaderHTML(pkg, pi) {
     buyPanelHTML += '<div class="pkg-buy-price-block">'
       + '<div class="pkg-buy-price-kk">' + totalData.label + '</div>'
       + '<div class="pkg-buy-price-brl">' + totalData.brl + '</div>'
+      + (totalRaw > 0 ? '<div class="pkg-buy-price-dd">' + Math.round(totalRaw / 1000000 * (typeof KK_TO_BRL !== 'undefined' ? KK_TO_BRL : 1.70) / ((window.APP_CONFIG && window.APP_CONFIG.dd_to_brl) || 0.70)).toLocaleString('pt-BR') + ' DD</div>' : '')
       + '</div>';
   } else {
     buyPanelHTML += '<div class="pkg-buy-price-block">'
