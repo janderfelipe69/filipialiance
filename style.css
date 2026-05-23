@@ -680,6 +680,7 @@ header::after {
 }
 .pay-mode-btn.active.kk  { color: var(--blue-bright); }
 .pay-mode-btn.active.brl { color: #4ade80; }
+.pay-mode-btn.active.dd  { color: #c084fc; }
 .pay-mode-btn.active.mix { color: var(--gold); }
 
 .pay-block { display: none; }
@@ -716,6 +717,21 @@ header::after {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--muted);
+}
+
+.pay-dd-total {
+  font-family: var(--font-title, monospace);
+  font-size: 26px;
+  font-weight: 900;
+  color: #c084fc;
+  letter-spacing: 1px;
+}
+
+.pay-dd-brl-hint {
+  font-family: var(--font-body, sans-serif);
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
 }
 
 /* MIX block */
