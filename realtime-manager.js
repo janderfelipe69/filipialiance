@@ -72,10 +72,25 @@
     }
   }
 
+  // Campos financeiros que NUNCA devem aparecer no payload de clientes.
+  var _FINANCIAL_FIELDS = ['payment_method','payment_value','payment_value_kk','payment_value_dd','obs_financeiro','price_brl'];
+
+  function _sanitizeRealtimeRecord(customEventName, record) {
+    // Aplica apenas para eventos de delivery_proofs
+    if (!record || customEventName !== 'delivery:changed') return record;
+    var isAdminUser = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+    if (isAdminUser) return record; // admin recebe payload completo
+    // Cliente: remove todos os campos financeiros do payload realtime
+    var safe = Object.assign({}, record);
+    _FINANCIAL_FIELDS.forEach(function(f) { delete safe[f]; });
+    return safe;
+  }
+
   function _emit(customEventName, eventType, record) {
     try {
+      var safeRecord = _sanitizeRealtimeRecord(customEventName, record);
       global.dispatchEvent(new CustomEvent(customEventName, {
-        detail: { event: eventType, record: record, table: customEventName.split(':')[0] },
+        detail: { event: eventType, record: safeRecord, table: customEventName.split(':')[0] },
         bubbles: false,
       }));
     } catch (e) {

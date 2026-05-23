@@ -190,16 +190,23 @@
 
       // [SchemaAudit] Usa introspecção assíncrona do schema real via SchemaCompat.resolveSelect().
       // Se SchemaCompat não estiver disponível, usa apenas colunas garantidamente básicas.
-      // NUNCA inclui no fallback hardcoded colunas que podem não existir no banco.
+      // SEGURANÇA: SELECT diferenciado por role.
+      // Admin -> inclui colunas financeiras (payment_*, price_brl, obs_financeiro).
+      // Cliente -> apenas colunas base. Dados financeiros NUNCA chegam ao cliente.
+      const _userIsAdmin = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
       let _selectCols;
-      if (typeof SchemaCompat !== 'undefined' && typeof SchemaCompat.resolveSelect === 'function') {
-        _selectCols = await SchemaCompat.resolveSelect();
-      } else {
-        // Fallback ultra-conservador: apenas colunas core.
-        // NÃO inclui: quantity, player_name, order_created_at, delivered_at
+      if (typeof SchemaCompat !== 'undefined') {
+        if (_userIsAdmin && typeof SchemaCompat.resolveSelectAdmin === 'function') {
+          _selectCols = await SchemaCompat.resolveSelectAdmin();
+        } else if (typeof SchemaCompat.resolveSelect === 'function') {
+          _selectCols = await SchemaCompat.resolveSelect();
+        }
+      }
+      if (!_selectCols) {
+        // Fallback ultra-conservador: apenas colunas core SEM financeiras.
         _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,cliente_nick,delivered_by,created_at,descricao';
       }
-      console.log('[Entrega] GET delivery_proofs select:', _selectCols);
+      console.log('[Entrega] GET delivery_proofs select (admin=' + _userIsAdmin + '):', _selectCols);
 
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=${_selectCols}` +
@@ -779,7 +786,16 @@
       try {
         const data = await DeliveryDB.list(200);
         // Normaliza cada registro: resolve variantes de nomes de coluna e formato de prints
-        DeliveryGallery._data   = (data || []).map(e => DeliveryGallery._normalizeEntry(e));
+        // SEGURANÇA: sanitiza campos financeiros para clientes antes de armazenar em memória.
+        // Mesmo que o backend envie esses campos por erro, eles são removidos aqui no cliente.
+        const _isAdminSession = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+        const _FINANCIAL_FIELDS = ['payment_method','payment_value','payment_value_kk','payment_value_dd','obs_financeiro','price_brl'];
+        const _sanitizeForClient = function(entry) {
+          if (_isAdminSession) return entry; // admin vê tudo
+          _FINANCIAL_FIELDS.forEach(function(f) { delete entry[f]; });
+          return entry;
+        };
+        DeliveryGallery._data   = (data || []).map(e => _sanitizeForClient(DeliveryGallery._normalizeEntry(e)));
         DeliveryGallery._loaded = true;
         DeliveryGallery._render();
       } catch (err) {
@@ -1041,9 +1057,9 @@
             ENTREGUE
           </div>
 
-          <div class="dg-card-financial" id="dg-fin-${entry.id}">
-            ${typeof DeliveryFinancial !== 'undefined' ? DeliveryFinancial.buildCardSection(entry, isAdmin) : ''}
-          </div>
+          ${isAdmin ? `<div class="dg-card-financial" id="dg-fin-${entry.id}">
+            ${typeof DeliveryFinancial !== 'undefined' ? DeliveryFinancial.buildCardSection(entry, true) : ''}
+          </div>` : ''}
         </div>
       `;
 

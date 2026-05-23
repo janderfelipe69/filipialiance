@@ -314,6 +314,7 @@
   // Define INTENÇÃO — não garantia de existência.
   // CORE: esperadas em qualquer versão da tabela.
   // OPTIONAL: adicionadas posteriormente — podem não existir em instâncias antigas.
+  // Colunas base — enviadas a QUALQUER usuario autenticado (sem dados financeiros).
   const DESIRED_COLUMNS = [
     // CORE — sempre presentes
     'id',
@@ -331,7 +332,15 @@
     'player_name',
     'delivered_at',
     'order_created_at',
-    // Financeiro — adicionadas para suporte ao DeliveryFinancial
+    // FINANCEIRO REMOVIDO DESTA LISTA:
+    // payment_method, payment_value, payment_value_kk, payment_value_dd,
+    // obs_financeiro, price_brl
+    // Esses campos sao buscados SOMENTE por resolveSelectAdmin() (admin only).
+  ];
+
+  // Colunas financeiras — EXCLUSIVAS para admins.
+  // NUNCA incluir em queries de clientes.
+  const FINANCIAL_COLUMNS = [
     'payment_method',
     'payment_value',
     'payment_value_kk',
@@ -477,9 +486,28 @@
     return fallback;
   }
 
-  /** Versão assíncrona preferível — aguarda introspecção completa. */
+  /** Versão assíncrona preferível — aguarda introspecção completa.
+   *  Retorna colunas BASE (sem dados financeiros) para qualquer usuario. */
   async function resolveSelect() {
     return _resolveSelectColumns();
+  }
+
+  /**
+   * resolveSelectAdmin — SELECT com colunas financeiras.
+   * EXCLUSIVO para chamadas feitas em contexto admin.
+   * NUNCA chamar para usuarios clientes.
+   *
+   * @returns {Promise<string>} string de colunas para o SELECT do Supabase
+   */
+  async function resolveSelectAdmin() {
+    const base = await _resolveSelectColumns();
+    // Adiciona financeiras que existam no banco
+    const baseCols = base.split(',');
+    const extra = FINANCIAL_COLUMNS.filter(function(c) {
+      return !baseCols.includes(c);
+    });
+    if (!extra.length) return base;
+    return base + ',' + extra.join(',');
   }
 
   /**
@@ -828,7 +856,9 @@
     normalizeDeliveryProof,
     sanitizeDeliveryPayload,
     buildDeliveryProofsSelect,
-    resolveSelect,           // async — preferível a buildDeliveryProofsSelect()
+    resolveSelect,           // async — para clientes (sem campos financeiros)
+    resolveSelectAdmin,      // async — admin only (inclui payment_method, payment_value, etc.)
+    FINANCIAL_COLUMNS,       // lista de colunas financeiras (referência)
     _resetCache,             // invalida cache após erro de schema
     safe,
     renderPartialCard,

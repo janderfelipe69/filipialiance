@@ -161,11 +161,15 @@
     return '<span class="df-badge df-badge-' + m + '">' + PAYMENT_LABELS[m] + ' · ' + val + '</span>';
   }
 
+  // SEGURANÇA: dados financeiros sao EXCLUSIVOS para admin.
+  // Badge de pagamento e botao de edicao NUNCA chegam ao cliente.
   function buildCardSection(entry, adminFlag) {
+    // Dupla verificacao: adminFlag (caller) E isAdmin() (sessao atual).
+    // Ambos precisam ser true - previne bypass via estado desatualizado.
+    var adminConfirmed = (adminFlag === true) && isAdmin();
+    if (!adminConfirmed) return ''; // cliente: zero dados financeiros
     var badge   = buildBadgeHtml(entry);
-    var editBtn = (adminFlag || isAdmin())
-      ? '<button class="df-edit-btn" onclick="event.stopPropagation();DeliveryFinancial.openEditModal(\'' + entry.id + '\')">✏️ Editar pagamento</button>'
-      : '';
+    var editBtn = '<button class="df-edit-btn" onclick="event.stopPropagation();DeliveryFinancial.openEditModal(\'' + entry.id + '\')">✏️ Editar pagamento</button>';
     return badge + editBtn;
   }
 
