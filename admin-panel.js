@@ -520,6 +520,9 @@
         '<span class="admin-bar-label">⚙️ Admin — Pokémons</span>' +
         '<button class="admin-btn" onclick="window.__adminOpenAddPokemon()">➕ Adicionar pokémon</button>';
       capturaGrid.parentElement.insertBefore(bar2, capturaGrid);
+      // Re-renderiza os cards para que os botões ✏️/🗑️ apareçam
+      // (pode ter renderizado antes do admin-panel carregar)
+      if (typeof renderCaptura === 'function') renderCaptura();
     }
 
     // ── Aba Pacotes ──
