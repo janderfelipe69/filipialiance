@@ -828,16 +828,6 @@ body {
   /* ── LIGHTBOX ENTREGAS ── */
   .entrega-lightbox-prev { left: 4px !important; }
   .entrega-lightbox-next { right: 4px !important; }
-
-  /* ── TUTORIAL ── */
-  .tutorial-box,
-  .tutorial-modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    align-self: flex-end !important;
-    padding-bottom: calc(var(--pad-mobile) + var(--safe-bottom)) !important;
-  }
 }
 
 /* ══════════════════════════════════════════════════════

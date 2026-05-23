@@ -1249,75 +1249,6 @@
   </div>
 </div>
 
-<!-- Modal: Deseja fazer o tutorial? -->
-<div id="tutorial-ask-overlay" style="
-  position:fixed;inset:0;z-index:10000;
-  background:rgba(4,6,14,0.88);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-">
-  <div style="
-    background:linear-gradient(145deg,#0d1628 0%,#080f1e 100%);
-    border:1px solid rgba(56,140,255,0.35);
-    border-radius:20px;
-    padding:40px 36px 32px;
-    max-width:420px;
-    width:100%;
-    text-align:center;
-    box-shadow:0 0 60px rgba(58,140,255,0.18),inset 0 1px 0 rgba(255,255,255,0.06);
-    position:relative;
-    overflow:hidden;
-    animation:welcomeSlideUp 0.4s cubic-bezier(0.16,1,0.3,1);
-  ">
-    <div style="
-      position:absolute;top:0;left:0;right:0;height:2px;
-      background:linear-gradient(90deg,transparent,var(--blue),var(--gold),var(--blue),transparent);
-    "></div>
-    <div style="font-size:44px;margin-bottom:16px">🧭</div>
-    <div style="
-      font-family:var(--font-title);font-size:18px;font-weight:900;
-      letter-spacing:3px;text-transform:uppercase;
-      background:linear-gradient(135deg,#fff 0%,var(--blue-bright) 50%,var(--gold) 100%);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-      margin-bottom:10px;
-    ">Deseja fazer o tutorial?</div>
-    <div style="
-      font-family:var(--font-body);font-size:14px;font-weight:500;
-      color:var(--muted);line-height:1.6;margin-bottom:28px;
-    ">Aprenda a usar todas as funcionalidades da loja em poucos passos. Você pode pular a qualquer momento.</div>
-    <div style="display:flex;gap:12px;justify-content:center;">
-      <button onclick="document.getElementById('tutorial-ask-overlay').style.display='none'; startTutorial();" style="
-        flex:1;max-width:160px;
-        padding:13px 20px;
-        background:linear-gradient(135deg,var(--blue) 0%,#1a6fe8 100%);
-        color:#fff;border:none;border-radius:12px;
-        font-family:var(--font-title);font-size:12px;font-weight:700;
-        letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
-        box-shadow:0 4px 20px var(--glow-blue);
-        transition:all 0.2s;
-      " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-        ✓ Sim, quero!
-      </button>
-      <button onclick="document.getElementById('tutorial-ask-overlay').style.display='none'; try{localStorage.setItem('tut_seen','1')}catch(e){}" style="
-        flex:1;max-width:160px;
-        padding:13px 20px;
-        background:rgba(255,255,255,0.05);
-        color:var(--muted);border:1px solid var(--border);border-radius:12px;
-        font-family:var(--font-title);font-size:12px;font-weight:700;
-        letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
-        transition:all 0.2s;
-      " onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-        ✕ Pular
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== TUTORIAL INTERATIVO ===================== -->
 
 <style>
 /* ── Captura List: Broke Badge ── */
@@ -1598,7 +1529,6 @@
 .brokes-obs-text strong { color: #fff; }
 </style>
 
-<script src="tutorial.js"></script>
 
 <style>
 /* ── Wiki Subtabs — sticky nativo, sem JS de placeholder ── */

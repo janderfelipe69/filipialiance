@@ -792,25 +792,6 @@ html, body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TUTORIAL — mobile (if exists)
-══════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .tutorial-overlay {
-    padding: 0 !important;
-  }
-
-  .tutorial-box,
-  .tutorial-modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    margin: 0 !important;
-    align-self: flex-end !important;
-    padding-bottom: calc(16px + var(--safe-bottom)) !important;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════
    TABLET (480–768px) — grid 3 colunas
 ══════════════════════════════════════════════════════════════ */
 @media (min-width: 481px) and (max-width: 768px) {

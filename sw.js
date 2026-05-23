@@ -21,7 +21,6 @@ const ARQUIVOS = [
   './app.js',
   './mobile-ux.js',
   './url-hash.js',
-  './tutorial.js',
   './respawn_patch_modal.js',
   './wildscape_path_patch.js',
   './item-card-popup.js',
