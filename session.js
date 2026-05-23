@@ -176,7 +176,7 @@ const Session = (() => {
   // SEÇÃO 4 — CARREGAMENTO DE PERFIL
   // ══════════════════════════════════════════════════════════════════════════
 
-  async function _loadProfile(authUserId, jwt) {
+  async function _loadProfile(authUserId, jwt, authUser) {
     if (!authUserId) {
       console.error('[Session] _loadProfile: authUserId é null — isso não deveria acontecer');
       return null;
@@ -201,6 +201,43 @@ const Session = (() => {
         return profile;
       }
       console.warn('[Session] ⚠️ Perfil não encontrado em public.users para id:', authUserId);
+
+      // Trigger on_auth_user_created pode ter falhado. Tenta criar o perfil agora.
+      // Isso é um fallback de segurança — o trigger deve ser corrigido no Supabase.
+      try {
+        const _authUserForCreate = authUser || null; // passado como 3º parâmetro pelos callers
+        if (_authUserForCreate && _authUserForCreate.email) {
+          const nickname = _authUserForCreate.user_metadata?.nickname || _authUserForCreate.email.split('@')[0];
+          const server   = _authUserForCreate.user_metadata?.server   || 'Moon';
+          const insertRes = await fetch(
+            window.SUPABASE_URL + '/rest/v1/users',
+            {
+              method: 'POST',
+              headers: {
+                'apikey':        window.SUPABASE_KEY,
+                'Authorization': 'Bearer ' + jwt,
+                'Content-Type':  'application/json',
+                'Prefer':        'return=representation,resolution=ignore-duplicates',
+              },
+              body: JSON.stringify({ id: authUserId, email: _authUserForCreate.email, nickname, role: 'user', server }),
+            }
+          );
+          if (insertRes.ok || insertRes.status === 409) {
+            console.log('[Session] 🔧 Perfil criado automaticamente em public.users (fallback trigger).');
+            // Tenta carregar o perfil recém-criado
+            const created = await SupabaseClient.DB.getUserProfile(authUserId, jwt);
+            if (created) {
+              try { localStorage.setItem(KEYS.USER_CACHE, JSON.stringify(created)); } catch (_) {}
+              return created;
+            }
+          } else {
+            console.warn('[Session] ⚠️ Auto-criação de perfil falhou HTTP', insertRes.status);
+          }
+        }
+      } catch (insertErr) {
+        console.warn('[Session] ⚠️ Auto-criação de perfil falhou:', insertErr.message);
+      }
+
       return null;
     } catch (e) {
       console.error('[Session] ❌ Erro ao carregar perfil:', e.message);
@@ -331,7 +368,7 @@ const Session = (() => {
       }
 
       // Passo 4: authUser é válido (id garantido) — carrega perfil
-      const profile = await _loadProfile(authUser.id, _accessToken);
+      const profile = await _loadProfile(authUser.id, _accessToken, authUser);
       _currentUser = profile || _buildFallbackProfile(authUser);
 
       if (!profile) {
@@ -385,7 +422,7 @@ const Session = (() => {
     _saveTokens(authData.access_token, authData.refresh_token, authData.expires_in);
     try { localStorage.removeItem(KEYS.USER_CACHE); } catch (_) {}
 
-    const profile = await _loadProfile(authData.user.id, authData.access_token);
+    const profile = await _loadProfile(authData.user.id, authData.access_token, authData.user);
     _currentUser = profile || _buildFallbackProfile(authData.user);
 
     if (!profile) {
