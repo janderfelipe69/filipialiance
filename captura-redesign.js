@@ -629,6 +629,11 @@
           <span class="cpk-btn-icon">⬟</span>
           <span class="cpk-btn-label">Capturar</span>
         </button>
+        ${typeof adminIsAdmin === 'function' && adminIsAdmin() ? `
+        <div class="cpk-admin-row" onclick="event.stopPropagation()">
+          <button class="cpk-admin-btn" onclick="__adminEditPokemon(${idx})" title="Editar">✏️</button>
+          <button class="cpk-admin-btn danger" onclick="__adminDelPokemon(${idx})" title="Remover">🗑️</button>
+        </div>` : ''}
       </div>
     </div>`;
   }
