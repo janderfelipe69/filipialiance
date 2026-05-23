@@ -221,13 +221,12 @@ function _buildPagamentoInfo(grandTotalFinal) {
 
 function _showToastMsg(titulo, msg) {
   // Usa o sistema global de toasts (toast.js) para feedback de pedido.
-  // NÃO reutiliza #no-price-toast — aquele elemento é exclusivo de "item sem preço".
   if (typeof showToast === 'function') {
     const type = titulo.startsWith('✅') ? 'success' : 'error';
     showToast(titulo + (msg ? ' — ' + msg : ''), type);
     return;
   }
-  // Fallback: cria toast temporário sem sequestrar o #no-price-toast
+  // Fallback: cria toast temporário
   const fb = document.createElement('div');
   fb.style.cssText = 'position:fixed;bottom:32px;right:20px;z-index:99999;'
     + 'background:rgba(6,11,26,.97);border:1px solid rgba(255,255,255,.12);'
@@ -367,35 +366,9 @@ async function sendToDiscord() {
   await sendToWhatsApp();
 }
 
-// ===================== TOAST SEM PREÇO =====================
-// Timer próprio — não compartilhado com _showToastMsg nem addPackageToCartDirect
-let _toastTimer = null;
-function showNoPriceToast(itemName) {
-  // TRACE — confirma que só dispara para price===null.
-  // Remover após validação em produção.
-  if (typeof console !== 'undefined') {
-    console.group('[PriceLayer] showNoPriceToast');
-    console.log('item:', itemName);
-    if (typeof items !== 'undefined') {
-      var found = items.find(function(x) { return x && x.name === itemName; });
-      console.log('price value:', found ? found.price : '(item not found)');
-      console.log('hasValidPrice:', found ? PriceLayer.hasValidPrice(found) : false);
-    }
-    console.trace();
-    console.groupEnd();
-  }
-  const toast = document.getElementById('no-price-toast');
-  const msg   = document.getElementById('no-price-toast-msg');
-  if (!toast) return;
-  if (msg) msg.textContent = '"' + itemName + '" ainda não tem valor definido. O total do carrinho será ajustado assim que o preço for estabelecido.';
-  toast.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
-}
 
 function addPackToCart(i, qty) {
   cart[i] = (cart[i] || 0) + qty;
-  if (items[i].price === null) showNoPriceToast(items[i].name);
   updateCartBadge();
   // Atualiza botões do módulo de itens (novos IDs)
   const btn500 = document.getElementById('itembtn-500-' + i);
@@ -430,7 +403,6 @@ function addToCart(i) {
   if (isNaN(val) || val < 1) val = 1;
   if (val > 100000) val = 100000;
   cart[i] = (cart[i] || 0) + val;
-  if (items[i].price === null) showNoPriceToast(items[i].name);
   updateCartBadge();
   if (document.getElementById('cart-overlay').classList.contains('open')) renderCart();
 }
@@ -476,8 +448,6 @@ function renderCart() {
   const keys = Object.keys(cart).filter(k => cart[k] > 0);
 
   if (!keys.length) {
-    const warnBannerEmpty = document.getElementById('cart-no-price-warning');
-    if (warnBannerEmpty) warnBannerEmpty.classList.remove('visible');
     list.innerHTML = `<div class="cart-empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
         <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -525,20 +495,6 @@ function renderCart() {
   } else {
     document.getElementById('cart-grand-total-block').style.display = 'none';
     if (taxaAviso) taxaAviso.style.display = 'none';
-  }
-
-  // Verifica itens sem preço e exibe aviso
-  const noPriceItems = keys.filter(k => items[k].price === null);
-  const warnBanner = document.getElementById('cart-no-price-warning');
-  const warnList   = document.getElementById('cart-warn-items-list');
-  if (warnBanner) {
-    if (noPriceItems.length > 0) {
-      warnBanner.classList.add('visible');
-      if (warnList) warnList.textContent = 'Sem preço: ' + noPriceItems.map(k => items[k].name).join(', ');
-    } else {
-      warnBanner.classList.remove('visible');
-      if (warnList) warnList.textContent = '';
-    }
   }
 
   list.innerHTML = keys.map(k => {
@@ -2289,13 +2245,11 @@ function addPackageToCartDirect(pi) {
   pkgCartCount[pi] = (pkgCartCount[pi] || 0) + 1;
   if (window.pkgState) pkgState.cartCount[pi] = pkgCartCount[pi];
 
-  let noPriceNames = [];
   getPkgActiveItems(PACKAGES[pi], pi).forEach(([name, qty]) => {
     if (!qty || qty <= 0) return;
     const idx = items.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
     if (idx === -1) return;
     cart[idx] = (cart[idx] || 0) + qty;
-    if (items[idx].price === null) noPriceNames.push(name);
     const addBtn = document.getElementById('item-addbtn-' + idx);
     const addLbl = document.getElementById('item-addbtn-label-' + idx);
     if (addBtn) addBtn.classList.add('added');
@@ -2312,14 +2266,6 @@ function addPackageToCartDirect(pi) {
     }
   });
 
-  if (noPriceNames.length > 0) {
-    // Delega para showNoPriceToast para usar o timer centralizado
-    const firstName = noPriceNames[0];
-    const extra = noPriceNames.length > 1
-      ? ` (e mais ${noPriceNames.length - 1} item${noPriceNames.length > 2 ? 's' : ''})`
-      : '';
-    showNoPriceToast(firstName + extra);
-  }
   updateCartBadge();
 
   // Atualiza detalhe inline
