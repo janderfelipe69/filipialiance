@@ -372,15 +372,25 @@ const OrdersAdmin = (() => {
     OrdersStorage.addObservation(orderId, text, admin.nickname);
   }
 
-  // ── Excluir pedido — DELETE CASCADE COMPLETO ─────────────────────────────
+  // ── Excluir pedido — DELETE CASCADE RESILIENTE ───────────────────────────
   //
-  // Executa exclusão em transação lógica sequencial:
-  //   1. delivery_history  → 2. delivery_proofs → 3. captures
-  //   4. notifications     → 5. pedido principal
+  // Estratégia:
+  //   Tabelas OPCIONAIS (podem não existir no schema atual):
+  //     → delivery_history, captures
+  //     → 404 / schema cache error = ignorado com warning
   //
-  // Se QUALQUER etapa falhar → ABORTA imediatamente.
-  // O pedido principal NÃO é excluído se dependências falharem.
-  // Após sucesso total: limpa localStorage, caches e memória temporária.
+  //   Tabelas ESPERADAS (existem, mas ausência é tolerada):
+  //     → delivery_proofs, notifications
+  //     → 404 = ignorado; outros erros = logados mas NÃO abortam
+  //
+  //   Tabela OBRIGATÓRIA:
+  //     → pedidos (tabela principal)
+  //     → qualquer falha aqui = ABORT total, usuário é notificado
+  //
+  // Promise.allSettled() é usado para as dependências opcionais/esperadas,
+  // garantindo que a falha de uma não cancele as demais.
+  // O DELETE do pedido principal só executa se as dependências obrigatórias
+  // não lançarem erros críticos.
 
   async function deleteOrder(orderId) {
     // OBRIGATÓRIO: aguarda sessão antes de verificar role admin
@@ -415,52 +425,83 @@ const OrdersAdmin = (() => {
       };
       const base = window.SUPABASE_URL;
 
-      // Helper: executa um DELETE e lança erro se falhar
-      async function _cascadeDelete(table, filter, label) {
-        console.log(`[DeleteCascade] Deletando ${label} (${table}?${filter})...`);
-        const res = await fetch(`${base}/rest/v1/${table}?${filter}`, {
-          method: 'DELETE',
-          headers,
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          const msg = body.message || body.error || body.hint || `HTTP ${res.status}`;
-          throw new Error(`Falha em ${label}: ${msg}`);
+      // ── Helper: tenta DELETE e classifica o resultado ──────────────────
+      // Retorna: { ok: true } | { ok: false, skipped: true, reason } | { ok: false, fatal: true, reason }
+      async function _tryDelete(table, filter, label, { optional = false } = {}) {
+        const url = `${base}/rest/v1/${table}?${filter}`;
+        console.log(`[DeleteCascade] ${label} → DELETE ${url}`);
+        let res;
+        try {
+          res = await fetch(url, { method: 'DELETE', headers });
+        } catch (networkErr) {
+          // Falha de rede — sempre fatal
+          return { ok: false, fatal: true, reason: `Erro de rede em ${label}: ${networkErr.message}` };
         }
-        console.log(`[DeleteCascade] ✓ ${label} removido.`);
+
+        if (res.ok) {
+          console.log(`[DeleteCascade] ✓ ${label} removido (HTTP ${res.status}).`);
+          return { ok: true };
+        }
+
+        // Lê body do erro para diagnóstico
+        const body = await res.json().catch(() => ({}));
+        const msg  = body.message || body.hint || body.error || `HTTP ${res.status}`;
+
+        // 404 ou erro de schema cache = tabela não existe → pular silenciosamente
+        const isSchemaError = (
+          res.status === 404 ||
+          (body.code === 'PGRST106') ||
+          /schema cache/i.test(msg) ||
+          /not find the (table|relation)/i.test(msg) ||
+          /does not exist/i.test(msg)
+        );
+
+        if (isSchemaError || optional) {
+          console.warn(`[DeleteCascade] ⚠ ${label} ignorado (tabela ausente ou opcional) — ${msg}`);
+          return { ok: false, skipped: true, reason: msg };
+        }
+
+        // Erro real em tabela esperada mas não obrigatória → loga, não aborta
+        console.error(`[DeleteCascade] ✗ ${label} falhou (HTTP ${res.status}) — ${msg}`);
+        return { ok: false, fatal: false, reason: msg };
       }
 
-      try {
-        // ETAPA 1 — delivery_history (tabela legada, pode não existir — ignorar erro)
-        try {
-          await _cascadeDelete('delivery_history', `order_id=eq.${supabaseId}`, 'delivery_history');
-        } catch(e) {
-          console.warn('[DeleteCascade] delivery_history não existe (normal) — continuando:', e.message);
-        }
+      // ── FASE 1: Dependências opcionais (tabelas que podem não existir) ──
+      // Executadas em paralelo — qualquer resultado é aceitável.
+      const [r_history, r_captures] = await Promise.allSettled([
+        _tryDelete('delivery_history', `order_id=eq.${supabaseId}`, 'delivery_history', { optional: true }),
+        _tryDelete('captures',         `order_id=eq.${supabaseId}`, 'captures',         { optional: true }),
+      ]);
+      // Log apenas para auditoria — não afeta o fluxo
+      [{ label: 'delivery_history', r: r_history }, { label: 'captures', r: r_captures }].forEach(({ label, r }) => {
+        if (r.status === 'rejected') console.warn(`[DeleteCascade] Promise rejected inesperado em ${label}:`, r.reason);
+      });
 
-        // ETAPA 2 — delivery_proofs
-        await _cascadeDelete('delivery_proofs', `order_id=eq.${supabaseId}`, 'delivery_proofs');
+      // ── FASE 2: Dependências esperadas (tabelas que devem existir) ──────
+      // 404 é tolerado; outros erros são logados mas não abortam.
+      const [r_proofs, r_notifs] = await Promise.allSettled([
+        _tryDelete('delivery_proofs', `order_id=eq.${supabaseId}`, 'delivery_proofs'),
+        _tryDelete('notifications',   `pedido_id=eq.${supabaseId}`, 'notifications'),
+      ]);
+      [{ label: 'delivery_proofs', r: r_proofs }, { label: 'notifications', r: r_notifs }].forEach(({ label, r }) => {
+        if (r.status === 'rejected') console.error(`[DeleteCascade] Falha inesperada em ${label}:`, r.reason);
+        else if (r.value && r.value.fatal) console.error(`[DeleteCascade] Erro em ${label}: ${r.value.reason}`);
+      });
 
-        // ETAPA 3 — captures
-        await _cascadeDelete('captures', `order_id=eq.${supabaseId}`, 'captures');
+      // ── FASE 3: Pedido principal — OBRIGATÓRIO ──────────────────────────
+      const r_main = await _tryDelete('pedidos', `id=eq.${supabaseId}`, 'pedido principal');
 
-        // ETAPA 4 — notifications
-        await _cascadeDelete('notifications', `pedido_id=eq.${supabaseId}`, 'notifications');
-
-        // ETAPA 5 — pedido principal (só chega aqui se todas as anteriores ok)
-        await _cascadeDelete('pedidos', `id=eq.${supabaseId}`, 'pedido principal');
-
-        console.log(`[DeleteSuccess] Pedido #${supabaseId} excluído completamente do banco.`);
-
-      } catch (err) {
-        // ABORT — qualquer etapa falhou
-        console.error(`[DeleteAbort] Cascata interrompida. ${err.message}`);
+      if (!r_main.ok && !r_main.skipped) {
+        // Qualquer falha no pedido principal = ABORT
+        const reason = r_main.reason || 'Erro desconhecido';
+        console.error(`[DeleteAbort] Pedido principal não excluído. ${reason}`);
         if (typeof showToast === 'function') {
-          showToast(`Exclusão abortada: ${err.message}`, 'error');
+          showToast(`Falha ao excluir pedido: ${reason}`, 'error');
         }
-        // Não continua — não limpa localStorage, não atualiza UI
         return;
       }
+
+      console.log(`[DeleteSuccess] Pedido #${supabaseId} excluído do banco.`);
     }
 
     // ── Limpeza pós-sucesso ───────────────────────────────────────────────
@@ -497,6 +538,50 @@ const OrdersAdmin = (() => {
     }
 
     // 5. Recarrega a lista
+    if (typeof pedidosCarregar === 'function') pedidosCarregar();
+    else if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
+  }
+
+  // ── Remover do histórico (apenas local — não exclui do banco) ────────────
+  //
+  // Usado na aba "Histórico" para esconder um pedido concluído/cancelado
+  // da visualização sem destruir o registro no Supabase.
+  // Registra tombstone local para evitar que o próximo sync restaure o item.
+
+  async function deleteFromHistory(orderId) {
+    await Session.ready();
+    if (!isCurrentUserAdmin()) return;
+
+    const confirmed = await showConfirmModal({
+      title: 'Remover do Histórico',
+      message: 'Remover este pedido do histórico local? O registro permanece no banco. Para excluir permanentemente, use "Excluir".',
+      confirmText: 'Remover da Lista',
+      cancelText: 'Cancelar',
+      type: 'warning'
+    });
+    if (!confirmed) return;
+
+    const supabaseId = _extractSupabaseId(orderId);
+
+    // Remove do storage local e registra tombstone
+    if (typeof OrdersStorage !== 'undefined') {
+      OrdersStorage.deleteOrderDirect(orderId, { preventRestore: true });
+    }
+    _purgeLocalStorageReferences(orderId, supabaseId);
+
+    // Notifica outros módulos
+    try {
+      window.dispatchEvent(new CustomEvent('orders:deleted', {
+        detail: { orderId, supabaseId, localOnly: true }
+      }));
+    } catch (_) {}
+
+    console.log(`[HistoryRemove] Pedido ${orderId} removido do histórico local.`);
+    if (typeof showToast === 'function') {
+      showToast(`Pedido #${supabaseId || orderId} removido do histórico.`, 'success');
+    }
+
+    // Atualiza UI sem reload
     if (typeof pedidosCarregar === 'function') pedidosCarregar();
     else if (typeof OrdersUI !== 'undefined') OrdersUI.refresh();
   }
@@ -780,6 +865,12 @@ const OrdersAdmin = (() => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Cancelar
           </button>
+          ${(status === 'completed' || status === 'concluido' || status === 'cancelled' || status === 'cancelado') ? `
+          <button class="oa-btn oa-btn--history-remove" onclick="OrdersAdmin.deleteFromHistory('${order.id}')" title="Remover do histórico local (não exclui do banco)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.91"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            Remover Histórico
+          </button>
+          ` : ''}
           <button class="oa-btn oa-btn--delete" onclick="OrdersAdmin.deleteOrder('${order.id}')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             Excluir
@@ -1127,6 +1218,11 @@ const OrdersAdmin = (() => {
         color: #f87171;
       }
       .oa-btn--delete:hover { background: rgba(239,68,68,0.14); }
+      .oa-btn--history-remove {
+        border-color: rgba(251,191,36,0.35);
+        color: #fbbf24;
+      }
+      .oa-btn--history-remove:hover { background: rgba(251,191,36,0.10); }
 
       /* Toggle admin */
       .order-card-admin-toggle {
@@ -1163,6 +1259,7 @@ const OrdersAdmin = (() => {
     updateItemQty,
     saveObservation,
     deleteOrder,
+    deleteFromHistory,
     setServiceType,
     setServiceQuantity,
     renderAdminPanel,
