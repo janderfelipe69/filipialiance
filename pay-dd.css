@@ -1,0 +1,42 @@
+/* ============================================================
+   pay-dd.css — Estilos do modo de pagamento DD
+   Arquivo separado: não sobrescreve nada, apenas adiciona.
+   Carregado depois do style.css para ter prioridade correta.
+   ============================================================ */
+
+/* Botão DD ativo */
+.pay-mode-btn.active.dd {
+  color: #c084fc;
+}
+
+/* Bloco DD — visível quando ativo */
+#pay-block-dd.active {
+  display: block !important;
+}
+
+/* Total em DD */
+#pay-dd-total {
+  font-family: var(--font-title, 'Cinzel', serif);
+  font-size: 26px;
+  font-weight: 900;
+  color: #c084fc;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+/* Hint BRL equivalente */
+#pay-dd-brl-hint {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+}
+
+/* Nota informativa 1 DD = R$ 0,70 */
+#pay-block-dd .pay-dd-note {
+  font-family: var(--font-body, sans-serif);
+  font-size: 10px;
+  color: rgba(255,255,255,0.25);
+  margin-top: 8px;
+  line-height: 1.4;
+}
