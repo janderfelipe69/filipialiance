@@ -15,11 +15,18 @@
   }
 
   function getJwt() {
-    // Session.js mantém o token em memória — sempre disponível após login
     if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
       return Session.getAccessToken();
     }
     return null;
+  }
+
+  // Versão assíncrona que aguarda Session.ready()
+  function getJwtAsync() {
+    if (typeof Session === 'undefined') return Promise.resolve(null);
+    return Session.ready().then(function() {
+      return Session.getAccessToken();
+    });
   }
 
   function sbHeaders() {
@@ -35,32 +42,23 @@
   }
 
   function sbFetch(method, path, body) {
-    var jwt = getJwt();
-    console.log('[admin-panel] sbFetch', method, path, 'jwt:', jwt ? jwt.substring(0,20)+'...' : 'NULL');
-    var url = '/rest/v1/' + path;
-    var opts = {
-      method:  method,
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        global.SUPABASE_KEY,
-        'Authorization': 'Bearer ' + jwt,
-        'Prefer':        'return=representation',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    };
-    // Usa SupabaseClient.fetchWithAuth se JWT não disponível
-    if (!jwt && typeof SupabaseClient !== 'undefined' && SupabaseClient.fetchWithAuth) {
-      return SupabaseClient.fetchWithAuth(url, opts, null)
-        .then(function(r) {
-          if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
-          return r.json().catch(function() { return {}; });
-        });
-    }
-    return fetch(global.SUPABASE_URL + url, opts)
-      .then(function(r) {
-        if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
-        return r.json().catch(function() { return {}; });
+    return getJwtAsync().then(function(jwt) {
+      console.log('[admin-panel] sbFetch', method, path, 'jwt:', jwt ? jwt.substring(0,20)+'...' : 'NULL');
+      if (!jwt) throw new Error('Sessão não disponível. Faça login novamente.');
+      return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
+        method:  method,
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        global.SUPABASE_KEY,
+          'Authorization': 'Bearer ' + jwt,
+          'Prefer':        'return=representation',
+        },
+        body: body ? JSON.stringify(body) : undefined,
       });
+    }).then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+      return r.json().catch(function() { return {}; });
+    });
   }
 
   // ── Modal base ───────────────────────────────────────────────────────────
