@@ -35,14 +35,32 @@
   }
 
   function sbFetch(method, path, body) {
-    return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
+    var jwt = getJwt();
+    console.log('[admin-panel] sbFetch', method, path, 'jwt:', jwt ? jwt.substring(0,20)+'...' : 'NULL');
+    var url = '/rest/v1/' + path;
+    var opts = {
       method:  method,
-      headers: sbHeaders(),
-      body:    body ? JSON.stringify(body) : undefined,
-    }).then(function(r) {
-      if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
-      return r.json().catch(function() { return {}; });
-    });
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        global.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + jwt,
+        'Prefer':        'return=representation',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    };
+    // Usa SupabaseClient.fetchWithAuth se JWT não disponível
+    if (!jwt && typeof SupabaseClient !== 'undefined' && SupabaseClient.fetchWithAuth) {
+      return SupabaseClient.fetchWithAuth(url, opts, null)
+        .then(function(r) {
+          if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+          return r.json().catch(function() { return {}; });
+        });
+    }
+    return fetch(global.SUPABASE_URL + url, opts)
+      .then(function(r) {
+        if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+        return r.json().catch(function() { return {}; });
+      });
   }
 
   // ── Modal base ───────────────────────────────────────────────────────────
