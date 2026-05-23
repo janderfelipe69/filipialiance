@@ -494,36 +494,63 @@ window.openWikiLookup = function (itemName, e) {
 
   // ════════════════════════════════════════
   // ABA 1 — POKÉMON QUE DROPAM
+  // Fonte: RAW_WIKI (legado) + catalog_item_drops (Supabase)
   // ════════════════════════════════════════
   const wEntry = (typeof RAW_WIKI !== 'undefined')
     ? RAW_WIKI.find(en => en[0].toLowerCase() === nl) : null;
-  const sources = wEntry ? wEntry.slice(1).filter(s => s && s.trim()) : [];
-
-  cnt('icp-n-drops', sources.length);
+  const wikiSources = wEntry ? wEntry.slice(1).filter(s => s && s.trim()) : [];
 
   const dropsEl = document.getElementById('icp-drops');
-  if (!sources.length) {
-    dropsEl.innerHTML = `<div class="icp-empty"><div class="icp-empty-icon">🔍</div><div class="icp-empty-text">Nenhum Pokémon registrado para este item na Wiki.</div></div>`;
-  } else {
-    // Usa getShowdownSprite e toShowdownName do app.js se disponíveis
-    const sprite   = (typeof getShowdownSprite === 'function') ? getShowdownSprite
-      : (n => `https://play.pokemonshowdown.com/sprites/gen5/${n.toLowerCase().replace(/[^a-z0-9]/g,'')}.png`);
-    const fallback = (typeof toShowdownName === 'function')
-      ? (n => `https://play.pokemonshowdown.com/sprites/gen5/${toShowdownName(n)}.png`)
-      : (n => `https://play.pokemonshowdown.com/sprites/gen5/${n.toLowerCase().replace(/[^a-z0-9]/g,'')}.png`);
 
-    dropsEl.innerHTML = `
-      <div class="icp-intro">
-        <b>${sources.length} Pokémon</b> ${sources.length > 1 ? 'dropam' : 'dropa'} este item
-      </div>
-      <div class="icp-poke-grid">
-        ${sources.map(pn => `
-          <div class="icp-poke-card">
-            <img src="${sprite(pn)}" alt="${pn}"
-                 onerror="this.src='${fallback(pn)}';this.onerror=null;" loading="lazy"/>
-            <div class="icp-poke-name">${pn}</div>
-          </div>`).join('')}
-      </div>`;
+  function _renderDropSources(sources) {
+    cnt('icp-n-drops', sources.length);
+    if (!sources.length) {
+      dropsEl.innerHTML = '<div class="icp-empty"><div class="icp-empty-icon">🔍</div><div class="icp-empty-text">Nenhum Pokémon registrado para este item na Wiki.</div></div>';
+      return;
+    }
+    const sprite   = (typeof getShowdownSprite === 'function') ? getShowdownSprite
+      : (n => 'https://play.pokemonshowdown.com/sprites/gen5/' + n.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png');
+    const fallback = (typeof toShowdownName === 'function')
+      ? (n => 'https://play.pokemonshowdown.com/sprites/gen5/' + toShowdownName(n) + '.png')
+      : (n => 'https://play.pokemonshowdown.com/sprites/gen5/' + n.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png');
+
+    dropsEl.innerHTML =
+      '<div class="icp-intro"><b>' + sources.length + ' Pokémon</b> ' + (sources.length > 1 ? 'dropam' : 'dropa') + ' este item</div>' +
+      '<div class="icp-poke-grid">' +
+        sources.map(function(pn) {
+          return '<div class="icp-poke-card">' +
+            '<img src="' + sprite(pn) + '" alt="' + pn + '" onerror="this.src=\'' + fallback(pn) + '\';this.onerror=null;" loading="lazy"/>' +
+            '<div class="icp-poke-name">' + pn + '</div>' +
+            '</div>';
+        }).join('') +
+      '</div>';
+  }
+
+  if (wikiSources.length > 0) {
+    // Tem dados no RAW_WIKI — usa direto
+    _renderDropSources(wikiSources);
+  } else {
+    // Tenta buscar do Supabase (catalog_item_drops)
+    dropsEl.innerHTML = '<div class="icp-empty"><div class="icp-empty-icon" style="font-size:20px;animation:spin 1s linear infinite">⟳</div></div>';
+    var SB_URL = window.SUPABASE_URL || '';
+    var SB_KEY = window.SUPABASE_KEY || '';
+    // Encontra o ID do item pelo nome
+    var matchedItem = (window.items || []).find(function(it) { return it.name && it.name.toLowerCase() === nl; });
+    var itemId = matchedItem ? matchedItem.id : null;
+
+    if (itemId && SB_URL && SB_KEY) {
+      fetch(SB_URL + '/rest/v1/catalog_item_drops?item_id=eq.' + itemId + '&select=pokemon_name,drop_qty', {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(drops) {
+        var names = drops.map(function(d) { return d.pokemon_name; }).filter(Boolean);
+        _renderDropSources(names);
+      })
+      .catch(function() { _renderDropSources([]); });
+    } else {
+      _renderDropSources([]);
+    }
   }
 
   // ════════════════════════════════════════
