@@ -331,6 +331,13 @@
     'player_name',
     'delivered_at',
     'order_created_at',
+    // Financeiro — adicionadas para suporte ao DeliveryFinancial
+    'payment_method',
+    'payment_value',
+    'payment_value_kk',
+    'payment_value_dd',
+    'obs_financeiro',
+    'price_brl',
   ];
 
   // Colunas CORE garantidas — usadas no fallback síncrono quando introspecção não rodou ainda.

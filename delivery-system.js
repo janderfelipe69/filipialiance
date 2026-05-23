@@ -615,6 +615,9 @@
           quantity:         orderData?.quantity     || null,
           order_created_at: orderData?.created_at   || null,
           concluido_at:     new Date().toISOString(),
+          price_brl:        orderData && (orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
+                            ? parseFloat(orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
+                            : null,
         };
         const insertedRows = await DeliveryDB.insert(payload);
         const deliveryId = insertedRows && insertedRows[0] && insertedRows[0].id;

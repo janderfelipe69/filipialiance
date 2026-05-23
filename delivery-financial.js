@@ -173,11 +173,21 @@
       dd:   brlToDd(priceBrl),
     } : null;
 
-    // Valor inicial no input
-    var initVal = currentMethod === 'kk' ? (entry.payment_value_kk || '')
-                : currentMethod === 'dd' ? (entry.payment_value_dd || '')
-                : currentMethod === 'real' ? (entry.payment_value || '')
-                : '';
+    // Valor inicial no input:
+    // — Se já tem método+valor salvo → usa o valor salvo
+    // — Se não tem método mas tem price_brl → pré-preenche com o valor sugerido do método padrão (REAL)
+    var defaultMethod = currentMethod;
+    var initVal;
+    if (currentMethod === 'kk')   initVal = entry.payment_value_kk  || '';
+    else if (currentMethod === 'dd')   initVal = entry.payment_value_dd  || '';
+    else if (currentMethod === 'real') initVal = entry.payment_value     || '';
+    else if (suggested) {
+      // Novo pedido sem pagamento — pré-seleciona REAL e preenche o valor
+      defaultMethod = 'real';
+      initVal = suggested.real;
+    } else {
+      initVal = '';
+    }
 
     var serviceLabel = entry.service_name || entry.pokemon_name || '—';
 
@@ -188,13 +198,13 @@
           (priceBrl ? ' · <span style="color:#4a9aff">' + fmtBrl(priceBrl) + '</span>' : '') + '</p>' : '') +
         '<label class="df-lbl">Forma de pagamento</label>' +
         '<div class="df-methods">' +
-          '<button class="df-meth' + (currentMethod === 'real' ? ' sel-real' : '') + '" data-m="real" onclick="DeliveryFinancial._pick(this)">💵 REAL</button>' +
-          '<button class="df-meth' + (currentMethod === 'kk'   ? ' sel-kk'   : '') + '" data-m="kk"   onclick="DeliveryFinancial._pick(this)">💎 KK</button>' +
-          '<button class="df-meth' + (currentMethod === 'dd'   ? ' sel-dd'   : '') + '" data-m="dd"   onclick="DeliveryFinancial._pick(this)">🟡 DD</button>' +
+          '<button class="df-meth' + (defaultMethod === 'real' ? ' sel-real' : '') + '" data-m="real" onclick="DeliveryFinancial._pick(this)">💵 REAL</button>' +
+          '<button class="df-meth' + (defaultMethod === 'kk'   ? ' sel-kk'   : '') + '" data-m="kk"   onclick="DeliveryFinancial._pick(this)">💎 KK</button>' +
+          '<button class="df-meth' + (defaultMethod === 'dd'   ? ' sel-dd'   : '') + '" data-m="dd"   onclick="DeliveryFinancial._pick(this)">🟡 DD</button>' +
         '</div>' +
         '<label class="df-lbl">Valor recebido</label>' +
         '<input class="df-inp" id="df-val" type="number" step="0.01" min="0" value="' + initVal + '" placeholder="0">' +
-        '<div class="df-hint" id="df-hint">' + (suggested && currentMethod ? _hintText(currentMethod, suggested) : '') + '</div>' +
+        '<div class="df-hint" id="df-hint">' + (suggested && defaultMethod ? _hintText(defaultMethod, suggested) : '') + '</div>' +
         '<label class="df-lbl">Observação (opcional)</label>' +
         '<input class="df-inp" id="df-obs" value="' + (entry.obs_financeiro || '') + '" placeholder="ex: pago via pix">' +
         '<label class="df-lbl">Data da entrega</label>' +
@@ -232,7 +242,7 @@
 
     // Guarda suggested para uso no _pick
     global._df_suggested = suggested;
-    global._df_currentMethod = currentMethod;
+    global._df_currentMethod = defaultMethod;
 
     document.getElementById('df-btn-save').onclick = function() {
       var m   = global._df_currentMethod;
@@ -284,10 +294,9 @@
     if (suggested) {
       var s = suggested[m];
       hint.textContent = _hintText(m, suggested);
-      // Só preenche se estiver vazio
-      if (!inp.value || parseFloat(inp.value) === 0) {
-        inp.value = m === 'dd' ? Math.round(s) : Number(s.toFixed(2));
-      }
+      // Sempre preenche com o valor sugerido do novo método
+      // (o usuário pode sobrescrever manualmente depois)
+      inp.value = m === 'dd' ? Math.round(s) : Number(s.toFixed(2));
     }
   };
 
@@ -311,7 +320,41 @@
       _toast('Entrega não encontrada na lista', false);
       return;
     }
-    openModal(entry, '✏️ Editar Entrega', function(updates) {
+
+    // Se já tem price_brl, abre direto
+    if (entry.price_brl) {
+      openModal(entry, '✏️ Editar Entrega', _editSave(deliveryId, entry));
+      return;
+    }
+
+    // Tenta buscar price do pedido original via order_id
+    var orderId = entry.order_id || entry.pedido_id;
+    if (orderId && SB_URL && SB_KEY) {
+      getJwtAsync().then(function(jwt) {
+        var headers = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+        if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
+        return fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + orderId +
+          '&select=total_brl,subtotal_brl,pagamento_brl,price_brl&limit=1', { headers: headers });
+      }).then(function(r) { return r.ok ? r.json() : []; })
+        .then(function(rows) {
+          var row = rows && rows[0];
+          if (row) {
+            entry.price_brl = parseFloat(
+              row.price_brl || row.total_brl || row.subtotal_brl || row.pagamento_brl || 0
+            ) || null;
+          }
+          openModal(entry, '✏️ Editar Entrega', _editSave(deliveryId, entry));
+        })
+        .catch(function() {
+          openModal(entry, '✏️ Editar Entrega', _editSave(deliveryId, entry));
+        });
+    } else {
+      openModal(entry, '✏️ Editar Entrega', _editSave(deliveryId, entry));
+    }
+  }
+
+  function _editSave(deliveryId, entry) {
+    return function(updates) {
       sbPatch(deliveryId, updates)
         .then(function() {
           Object.assign(entry, updates);
@@ -320,7 +363,7 @@
           _toast('✅ Entrega atualizada!', true);
         })
         .catch(function(e) { _toast('Erro: ' + e.message, false); });
-    });
+    };
   }
 
   // ── Salva pagamento ao finalizar entrega ─────────────────────
