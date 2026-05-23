@@ -31,8 +31,8 @@
     var cfg = global.APP_CONFIG || {};
     return Math.floor(parseFloat(brl) / (cfg.kk_to_brl || 1.70) * (cfg.raw_per_kk || 1000000));
   }
-  function brlToKk(brl)  { if (!brl) return null; return Math.round(parseFloat(brl) / ((global.APP_CONFIG||{}).kk_to_brl  || 1.70) * 10000) / 10000; }
-  function brlToDd(brl)  { if (!brl) return null; return Math.round(parseFloat(brl) / ((global.APP_CONFIG||{}).dd_to_brl  || 0.70) * 10000) / 10000; }
+  function brlToKk(brl)  { if (!brl) return null; return Number(parseFloat(brl) / ((global.APP_CONFIG||{}).kk_to_brl || 1.70)).toFixed(2) * 1; }
+  function brlToDd(brl)  { if (!brl) return null; return Math.round(parseFloat(brl) / ((global.APP_CONFIG||{}).dd_to_brl || 0.70)); }
 
   // ── 1. financial_config ──────────────────────────────────────────────────
   function loadConfig() {

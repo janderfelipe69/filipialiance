@@ -78,9 +78,9 @@
   document.head.appendChild(css);
 
   // ── Helpers de conversão ─────────────────────────────────────
-  function rawToKk(raw)  { var cfg = global.APP_CONFIG||{}; return raw ? raw / (cfg.raw_per_kk||1e6) : 0; }
+  function rawToKk(raw)  { var cfg = global.APP_CONFIG||{}; if (!raw) return 0; return Number((raw / (cfg.raw_per_kk||1e6)).toFixed(2)) * 1; }
   function rawToReal(raw){ var cfg = global.APP_CONFIG||{}; return rawToKk(raw) * (cfg.kk_to_brl||1.70); }
-  function rawToDd(raw)  { var cfg = global.APP_CONFIG||{}; var brl = rawToReal(raw); return brl ? brl / (cfg.dd_to_brl||0.70) : 0; }
+  function rawToDd(raw)  { var cfg = global.APP_CONFIG||{}; var brl = rawToReal(raw); return brl ? Math.round(brl / (cfg.dd_to_brl||0.70)) : 0; }
   function fmt(n, dec)   { return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:dec||2,maximumFractionDigits:dec||2}); }
 
   // ── Badge HTML ───────────────────────────────────────────────
@@ -88,7 +88,7 @@
     if (!entry.payment_method) return '<span class="df-badge df-badge-none">sem pagamento</span>';
     var m = entry.payment_method;
     var val = m === 'kk'   ? fmt(entry.payment_value_kk, 2) + ' KK'
-            : m === 'dd'   ? fmt(entry.payment_value_dd, 2) + ' DD'
+            : m === 'dd'   ? Math.round(entry.payment_value_dd || 0) + ' DD'
             : 'R$ ' + fmt(entry.payment_value, 2);
     return '<span class="df-badge df-badge-' + m + '">' + PAYMENT_LABELS[m] + ' ' + val + '</span>';
   }
@@ -185,8 +185,9 @@
       var inp  = document.getElementById('df-pay-value');
       if (!priceRaw) { hint.textContent = ''; return; }
       var s = suggested[method];
-      hint.textContent = 'Sugerido: ' + fmt(s, method === 'real' ? 2 : 4) + (method === 'real' ? ' BRL' : method === 'kk' ? ' KK' : ' DD');
-      if (!inp.value) inp.value = s.toFixed(method === 'real' ? 2 : 4);
+      var decimals = method === 'dd' ? 0 : 2;
+      hint.textContent = 'Sugerido: ' + fmt(s, decimals) + (method === 'real' ? ' BRL' : method === 'kk' ? ' KK' : ' DD');
+      if (!inp.value) inp.value = s.toFixed(decimals);
     };
   }
 
@@ -222,9 +223,9 @@
       var updates = { obs_financeiro: obs };
       if (m)   updates.payment_method = m;
       if (val) {
-        updates.payment_value    = m === 'real' ? val : null;
-        updates.payment_value_kk = m === 'kk'   ? val : null;
-        updates.payment_value_dd = m === 'dd'   ? val : null;
+        updates.payment_value    = m === 'real' ? parseFloat(val.toFixed(2)) : null;
+        updates.payment_value_kk = m === 'kk'   ? Number(val.toFixed(2)) : null;
+        updates.payment_value_dd = m === 'dd'   ? Math.round(val) : null;
       }
       if (dt) updates.delivered_at = new Date(dt).toISOString();
 
@@ -253,9 +254,9 @@
   function savePaymentOnDelivery(deliveryId, paymentData) {
     var updates = {
       payment_method:    paymentData.method,
-      payment_value:     paymentData.method === 'real' ? paymentData.value : null,
-      payment_value_kk:  paymentData.method === 'kk'   ? paymentData.value : null,
-      payment_value_dd:  paymentData.method === 'dd'   ? paymentData.value : null,
+      payment_value:     paymentData.method === 'real' ? parseFloat(paymentData.value) : null,
+      payment_value_kk:  paymentData.method === 'kk'   ? Number(parseFloat(paymentData.value).toFixed(2)) : null,
+      payment_value_dd:  paymentData.method === 'dd'   ? Math.round(paymentData.value) : null,
       obs_financeiro:    paymentData.obs || null,
       delivered_at:      new Date().toISOString(),
     };
