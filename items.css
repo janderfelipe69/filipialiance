@@ -154,7 +154,7 @@
 .items-grid {
   display: grid;
   /* 320px mínimo garante espaço suficiente para o footer sem cortar */
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 14px;
 }
 
@@ -848,8 +848,8 @@
 @media (max-width: 700px) {
   .items-controls { padding: 8px 14px; gap: 8px; }
   .items-search-wrap { min-width: 0; flex: 1 1 100px; }
-  .items-search-input { font-size: 12px; }
-  .items-filter-select { font-size: 12px; flex: 1 1 80px; }
+  .items-search-input { font-size: 16px; } /* 16px mínimo evita zoom iOS */
+  .items-filter-select { font-size: 16px; flex: 1 1 80px; }
   .items-count-label { width: 100%; text-align: center; font-size: 9px; }
 
   .items-grid-wrap { padding: 10px 10px 120px; }

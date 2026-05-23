@@ -364,7 +364,7 @@ header::after {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 24px;
-  padding: 18px 32px;
+  padding: 18px clamp(16px, 4vw, 32px);
   max-width: 1600px;
   margin: 0 auto;
 }
@@ -995,7 +995,7 @@ header::after {
   z-index: 9;
   background: rgba(4,6,14,0.95);
   border-bottom: 1px solid var(--border);
-  padding: 12px 32px;
+  padding: 12px clamp(16px, 4vw, 32px);
   display: flex;
   gap: 12px;
   align-items: center;
@@ -1260,21 +1260,14 @@ header::after {
   z-index: 180;
   background: rgba(4,6,14,0.95);
   border-bottom: 1px solid var(--border);
-  padding: 14px 32px;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.captura-wrap {
-  padding: 24px 32px 120px;
+  padding: 14px clamp(16px, 4vw, 32px);
   position: relative;
   z-index: 1;
 }
 
 .captura-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(160px, 45%), 1fr));
   gap: 12px;
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -1842,14 +1835,14 @@ header::after {
 }
 
 .entregas-count-bar {
-  padding: 10px 32px 4px;
+  padding: 10px clamp(16px, 4vw, 32px) 4px;
 }
 
 .entregas-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
-  padding: 16px 32px 120px;
+  padding: 16px clamp(16px, 4vw, 32px) 120px;
   position: relative;
   z-index: 1;
 }
@@ -2345,7 +2338,7 @@ span[id^="total-brl-"] {
 /* ===================== WIKI BANNER ===================== */
 .wiki-banner {
   width: 100%;
-  padding: 52px 32px 36px;
+  padding: 52px clamp(16px, 4vw, 32px) 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2417,7 +2410,7 @@ span[id^="total-brl-"] {
 
 /* ===================== WIKI CONTROLS ===================== */
 .wiki-controls {
-  padding: 14px 32px;
+  padding: 14px clamp(16px, 4vw, 32px);
   background: rgba(4,6,14,0.9);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -2466,7 +2459,7 @@ span[id^="total-brl-"] {
 
 /* ===================== WIKI LIST ===================== */
 .wiki-wrap {
-  padding: 16px 32px 100px;
+  padding: 16px clamp(16px, 4vw, 32px) 100px;
   max-width: 860px;
   margin: 0 auto;
   position: relative;
@@ -2656,7 +2649,7 @@ span[id^="total-brl-"] {
 
 /* ===================== WIKI RESPAWN TAB ===================== */
 .wiki-respawn-wrap {
-  padding: 16px 32px 100px;
+  padding: 16px clamp(16px, 4vw, 32px) 100px;
   max-width: 860px;
   margin: 0 auto;
   position: relative;
@@ -2799,7 +2792,7 @@ span[id^="total-brl-"] {
 
 /* ===================== WIKI QUESTS TAB ===================== */
 .wiki-quests-wrap {
-  padding: 16px 32px 100px;
+  padding: 16px clamp(16px, 4vw, 32px) 100px;
   max-width: 860px;
   margin: 0 auto;
   position: relative;
@@ -3222,7 +3215,7 @@ span[id^="total-brl-"] {
 /* Balls grid */
 .brokes-balls-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 45%), 1fr));
   gap: 12px;
   padding: 16px 20px;
 }
@@ -3501,7 +3494,7 @@ span[id^="total-brl-"] {
 }
 .pb-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(160px, 45%), 1fr));
   gap: 10px;
 }
 .pb-stat-card {
