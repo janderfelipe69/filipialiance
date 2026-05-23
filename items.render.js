@@ -25,22 +25,6 @@ function buildItemCardHtml(item, animateIn) {
   var pokeType  = getItemPokeType(item.bannerImage);
   var typeColor = getItemPriceColor(item);
 
-  // imagem
-  var isGif  = item.image && /\.gif$/i.test(item.image);
-  var imgSrc = isGif
-    ? (typeof getShowdownStaticSprite === 'function' ? getShowdownStaticSprite(item.name) : item.image)
-    : item.image;
-  var imgGif = isGif && typeof getShowdownSprite === 'function' ? getShowdownSprite(item.name) : '';
-
-  var imgHtml = item.image
-    ? ('<img class="item-img' + (isGif ? ' item-img--gif' : '') + '"' +
-        ' src="' + imgSrc + '"' +
-        (isGif ? ' data-gif="' + imgGif + '"' : '') +
-        ' alt="' + item.name + '"' +
-        ' loading="lazy" decoding="async"' +
-        ' onerror="this.parentElement.style.display=\'none\'" />')
-    : '';
-
   var safeName = item.name.replace(/'/g, "\\'");
 
   // tags row
@@ -51,6 +35,14 @@ function buildItemCardHtml(item, animateIn) {
       buildItemBannerHtml(item) +
     '</div>';
 
+  // botões admin — mesmo padrão dos cards de captura
+  var adminHtml = (typeof adminIsAdmin === 'function' && adminIsAdmin())
+    ? '<div class="cpk-admin-row" onclick="event.stopPropagation()">'
+        + '<button class="cpk-admin-btn" onclick="__adminEditItem(' + i + ')" title="Editar">✏️</button>'
+        + '<button class="cpk-admin-btn danger" onclick="__adminDeleteItem(' + i + ')" title="Remover">🗑️</button>'
+        + '</div>'
+    : '';
+
   // card classes
   var cls = 'item-card';
   if (tag === 'shiny') cls += ' is-shiny';
@@ -58,41 +50,38 @@ function buildItemCardHtml(item, animateIn) {
   var dataType = pokeType ? ' data-type="' + pokeType + '"' : '';
 
   return (
-    '<div class="' + cls + '"' + dataType + '>' +
+    '<div class="' + cls + '"' + dataType + '>'
 
-      // ── body (image + info) ──
-      '<div class="item-card-body">' +
+    // ── body — sem coluna de imagem ──
+    + '<div class="item-card-body item-card-body--no-img">'
+        + '<div class="item-info-col">'
+          + '<div class="item-card-header">'
+            + '<div class="item-card-name">'
+              + item.name
+              + '<button class="item-wiki-btn" onclick="openWikiLookup(\'' + safeName + '\',event)" title="Wiki">'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">'
+                  + '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'
+                + '</svg>'
+              + '</button>'
+            + '</div>'
+          + '</div>'
+          + tagsHtml
+          + buildItemPriceHtml(item, typeColor)
+        + '</div>'
+    + '</div>'
 
-        // image column
-        '<div class="item-img-col">' + imgHtml + '</div>' +
+    // ── divider ──
+    + '<div class="item-card-divider"></div>'
 
-        // info column
-        '<div class="item-info-col">' +
-          '<div class="item-card-header">' +
-            '<div class="item-card-name">' +
-              item.name +
-              '<button class="item-wiki-btn" onclick="openWikiLookup(\'' + safeName + '\',event)" title="Wiki">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
-                  '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' +
-                '</svg>' +
-              '</button>' +
-            '</div>' +
-          '</div>' +
-          tagsHtml +
-          buildItemPriceHtml(item, typeColor) +
-        '</div>' +
-      '</div>' +
+    // ── footer (pack + qty + add) ──
+    + '<div class="item-card-footer">'
+      + buildItemPackFooterHtml(item)
+      + buildItemManualFooterHtml(item)
+    + '</div>'
 
-      // ── divider ──
-      '<div class="item-card-divider"></div>' +
+    + adminHtml
 
-      // ── footer (pack + qty + add) ──
-      '<div class="item-card-footer">' +
-        buildItemPackFooterHtml(item) +
-        buildItemManualFooterHtml(item) +
-      '</div>' +
-
-    '</div>'
+    + '</div>'
   );
 }
 

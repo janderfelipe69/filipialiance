@@ -148,11 +148,13 @@ function buildItemPriceHtml(item, typeColor) {
       '<div class="item-price-main">' +
         '<span class="item-price-kk" style="color:' + typeColor + ';text-shadow:0 0 16px ' + typeColor + '44">' + priceData.label + '</span>' +
         '<span class="item-price-brl">' + priceData.brl + '</span>' +
+        (item.price_dd ? '<span class="item-price-dd">' + item.price_dd.toLocaleString('pt-BR') + ' DD</span>' : '') +
       '</div>' +
       '<div class="item-price-total-row">' +
         '<span class="item-price-total-label">total</span>' +
         '<span class="item-price-total-kk" style="color:' + typeColor + '66" id="item-total-kk-' + item._idx + '">' + priceData.label + '</span>' +
         '<span class="item-price-total-brl" id="item-total-brl-' + item._idx + '">' + priceData.brl + '</span>' +
+        (item.price_dd ? '<span class="item-price-total-dd" id="item-total-dd-' + item._idx + '">' + item.price_dd.toLocaleString('pt-BR') + ' DD</span>' : '') +
       '</div>' +
     '</div>'
   );
@@ -210,8 +212,10 @@ function itemUpdateTotalPrice(i, rawVal) {
   if (!data) return;
   var kkEl  = document.getElementById('item-total-kk-'  + i);
   var brlEl = document.getElementById('item-total-brl-' + i);
+  var ddEl  = document.getElementById('item-total-dd-'  + i);
   if (kkEl)  kkEl.textContent  = data.label;
   if (brlEl) brlEl.textContent = data.brl;
+  if (ddEl && item.price_dd) ddEl.textContent = Math.round(item.price_dd * qty).toLocaleString('pt-BR') + ' DD';
 }
 
 function itemAddToCart(i) {
