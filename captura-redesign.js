@@ -880,9 +880,12 @@
         window._selectedBallPrices = prices;
         window._selectedBallIdx    = idx;
         console.log('[BallsIntegration] Ball:', ballType, prices);
-        // Abre o modal original (seta currentCapturaIdx + mostra feedback)
-        // e dispara confirmCaptura() imediatamente após
+        // Seta currentCapturaIdx sem abrir o overlay (captura-confirm-btn não existe ainda)
+        window.currentCapturaIdx = idx;
+        // Força a variável local via _originalOpen mas fecha o overlay imediatamente
         _originalOpen(idx);
+        document.getElementById('captura-overlay').classList.remove('open');
+        // Executa o pedido diretamente
         if (typeof confirmCaptura === 'function') {
           confirmCaptura();
         }

@@ -2665,6 +2665,11 @@ async function confirmCaptura() {
     client_supplied_balls: true,
   };
 
+  // Remove campos ball_* se a tabela pedidos ainda não tem as colunas
+  // (proteção: se der 400, tenta sem esses campos)
+  const _ballFields = ['ball_type','calculated_price_brl','calculated_price_kk',
+    'calculated_price_dd','ball_returned','client_supplied_balls'];
+  
   console.log('[CAPTURA v4] Salvando no Supabase...', payload);
 
   // ── 5. UI: bloqueia botão durante o envio ─────────────────────────────────
@@ -2673,8 +2678,19 @@ async function confirmCaptura() {
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Registrando...'; }
 
   try {
-    // ── 6. INSERT no Supabase (fonte oficial) ─────────────────────────────
-    const saved = await _salvarPedidoSupabase(payload);
+    // ── 6. INSERT no Supabase — tenta com campos ball, fallback sem ────────
+    let saved;
+    try {
+      saved = await _salvarPedidoSupabase(payload);
+    } catch (ballErr) {
+      if (ballErr.message && ballErr.message.includes('ball_')) {
+        const fallback = Object.assign({}, payload);
+        _ballFields.forEach(f => delete fallback[f]);
+        saved = await _salvarPedidoSupabase(fallback);
+      } else {
+        throw ballErr;
+      }
+    }
     const pedidoId = saved?.id ? ' #' + String(saved.id).padStart(4, '0') : '';
     console.log('[CAPTURA v4] ✅ Pedido salvo no Supabase:', saved);
 
