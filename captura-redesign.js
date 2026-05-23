@@ -875,18 +875,16 @@
       };
 
       BallsSelector.openForCaptura(pokemonData, function(ballType, prices) {
-        // Salva ball escolhida e define idx para confirmCaptura()
+        // Salva ball escolhida
         window._selectedBallType   = ballType;
         window._selectedBallPrices = prices;
         window._selectedBallIdx    = idx;
-        // Define currentCapturaIdx (necessário para confirmCaptura)
-        window.currentCapturaIdx   = idx;
         console.log('[BallsIntegration] Ball:', ballType, prices);
-        // Chama confirmCaptura() diretamente — sem abrir o segundo modal
+        // Abre o modal original (seta currentCapturaIdx + mostra feedback)
+        // e dispara confirmCaptura() imediatamente após
+        _originalOpen(idx);
         if (typeof confirmCaptura === 'function') {
           confirmCaptura();
-        } else {
-          _originalOpen(idx);
         }
       });
     };
