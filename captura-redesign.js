@@ -379,14 +379,6 @@
   letter-spacing: 0.5px;
 }
 
-.cpk-price-dd {
-  font-family: var(--font-mono, monospace);
-  font-size: 9px;
-  color: #c084fc;
-  opacity: 0.75;
-  letter-spacing: 0.3px;
-}
-
 .cpk-no-price {
   font-family: var(--font-mono, monospace);
   font-size: 10px;
@@ -579,7 +571,6 @@
       ? `<div class="cpk-price-row">
            <span class="cpk-price-kk" style="--type-clr:${typeColor}">${priceData.label}</span>
            <span class="cpk-price-brl">${priceData.brl}</span>
-           ${poke.price_dd ? `<span class="cpk-price-dd">${Math.round(poke.price_dd * diveMultiplier).toLocaleString('pt-BR')} DD</span>` : ''}
          </div>`
       : `<span class="cpk-no-price">A definir</span>`;
 
@@ -884,13 +875,19 @@
       };
 
       BallsSelector.openForCaptura(pokemonData, function(ballType, prices) {
-        // Expõe globalmente para o código de submissão do pedido
+        // Salva ball escolhida e define idx para confirmCaptura()
         window._selectedBallType   = ballType;
         window._selectedBallPrices = prices;
         window._selectedBallIdx    = idx;
+        // Define currentCapturaIdx (necessário para confirmCaptura)
+        window.currentCapturaIdx   = idx;
         console.log('[BallsIntegration] Ball:', ballType, prices);
-        // Abre o modal de pedido normalmente
-        _originalOpen(idx);
+        // Chama confirmCaptura() diretamente — sem abrir o segundo modal
+        if (typeof confirmCaptura === 'function') {
+          confirmCaptura();
+        } else {
+          _originalOpen(idx);
+        }
       });
     };
 
