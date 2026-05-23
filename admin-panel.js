@@ -283,50 +283,295 @@
     fighting: 'https://i.imgur.com/OKsJXh7.png',
   };
 
-  // Detecta o tipo primário pelo nome do pokémon.
-  // Remove prefixos como "Shiny", "Shadow", "Mega", etc.
-  // Usa POKEMON_TYPE_MAP (respawn_patch_modal.js) se disponível,
-  // senão usa uma lista de fallback embutida para os casos mais comuns.
-  function _getTypeForPokemon(name) {
-    if (!name) return null;
-    // Remove prefixos decorativos
-    var clean = name.replace(/^(shiny|shadow|mega|alolan|galarian|hisuian|paldean)\s+/gi, '').trim();
-    // Tenta POKEMON_TYPE_MAP global (definido em respawn_patch_modal.js)
+  // Detecta TODOS os tipos do pokémon (retorna array).
+  // Remove prefixos decorativos como "Shiny", "Shadow", "Mega", etc.
+  // Usa POKEMON_TYPE_MAP global (respawn_patch_modal.js) se disponível.
+  function _getTypesForPokemon(name) {
+    if (!name) return [];
+    var clean = name.replace(/^(shiny|shadow|mega|alolan|galarian|hisuian|paldean|primal|origin|sky|land|therian|incarnate|resolute|ordinary|blade|shield|dusk|dawn|midday|midnight|solo|school|meteor|core|10%|50%|complete)\s+/gi, '').trim();
+
+    // Usa POKEMON_TYPE_MAP global se disponível
     if (typeof POKEMON_TYPE_MAP !== 'undefined') {
-      var types = POKEMON_TYPE_MAP[clean] || POKEMON_TYPE_MAP[clean.toLowerCase()];
-      if (types && types.length) return types[0];
+      var found = POKEMON_TYPE_MAP[clean] || POKEMON_TYPE_MAP[clean.toLowerCase()];
+      if (found && found.length) return found;
+      // Tenta sem apóstrofo (ex: Farfetch'd → Farfetchd)
+      var noApos = clean.replace(/'/g, '');
+      found = POKEMON_TYPE_MAP[noApos];
+      if (found && found.length) return found;
     }
-    // Fallback embutido para os pokémons mais comuns do catálogo
-    var _fallback = {
-      Charizard:'fire', Charmander:'fire', Charmeleon:'fire',
-      Blastoise:'water', Squirtle:'water', Wartortle:'water',
-      Venusaur:'grass', Bulbasaur:'grass', Ivysaur:'grass',
-      Pikachu:'electric', Raichu:'electric', Zapdos:'electric',
-      Gengar:'ghost', Haunter:'ghost', Gastly:'ghost',
-      Mewtwo:'psychic', Alakazam:'psychic', Espeon:'psychic',
-      Machamp:'fighting', Machoke:'fighting', Machop:'fighting',
-      Dragonite:'dragon', Dratini:'dragon', Dragonair:'dragon',
-      Umbreon:'dark', Absol:'dark', Weavile:'dark',
-      Gardevoir:'fairy', Clefable:'fairy', Togekiss:'fairy',
-      Gyarados:'water', Lapras:'water', Vaporeon:'water',
-      Arcanine:'fire', Ninetales:'fire', Flareon:'fire',
-      Leafeon:'grass', Sceptile:'grass', Tropius:'grass',
-      Glaceon:'ice', Articuno:'ice', Mamoswine:'ice',
-      Lucario:'fighting', Heracross:'fighting',
-      Tyranitar:'rock', Golem:'rock', Omastar:'rock',
-      Garchomp:'dragon', Salamence:'dragon',
-      Metagross:'steel', Scizor:'steel', Magnezone:'steel',
-      Nidoking:'poison', Nidoqueen:'poison', Beedrill:'poison',
-      Flygon:'dragon', Aggron:'steel',
+
+    // Fallback expandido — cobre os pokémons do catálogo + geração 4/5/6
+    var _fb = {
+      // Gen 1
+      Bulbasaur:['grass','poison'], Ivysaur:['grass','poison'], Venusaur:['grass','poison'],
+      Charmander:['fire'], Charmeleon:['fire'], Charizard:['fire','flying'],
+      Squirtle:['water'], Wartortle:['water'], Blastoise:['water'],
+      Caterpie:['bug'], Metapod:['bug'], Butterfree:['bug','flying'],
+      Weedle:['bug','poison'], Kakuna:['bug','poison'], Beedrill:['bug','poison'],
+      Pidgey:['normal','flying'], Pidgeotto:['normal','flying'], Pidgeot:['normal','flying'],
+      Rattata:['normal'], Raticate:['normal'],
+      Spearow:['normal','flying'], Fearow:['normal','flying'],
+      Ekans:['poison'], Arbok:['poison'],
+      Pikachu:['electric'], Raichu:['electric'],
+      Sandshrew:['ground'], Sandslash:['ground'],
+      Nidoran:['poison'], Nidorina:['poison'], Nidoqueen:['poison','ground'],
+      Nidorino:['poison'], Nidoking:['poison','ground'],
+      Clefairy:['fairy'], Clefable:['fairy'],
+      Vulpix:['fire'], Ninetales:['fire'],
+      Jigglypuff:['normal','fairy'], Wigglytuff:['normal','fairy'],
+      Zubat:['poison','flying'], Golbat:['poison','flying'],
+      Oddish:['grass','poison'], Gloom:['grass','poison'], Vileplume:['grass','poison'],
+      Paras:['bug','grass'], Parasect:['bug','grass'],
+      Venonat:['bug','poison'], Venomoth:['bug','poison'],
+      Diglett:['ground'], Dugtrio:['ground'],
+      Meowth:['normal'], Persian:['normal'],
+      Psyduck:['water'], Golduck:['water'],
+      Mankey:['fighting'], Primeape:['fighting'],
+      Growlithe:['fire'], Arcanine:['fire'],
+      Poliwag:['water'], Poliwhirl:['water'], Poliwrath:['water','fighting'],
+      Abra:['psychic'], Kadabra:['psychic'], Alakazam:['psychic'],
+      Machop:['fighting'], Machoke:['fighting'], Machamp:['fighting'],
+      Bellsprout:['grass','poison'], Weepinbell:['grass','poison'], Victreebel:['grass','poison'],
+      Tentacool:['water','poison'], Tentacruel:['water','poison'],
+      Geodude:['rock','ground'], Graveler:['rock','ground'], Golem:['rock','ground'],
+      Ponyta:['fire'], Rapidash:['fire'],
+      Slowpoke:['water','psychic'], Slowbro:['water','psychic'],
+      Magnemite:['electric','steel'], Magneton:['electric','steel'],
+      Doduo:['normal','flying'], Dodrio:['normal','flying'],
+      Seel:['water'], Dewgong:['water','ice'],
+      Grimer:['poison'], Muk:['poison'],
+      Shellder:['water'], Cloyster:['water','ice'],
+      Gastly:['ghost','poison'], Haunter:['ghost','poison'], Gengar:['ghost','poison'],
+      Onix:['rock','ground'],
+      Drowzee:['psychic'], Hypno:['psychic'],
+      Krabby:['water'], Kingler:['water'],
+      Voltorb:['electric'], Electrode:['electric'],
+      Exeggcute:['grass','psychic'], Exeggutor:['grass','psychic'],
+      Cubone:['ground'], Marowak:['ground'],
+      Hitmonlee:['fighting'], Hitmonchan:['fighting'], Hitmontop:['fighting'],
+      Lickitung:['normal'],
+      Koffing:['poison'], Weezing:['poison'],
+      Rhyhorn:['ground','rock'], Rhydon:['ground','rock'], Rhyperior:['ground','rock'],
+      Chansey:['normal'], Blissey:['normal'],
+      Tangela:['grass'], Tangrowth:['grass'],
+      Kangaskhan:['normal'],
+      Horsea:['water'], Seadra:['water'], Kingdra:['water','dragon'],
+      Goldeen:['water'], Seaking:['water'],
+      Staryu:['water'], Starmie:['water','psychic'],
+      Scyther:['bug','flying'], Scizor:['bug','steel'],
+      Jynx:['ice','psychic'],
+      Electabuzz:['electric'], Electivire:['electric'],
+      Magmar:['fire'], Magmortar:['fire'],
+      Pinsir:['bug'],
+      Tauros:['normal'],
+      Magikarp:['water'], Gyarados:['water','flying'],
+      Lapras:['water','ice'],
+      Ditto:['normal'],
+      Eevee:['normal'],
+      Vaporeon:['water'], Jolteon:['electric'], Flareon:['fire'],
+      Espeon:['psychic'], Umbreon:['dark'],
+      Leafeon:['grass'], Glaceon:['ice'], Sylveon:['fairy'],
+      Porygon:['normal'], PorygonZ:['normal'],
+      Omanyte:['rock','water'], Omastar:['rock','water'],
+      Kabuto:['rock','water'], Kabutops:['rock','water'],
+      Aerodactyl:['rock','flying'],
+      Snorlax:['normal'],
+      Articuno:['ice','flying'], Zapdos:['electric','flying'], Moltres:['fire','flying'],
+      Dratini:['dragon'], Dragonair:['dragon'], Dragonite:['dragon','flying'],
+      Mewtwo:['psychic'], Mew:['psychic'],
+      // Gen 2
+      Chikorita:['grass'], Bayleef:['grass'], Meganium:['grass'],
+      Cyndaquil:['fire'], Quilava:['fire'], Typhlosion:['fire'],
+      Totodile:['water'], Croconaw:['water'], Feraligatr:['water'],
+      Sentret:['normal'], Furret:['normal'],
+      Hoothoot:['normal','flying'], Noctowl:['normal','flying'],
+      Ledyba:['bug','flying'], Ledian:['bug','flying'],
+      Spinarak:['bug','poison'], Ariados:['bug','poison'],
+      Crobat:['poison','flying'],
+      Chinchou:['water','electric'], Lanturn:['water','electric'],
+      Pichu:['electric'], Cleffa:['fairy'], Igglybuff:['normal','fairy'],
+      Togepi:['fairy'], Togetic:['fairy','flying'], Togekiss:['fairy','flying'],
+      Natu:['psychic','flying'], Xatu:['psychic','flying'],
+      Mareep:['electric'], Flaaffy:['electric'], Ampharos:['electric'],
+      Bellossom:['grass'],
+      Marill:['water','fairy'], Azumarill:['water','fairy'],
+      Sudowoodo:['rock'],
+      Politoed:['water'],
+      Hoppip:['grass','flying'], Skiploom:['grass','flying'], Jumpluff:['grass','flying'],
+      Aipom:['normal'], Ambipom:['normal'],
+      Sunkern:['grass'], Sunflora:['grass'],
+      Yanma:['bug','flying'], Yanmega:['bug','flying'],
+      Wooper:['water','ground'], Quagsire:['water','ground'],
+      Murkrow:['dark','flying'], Honchkrow:['dark','flying'],
+      Misdreavus:['ghost'], Mismagius:['ghost'],
+      Unown:['psychic'],
+      Wobbuffet:['psychic'],
+      Girafarig:['normal','psychic'],
+      Pineco:['bug'], Forretress:['bug','steel'],
+      Dunsparce:['normal'],
+      Gligar:['ground','flying'], Gliscor:['ground','flying'],
+      Steelix:['steel','ground'],
+      Snubbull:['fairy'], Granbull:['fairy'],
+      Qwilfish:['water','poison'],
+      Heracross:['bug','fighting'],
+      Sneasel:['dark','ice'], Weavile:['dark','ice'],
+      Teddiursa:['normal'], Ursaring:['normal'],
+      Slugma:['fire'], Magcargo:['fire','rock'],
+      Swinub:['ice','ground'], Piloswine:['ice','ground'], Mamoswine:['ice','ground'],
+      Corsola:['water','rock'],
+      Remoraid:['water'], Octillery:['water'],
+      Delibird:['ice','flying'],
+      Skarmory:['steel','flying'],
+      Houndour:['dark','fire'], Houndoom:['dark','fire'],
+      Phanpy:['ground'], Donphan:['ground'],
+      Porygon2:['normal'],
+      Stantler:['normal'],
+      Smeargle:['normal'],
+      Miltank:['normal'],
+      Raikou:['electric'], Entei:['fire'], Suicune:['water'],
+      Larvitar:['rock','ground'], Pupitar:['rock','ground'], Tyranitar:['rock','dark'],
+      Lugia:['psychic','flying'], HoOh:['fire','flying'],
+      Celebi:['psychic','grass'],
+      // Gen 3
+      Treecko:['grass'], Grovyle:['grass'], Sceptile:['grass'],
+      Torchic:['fire'], Combusken:['fire','fighting'], Blaziken:['fire','fighting'],
+      Mudkip:['water'], Marshtomp:['water','ground'], Swampert:['water','ground'],
+      Poochyena:['dark'], Mightyena:['dark'],
+      Zigzagoon:['normal'], Linoone:['normal'],
+      Wurmple:['bug'], Silcoon:['bug'], Beautifly:['bug','flying'],
+      Cascoon:['bug'], Dustox:['bug','poison'],
+      Lotad:['water','grass'], Lombre:['water','grass'], Ludicolo:['water','grass'],
+      Seedot:['grass'], Nuzleaf:['grass','dark'], Shiftry:['grass','dark'],
+      Taillow:['normal','flying'], Swellow:['normal','flying'],
+      Wingull:['water','flying'], Pelipper:['water','flying'],
+      Ralts:['psychic','fairy'], Kirlia:['psychic','fairy'],
+      Gardevoir:['psychic','fairy'], Gallade:['psychic','fighting'],
+      Shroomish:['grass'], Breloom:['grass','fighting'],
+      Slakoth:['normal'], Vigoroth:['normal'], Slaking:['normal'],
+      Abra:['psychic'],
+      Makuhita:['fighting'], Hariyama:['fighting'],
+      Nosepass:['rock'], Probopass:['rock','steel'],
+      Skitty:['normal'], Delcatty:['normal'],
+      Sableye:['dark','ghost'],
+      Mawile:['steel','fairy'],
+      Aron:['steel','rock'], Lairon:['steel','rock'], Aggron:['steel','rock'],
+      Meditite:['fighting','psychic'], Medicham:['fighting','psychic'],
+      Electrike:['electric'], Manectric:['electric'],
+      Plusle:['electric'], Minun:['electric'],
+      Volbeat:['bug'], Illumise:['bug'],
+      Roselia:['grass','poison'], Roserade:['grass','poison'],
+      Gulpin:['poison'], Swalot:['poison'],
+      Carvanha:['water','dark'], Sharpedo:['water','dark'],
+      Wailmer:['water'], Wailord:['water'],
+      Numel:['fire','ground'], Camerupt:['fire','ground'],
+      Torkoal:['fire'],
+      Spoink:['psychic'], Grumpig:['psychic'],
+      Spinda:['normal'],
+      Trapinch:['ground'], Vibrava:['ground','dragon'], Flygon:['ground','dragon'],
+      Cacnea:['grass'], Cacturne:['grass','dark'],
+      Swablu:['normal','flying'], Altaria:['dragon','flying'],
+      Zangoose:['normal'],
+      Seviper:['poison'],
+      Lunatone:['rock','psychic'], Solrock:['rock','psychic'],
+      Barboach:['water','ground'], Whiscash:['water','ground'],
+      Corphish:['water'], Crawdaunt:['water','dark'],
+      Baltoy:['ground','psychic'], Claydol:['ground','psychic'],
+      Lileep:['rock','grass'], Cradily:['rock','grass'],
+      Anorith:['rock','bug'], Armaldo:['rock','bug'],
+      Feebas:['water'], Milotic:['water'],
+      Castform:['normal'],
+      Shuppet:['ghost'], Banette:['ghost'],
+      Duskull:['ghost'], Dusclops:['ghost'], Dusknoir:['ghost'],
+      Tropius:['grass','flying'],
+      Chimecho:['psychic'],
+      Absol:['dark'],
+      Snorunt:['ice'], Glalie:['ice'], Froslass:['ice','ghost'],
+      Spheal:['ice','water'], Sealeo:['ice','water'], Walrein:['ice','water'],
+      Clamperl:['water'], Huntail:['water'], Gorebyss:['water'],
+      Relicanth:['water','rock'],
+      Luvdisc:['water'],
+      Bagon:['dragon'], Shelgon:['dragon'], Salamence:['dragon','flying'],
+      Beldum:['steel','psychic'], Metang:['steel','psychic'], Metagross:['steel','psychic'],
+      Regirock:['rock'], Regice:['ice'], Registeel:['steel'],
+      Latias:['dragon','psychic'], Latios:['dragon','psychic'],
+      Kyogre:['water'], Groudon:['ground'], Rayquaza:['dragon','flying'],
+      Jirachi:['steel','psychic'], Deoxys:['psychic'],
+      // Gen 4
+      Turtwig:['grass'], Grotle:['grass'], Torterra:['grass','ground'],
+      Chimchar:['fire'], Monferno:['fire','fighting'], Infernape:['fire','fighting'],
+      Piplup:['water'], Prinplup:['water'], Empoleon:['water','steel'],
+      Starly:['normal','flying'], Staravia:['normal','flying'], Staraptor:['normal','flying'],
+      Bidoof:['normal'], Bibarel:['normal','water'],
+      Kricketot:['bug'], Kricketune:['bug'],
+      Shinx:['electric'], Luxio:['electric'], Luxray:['electric'],
+      Cranidos:['rock'], Rampardos:['rock'],
+      Shieldon:['rock','steel'], Bastiodon:['rock','steel'],
+      Burmy:['bug'], Wormadam:['bug','grass'], Mothim:['bug','flying'],
+      Combee:['bug','flying'], Vespiquen:['bug','flying'],
+      Pachirisu:['electric'],
+      Buizel:['water'], Floatzel:['water'],
+      Cherubi:['grass'], Cherrim:['grass'],
+      Shellos:['water'], Gastrodon:['water','ground'],
+      Drifloon:['ghost','flying'], Drifblim:['ghost','flying'],
+      Buneary:['normal'], Lopunny:['normal'],
+      Glameow:['normal'], Purugly:['normal'],
+      Stunky:['poison','dark'], Skuntank:['poison','dark'],
+      Bronzor:['steel','psychic'], Bronzong:['steel','psychic'],
+      Gible:['dragon','ground'], Gabite:['dragon','ground'], Garchomp:['dragon','ground'],
+      Riolu:['fighting'], Lucario:['fighting','steel'],
+      Hippopotas:['ground'], Hippowdon:['ground'],
+      Skorupi:['poison','bug'], Drapion:['poison','dark'],
+      Croagunk:['poison','fighting'], Toxicroak:['poison','fighting'],
+      Carnivine:['grass'],
+      Finneon:['water'], Lumineon:['water'],
+      Mantyke:['water','flying'], Mantine:['water','flying'],
+      Snover:['grass','ice'], Abomasnow:['grass','ice'],
+      Rotom:['electric','ghost'],
+      Dialga:['steel','dragon'], Palkia:['water','dragon'],
+      Giratina:['ghost','dragon'],
+      Cresselia:['psychic'],
+      Manaphy:['water'], Phione:['water'],
+      Darkrai:['dark'],
+      Shaymin:['grass'],
+      Arceus:['normal'],
+      // Gen 5
+      Zoroark:['dark'], Zorua:['dark'],
+      Reshiram:['dragon','fire'], Zekrom:['dragon','electric'],
+      Kyurem:['dragon','ice'],
+      Victini:['psychic','fire'],
+      // Gen 6
+      Xerneas:['fairy'], Yveltal:['dark','flying'], Zygarde:['dragon','ground'],
+      Diancie:['rock','fairy'], Hoopa:['psychic','ghost'], Volcanion:['fire','water'],
+      Sylveon:['fairy'],
+      Florges:['fairy'],
+      Aegislash:['steel','ghost'],
+      Greninja:['water','dark'],
+      Chesnaught:['grass','fighting'],
+      Delphox:['fire','psychic'],
+      // Extras comuns no catálogo
+      Eevee:['normal'],
     };
-    return _fallback[clean] || _fallback[name] || null;
+
+    return _fb[clean] || _fb[name] || [];
   }
 
-  // Retorna a URL do banner correspondente ao tipo primário do pokémon.
-  // Se não encontrar, retorna null (sem banner — não quebra o card).
+  // Compatibilidade — retorna apenas o tipo primário (para banner padrão)
+  function _getTypeForPokemon(name) {
+    var types = _getTypesForPokemon(name);
+    return types.length ? types[0] : null;
+  }
+
+  // Retorna a URL do banner para salvar no banco.
+  // Usa o banner que o admin selecionou clicando num tipo, senão usa o tipo primário.
   function _getBannerForPokemon(name) {
-    var type = _getTypeForPokemon(name);
-    return type ? (TYPE_BANNER_MAP[type] || null) : null;
+    if (window._adminSelectedBanner) {
+      var sel = window._adminSelectedBanner;
+      window._adminSelectedBanner = null; // limpa após usar
+      return sel;
+    }
+    var types = _getTypesForPokemon(name);
+    var primary = types.length ? types[0] : null;
+    return primary ? (TYPE_BANNER_MAP[primary] || null) : null;
   }
 
   // Atualiza o preview de tipagem no formulário em tempo real.
@@ -575,18 +820,60 @@
     var nameEl    = document.getElementById(inputId);
     var previewEl = document.getElementById(previewId);
     if (!nameEl || !previewEl) return;
-    var name   = nameEl.value.trim();
-    var type   = typeof _getTypeForPokemon === 'function' ? _getTypeForPokemon(name) : null;
-    var banner = type && window._adminTypeBannerMap ? window._adminTypeBannerMap[type] : null;
-    if (type && banner) {
-      previewEl.innerHTML =
-        '<img src="' + banner + '" style="height:26px;vertical-align:middle;border-radius:4px;margin-right:6px" onerror="this.style.display=\'none\'">' +
-        '<span style="color:#aef;font-size:.82rem;text-transform:capitalize">' + type + '</span>';
-    } else if (name) {
-      previewEl.innerHTML = '<span style="color:#888;font-size:.82rem">tipo não reconhecido — sem banner</span>';
-    } else {
-      previewEl.innerHTML = '';
+    var name  = nameEl.value.trim();
+    var types = typeof _getTypesForPokemon === 'function' ? _getTypesForPokemon(name) : [];
+    var bannerMap = window._adminTypeBannerMap || {};
+
+    if (!types.length) {
+      previewEl.innerHTML = name
+        ? '<span style="color:#888;font-size:.82rem">tipo não reconhecido — banner não será adicionado</span>'
+        : '';
+      return;
     }
+
+    // Monta botões para cada tipo — clicando escolhe qual banner usar
+    var btns = types.map(function(t, i) {
+      var banner = bannerMap[t] || '';
+      var isFirst = i === 0;
+      return '<button type="button" onclick="window._adminSelectType(\'' + inputId + '\',\'' + previewId + '\',\'' + t + '\')" '
+        + 'style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;margin-right:5px;'
+        + 'border-radius:6px;border:1px solid ' + (isFirst ? '#60aaff' : 'rgba(255,255,255,.2)') + ';'
+        + 'background:' + (isFirst ? 'rgba(96,170,255,.15)' : 'rgba(255,255,255,.04)') + ';'
+        + 'color:' + (isFirst ? '#aef' : 'rgba(255,255,255,.5)') + ';cursor:pointer;font-size:.78rem;'
+        + '" data-type="' + t + '">'
+        + (banner ? '<img src="' + banner + '" style="height:18px;border-radius:3px" onerror="this.style.display=\'none\'">' : '')
+        + '<span style="text-transform:capitalize">' + t + '</span>'
+        + (isFirst ? ' <span style="font-size:.65rem;opacity:.6">(selecionado)</span>' : '')
+        + '</button>';
+    }).join('');
+
+    previewEl.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">'
+      + '<span style="color:rgba(255,255,255,.4);font-size:.75rem;margin-right:4px">Banner:</span>'
+      + btns
+      + '</div>';
+
+    // Seleciona o primeiro tipo por padrão
+    window._adminSelectedBanner = bannerMap[types[0]] || null;
+  };
+
+  // Quando admin clica num tipo diferente — troca o banner selecionado
+  global._adminSelectType = function(inputId, previewId, selectedType) {
+    var bannerMap = window._adminTypeBannerMap || {};
+    window._adminSelectedBanner = bannerMap[selectedType] || null;
+
+    // Atualiza visual dos botões
+    var previewEl = document.getElementById(previewId);
+    if (!previewEl) return;
+    previewEl.querySelectorAll('button[data-type]').forEach(function(btn) {
+      var t = btn.getAttribute('data-type');
+      var isSelected = t === selectedType;
+      btn.style.borderColor  = isSelected ? '#60aaff' : 'rgba(255,255,255,.2)';
+      btn.style.background   = isSelected ? 'rgba(96,170,255,.15)' : 'rgba(255,255,255,.04)';
+      btn.style.color        = isSelected ? '#aef' : 'rgba(255,255,255,.5)';
+      // Atualiza label "(selecionado)"
+      var label = btn.querySelector('span:last-child');
+      if (label) label.textContent = isSelected ? '(selecionado)' : '';
+    });
   };
 
 }(window));
