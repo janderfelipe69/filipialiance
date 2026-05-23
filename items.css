@@ -523,6 +523,14 @@
   opacity: 0.6;
 }
 
+.item-price-dd {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #c084fc;
+  opacity: 0.75;
+  letter-spacing: 0.3px;
+}
+
 .item-price-total-row {
   display: flex;
   align-items: baseline;
@@ -553,6 +561,13 @@
   color: var(--ic-muted);
   opacity: 0.35;
   margin-left: auto;
+}
+
+.item-price-total-dd {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: #c084fc;
+  opacity: 0.4;
 }
 
 .item-price-none {

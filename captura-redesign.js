@@ -379,6 +379,14 @@
   letter-spacing: 0.5px;
 }
 
+.cpk-price-dd {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  color: #c084fc;
+  opacity: 0.75;
+  letter-spacing: 0.3px;
+}
+
 .cpk-no-price {
   font-family: var(--font-mono, monospace);
   font-size: 10px;
@@ -571,6 +579,7 @@
       ? `<div class="cpk-price-row">
            <span class="cpk-price-kk" style="--type-clr:${typeColor}">${priceData.label}</span>
            <span class="cpk-price-brl">${priceData.brl}</span>
+           ${poke.price_dd ? `<span class="cpk-price-dd">${Math.round(poke.price_dd * diveMultiplier).toLocaleString('pt-BR')} DD</span>` : ''}
          </div>`
       : `<span class="cpk-no-price">A definir</span>`;
 
