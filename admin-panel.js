@@ -14,37 +14,23 @@
     return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
   }
 
-  function getJwt() {
-    if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
-      return Session.getAccessToken();
-    }
-    return null;
-  }
-
-  // Versão assíncrona que aguarda Session.ready()
+  // Aguarda Session.ready() e retorna o JWT real
   function getJwtAsync() {
     if (typeof Session === 'undefined') return Promise.resolve(null);
     return Session.ready().then(function() {
-      return Session.getAccessToken();
+      var t = Session.getAccessToken ? Session.getAccessToken() : null;
+      if (!t) console.warn('[admin-panel] getJwtAsync: token null após Session.ready()');
+      return t;
     });
-  }
-
-  function sbHeaders() {
-    var jwt = getJwt();
-    if (!jwt) console.warn('[admin-panel] JWT não disponível — usando anon key');
-    else console.log('[admin-panel] JWT ok:', jwt.substring(0,20) + '...');
-    return {
-      'Content-Type':  'application/json',
-      'apikey':        global.SUPABASE_KEY,
-      'Authorization': 'Bearer ' + (jwt || global.SUPABASE_KEY),
-      'Prefer':        'return=representation',
-    };
   }
 
   function sbFetch(method, path, body) {
     return getJwtAsync().then(function(jwt) {
-      console.log('[admin-panel] sbFetch', method, path, 'jwt:', jwt ? jwt.substring(0,20)+'...' : 'NULL');
-      if (!jwt) throw new Error('Sessão não disponível. Faça login novamente.');
+      if (!jwt) {
+        console.error('[admin-panel] JWT indisponível — operação abortada');
+        throw new Error('Sessão expirada. Recarregue a página e tente novamente.');
+      }
+      console.log('[admin-panel]', method, path, '| jwt:', jwt.substring(0,20) + '...');
       return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
         method:  method,
         headers: {
@@ -56,9 +42,19 @@
         body: body ? JSON.stringify(body) : undefined,
       });
     }).then(function(r) {
-      if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+      if (!r.ok) return r.text().then(function(t) { throw new Error(t.slice(0,300)); });
       return r.json().catch(function() { return {}; });
     });
+  }
+
+  // Para GETs que não precisam de auth (usa anon key)
+  function sbGet(path) {
+    return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
+      headers: {
+        'apikey':        global.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + global.SUPABASE_KEY,
+      }
+    }).then(function(r) { return r.json(); });
   }
 
   // ── Modal base ───────────────────────────────────────────────────────────
@@ -175,7 +171,7 @@
 
   function openEditItem(item) {
     // Load drops for this item
-    fetch(global.SUPABASE_URL + '/rest/v1/catalog_item_drops?item_id=eq.' + item.id + '&select=id,pokemon_name,drop_qty', { headers: sbHeaders() })
+    sbGet('catalog_item_drops?item_id=eq.' + item.id + '&select=id,pokemon_name,drop_qty')
       .then(function(r) { return r.json(); })
       .then(function(drops) {
         var dropsHtml = drops.map(function(d) {
@@ -252,7 +248,7 @@
   }
 
   function reloadItems() {
-    fetch(global.SUPABASE_URL + '/rest/v1/catalog_items?select=id,name,price_brl,drop_tier&is_active=eq.true&order=name', { headers: sbHeaders() })
+    sbGet('catalog_items?select=id,name,price_brl,drop_tier&is_active=eq.true&order=name')
       .then(function(r) { return r.json(); })
       .then(function(rows) {
         global.items.length = 0;
@@ -342,7 +338,7 @@
   }
 
   function reloadPokemons() {
-    fetch(global.SUPABASE_URL + '/rest/v1/catalog_pokemons?select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order', { headers: sbHeaders() })
+    sbGet('catalog_pokemons?select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order')
       .then(function(r) { return r.json(); })
       .then(function(rows) {
         var cfg = global.APP_CONFIG || {};
@@ -384,7 +380,7 @@
     var pkg = global.PACKAGES && global.PACKAGES[pi];
     if (!pkg) return;
     openModal('🗑️ Remover Pacote', '<p style="color:#ffaaaa">Desativar <strong>'+pkg.name+'</strong>?</p>', function(close) {
-      fetch(global.SUPABASE_URL + '/rest/v1/catalog_packages?name=eq.' + encodeURIComponent(pkg.name), { headers: sbHeaders() })
+      sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
         .then(function(r) { return r.json(); })
         .then(function(rows) {
           if (!rows || !rows[0]) throw new Error('Pacote não encontrado');
