@@ -208,6 +208,8 @@ const OrdersAdmin = (() => {
               : (order.service_quantity || null);
 
             return {
+              // Preço do serviço — para cálculo automático no modal de pagamento
+              price_brl:    parseFloat(order.total_brl || order.subtotal_brl || order.pagamento_brl || 0) || null,
               // nick: nick_jogo é o único campo de nick retornado pelo banco agora
               nick:         _s(order.nick_jogo || order.nickname || order.nick || order.cliente_nick, '—'),
               // player_name: idem
@@ -258,7 +260,7 @@ const OrdersAdmin = (() => {
                 if (!jwt) { DeliveryAdmin.openModal(supabaseOrderId, {}); return; }
                 const res = await fetch(
                   window.SUPABASE_URL + '/rest/v1/pedidos?id=eq.' + supabaseOrderId +
-                  '&select=id,nick_jogo,itens,created_at,started_at,completed_at,service_type,service_quantity,status&limit=1',
+                  '&select=id,nick_jogo,itens,created_at,started_at,completed_at,service_type,service_quantity,status,subtotal_brl,total_brl,pagamento_brl&limit=1',
                   { headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_KEY, 'Authorization': 'Bearer ' + jwt } }
                 );
                 if (res.ok) {
@@ -428,8 +430,12 @@ const OrdersAdmin = (() => {
       }
 
       try {
-        // ETAPA 1 — delivery_history
-        await _cascadeDelete('delivery_history', `order_id=eq.${supabaseId}`, 'delivery_history');
+        // ETAPA 1 — delivery_history (tabela legada, pode não existir — ignorar erro)
+        try {
+          await _cascadeDelete('delivery_history', `order_id=eq.${supabaseId}`, 'delivery_history');
+        } catch(e) {
+          console.warn('[DeleteCascade] delivery_history não existe (normal) — continuando:', e.message);
+        }
 
         // ETAPA 2 — delivery_proofs
         await _cascadeDelete('delivery_proofs', `order_id=eq.${supabaseId}`, 'delivery_proofs');

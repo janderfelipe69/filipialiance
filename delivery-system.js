@@ -280,7 +280,7 @@
         const rPatch = await fetch(`${SB_URL}/rest/v1/pedidos?id=eq.${orderId}`, {
           method:  'PATCH',
           headers: { ..._headers(jwt), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-          body:    JSON.stringify({ status_v3: 'in_progress', updated_at: new Date().toISOString() }),
+          body:    JSON.stringify({ status_v3: 'in_progress' }), // updated_at não existe em pedidos
         });
         if (!rPatch.ok) {
           const e = await rPatch.json().catch(() => ({}));
@@ -616,9 +616,33 @@
           order_created_at: orderData?.created_at   || null,
           concluido_at:     new Date().toISOString(),
         };
-        await DeliveryDB.insert(payload);
+        const insertedRows = await DeliveryDB.insert(payload);
+        const deliveryId = insertedRows && insertedRows[0] && insertedRows[0].id;
 
         if (progressFill) progressFill.style.width = '75%';
+
+        // ── PASSO 2.5: Modal de pagamento ──────────────────
+        if (deliveryId && typeof DeliveryFinancial !== 'undefined') {
+          await new Promise(function(resolve) {
+            DeliveryFinancial.openPaymentModal(
+              {
+                id:           deliveryId,
+                service_name: payload.service_name,
+                pokemon_name: payload.pokemon_name,
+                price_brl:    orderData && (orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
+                              ? parseFloat(orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
+                              : null,
+              },
+              function(paymentData) {
+                DeliveryFinancial.savePaymentOnDelivery(deliveryId, paymentData)
+                  .catch(function(e) {
+                    console.warn('[Entrega] pagamento salvo com erro (não crítico):', e.message);
+                  })
+                  .finally(resolve);
+              }
+            );
+          });
+        }
 
         // ── PASSO 3: UPDATE pedidos → status = 'concluido' ──
         await DeliveryAdmin._updatePedidoStatus(orderId);
