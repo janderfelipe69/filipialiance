@@ -552,16 +552,13 @@ function setPayMode(mode) {
   document.querySelectorAll('.pay-block').forEach(b => b.classList.remove('active'));
   document.getElementById('pay-block-' + mode).classList.add('active');
   if (mode === 'mix') syncMixInputs();
-  // Recalcula DD ao entrar no modo — garante valor atualizado mesmo sem re-abrir carrinho
-  if (mode === 'dd' && _payTotalBrl > 0) {
-    const _ddRate = (window.APP_CONFIG && window.APP_CONFIG.dd_to_brl) || 0.70;
-    const ddTotal = Math.round(_payTotalBrl / _ddRate);
-    const ddEl = document.getElementById('pay-dd-total');
-    const ddHintEl = document.getElementById('pay-dd-brl-hint');
+  if (mode === 'dd') {
+    var ddEl     = document.getElementById('pay-dd-total');
+    var ddHintEl = document.getElementById('pay-dd-brl-hint');
+    var ddRate   = (window.APP_CONFIG && window.APP_CONFIG.dd_to_brl) || 0.70;
+    var ddTotal  = _payTotalBrl > 0 ? Math.round(_payTotalBrl / ddRate) : 0;
     if (ddEl)     ddEl.textContent     = ddTotal > 0 ? ddTotal.toLocaleString('pt-BR') + ' DD' : '—';
-    if (ddHintEl) ddHintEl.textContent = ddTotal > 0
-      ? 'equivale a ' + _payTotalBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      : '';
+    if (ddHintEl) ddHintEl.textContent = ddTotal > 0 ? 'equivale a ' + _payTotalBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
   }
 }
 
