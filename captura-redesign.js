@@ -810,3 +810,82 @@
   console.log('[CapturaRedesign] ✅ v2.0 Performance Edition loaded');
 
 })();
+
+/* =============================================================
+   INTEGRAÇÃO BALLS SELECTOR
+   Intercepta openCapturaModal para mostrar o seletor de ball
+   ANTES de abrir o modal de pedido.
+
+   Fluxo:
+   1. Usuário clica "Capturar"
+   2. openCapturaModal(idx) é chamado
+   3. BallsSelector abre com as 3 opções de ball
+   4. Usuário escolhe a ball e confirma
+   5. _originalOpen(idx) é chamado — modal de pedido abre normalmente
+   6. ball_type e preços ficam em window._selectedBallType /
+      window._selectedBallPrices para serem lidos na submissão
+   ============================================================= */
+(function() {
+  'use strict';
+
+  function _hookWhenReady(attempts) {
+    if (typeof window.openCapturaModal !== 'function') {
+      if ((attempts || 0) > 40) {
+        console.warn('[BallsIntegration] openCapturaModal não encontrado após 2s');
+        return;
+      }
+      return setTimeout(function() { _hookWhenReady((attempts || 0) + 1); }, 50);
+    }
+
+    var _originalOpen = window.openCapturaModal;
+
+    window.openCapturaModal = function(idx) {
+      var POKES = (typeof POKEMONS !== 'undefined' && POKEMONS)
+        ? POKEMONS
+        : (typeof window.POKEMONS !== 'undefined' ? window.POKEMONS : null);
+      var poke = POKES ? POKES[idx] : null;
+
+      // Fallback seguro: sem BallsSelector ou sem dados, abre direto
+      if (typeof BallsSelector === 'undefined' || !poke) {
+        return _originalOpen(idx);
+      }
+
+      // Calcula preço BRL usando taxa global (se disponível)
+      var diveMultiplier = poke.dive ? 1.30 : 1.0;
+      var priceKK  = poke.price ? Math.round(poke.price * diveMultiplier) : 0;
+      var rateKK   = window.RATE_KK_BRL || window._rateKkBrl || 0;
+      var priceBRL = rateKK ? Math.round(priceKK * rateKK * 100) / 100 : 0;
+
+      var pokemonData = {
+        id:             poke.id   || null,
+        name:           poke.name || 'Pokémon',
+        image_url:      poke.image || null,
+        price_brl:      priceBRL,
+        price_kk:       priceKK,
+        price_dd:       poke.price_dd || 0,
+        estimated_days: poke.estimated_days || 7,
+        supports_ultra_ball:    poke.supports_ultra_ball    !== false,
+        supports_premier_ball:  poke.supports_premier_ball  !== false,
+        supports_alliance_ball: poke.supports_alliance_ball !== false,
+      };
+
+      BallsSelector.openForCaptura(pokemonData, function(ballType, prices) {
+        // Expõe globalmente para o código de submissão do pedido
+        window._selectedBallType   = ballType;
+        window._selectedBallPrices = prices;
+        window._selectedBallIdx    = idx;
+        console.log('[BallsIntegration] Ball:', ballType, prices);
+        // Abre o modal de pedido normalmente
+        _originalOpen(idx);
+      });
+    };
+
+    console.log('[BallsIntegration] ✅ openCapturaModal interceptado');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { _hookWhenReady(0); });
+  } else {
+    _hookWhenReady(0);
+  }
+})();
