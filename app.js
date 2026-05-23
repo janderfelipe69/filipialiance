@@ -29,7 +29,7 @@ function _calcCapturaFinalPrice(poke, ball) {
   return (ball.minPrice && rawFinalPrice > 0) ? Math.max(rawFinalPrice, ball.minPrice) : rawFinalPrice;
 }
 
-var items = window.items = window.items || [];
+const items = [];
 const seen = new Set();
 RAW.forEach(([name, image, price, tier, evo]) => {
   const key = name + '|' + (image || '');
@@ -2435,7 +2435,7 @@ function getBrokeForTag(tag) {
 // Formato: { name: "Nome", price: <raw kk igual RAW>, image: "url" }
 // POKEMONS migrado para Supabase (catalog_pokemons)
 // db-bootstrap.js popula window.POKEMONS[] automaticamente
-var POKEMONS = window.POKEMONS = window.POKEMONS || [];
+const POKEMONS = window.POKEMONS || [];
 // Store original index for O(1) lookup
 POKEMONS.forEach((p, i) => { p._idx = i; });
 
@@ -2569,7 +2569,7 @@ function openCapturaModal(idx) {
   const body = document.getElementById('captura-modal-body');
   body.innerHTML = `
     <div class="captura-modal-img-wrap">
-      <img class="captura-modal-pokemon-img" src="${poke.image}" alt="${poke.name}" onerror="this.style.display='none'" />
+      <img class="captura-modal-pokemon-img" src="${typeof getShowdownSprite === 'function' ? getShowdownSprite(poke.name) : ''}" alt="${poke.name}" onerror="this.style.opacity='0.3'" />
     </div>
     <div class="captura-modal-info">
       <div class="captura-modal-poke-name">${poke.name}</div>
