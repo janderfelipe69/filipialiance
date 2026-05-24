@@ -117,7 +117,7 @@ const AuthModal = (() => {
                   <input
                     id="auth-login-email"
                     class="auth-input"
-                    type="text"
+                    type="email"
                     placeholder="seu@email.com"
                     autocomplete="email"
                     maxlength="100"
@@ -178,7 +178,7 @@ const AuthModal = (() => {
                     class="auth-input"
                     type="text"
                     placeholder="Seu nick no jogo"
-                    autocomplete="email"
+                    autocomplete="username"
                     maxlength="100"
                     oninput="AuthModal._onNickInput(this.value)"
                   />
@@ -320,10 +320,7 @@ const AuthModal = (() => {
 
     document.body.appendChild(root);
 
-    // Fecha o modal ao clicar no overlay
-    document.getElementById('auth-overlay').addEventListener('click', function(e) {
-      if (e.target === this) AuthModal.close();
-    });
+    // Não fecha ao clicar fora — evita fechar acidentalmente
   }
 
   // ── API Pública ───────────────────────────────────────────────────────────
