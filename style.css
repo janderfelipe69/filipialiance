@@ -3645,3 +3645,25 @@ span[id^="total-brl-"] {
   font-size:13px; color:rgba(255,255,255,0.45);
   line-height:1.65; font-style:italic;
 }
+/* ── Carrinho aberto: sidebar direita sem bloquear conteúdo (desktop) ────── */
+@media (min-width: 769px) {
+  .cart-overlay.open {
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(3px);
+    /* Limita overlay à largura do painel — não cobre conteúdo à esquerda */
+    left: auto;
+    width: 440px;
+    right: 0;
+  }
+  /* O conteúdo ativo ganha margem direita quando carrinho aberto */
+  body:has(.cart-overlay.open) .tab-content.active {
+    margin-right: 440px;
+    transition: margin-right 0.3s cubic-bezier(.22,.68,0,1.2);
+  }
+  body:has(.cart-overlay.open) nav,
+  body:has(.cart-overlay.open) .top-bar,
+  body:has(.cart-overlay.open) .tabs-bar {
+    margin-right: 440px;
+    transition: margin-right 0.3s cubic-bezier(.22,.68,0,1.2);
+  }
+}
