@@ -136,7 +136,7 @@
       '<label class="admin-label">Nome do item *</label>' +
       '<input class="admin-field" id="ai-name" placeholder="ex: fire tail">' +
       '<div class="admin-row" style="margin-top:0">' +
-        '<div style="flex:1"><label class="admin-label">Preço (KK)</label><input class="admin-field" id="ai-price" type="number" step="0.01" min="0" placeholder="ex: 38.5"></div>' +
+        '<div style="flex:1"><label class="admin-label">Preço (R$)</label><input class="admin-field" id="ai-price" type="number" step="0.01" min="0" placeholder="0.00"></div>' +
         '<div style="flex:1"><label class="admin-label">Tier de drop</label><select class="admin-field" id="ai-tier"><option value="">— sem tier —</option>' +
           TIERS.map(function(t){return '<option value="'+t+'">'+t.toUpperCase()+'</option>';}).join('') +
         '</select></div>' +
@@ -151,7 +151,7 @@
       if (!name) { showToast('Nome obrigatório', false); return; }
       var price = parseFloat(val('ai-price')) || null;
       var tier  = val('ai-tier') || null;
-      sbFetch('POST', 'catalog_items', { name: name, price_kk: price, drop_tier: tier, is_active: true })
+      sbFetch('POST', 'catalog_items', { name: name, price_brl: price, drop_tier: tier, is_active: true })
         .then(function(rows) {
           var itemId = rows && rows[0] && rows[0].id;
           var pokemon = val('ai-pokemon');
@@ -185,7 +185,7 @@
           '<label class="admin-label">Nome</label>' +
           '<input class="admin-field" id="ei-name" value="'+item.name+'">' +
           '<div class="admin-row" style="margin-top:0">' +
-            '<div style="flex:1"><label class="admin-label">Preço (KK)</label><input class="admin-field" id="ei-price" type="number" step="0.01" value="'+(item.price_kk||'')+'" placeholder="ex: 38.5"></div>' +
+            '<div style="flex:1"><label class="admin-label">Preço (R$)</label><input class="admin-field" id="ei-price" type="number" step="0.01" value="'+(item.price_brl||'')+'" placeholder="0.00"></div>' +
             '<div style="flex:1"><label class="admin-label">Tier</label><select class="admin-field" id="ei-tier"><option value="">— sem tier —</option>' +
               TIERS.map(function(t){return '<option value="'+t+'"'+(item.tier===t?' selected':'')+'>'+t.toUpperCase()+'</option>';}).join('') +
             '</select></div>' +
@@ -228,7 +228,7 @@
         openModal('✏️ Editar Item: ' + item.name, html, function(close) {
           var updates = {
             name:      val('ei-name'),
-            price_kk: parseFloat(val('ei-price')) || null,
+            price_brl: parseFloat(val('ei-price')) || null,
             drop_tier: val('ei-tier') || null,
           };
           sbFetch('PATCH', 'catalog_items?id=eq.' + item.id, updates)
@@ -301,12 +301,11 @@
   };
 
   function reloadItems() {
-    sbGet('catalog_items?select=id,name,price_kk,price_brl,drop_tier&is_active=eq.true&order=name')
+    sbGet('catalog_items?select=id,name,price_brl,drop_tier&is_active=eq.true&order=name')
       .then(function(rows) {
         global.items.length = 0;
         rows.forEach(function(r, i) {
-          var kk = r.price_kk ? parseFloat(r.price_kk) : (r.price_brl ? parseFloat(r.price_brl) / ((global.APP_CONFIG||{}).kk_to_brl||1.70) : null);
-          global.items.push({ id: r.id, name: r.name, image: '', price: null, price_kk: kk, price_brl: null, tier: r.drop_tier || '', evo: '', _idx: i });
+          global.items.push({ id: r.id, name: r.name, image: '', price: null, price_brl: r.price_brl, tier: r.drop_tier || '', evo: '', _idx: i });
         });
         if (typeof renderItems === 'function') renderItems();
         var el = document.getElementById('total-count');
@@ -658,7 +657,7 @@
       '<input class="admin-field" id="ap-name" placeholder="ex: Shiny Charizard" oninput="window._adminPreviewType(&apos;ap-name&apos;,&apos;ap-type-preview&apos;)">' +
       '<div id="ap-type-preview" style="min-height:28px;margin:-2px 0 8px;display:flex;align-items:center"></div>' +
       '<div class="admin-row" style="margin-top:0">' +
-        '<div style="flex:1"><label class="admin-label">Preço (KK) *</label><input class="admin-field" id="ap-price" type="number" step="0.01" min="0" placeholder="ex: 38"></div>' +
+        '<div style="flex:1"><label class="admin-label">Preço (R$) *</label><input class="admin-field" id="ap-price" type="number" step="0.01" min="0" placeholder="64.60"></div>' +
         '<div style="flex:1"><label class="admin-label">Tier</label><select class="admin-field" id="ap-tier">' +
           POKE_TIERS.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('') +
         '</select></div>' +
@@ -671,14 +670,14 @@
       var name = val('ap-name');
       if (!name) { showToast('Nome obrigatório', false); return; }
       var price = parseFloat(val('ap-price')) || null;
-      if (price === null || price === undefined || isNaN(price)) { showToast('Preço obrigatório', false); return; }
+      if (!price) { showToast('Preço obrigatório', false); return; }
       var etaText = val('ap-eta') || '7 dias';
       var etaMin  = etaText.includes('45') ? 64800 : 10080;
       var isDive  = document.getElementById('ap-dive').checked;
       var bannerUrl = _getBannerForPokemon(name);
       sbFetch('POST', 'catalog_pokemons', {
         name:                name,
-        price_kk:            price,
+        price_brl:           price,
         tier:                val('ap-tier'),
         avg_capture_minutes: etaMin,
         is_dive:             isDive,
@@ -708,7 +707,7 @@
       '<input class="admin-field" id="ep-name" value="' + poke.name + '" oninput="window._adminPreviewType(&apos;ep-name&apos;,&apos;ep-type-preview&apos;)">' +
       '<div id="ep-type-preview" style="min-height:28px;margin:-2px 0 8px;display:flex;align-items:center">' + previewHtml + '</div>' +
       '<div class="admin-row" style="margin-top:0">' +
-        '<div style="flex:1"><label class="admin-label">Preço (KK)</label><input class="admin-field" id="ep-price" type="number" step="0.01" value="' + (poke.price_kk || '') + '"></div>' +
+        '<div style="flex:1"><label class="admin-label">Preço (R$)</label><input class="admin-field" id="ep-price" type="number" step="0.01" value="' + (poke.price_brl || '') + '"></div>' +
         '<div style="flex:1"><label class="admin-label">Tier</label><select class="admin-field" id="ep-tier">' +
           POKE_TIERS.map(function(t){return '<option value="'+t+'"'+(poke.tag===t?' selected':'')+'>'+t+'</option>';}).join('') +
         '</select></div>' +
@@ -724,7 +723,7 @@
       var newBanner = _getBannerForPokemon(newName) || poke.bannerImage || null;
       sbFetch('PATCH', 'catalog_pokemons?id=eq.' + poke.id, {
         name:                newName,
-        price_kk:            parseFloat(val('ep-price')) || null,
+        price_brl:           parseFloat(val('ep-price')) || null,
         tier:                val('ep-tier'),
         avg_capture_minutes: etaMin,
         is_dive:             document.getElementById('ep-dive').checked,
@@ -797,17 +796,17 @@
   };
 
   function reloadPokemons() {
-    sbGet('catalog_pokemons?select=id,name,price_kk,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order')
+    sbGet('catalog_pokemons?select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order')
       .then(function(rows) {
         var cfg = global.APP_CONFIG || {};
+        var kkToBrl  = cfg.kk_to_brl  || 1.70;
         var rawPerKk = cfg.raw_per_kk || 1000000;
         global.POKEMONS.length = 0;
         rows.forEach(function(r, i) {
-          var kk = r.price_kk ? parseFloat(r.price_kk) : (r.price_brl ? parseFloat(r.price_brl) / (cfg.kk_to_brl||1.70) : null);
-          var raw = kk ? Math.floor(kk * rawPerKk) : null;
+          var raw = r.price_brl ? Math.floor(r.price_brl / kkToBrl * rawPerKk) : null;
           global.POKEMONS.push({
             id: r.id, name: r.name,
-            price: raw, price_kk: kk, price_brl: kk ? parseFloat((kk * (cfg.kk_to_brl||1.70)).toFixed(2)) : null,
+            price: raw, price_brl: r.price_brl,
             tag: r.tier || '', image: '', bannerImage: r.banner_image_url || '',
             dive: !!r.is_dive, avg_capture_minutes: r.avg_capture_minutes || 10080,
             _idx: i,
@@ -1324,18 +1323,53 @@
   // Expõe função para os renders injetarem botões edit/delete nos cards
   global.adminIsAdmin = isAdmin;
 
-  // Injeta barras quando as abas renderizam
+  // Injeta barras quando as abas renderizam — aguarda Session.ready()
   document.addEventListener('db:ready', function() {
-    setTimeout(injectAdminBars, 300);
+    var doInject = function() { setTimeout(injectAdminBars, 200); };
+    if (typeof Session !== 'undefined') {
+      Session.ready().then(doInject);
+    } else {
+      // Fallback se Session não estiver disponível ainda
+      setTimeout(doInject, 500);
+    }
+  });
+
+  // Re-renderiza cards e barras quando sessão muda (login/logout)
+  document.addEventListener('db:ready', function() {
+    if (typeof Session === 'undefined') return;
+    Session.onAuthChange(function(event) {
+      // Aguarda um tick para _currentUser ser atualizado
+      setTimeout(function() {
+        injectAdminBars();
+        // Re-renderiza cards (remove/adiciona botões admin conforme sessão)
+        if (typeof renderItems === 'function') renderItems();
+        if (typeof window.renderCaptura === 'function') window.renderCaptura();
+        // Remove barras admin se deslogou
+        if (!isAdmin()) {
+          ['admin-bar-items','admin-bar-packages','admin-bar-captura'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.remove();
+          });
+          ['admin-disabled-items-panel','admin-disabled-pokemons-panel','admin-disabled-packages-panel'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.remove();
+          });
+        }
+      }, 100);
+    });
   });
 
   // Re-injeta quando muda de aba
-  var _origSwitchTab = global.switchTab;
   document.addEventListener('db:ready', function() {
     var _orig = global.switchTab;
+    if (typeof _orig !== 'function') return;
     global.switchTab = function(tab, btn, opts) {
       var r = _orig.call(this, tab, btn, opts);
-      setTimeout(injectAdminBars, 400);
+      if (typeof Session !== 'undefined') {
+        Session.ready().then(function() { setTimeout(injectAdminBars, 300); });
+      } else {
+        setTimeout(injectAdminBars, 400);
+      }
       return r;
     };
   });
