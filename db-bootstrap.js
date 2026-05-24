@@ -81,7 +81,7 @@
 
   // ── 3. packages ──────────────────────────────────────────────────────────
   function loadPackages() {
-    return _get('catalog_packages', 'select=id,name,sort_order&is_active=eq.true&order=sort_order')
+    return _get('catalog_packages', 'select=id,name,sort_order,icon_url&is_active=eq.true&order=sort_order')
       .then(function(pkgs) {
         if (!pkgs.length) {
           console.warn('[CatalogService] packages: 0 pacotes encontrados');
@@ -106,7 +106,7 @@
                 var arr = pkgs.map(function(p) {
                   var slotsObj = pkgSlots[p.id] || {};
                   var idxs = Object.keys(slotsObj).map(Number).sort(function(a,b){return a-b;});
-                  return { name: p.name, slots: idxs.map(function(i) { return slotsObj[i]; }) };
+                  return { name: p.name, icon_url: p.icon_url || null, slots: idxs.map(function(i) { return slotsObj[i]; }) };
                 });
                 global.PACKAGES = global.PACKAGES || [];
                 global.PACKAGES.length = 0;

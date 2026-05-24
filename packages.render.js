@@ -45,7 +45,9 @@ function _pkgCategoryLabel(name) {
  * Visual: ícone centralizado, nome pequeno, badge de qty.
  */
 function buildPkgCardHTML(pkg, pi, isActive, cartCount) {
-  var icon     = getPkgIcon(pkg.name);
+  var icon = pkg.icon_url
+    ? '<img src="' + pkg.icon_url + '" style="width:32px;height:32px;object-fit:contain" />'
+    : getPkgIcon(pkg.name);
   var color    = _pkgCategoryColor(pkg.name);
   var allItems = getPkgAllItems(pkg);
   var itemQty  = allItems.length;
@@ -75,7 +77,9 @@ function buildPkgCardHTML(pkg, pi, isActive, cartCount) {
  * Estilo: Destiny 2 × Steam featured bundle × Diablo inventory
  */
 function buildHeroHeaderHTML(pkg, pi) {
-  var icon      = getPkgIcon(pkg.name);
+  var icon = pkg.icon_url
+    ? '<img src="' + pkg.icon_url + '" style="width:38px;height:38px;object-fit:contain" />'
+    : getPkgIcon(pkg.name);
   var color     = _pkgCategoryColor(pkg.name);
   var catLabel  = _pkgCategoryLabel(pkg.name);
   var allItems  = getPkgAllItems(pkg);

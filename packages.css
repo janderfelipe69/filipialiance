@@ -336,7 +336,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   background: var(--pkg-bg-surface);
   min-width: 0;
   position: relative;
@@ -1254,4 +1254,30 @@
   .pkg-cat-btn { padding: 4px 10px; font-size: 9px; }
   .pkg-overlay { padding: 0; align-items: flex-end; }
   .pkg-modal { border-radius: 12px 12px 0 0; max-height: 90vh; max-width: 100%; }
+}
+
+
+/* ── Scroll fix: detalhe do pacote acompanha scroll da sidebar ── */
+#tab-pacotes {
+  display: none;
+}
+#tab-pacotes.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 150px);
+}
+#tab-pacotes .packages-wrap {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+#tab-pacotes .pkg-main-area {
+  flex: 1;
+  min-height: 500px;
+}
+#tab-pacotes .pkg-sidebar {
+  min-height: 500px;
+}
+#tab-pacotes .pkg-detail {
+  min-height: 500px;
 }
