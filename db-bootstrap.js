@@ -26,25 +26,6 @@
     });
   }
 
-  // Converte KK (ex: 38.5 = 38.5kk) para raw (inteiro de unidades base)
-  function kkToRaw(kk) {
-    if (!kk) return null;
-    var cfg = global.APP_CONFIG || {};
-    return Math.floor(parseFloat(kk) * (cfg.raw_per_kk || 1000000));
-  }
-  // Converte KK para BRL usando taxa da config
-  function kkToBrl(kk) {
-    if (!kk) return null;
-    var cfg = global.APP_CONFIG || {};
-    return parseFloat((parseFloat(kk) * (cfg.kk_to_brl || 1.70)).toFixed(2));
-  }
-  // Converte KK para DD usando taxa da config
-  function kkToDd(kk) {
-    if (!kk) return null;
-    var cfg = global.APP_CONFIG || {};
-    return Math.round(parseFloat(kk) * (cfg.kk_to_brl || 1.70) / (cfg.dd_to_brl || 0.70));
-  }
-  // Legado: converte BRL para raw (usado apenas para dados antigos sem price_kk)
   function brlToRaw(brl) {
     if (!brl) return null;
     var cfg = global.APP_CONFIG || {};
@@ -75,17 +56,16 @@
       .then(function(rows) {
         var arr = [];
         rows.forEach(function(r, i) {
-          // Prioriza price_kk; fallback para price_brl legado
           var kk  = r.price_kk  ? parseFloat(r.price_kk)  : null;
           var brl = r.price_brl ? parseFloat(r.price_brl) : null;
           var raw, finalKk, finalBrl, finalDd;
           if (kk !== null) {
-            raw      = kkToRaw(kk);
+            var cfg = global.APP_CONFIG || {};
+            raw      = Math.floor(kk * (cfg.raw_per_kk || 1000000));
             finalKk  = kk;
-            finalBrl = kkToBrl(kk);
-            finalDd  = kkToDd(kk);
+            finalBrl = parseFloat((kk * (cfg.kk_to_brl || 1.70)).toFixed(2));
+            finalDd  = Math.round(kk * (cfg.kk_to_brl || 1.70) / (cfg.dd_to_brl || 0.70));
           } else if (brl !== null) {
-            // dados antigos sem price_kk
             raw      = brlToRaw(brl);
             finalKk  = brlToKk(brl);
             finalBrl = brl;
@@ -117,7 +97,7 @@
 
   // ── 3. packages ──────────────────────────────────────────────────────────
   function loadPackages() {
-    return _get('catalog_packages', 'select=id,name,sort_order&is_active=eq.true&order=sort_order')
+    return _get('catalog_packages', 'select=id,name,sort_order,icon_url&is_active=eq.true&order=sort_order')
       .then(function(pkgs) {
         if (!pkgs.length) {
           console.warn('[CatalogService] packages: 0 pacotes encontrados');
@@ -142,7 +122,7 @@
                 var arr = pkgs.map(function(p) {
                   var slotsObj = pkgSlots[p.id] || {};
                   var idxs = Object.keys(slotsObj).map(Number).sort(function(a,b){return a-b;});
-                  return { name: p.name, slots: idxs.map(function(i) { return slotsObj[i]; }) };
+                  return { name: p.name, icon_url: p.icon_url || null, slots: idxs.map(function(i) { return slotsObj[i]; }) };
                 });
                 global.PACKAGES = global.PACKAGES || [];
                 global.PACKAGES.length = 0;
@@ -160,14 +140,15 @@
         var arr = rows.map(function(r, i) {
           var kk  = r.price_kk  ? parseFloat(r.price_kk)  : null;
           var brl = r.price_brl ? parseFloat(r.price_brl) : null;
+          var cfg = global.APP_CONFIG || {};
           var raw, finalKk, finalBrl, finalDd;
           if (kk !== null) {
-            raw = kkToRaw(kk); finalKk = kk; finalBrl = kkToBrl(kk); finalDd = kkToDd(kk);
+            raw = Math.floor(kk * (cfg.raw_per_kk || 1000000));
+            finalKk = kk; finalBrl = parseFloat((kk*(cfg.kk_to_brl||1.70)).toFixed(2));
+            finalDd = Math.round(kk*(cfg.kk_to_brl||1.70)/(cfg.dd_to_brl||0.70));
           } else if (brl !== null) {
             raw = brlToRaw(brl); finalKk = brlToKk(brl); finalBrl = brl; finalDd = brlToDd(brl);
-          } else {
-            raw = null; finalKk = null; finalBrl = null; finalDd = null;
-          }
+          } else { raw=null; finalKk=null; finalBrl=null; finalDd=null; }
           return {
             id: r.id, name: r.name, image: '',
             price:     raw,
