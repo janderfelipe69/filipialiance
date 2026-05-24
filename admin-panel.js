@@ -85,7 +85,7 @@
     function close() { overlay.remove(); }
     document.getElementById('admin-modal-close').onclick  = close;
     document.getElementById('admin-modal-cancel').onclick = close;
-    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    // overlay click desabilitado — não fecha ao clicar fora
     document.getElementById('admin-modal-confirm').onclick = function() {
       onConfirm(close);
     };
@@ -259,7 +259,7 @@
     document.body.appendChild(overlay);
     function close() { overlay.remove(); }
     document.getElementById('adm-x').onclick = close;
-    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    // overlay click desabilitado — não fecha ao clicar fora
     document.getElementById('btn-disable-item').onclick = function() {
       sbFetch('PATCH', 'catalog_items?id=eq.' + item.id, { is_active: false })
         .then(function() { showToast('Item desabilitado.'); close(); reloadItems(); reloadDisabledItems(); })
@@ -755,7 +755,7 @@
     document.body.appendChild(overlay);
     function close() { overlay.remove(); }
     document.getElementById('adm-px').onclick = close;
-    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    // overlay click desabilitado — não fecha ao clicar fora
     document.getElementById('btn-disable-poke').onclick = function() {
       sbFetch('PATCH', 'catalog_pokemons?id=eq.' + poke.id, { is_active: false })
         .then(function() { showToast('Pokémon desabilitado.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
@@ -1079,7 +1079,7 @@
     function close() { overlay.remove(); }
     document.getElementById('pkgeditor-close').onclick = close;
     document.getElementById('pkgeditor-cancel').onclick = close;
-    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    // overlay click desabilitado — não fecha ao clicar fora
 
     document.getElementById('pkgeditor-save').onclick = function() {
       var name = document.getElementById('pkgeditor-name').value.trim();
@@ -1177,7 +1177,7 @@
     document.body.appendChild(overlay);
     function close() { overlay.remove(); }
     document.getElementById('adm-pkgx').onclick = close;
-    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    // overlay click desabilitado — não fecha ao clicar fora
     document.getElementById('btn-disable-pkg').onclick = function() {
       sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
         .then(function(rows) {
