@@ -817,20 +817,237 @@
   }
 
   // ── PACOTES ───────────────────────────────────────────────────────────────
-  function openAddPackage() {
-    var html =
+
+  // Estado temporário do editor de pacote
+  var _pkgEditor = { slots: [], pkgId: null };
+
+  function _pkgEditorSlotHtml(si) {
+    var slot = _pkgEditor.slots[si];
+    var itemsHtml = slot.items.map(function(entry, ei) {
+      return '<div class="admin-item-row" id="pkgslot-item-'+si+'-'+ei+'" style="justify-content:space-between">' +
+        '<span class="admin-item-name" style="font-size:.82rem">'+entry.name+'</span>' +
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<input type="number" min="1" max="999" value="'+entry.qty+'" ' +
+            'style="width:52px;padding:3px 6px;background:#0f1120;border:1px solid #2a2d45;border-radius:5px;color:#e0e4ff;font-size:.82rem" ' +
+            'onchange="window._pkgSetQty('+si+','+ei+',this.value)">' +
+          '<button onclick="window._pkgRemoveItem('+si+','+ei+')" style="padding:2px 8px;border-radius:5px;border:1px solid rgba(255,80,80,.3);background:rgba(255,80,80,.07);color:#ff9090;font-size:.75rem;cursor:pointer">✕</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') || '<div style="color:#444;font-size:.8rem;padding:4px 0">Nenhum item no slot</div>';
+
+    return '<div style="border:1px solid #2a2d45;border-radius:8px;padding:10px;margin-bottom:10px;background:#0d0f1c" id="pkgslot-block-'+si+'">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+        '<span style="color:#7eb3ff;font-weight:600;font-size:.85rem">Slot '+(si+1)+'</span>' +
+        '<div style="flex:1"></div>' +
+        (si > 0 ? '<button onclick="window._pkgRemoveSlot('+si+')" style="padding:2px 8px;border-radius:4px;border:1px solid rgba(255,80,80,.3);background:rgba(255,80,80,.07);color:#ff9090;font-size:.72rem;cursor:pointer">Remover slot</button>' : '') +
+      '</div>' +
+      '<div id="pkgslot-items-'+si+'">'+itemsHtml+'</div>' +
+      '<div style="display:flex;gap:6px;margin-top:8px">' +
+        '<input id="pkgslot-search-'+si+'" class="admin-field" placeholder="Buscar item..." style="flex:1;font-size:.82rem;padding:6px 8px" ' +
+          'oninput="window._pkgSearchItems('+si+',this.value)">' +
+      '</div>' +
+      '<div id="pkgslot-results-'+si+'" style="max-height:120px;overflow-y:auto;margin-top:4px"></div>' +
+    '</div>';
+  }
+
+  function _pkgRebuildSlots() {
+    var container = document.getElementById('pkgslots-container');
+    if (!container) return;
+    container.innerHTML = _pkgEditor.slots.map(function(_, si) { return _pkgEditorSlotHtml(si); }).join('');
+  }
+
+  global._pkgSearchItems = function(si, query) {
+    var resultsEl = document.getElementById('pkgslot-results-'+si);
+    if (!resultsEl) return;
+    if (!query || query.trim().length < 2) { resultsEl.innerHTML = ''; return; }
+    var q = query.toLowerCase();
+    var matches = (global.items || []).filter(function(it) {
+      return it.name && it.name.toLowerCase().includes(q);
+    }).slice(0, 8);
+    if (!matches.length) { resultsEl.innerHTML = '<div style="color:#555;font-size:.78rem;padding:4px">Nenhum item encontrado</div>'; return; }
+    resultsEl.innerHTML = matches.map(function(it) {
+      var safeName = it.name.replace(/'/g, "\\'");
+      return '<div style="padding:5px 8px;border-radius:5px;background:#131627;cursor:pointer;font-size:.82rem;color:#c0c8ff;margin-bottom:3px;border:1px solid transparent" ' +
+        'onmouseover="this.style.borderColor=\'#4a9aff44\'" onmouseout="this.style.borderColor=\'transparent\'" ' +
+        'onclick="window._pkgAddItem('+si+',\''+safeName+'\')">' +
+        '<span>'+it.name+'</span>' +
+        (it.tier ? '<span style="margin-left:6px;font-size:.72rem;color:#7eb3ff;opacity:.7">'+it.tier.toUpperCase()+'</span>' : '') +
+      '</div>';
+    }).join('');
+  };
+
+  global._pkgAddItem = function(si, name) {
+    if (!_pkgEditor.slots[si]) return;
+    var existing = _pkgEditor.slots[si].items.find(function(e) { return e.name === name; });
+    if (existing) { existing.qty++; }
+    else { _pkgEditor.slots[si].items.push({ name: name, qty: 1 }); }
+    _pkgRebuildSlots();
+    var searchEl = document.getElementById('pkgslot-search-'+si);
+    var resultsEl = document.getElementById('pkgslot-results-'+si);
+    if (searchEl) searchEl.value = '';
+    if (resultsEl) resultsEl.innerHTML = '';
+  };
+
+  global._pkgRemoveItem = function(si, ei) {
+    if (!_pkgEditor.slots[si]) return;
+    _pkgEditor.slots[si].items.splice(ei, 1);
+    _pkgRebuildSlots();
+  };
+
+  global._pkgSetQty = function(si, ei, v) {
+    if (!_pkgEditor.slots[si] || !_pkgEditor.slots[si].items[ei]) return;
+    _pkgEditor.slots[si].items[ei].qty = Math.max(1, parseInt(v, 10) || 1);
+  };
+
+  global._pkgRemoveSlot = function(si) {
+    _pkgEditor.slots.splice(si, 1);
+    _pkgRebuildSlots();
+  };
+
+  global._pkgAddSlot = function() {
+    _pkgEditor.slots.push({ id: null, items: [] });
+    _pkgRebuildSlots();
+    // scroll to bottom
+    var c = document.getElementById('pkgslots-container');
+    if (c) c.scrollTop = c.scrollHeight;
+  };
+
+  function _savePkgSlots(pkgId) {
+    // 1. Delete all existing slots for this package
+    return sbFetch('DELETE', 'catalog_package_slots?package_id=eq.' + pkgId, null)
+      .then(function() {
+        // 2. Insert slots one by one and their items
+        var chain = Promise.resolve();
+        _pkgEditor.slots.forEach(function(slot, si) {
+          chain = chain.then(function() {
+            return sbFetch('POST', 'catalog_package_slots', { package_id: pkgId, slot_index: si })
+              .then(function(rows) {
+                var slotId = rows && rows[0] && rows[0].id;
+                if (!slotId || !slot.items.length) return;
+                var itemPromises = slot.items.map(function(entry) {
+                  return sbFetch('POST', 'catalog_package_slot_items', {
+                    slot_id: slotId,
+                    item_name: entry.name,
+                    quantity: entry.qty,
+                  });
+                });
+                return Promise.all(itemPromises);
+              });
+          });
+        });
+        return chain;
+      });
+  }
+
+  function _openPkgEditor(title, pkgId, pkgName, existingSlots) {
+    _pkgEditor.pkgId = pkgId;
+    _pkgEditor.slots = existingSlots || [];
+    if (!_pkgEditor.slots.length) _pkgEditor.slots.push({ id: null, items: [] });
+
+    var overlay = document.createElement('div');
+    overlay.id = 'admin-pkg-editor-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#1a1d2e;border:1px solid #2a2d45;border-radius:12px;padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;color:#e0e4ff';
+
+    modal.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">' +
+        '<h3 style="margin:0;font-size:1.1rem;color:#7eb3ff">'+title+'</h3>' +
+        '<button id="pkgeditor-close" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer">×</button>' +
+      '</div>' +
       '<label class="admin-label">Nome do pacote *</label>' +
-      '<input class="admin-field" id="apkg-name" placeholder="ex: Talent Fire 7/8">' +
-      '<label class="admin-label">Descrição (opcional)</label>' +
-      '<input class="admin-field" id="apkg-desc" placeholder="Breve descrição">';
-    openModal('➕ Adicionar Pacote', html, function(close) {
-      var name = val('apkg-name');
+      '<input class="admin-field" id="pkgeditor-name" value="'+(pkgName||'')+'" placeholder="ex: Talent Fire 7/8" style="margin-bottom:12px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<span style="font-size:.82rem;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Slots</span>' +
+        '<button onclick="window._pkgAddSlot()" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(74,154,255,.4);background:rgba(74,154,255,.1);color:#7eb3ff;font-size:.8rem;cursor:pointer">+ Slot</button>' +
+      '</div>' +
+      '<div id="pkgslots-container" style="max-height:50vh;overflow-y:auto;padding-right:4px"></div>' +
+      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">' +
+        '<button id="pkgeditor-cancel" style="padding:8px 18px;border-radius:6px;border:1px solid #444;background:transparent;color:#aaa;cursor:pointer">Cancelar</button>' +
+        '<button id="pkgeditor-save" style="padding:8px 18px;border-radius:6px;border:none;background:#4a9aff;color:#fff;cursor:pointer;font-weight:600">Salvar</button>' +
+      '</div>';
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    _pkgRebuildSlots();
+
+    function close() { overlay.remove(); }
+    document.getElementById('pkgeditor-close').onclick = close;
+    document.getElementById('pkgeditor-cancel').onclick = close;
+    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+
+    document.getElementById('pkgeditor-save').onclick = function() {
+      var name = document.getElementById('pkgeditor-name').value.trim();
       if (!name) { showToast('Nome obrigatório', false); return; }
-      var order = global.PACKAGES ? global.PACKAGES.length : 0;
-      sbFetch('POST', 'catalog_packages', { name: name, description: val('apkg-desc') || null, sort_order: order, is_active: true })
-        .then(function() { showToast('Pacote criado! Adicione os slots pelo Supabase por enquanto.'); close(); })
-        .catch(function(e) { showToast('Erro: ' + e.message, false); });
-    });
+      var btn = document.getElementById('pkgeditor-save');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      var savePromise;
+      if (_pkgEditor.pkgId) {
+        // Edit existing
+        savePromise = sbFetch('PATCH', 'catalog_packages?id=eq.' + _pkgEditor.pkgId, { name: name })
+          .then(function() { return _savePkgSlots(_pkgEditor.pkgId); });
+      } else {
+        // Create new
+        var order = global.PACKAGES ? global.PACKAGES.length : 0;
+        savePromise = sbFetch('POST', 'catalog_packages', { name: name, is_active: true, sort_order: order })
+          .then(function(rows) {
+            var newId = rows && rows[0] && rows[0].id;
+            if (!newId) throw new Error('Falha ao criar pacote');
+            _pkgEditor.pkgId = newId;
+            return _savePkgSlots(newId);
+          });
+      }
+
+      savePromise
+        .then(function() {
+          showToast('Pacote salvo!');
+          close();
+          location.reload();
+        })
+        .catch(function(e) {
+          btn.disabled = false; btn.textContent = 'Salvar';
+          showToast('Erro: ' + e.message, false);
+        });
+    };
+  }
+
+  function openAddPackage() {
+    _openPkgEditor('➕ Adicionar Pacote', null, '', []);
+  }
+
+  function openEditPackage(pi) {
+    var pkg = global.PACKAGES && global.PACKAGES[pi];
+    if (!pkg) return;
+    // Need to fetch the pkg id from DB to get slot ids
+    sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name) + '&select=id,name')
+      .then(function(rows) {
+        if (!rows || !rows[0]) { showToast('Pacote não encontrado', false); return; }
+        var pkgId = rows[0].id;
+        // Load existing slots
+        sbGet('catalog_package_slots?package_id=eq.' + pkgId + '&select=id,slot_index&order=slot_index')
+          .then(function(slots) {
+            if (!slots.length) {
+              _openPkgEditor('✏️ Editar: ' + pkg.name, pkgId, pkg.name, []);
+              return;
+            }
+            var slotIds = slots.map(function(s) { return s.id; });
+            sbGet('catalog_package_slot_items?slot_id=in.(' + slotIds.join(',') + ')&select=slot_id,item_name,quantity&order=slot_id')
+              .then(function(slotItems) {
+                var bySlot = {};
+                slotItems.forEach(function(si) {
+                  if (!bySlot[si.slot_id]) bySlot[si.slot_id] = [];
+                  bySlot[si.slot_id].push({ name: si.item_name, qty: si.quantity });
+                });
+                var editorSlots = slots.map(function(s) {
+                  return { id: s.id, items: bySlot[s.id] || [] };
+                });
+                _openPkgEditor('✏️ Editar: ' + pkg.name, pkgId, pkg.name, editorSlots);
+              });
+          });
+      });
   }
 
   function openDeletePackage(pi) {
@@ -984,6 +1201,7 @@
   global.__adminOpenAddItem    = openAddItem;
   global.__adminOpenAddPokemon = openAddPokemon;
   global.__adminOpenAddPackage = openAddPackage;
+  global.__adminEditPackage    = function(pi) { openEditPackage(pi); };
 
   // ── Toggle painel de desabilitados ─────────────────────────────────────
   global.__adminToggleDisabled = function(type) {
@@ -1080,6 +1298,27 @@
     });
   };
 
+  // ── Sobrescreve buildPkgCardHTML para injetar botões admin ───────────────
+  document.addEventListener('db:ready', function() {
+    var _origBuildPkgCard = global.buildPkgCardHTML;
+    if (typeof _origBuildPkgCard !== 'function') return;
+
+    global.buildPkgCardHTML = function(pkg, pi, isActive, cartCount) {
+      var base = _origBuildPkgCard(pkg, pi, isActive, cartCount);
+      if (!isAdmin()) return base;
+
+      // Wrap original card + inject admin buttons row below it
+      var adminRow =
+        '<div class="pkg-admin-row" onclick="event.stopPropagation()">' +
+          '<button class="pkg-admin-btn" onclick="window.__adminEditPackage(' + pi + ')" title="Editar pacote">✏️</button>' +
+          '<button class="pkg-admin-btn danger" onclick="window.__adminDelPackage(' + pi + ')" title="Remover pacote">🗑️</button>' +
+        '</div>';
+
+      // Inject row before closing </div> of the card
+      return base.replace(/(<\/div>\s*)$/, adminRow + '$1');
+    };
+  });
+
 }(window));
 
 // CSS extra para botões admin nos cards de captura
@@ -1090,6 +1329,10 @@
     '.cpk-admin-btn{padding:3px 10px;border-radius:5px;border:1px solid rgba(74,154,255,.3);background:rgba(74,154,255,.08);color:#7eb3ff;font-size:.75rem;cursor:pointer}',
     '.cpk-admin-btn.danger{border-color:rgba(255,80,80,.3);background:rgba(255,80,80,.06);color:#ff9090}',
     '.cpk-admin-btn:hover{filter:brightness(1.3)}',
+    '.pkg-admin-row{display:flex;gap:5px;justify-content:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,.06);margin-top:4px}',
+    '.pkg-admin-btn{padding:3px 10px;border-radius:5px;border:1px solid rgba(74,154,255,.3);background:rgba(74,154,255,.08);color:#7eb3ff;font-size:.73rem;cursor:pointer}',
+    '.pkg-admin-btn.danger{border-color:rgba(255,80,80,.3);background:rgba(255,80,80,.06);color:#ff9090}',
+    '.pkg-admin-btn:hover{filter:brightness(1.3)}',
   ].join('\n');
   document.head.appendChild(s);
 }());
