@@ -288,7 +288,7 @@
           return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#0f1120;margin-bottom:4px">' +
             '<span style="flex:1;color:#888;font-size:.85rem">'+r.name+'</span>' +
             (r.drop_tier ? '<span style="font-size:.72rem;padding:2px 6px;border-radius:4px;background:#1a2040;color:#7eb3ff">'+r.drop_tier.toUpperCase()+'</span>' : '') +
-            '<button onclick="window.__adminReenableItem(' + r.id + ')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
+            '<button onclick="window.__adminReenableItem(\'' + r.id + '\')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
           '</div>';
         }).join('');
       });
@@ -783,7 +783,7 @@
           return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#0f1120;margin-bottom:4px">' +
             '<span style="flex:1;color:#888;font-size:.85rem">'+r.name+'</span>' +
             (r.tier ? '<span style="font-size:.72rem;padding:2px 6px;border-radius:4px;background:#1a2040;color:#7eb3ff">'+r.tier.toUpperCase()+'</span>' : '') +
-            '<button onclick="window.__adminReenablePokemon(' + r.id + ')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
+            '<button onclick="window.__adminReenablePokemon(\'' + r.id + '\')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
           '</div>';
         }).join('');
       });
@@ -892,7 +892,7 @@
         list.innerHTML = rows.map(function(r) {
           return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#0f1120;margin-bottom:4px">' +
             '<span style="flex:1;color:#888;font-size:.85rem">'+r.name+'</span>' +
-            '<button onclick="window.__adminReenablePackage(' + r.id + ')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
+            '<button onclick="window.__adminReenablePackage(\'' + r.id + '\')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
           '</div>';
         }).join('');
       });
