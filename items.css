@@ -614,26 +614,27 @@
 
 .item-card-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 20px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px 14px;
 }
 
-/* grupo esquerdo: pack buttons lado a lado */
+/* linha 1: pack buttons lado a lado */
 .item-pack-group {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  width: 100%;
 }
 
-/* grupo direito: qty + botão adicionar */
+.item-pack-group:empty { display: none; }
+
+/* linha 2: qty + botão adicionar + remover */
 .item-cta-group {
   display: flex;
   align-items: center;
   gap: 7px;
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
@@ -660,6 +661,7 @@
   background: rgba(90,171,255,0.06);
   border: none;
   color: rgba(90,171,255,0.55);
+  flex: 1;
 }
 .item-pack-btn-500:hover { background: rgba(90,171,255,0.18); color: #fff; }
 
@@ -667,6 +669,7 @@
   background: rgba(240,184,41,0.07);
   border: none;
   color: rgba(240,184,41,0.55);
+  flex: 1;
 }
 .item-pack-btn-1000:hover { background: rgba(240,184,41,0.2); color: #fff; }
 
@@ -880,7 +883,7 @@
   .item-card-name { font-size: 14px; }
   .item-price-kk { font-size: 24px; }
 
-  .item-card-footer { padding: 10px 16px 14px; gap: 6px; }
+  .item-card-footer { padding: 8px 14px 12px; gap: 6px; }
   .item-qty-input { width: 46px; font-size: 12px; padding: 8px 4px; }
   .item-add-btn { font-size: 9px; min-height: 38px; padding: 9px 12px; }
   .item-rem-btn { width: 32px; height: 38px; min-height: 38px; }
