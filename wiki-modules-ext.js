@@ -152,4 +152,24 @@
     },
   });
 
+  /* ═══════════════════════════════════════════════════════════════
+     TASKS NPC
+  ═══════════════════════════════════════════════════════════════ */
+
+  WikiModules.register({
+    id:    'tasks',
+    name:  'Tasks NPC',
+    icon:  '📋',
+    desc:  'Missões e recompensas de NPCs',
+    color: '#60aaff',
+    rgb:   '96,170,255',
+
+    render: function () {
+      _ensurePanel('tasks');
+      if (typeof global.renderTasks === 'function') {
+        global.renderTasks();
+      }
+    },
+  });
+
 }(window));
