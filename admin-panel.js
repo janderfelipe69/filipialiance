@@ -239,12 +239,66 @@
   }
 
   function openDeleteItem(item) {
-    openModal('🗑️ Remover Item', '<p style="color:#ffaaaa">Desativar <strong>'+item.name+'</strong>?<br><small style="color:#888">O item ficará oculto mas os dados são mantidos.</small></p>', function(close) {
+    var html =
+      '<p style="color:#e0e4ff;margin-bottom:16px">O que deseja fazer com <strong style="color:#fff">'+item.name+'</strong>?</p>' +
+      '<div style="display:flex;flex-direction:column;gap:10px">' +
+        '<button id="btn-disable-item" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(255,180,0,.4);background:rgba(255,180,0,.1);color:#ffd080;cursor:pointer;font-size:.9rem;text-align:left">' +
+          '⊚ <strong>Desabilitar</strong><br><small style="color:#888;font-size:.78rem">Some do site, mas fica salvo. Você pode reativar depois.</small>' +
+        '</button>' +
+        '<button id="btn-harddelete-item" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(255,60,60,.4);background:rgba(255,60,60,.08);color:#ff8080;cursor:pointer;font-size:.9rem;text-align:left">' +
+          '🗑️ <strong>Excluir permanentemente</strong><br><small style="color:#888;font-size:.78rem">Remove do banco de dados para sempre. Não pode desfazer.</small>' +
+        '</button>' +
+      '</div>';
+    var overlay = document.createElement('div');
+    overlay.id = 'admin-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#1a1d2e;border:1px solid #2a2d45;border-radius:12px;padding:24px;width:100%;max-width:440px;color:#e0e4ff';
+    modal.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:1.1rem;color:#7eb3ff">🗑️ Remover Item</h3><button id="adm-x" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer">×</button></div>' + html;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    document.getElementById('adm-x').onclick = close;
+    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    document.getElementById('btn-disable-item').onclick = function() {
       sbFetch('PATCH', 'catalog_items?id=eq.' + item.id, { is_active: false })
-        .then(function() { showToast('Item removido.'); close(); reloadItems(); })
+        .then(function() { showToast('Item desabilitado.'); close(); reloadItems(); reloadDisabledItems(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
-    }, 'Desativar');
+    };
+    document.getElementById('btn-harddelete-item').onclick = function() {
+      if (!confirm('Tem certeza? Isso vai excluir "'+item.name+'" do banco de dados permanentemente.')) return;
+      sbFetch('DELETE', 'catalog_items?id=eq.' + item.id, null)
+        .then(function() { showToast('Item excluído permanentemente.'); close(); reloadItems(); reloadDisabledItems(); })
+        .catch(function(e) { showToast('Erro: ' + e.message, false); });
+    };
   }
+
+  function reloadDisabledItems() {
+    var panel = document.getElementById('admin-disabled-items-panel');
+    if (!panel) return;
+    sbGet('catalog_items?select=id,name,price_brl,drop_tier&is_active=eq.false&order=name')
+      .then(function(rows) {
+        var list = document.getElementById('admin-disabled-items-list');
+        if (!list) return;
+        if (!rows || !rows.length) {
+          list.innerHTML = '<div style="color:#555;font-size:.82rem;padding:6px 0">Nenhum item desabilitado.</div>';
+          return;
+        }
+        list.innerHTML = rows.map(function(r) {
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#0f1120;margin-bottom:4px">' +
+            '<span style="flex:1;color:#888;font-size:.85rem">'+r.name+'</span>' +
+            (r.drop_tier ? '<span style="font-size:.72rem;padding:2px 6px;border-radius:4px;background:#1a2040;color:#7eb3ff">'+r.drop_tier.toUpperCase()+'</span>' : '') +
+            '<button onclick="window.__adminReenableItem(''+r.id+'')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
+          '</div>';
+        }).join('');
+      });
+  }
+
+  global.__adminReenableItem = function(id) {
+    sbFetch('PATCH', 'catalog_items?id=eq.' + id, { is_active: true })
+      .then(function() { showToast('Item reativado!'); reloadItems(); reloadDisabledItems(); })
+      .catch(function(e) { showToast('Erro: ' + e.message, false); });
+  };
 
   function reloadItems() {
     sbGet('catalog_items?select=id,name,price_brl,drop_tier&is_active=eq.true&order=name')
@@ -680,12 +734,66 @@
   }
 
   function openDeletePokemon(poke) {
-    openModal('🗑️ Remover Pokémon', '<p style="color:#ffaaaa">Desativar <strong>'+poke.name+'</strong>?</p>', function(close) {
+    var html =
+      '<p style="color:#e0e4ff;margin-bottom:16px">O que deseja fazer com <strong style="color:#fff">'+poke.name+'</strong>?</p>' +
+      '<div style="display:flex;flex-direction:column;gap:10px">' +
+        '<button id="btn-disable-poke" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(255,180,0,.4);background:rgba(255,180,0,.1);color:#ffd080;cursor:pointer;font-size:.9rem;text-align:left">' +
+          '⊚ <strong>Desabilitar</strong><br><small style="color:#888;font-size:.78rem">Some do site, mas fica salvo. Você pode reativar depois.</small>' +
+        '</button>' +
+        '<button id="btn-harddelete-poke" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(255,60,60,.4);background:rgba(255,60,60,.08);color:#ff8080;cursor:pointer;font-size:.9rem;text-align:left">' +
+          '🗑️ <strong>Excluir permanentemente</strong><br><small style="color:#888;font-size:.78rem">Remove do banco de dados para sempre. Não pode desfazer.</small>' +
+        '</button>' +
+      '</div>';
+    var overlay = document.createElement('div');
+    overlay.id = 'admin-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#1a1d2e;border:1px solid #2a2d45;border-radius:12px;padding:24px;width:100%;max-width:440px;color:#e0e4ff';
+    modal.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:1.1rem;color:#7eb3ff">🗑️ Remover Pokémon</h3><button id="adm-px" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer">×</button></div>' + html;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    document.getElementById('adm-px').onclick = close;
+    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    document.getElementById('btn-disable-poke').onclick = function() {
       sbFetch('PATCH', 'catalog_pokemons?id=eq.' + poke.id, { is_active: false })
-        .then(function() { showToast('Pokémon removido.'); close(); reloadPokemons(); })
+        .then(function() { showToast('Pokémon desabilitado.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
-    }, 'Desativar');
+    };
+    document.getElementById('btn-harddelete-poke').onclick = function() {
+      if (!confirm('Tem certeza? Isso vai excluir "'+poke.name+'" do banco de dados permanentemente.')) return;
+      sbFetch('DELETE', 'catalog_pokemons?id=eq.' + poke.id, null)
+        .then(function() { showToast('Pokémon excluído permanentemente.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
+        .catch(function(e) { showToast('Erro: ' + e.message, false); });
+    };
   }
+
+  function reloadDisabledPokemons() {
+    var panel = document.getElementById('admin-disabled-pokemons-panel');
+    if (!panel) return;
+    sbGet('catalog_pokemons?select=id,name,price_brl,tier&is_active=eq.false&order=name')
+      .then(function(rows) {
+        var list = document.getElementById('admin-disabled-pokemons-list');
+        if (!list) return;
+        if (!rows || !rows.length) {
+          list.innerHTML = '<div style="color:#555;font-size:.82rem;padding:6px 0">Nenhum pokémon desabilitado.</div>';
+          return;
+        }
+        list.innerHTML = rows.map(function(r) {
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#0f1120;margin-bottom:4px">' +
+            '<span style="flex:1;color:#888;font-size:.85rem">'+r.name+'</span>' +
+            (r.tier ? '<span style="font-size:.72rem;padding:2px 6px;border-radius:4px;background:#1a2040;color:#7eb3ff">'+r.tier.toUpperCase()+'</span>' : '') +
+            '<button onclick="window.__adminReenablePokemon(''+r.id+'')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
+          '</div>';
+        }).join('');
+      });
+  }
+
+  global.__adminReenablePokemon = function(id) {
+    sbFetch('PATCH', 'catalog_pokemons?id=eq.' + id, { is_active: true })
+      .then(function() { showToast('Pokémon reativado!'); reloadPokemons(); reloadDisabledPokemons(); })
+      .catch(function(e) { showToast('Erro: ' + e.message, false); });
+  };
 
   function reloadPokemons() {
     sbGet('catalog_pokemons?select=id,name,price_brl,tier,banner_image_url,is_dive,avg_capture_minutes&is_active=eq.true&order=sort_order')
@@ -728,16 +836,73 @@
   function openDeletePackage(pi) {
     var pkg = global.PACKAGES && global.PACKAGES[pi];
     if (!pkg) return;
-    openModal('🗑️ Remover Pacote', '<p style="color:#ffaaaa">Desativar <strong>'+pkg.name+'</strong>?</p>', function(close) {
+    var html =
+      '<p style="color:#e0e4ff;margin-bottom:16px">O que deseja fazer com o pacote <strong style="color:#fff">'+pkg.name+'</strong>?</p>' +
+      '<div style="display:flex;flex-direction:column;gap:10px">' +
+        '<button id="btn-disable-pkg" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(255,180,0,.4);background:rgba(255,180,0,.1);color:#ffd080;cursor:pointer;font-size:.9rem;text-align:left">' +
+          '⊚ <strong>Desabilitar</strong><br><small style="color:#888;font-size:.78rem">Some do site, mas fica salvo. Você pode reativar depois.</small>' +
+        '</button>' +
+        '<button id="btn-harddelete-pkg" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(255,60,60,.4);background:rgba(255,60,60,.08);color:#ff8080;cursor:pointer;font-size:.9rem;text-align:left">' +
+          '🗑️ <strong>Excluir permanentemente</strong><br><small style="color:#888;font-size:.78rem">Remove do banco de dados para sempre. Não pode desfazer.</small>' +
+        '</button>' +
+      '</div>';
+    var overlay = document.createElement('div');
+    overlay.id = 'admin-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#1a1d2e;border:1px solid #2a2d45;border-radius:12px;padding:24px;width:100%;max-width:440px;color:#e0e4ff';
+    modal.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:1.1rem;color:#7eb3ff">🗑️ Remover Pacote</h3><button id="adm-pkgx" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer">×</button></div>' + html;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    document.getElementById('adm-pkgx').onclick = close;
+    overlay.onclick = function(e) { if (e.target === overlay) close(); };
+    document.getElementById('btn-disable-pkg').onclick = function() {
       sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
         .then(function(rows) {
           if (!rows || !rows[0]) throw new Error('Pacote não encontrado');
           return sbFetch('PATCH', 'catalog_packages?id=eq.' + rows[0].id, { is_active: false });
         })
-        .then(function() { showToast('Pacote removido.'); close(); location.reload(); })
+        .then(function() { showToast('Pacote desabilitado.'); close(); reloadDisabledPackages(); location.reload(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
-    }, 'Desativar');
+    };
+    document.getElementById('btn-harddelete-pkg').onclick = function() {
+      if (!confirm('Tem certeza? Isso vai excluir o pacote "'+pkg.name+'" permanentemente.')) return;
+      sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
+        .then(function(rows) {
+          if (!rows || !rows[0]) throw new Error('Pacote não encontrado');
+          return sbFetch('DELETE', 'catalog_packages?id=eq.' + rows[0].id, null);
+        })
+        .then(function() { showToast('Pacote excluído permanentemente.'); close(); location.reload(); })
+        .catch(function(e) { showToast('Erro: ' + e.message, false); });
+    };
   }
+
+  function reloadDisabledPackages() {
+    var panel = document.getElementById('admin-disabled-packages-panel');
+    if (!panel) return;
+    sbGet('catalog_packages?select=id,name,description&is_active=eq.false&order=name')
+      .then(function(rows) {
+        var list = document.getElementById('admin-disabled-packages-list');
+        if (!list) return;
+        if (!rows || !rows.length) {
+          list.innerHTML = '<div style="color:#555;font-size:.82rem;padding:6px 0">Nenhum pacote desabilitado.</div>';
+          return;
+        }
+        list.innerHTML = rows.map(function(r) {
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#0f1120;margin-bottom:4px">' +
+            '<span style="flex:1;color:#888;font-size:.85rem">'+r.name+'</span>' +
+            '<button onclick="window.__adminReenablePackage(''+r.id+'')" style="padding:3px 10px;border-radius:5px;border:1px solid rgba(80,200,80,.3);background:rgba(80,200,80,.08);color:#80d080;font-size:.75rem;cursor:pointer">✓ Reativar</button>' +
+          '</div>';
+        }).join('');
+      });
+  }
+
+  global.__adminReenablePackage = function(id) {
+    sbFetch('PATCH', 'catalog_packages?id=eq.' + id, { is_active: true })
+      .then(function() { showToast('Pacote reativado!'); reloadDisabledPackages(); location.reload(); })
+      .catch(function(e) { showToast('Erro: ' + e.message, false); });
+  };
 
   // ── Injeção das barras de admin nas abas ─────────────────────────────────
   function injectAdminBars() {
@@ -751,8 +916,17 @@
       bar.className = 'admin-bar';
       bar.innerHTML =
         '<span class="admin-bar-label">⚙️ Admin — Itens</span>' +
-        '<button class="admin-btn" onclick="window.__adminOpenAddItem()">➕ Adicionar item</button>';
+        '<button class="admin-btn" onclick="window.__adminOpenAddItem()">➕ Adicionar item</button>' +
+        '<button class="admin-btn" onclick="window.__adminToggleDisabled('items')" style="border-color:rgba(255,180,0,.3);color:#ffd080">⊚ Desabilitados</button>';
       itemsGrid.parentElement.insertBefore(bar, itemsGrid);
+      // Inject disabled panel
+      if (!document.getElementById('admin-disabled-items-panel')) {
+        var dpanel = document.createElement('div');
+        dpanel.id = 'admin-disabled-items-panel';
+        dpanel.style.cssText = 'display:none;margin-bottom:10px;padding:12px;background:rgba(255,140,0,.05);border:1px dashed rgba(255,140,0,.25);border-radius:8px';
+        dpanel.innerHTML = '<div style="font-size:.78rem;color:#ffd080;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⊚ Itens Desabilitados</div><div id="admin-disabled-items-list"><div style="color:#555;font-size:.82rem">Carregando...</div></div>';
+        itemsGrid.parentElement.insertBefore(dpanel, itemsGrid);
+      }
     }
 
     // ── Aba Captura ──
@@ -763,8 +937,16 @@
       bar2.className = 'admin-bar';
       bar2.innerHTML =
         '<span class="admin-bar-label">⚙️ Admin — Pokémons</span>' +
-        '<button class="admin-btn" onclick="window.__adminOpenAddPokemon()">➕ Adicionar pokémon</button>';
+        '<button class="admin-btn" onclick="window.__adminOpenAddPokemon()">➕ Adicionar pokémon</button>' +
+        '<button class="admin-btn" onclick="window.__adminToggleDisabled('pokemons')" style="border-color:rgba(255,180,0,.3);color:#ffd080">⊚ Desabilitados</button>';
       capturaGrid.parentElement.insertBefore(bar2, capturaGrid);
+      if (!document.getElementById('admin-disabled-pokemons-panel')) {
+        var dpanel2 = document.createElement('div');
+        dpanel2.id = 'admin-disabled-pokemons-panel';
+        dpanel2.style.cssText = 'display:none;margin-bottom:10px;padding:12px;background:rgba(255,140,0,.05);border:1px dashed rgba(255,140,0,.25);border-radius:8px';
+        dpanel2.innerHTML = '<div style="font-size:.78rem;color:#ffd080;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⊚ Pokémons Desabilitados</div><div id="admin-disabled-pokemons-list"><div style="color:#555;font-size:.82rem">Carregando...</div></div>';
+        capturaGrid.parentElement.insertBefore(dpanel2, capturaGrid);
+      }
       // Re-renderiza os cards para que os botões ✏️/🗑️ apareçam
       // (pode ter renderizado antes do admin-panel carregar)
       if (typeof renderCaptura === 'function') renderCaptura();
@@ -779,8 +961,16 @@
       bar3.style.margin = '8px';
       bar3.innerHTML =
         '<span class="admin-bar-label">⚙️ Admin</span>' +
-        '<button class="admin-btn" onclick="window.__adminOpenAddPackage()">➕ Pacote</button>';
+        '<button class="admin-btn" onclick="window.__adminOpenAddPackage()">➕ Pacote</button>' +
+        '<button class="admin-btn" onclick="window.__adminToggleDisabled('packages')" style="border-color:rgba(255,180,0,.3);color:#ffd080">⊚ Desabilitados</button>';
       pkgSidebar.parentElement.insertBefore(bar3, pkgSidebar);
+      if (!document.getElementById('admin-disabled-packages-panel')) {
+        var dpanel3 = document.createElement('div');
+        dpanel3.id = 'admin-disabled-packages-panel';
+        dpanel3.style.cssText = 'display:none;margin:8px;padding:12px;background:rgba(255,140,0,.05);border:1px dashed rgba(255,140,0,.25);border-radius:8px';
+        dpanel3.innerHTML = '<div style="font-size:.78rem;color:#ffd080;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⊚ Pacotes Desabilitados</div><div id="admin-disabled-packages-list"><div style="color:#555;font-size:.82rem">Carregando...</div></div>';
+        pkgSidebar.parentElement.insertBefore(dpanel3, pkgSidebar);
+      }
     }
   }
 
@@ -794,6 +984,20 @@
   global.__adminOpenAddItem    = openAddItem;
   global.__adminOpenAddPokemon = openAddPokemon;
   global.__adminOpenAddPackage = openAddPackage;
+
+  // ── Toggle painel de desabilitados ─────────────────────────────────────
+  global.__adminToggleDisabled = function(type) {
+    var panelId = { items: 'admin-disabled-items-panel', pokemons: 'admin-disabled-pokemons-panel', packages: 'admin-disabled-packages-panel' }[type];
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
+    var isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+      if (type === 'items')    reloadDisabledItems();
+      if (type === 'pokemons') reloadDisabledPokemons();
+      if (type === 'packages') reloadDisabledPackages();
+    }
+  };
 
   // Expõe função para os renders injetarem botões edit/delete nos cards
   global.adminIsAdmin = isAdmin;
