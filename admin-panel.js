@@ -958,11 +958,11 @@
       var bar3 = document.createElement('div');
       bar3.id = 'admin-bar-packages';
       bar3.className = 'admin-bar';
-      bar3.style.margin = '8px';
+      bar3.style.cssText = 'flex-direction:column;align-items:stretch;gap:6px;margin:8px;padding:8px';
       bar3.innerHTML =
-        '<span class="admin-bar-label">⚙️ Admin</span>' +
-        '<button class="admin-btn" onclick="window.__adminOpenAddPackage()">➕ Pacote</button>' +
-        '<button class="admin-btn" onclick="window.__adminToggleDisabled(\'packages\')" style="border-color:rgba(255,180,0,.3);color:#ffd080">⊚ Desabilitados</button>';
+        '<span class="admin-bar-label" style="font-size:.7rem">⚙️ Admin — Pacotes</span>' +
+        '<button class="admin-btn" onclick="window.__adminOpenAddPackage()" style="justify-content:center">➕ Adicionar Pacote</button>' +
+        '<button class="admin-btn" onclick="window.__adminToggleDisabled(\'packages\')" style="justify-content:center;border-color:rgba(255,180,0,.3);color:#ffd080">⊚ Ver Desabilitados</button>';
       pkgSidebar.parentElement.insertBefore(bar3, pkgSidebar);
       if (!document.getElementById('admin-disabled-packages-panel')) {
         var dpanel3 = document.createElement('div');
