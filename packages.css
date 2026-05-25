@@ -136,6 +136,31 @@
   min-height: 0;
 }
 
+/* Quando a aba pacotes está visível como block (não flex), 
+   deixar sidebar scrolar e detalhe ficar sticky */
+.tab-content#tab-pacotes .pkg-main-area {
+  overflow: visible;
+  align-items: flex-start;
+  min-height: calc(100vh - var(--header-h,72px) - var(--tabs-h,44px));
+}
+.tab-content#tab-pacotes .pkg-sidebar {
+  overflow-y: auto;
+  max-height: calc(100vh - var(--header-h,72px) - var(--tabs-h,44px));
+  position: sticky;
+  top: calc(var(--header-h,72px) + var(--tabs-h,44px));
+}
+.tab-content#tab-pacotes .pkg-detail {
+  position: sticky;
+  top: calc(var(--header-h,72px) + var(--tabs-h,44px));
+  max-height: calc(100vh - var(--header-h,72px) - var(--tabs-h,44px));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.tab-content#tab-pacotes .packages-wrap {
+  height: auto;
+  overflow: visible;
+}
+
 /* ─── SIDEBAR COMPACTA ─────────────────────────────────────────────────────── */
 
 .pkg-sidebar {
@@ -472,9 +497,6 @@
   overflow: hidden;
   padding: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  /* Garante que o hero nunca some */
-  min-height: fit-content;
-  z-index: 2;
 }
 
 /* fundo atmosférico do hero */
@@ -962,8 +984,6 @@
   gap: 4px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.06) transparent;
-  /* Garante que o body não empurra o hero */
-  min-height: 0;
 }
 .pkg-detail-body::-webkit-scrollbar { width: 3px; }
 .pkg-detail-body::-webkit-scrollbar-track { background: transparent; }
