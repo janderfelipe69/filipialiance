@@ -43,7 +43,11 @@
     if (global.PA && global.PA.hooks) {
       global.PA.hooks.emit('captura:cart_updated', { count: _items.length });
     }
-    _render();
+    try {
+      _render();
+    } catch (err) {
+      console.error('[CapturaCart] _render() erro:', err.message, err.stack);
+    }
     _tel('state_mutation', { prop: 'CapturaCart', count: _items.length });
   }
 
@@ -206,7 +210,7 @@
       _panelEl = document.createElement('div');
       _panelEl.id = 'captura-cart-panel';
       _panelEl.style.cssText = [
-        'position:fixed', 'bottom:0', 'left:0', 'right:0', 'z-index:9990',
+        'position:fixed', 'bottom:0', 'left:0', 'right:0', 'z-index:10002',
         'background:rgba(10,14,26,0.97)', 'backdrop-filter:blur(12px)',
         'border-top:1px solid rgba(58,140,255,0.25)',
         'padding:10px 16px 12px',
@@ -360,6 +364,12 @@
   // Registra em PA.hooks se disponível
   if (global.PA && global.PA.hooks && typeof global.PA.hooks.on === 'function') {
     // Nenhum hook interno por enquanto — outros módulos podem ouvir captura:cart_updated
+  }
+
+  // Diagnóstico de boot — visível em PA_DEBUG=true e sempre no console.warn
+  console.warn('[CapturaCart] v1 carregado. window.CapturaCart =', typeof global.CapturaCart);
+  if (global.PA && global.PA.telemetry) {
+    global.PA.telemetry.push('boot', { module: 'CapturaCart', status: 'loaded', version: '1.0' });
   }
 
   _log('captura-cart.js v1 inicializado.');

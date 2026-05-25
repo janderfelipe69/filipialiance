@@ -2112,6 +2112,15 @@
 <!-- NÃO altera comportamento. Apenas observa, registra e protege.       -->
 <!-- Ativar painel de debug: window.PA_DEBUG=true  ou  Ctrl+Shift+P      -->
 <script src="pa-compat.js"></script>
+<!-- ── Runtime infrastructure (Fase 5) ── -->
+<script src="js/runtime/render-registry.js"></script>
+<script src="js/runtime/hooks.js"></script>
+<!-- ── State consistency layer (Fase 5.1) ── -->
+<script src="pa-state.js"></script>
+<!-- ── Transactional render pipeline + temporal engine (Fase 5.2) ── -->
+<script src="pa-render-pipeline.js"></script>
+<!-- ── Render health: ownership, heartbeat, stale detection (Fase 5.2.2) ── -->
+<script src="pa-render-health.js"></script>
 
 <!-- ── Sistema de Autenticação PokeAlliance (Supabase) ──────────────── -->
 <!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
@@ -2317,11 +2326,17 @@ function enviarPedido() {
 }
 </script>
 <script src="balls-selector.js"></script>
+<!-- ── Carrinho de captura composta (Fase 5.3) — carregado ANTES do redesign ==-->
+<!-- para garantir que CapturaCart exista quando _hookWhenReady executa        -->
+<script src="captura-cart.js"></script>
 <script src="captura-redesign.js"></script>
 <script src="packages.logic.js"></script>
 <script src="packages.render.js"></script>
 <script src="items.logic.js"></script>
 <script src="items.render.js"></script>
+<!-- ── Controllers de Fase 5 (ownership explícito de DOM) ── -->
+<script src="js/captura/captura-controller.js"></script>
+<script src="js/items/items-controller.js"></script>
 <script src="admin-panel.js"></script>
 
 <!-- ── Sistema de Afiliados (arquivos novos) ── -->
