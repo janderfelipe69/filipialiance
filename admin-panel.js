@@ -1325,6 +1325,7 @@
   global.adminIsAdmin = isAdmin;
 
   // Injeta barras quando as abas renderizam — aguarda Session.ready()
+  // { once: true }: bootstrap singleton — não deve re-executar se db:ready re-disparar
   document.addEventListener('db:ready', function() {
     var doInject = function() { setTimeout(injectAdminBars, 200); };
     if (typeof Session !== 'undefined') {
@@ -1333,7 +1334,7 @@
       // Fallback se Session não estiver disponível ainda
       setTimeout(doInject, 500);
     }
-  });
+  }, { once: true });
 
   // Re-renderiza cards e barras quando sessão muda (login/logout)
   document.addEventListener('db:ready', function() {
@@ -1358,7 +1359,7 @@
         }
       }, 100);
     });
-  });
+  }, { once: true });
 
   // Re-injeta quando muda de aba
   document.addEventListener('db:ready', function() {
@@ -1373,7 +1374,7 @@
       }
       return r;
     };
-  });
+  }, { once: true });
 
   // Expõe a função de preview de tipagem globalmente
   // (chamada via oninput nos formulários de add/edit pokémon)
@@ -1456,7 +1457,7 @@
       // Inject row before closing </div> of the card
       return base.replace(/(<\/div>\s*)$/, adminRow + '$1');
     };
-  });
+  }, { once: true });
 
 }(window));
 

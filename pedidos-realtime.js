@@ -247,6 +247,18 @@
       _renderUI();
     });
 
+    // orders:deleted — disparado por orders-admin.js ao excluir pedido.
+    // Listener adicionado na Fase 4 (era evento órfão).
+    // Debounce leve para evitar múltiplos refreshes em exclusões em lote.
+    var _deletedTimer = null;
+    global.addEventListener('orders:deleted', function (e) {
+      _log('orders:deleted recebido — id:', e.detail && e.detail.supabaseId);
+      clearTimeout(_deletedTimer);
+      _deletedTimer = setTimeout(function () {
+        _renderUI();
+      }, 150);
+    });
+
     _log('CustomEvent listeners registrados.');
   }
 

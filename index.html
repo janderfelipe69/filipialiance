@@ -12,6 +12,11 @@
   <link rel="stylesheet" href="items.animations.css" />
   <link rel="stylesheet" href="mobile-patch.css" />
   <link rel="stylesheet" href="auth.css" />
+  <!-- Kanban e mobile — movidos para o head (Fase 4) para eliminar FOUC -->
+  <link rel="stylesheet" href="orders-kanban.css" />
+  <link rel="stylesheet" href="mobile.css" />
+  <link rel="stylesheet" href="responsive-fix.css" />
+  <link rel="stylesheet" href="captura-toolbar.css" />
 </head>
 <body>
 
@@ -2102,6 +2107,12 @@
   </div>
 </div>
 
+<!-- ── Camada de Compatibilidade e Telemetria (Fase 3) ──────────────── -->
+<!-- DEVE vir após app.js e antes de session.js.                          -->
+<!-- NÃO altera comportamento. Apenas observa, registra e protege.       -->
+<!-- Ativar painel de debug: window.PA_DEBUG=true  ou  Ctrl+Shift+P      -->
+<script src="pa-compat.js"></script>
+
 <!-- ── Sistema de Autenticação PokeAlliance (Supabase) ──────────────── -->
 <!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
 <!-- user-storage.js foi REMOVIDO — dados agora vêm do banco Supabase    -->
@@ -2128,13 +2139,9 @@
 <script src="delivery-financial.js"></script>
 
 <!-- ── Kanban (novos arquivos) ── -->
-<link rel="stylesheet" href="orders-kanban.css">
 <script src="orders-kanban.js"></script>
 
-<!-- ── Mobile patch — Aba Pedidos (deve vir por último) ── -->
-<link rel="stylesheet" href="mobile.css">
-<link rel="stylesheet" href="responsive-fix.css">
-<link rel="stylesheet" href="captura-toolbar.css">
+<!-- ── UI de pedidos ── -->
 
 <script src="orders-ui.js"></script>
 <script src="orders-integration-patch.js"></script>
@@ -2266,46 +2273,6 @@ window.addEventListener('load', function() {
   }
 </script>
 
-
-<style>
-.send-order-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 14px 20px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-title, 'Cinzel', serif);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, #3a8cff 0%, #1a5fcc 100%);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(58,140,255,0.35);
-  transition: transform .15s, box-shadow .15s, opacity .15s;
-}
-.send-order-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(58,140,255,0.5); }
-.send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
-.send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-</style>
-<script>
-function enviarPedido() {
-  var btn = document.getElementById('send-order-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-  if (typeof submitPedido === 'function') {
-    submitPedido();
-  } else if (typeof sendPedido === 'function') {
-    sendPedido();
-  } else {
-    if (typeof showToast === 'function') showToast('Erro: função de envio não encontrada em pedidos.js', 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Pedido'; }
-  }
-}
-</script>
 
 <style>
 .send-order-btn {

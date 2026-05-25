@@ -161,7 +161,15 @@
   ══════════════════════════════════════════════════════════ */
   function registerMobileHook() {
     if (!window.NavRuntime) {
-      document.addEventListener('DOMContentLoaded', registerMobileHook);
+      // Guarda singleton: evita registrar múltiplos DOMContentLoaded listeners
+      // se esta função for chamada várias vezes antes do NavRuntime estar pronto.
+      if (!window.__mobileUxHookPending) {
+        window.__mobileUxHookPending = true;
+        document.addEventListener('DOMContentLoaded', function () {
+          window.__mobileUxHookPending = false;
+          registerMobileHook();
+        }, { once: true });
+      }
       return;
     }
     NavRuntime.onTabSwitch('after', 'mobile-ux', function (tab, btn) {

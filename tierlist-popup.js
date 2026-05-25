@@ -693,8 +693,19 @@ window.tlpopClose = function() {
 };
 
 (function patchTierList() {
+  var _patchAttempts = 0;
+  var _PATCH_MAX = 30; // máx 30 × 200ms = 6s (Fase 4: limite adicionado)
+
   function tryPatch() {
-    if (typeof window.renderTierList !== 'function') { setTimeout(tryPatch, 200); return; }
+    if (typeof window.renderTierList !== 'function') {
+      _patchAttempts++;
+      if (_patchAttempts >= _PATCH_MAX) {
+        console.warn('[TierListPopup] renderTierList não encontrado após ' + _PATCH_MAX + ' tentativas — poll encerrado.');
+        return;
+      }
+      setTimeout(tryPatch, 200);
+      return;
+    }
     var _orig = window.renderTierList;
     window.renderTierList = function() { _orig(); setTimeout(attachListeners, 80); };
     attachListeners();

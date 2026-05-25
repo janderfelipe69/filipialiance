@@ -177,9 +177,11 @@ function buildParticlesHtml(type) {
 
 // ============================================================
 // Supabase — configuração
+// FASE 4: constantes locais removidas — usar window.SUPABASE_URL/KEY
+// definidos por supabase-client.js (carregado antes de app.js).
 // ============================================================
-const SUPABASE_URL = 'https://xzmefefcfwhlkmqrkxcd.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWVmZWZjZndobGttcXJreGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTA5MTEsImV4cCI6MjA5NDE4NjkxMX0.i9ESDqCP9fDdQrK0e-TkchbEJrAlZ6qhKh8-Yu6axAg';
+var SUPABASE_URL = window.SUPABASE_URL;
+var SUPABASE_KEY = window.SUPABASE_KEY;
 
 // ── helpers compartilhados pelas duas funções ─────────────────────────────────
 
