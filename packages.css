@@ -1255,28 +1255,3 @@
   .pkg-overlay { padding: 0; align-items: flex-end; }
   .pkg-modal { border-radius: 12px 12px 0 0; max-height: 90vh; max-width: 100%; }
 }
-
-
-/* ── Sticky fix: detalhe acompanha scroll sem precisar voltar ao topo ── */
-.pkg-main-area {
-  overflow: visible !important;
-  align-items: flex-start !important;
-}
-.pkg-sidebar {
-  position: sticky !important;
-  top: calc(var(--header-h, 72px) + var(--tabs-h, 44px)) !important;
-  max-height: calc(100vh - var(--header-h, 72px) - var(--tabs-h, 44px)) !important;
-  overflow-y: auto !important;
-}
-.pkg-detail {
-  position: sticky !important;
-  top: calc(var(--header-h, 72px) + var(--tabs-h, 44px)) !important;
-  max-height: calc(100vh - var(--header-h, 72px) - var(--tabs-h, 44px)) !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-.packages-wrap {
-  height: auto !important;
-  overflow: visible !important;
-  min-height: calc(100vh - var(--header-h, 72px) - var(--tabs-h, 44px)) !important;
-}
