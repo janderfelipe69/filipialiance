@@ -193,6 +193,13 @@ function selectPkg(pi) {
   pkgState.activePkgIdx = pi;
   renderPackages();
   renderPkgDetail(pi);
+  // Scrola para o detalhe do pacote suavemente
+  setTimeout(function() {
+    var detail = document.getElementById('pkg-detail');
+    if (detail) {
+      detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
 }
 
 function selectPkgCat(cat) {
