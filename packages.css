@@ -468,7 +468,9 @@
 
 .pkg-detail-hero {
   flex-shrink: 0;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   overflow: hidden;
   padding: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
