@@ -33,9 +33,8 @@
 .packages-wrap {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 200px);
-  height: auto;
-  overflow: visible;
+  height: 100%;
+  overflow: hidden;
   background: var(--pkg-bg-deep);
   position: relative;
 }
@@ -133,9 +132,8 @@
 .pkg-main-area {
   display: flex;
   flex: 1;
-  overflow: visible;
-  min-height: calc(100vh - 200px);
-  align-items: flex-start;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ─── SIDEBAR COMPACTA ─────────────────────────────────────────────────────── */
@@ -147,7 +145,7 @@
   border-right: 1px solid var(--pkg-border);
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
 }
 
@@ -338,13 +336,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   background: var(--pkg-bg-surface);
   min-width: 0;
-  position: sticky;
-  top: 80px;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
+  position: relative;
 }
 
 /* ─── ESTADO VAZIO — cinematográfico ───────────────────────────────────────── */
@@ -1259,4 +1254,48 @@
   .pkg-cat-btn { padding: 4px 10px; font-size: 9px; }
   .pkg-overlay { padding: 0; align-items: flex-end; }
   .pkg-modal { border-radius: 12px 12px 0 0; max-height: 90vh; max-width: 100%; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLL FIX — pkg-detail sticky + sidebar independent scroll
+   ══════════════════════════════════════════════════════════════ */
+
+/* 1. Make tab-pacotes fill the viewport height */
+#tab-pacotes.active {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-h, 72px) - var(--tabs-h, 44px));
+}
+
+/* 2. packages-wrap fills remaining space */
+#tab-pacotes.active .packages-wrap {
+  flex: 1;
+  height: 0; /* flex child trick: fills without overflow */
+  min-height: 0;
+}
+
+/* 3. pkg-main-area fills remaining space below cat tabs */
+#tab-pacotes.active .pkg-main-area {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 4. Sidebar scrolls independently */
+#tab-pacotes.active .pkg-sidebar {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 5. pkg-detail scrolls independently — banner stays visible */
+#tab-pacotes.active .pkg-detail {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 6. pkg-detail-body does NOT have its own scroll — parent handles it */
+#tab-pacotes.active .pkg-detail-body {
+  overflow: visible;
+  flex: none;
 }
