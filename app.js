@@ -2586,14 +2586,10 @@ function selectBall(ballId) {
   selectedBall = ballId;
 }
 
-// ── confirmCaptura — v4 — Fonte oficial: Supabase ────────────────────────────
-// ANTES (quebrado): salvava APENAS no OrdersStorage/localStorage.
-// AGORA (correto):  INSERT direto em public.pedidos no Supabase.
-//   1. Usuário logado obrigatório
-//   2. Payload completo montado com todos os campos obrigatórios
-//   3. INSERT no Supabase via _salvarPedidoSupabase()
-//   4. localStorage atualizado como CACHE via pedidosCarregar() (não fonte)
-//   5. Fila/admin/SLA passam a enxergar o pedido imediatamente
+// ── confirmCaptura — v5 — Adiciona ao CapturaCart (Fase 5.3) ─────────────────
+// MUDANÇA: Em vez de submeter pedido direto, adiciona ao carrinho de captura.
+// O usuário pode acumular múltiplos pokémons e enviar como pedido composto.
+// RETROCOMPATIBILIDADE: CapturaCart.checkout() usa o mesmo _salvarPedidoSupabase().
 // ──────────────────────────────────────────────────────────────────────────────
 async function confirmCaptura() {
   if (currentCapturaIdx === null) return;
@@ -2607,27 +2603,61 @@ async function confirmCaptura() {
   }
 
   // ── Lê ball escolhida no BallsSelector (fallback: ultra) ─────────────────
-  const _ballId    = (window._selectedBallType && window._selectedBallIdx === currentCapturaIdx)
+  const _ballId = (window._selectedBallType && window._selectedBallIdx === currentCapturaIdx)
     ? window._selectedBallType : 'ultra';
-  const ball       = BALLS.find(b => b.id === _ballId) || BALLS[0];
+  const ball = BALLS.find(b => b.id === _ballId) || BALLS[0];
   // Limpa estado global após leitura
   window._selectedBallType   = null;
   window._selectedBallPrices = null;
   window._selectedBallIdx    = null;
 
-  const pokeData = POKEMONS[currentCapturaIdx];
+  const pokeData   = POKEMONS[currentCapturaIdx];
   const finalPrice = _calcCapturaFinalPrice(pokeData, ball);
   const priceData  = formatKK(finalPrice);
-  const drops = (typeof getPokeDrops === 'function') ? getPokeDrops(pokeData.name) : [];
 
+  // ── 2. CapturaCart: adiciona ao carrinho (Fase 5.3) ──────────────────────
+  if (typeof CapturaCart !== 'undefined') {
+    const entry = CapturaCart.add(pokeData, ball, finalPrice, priceData);
+    if (!entry) return; // add() falhou
+
+    // Feedback visual rápido no modal
+    const btn = document.getElementById('captura-confirm-btn');
+    const msg = document.getElementById('captura-success-msg');
+    if (btn) {
+      btn.innerHTML = '<span>✓ Adicionado ao Carrinho</span>';
+      btn.style.borderColor = 'rgba(37,211,102,0.5)';
+      btn.style.color = '#25d366';
+    }
+    if (msg) {
+      const txtEl = document.getElementById('captura-success-text');
+      if (txtEl) txtEl.textContent = `${pokeData.name} adicionado! (${CapturaCart.getCount()} no carrinho)`;
+      msg.classList.add('show');
+    }
+
+    // Fecha modal após 1.2s (mais rápido — usuário pode adicionar próximo)
+    setTimeout(() => closeCapturaModal(), 1200);
+
+    if (window.PA && window.PA.telemetry) {
+      window.PA.telemetry.push('state_mutation', { prop: 'confirmCaptura', op: 'add-to-cart', count: CapturaCart.getCount() });
+    }
+    return;
+  }
+
+  // ── FALLBACK LEGACY: CapturaCart não carregado — comportamento original ────
+  // Mantém o pedido direto para garantir compatibilidade total
+  console.warn('[confirmCaptura] CapturaCart não encontrado — usando modo legacy (pedido direto).');
+  _confirmCapturaLegacy(pokeData, ball, finalPrice, priceData, user);
+}
+
+// ── _confirmCapturaLegacy — comportamento original v4 (fallback) ─────────────
+// Preservado intacto para garantir zero regressão caso CapturaCart não carregue.
+async function _confirmCapturaLegacy(pokeData, ball, finalPrice, priceData, user) {
   const nick = (user.nickname || user.email) || 'Anônimo';
-
-  // ── 2. Detecta se é Pokémon SR (45 dias/unidade) ou normal (7 dias/pacote) ─
+  const drops = (typeof getPokeDrops === 'function') ? getPokeDrops(pokeData.name) : [];
   const tag = (pokeData.tag || '').toLowerCase();
   const isSR = (tag === 'super-raro' || tag === 'sr');
   const serviceType = isSR ? 'pokemon_sr' : 'normal_package';
 
-  // ── 3. Monta item normalizado para o campo itens (JSONB) ─────────────────
   const itemSupabase = {
     nome:           pokeData.name + ' (' + ball.name + ')',
     quantidade:     1,
@@ -2640,121 +2670,69 @@ async function confirmCaptura() {
     preco_unit_kk:  priceData ? priceData.label : '—',
     preco_unit_brl: priceData ? priceData.brl   : '—',
     drops:          drops.map(d => d.name),
+    status:         'pending',
+    started_at:     null,
+    completed_at:   null,
+    actual_duration_minutes: null,
   };
 
-  // ── 4. Payload completo para public.pedidos ───────────────────────────────
   const subtotalRaw = finalPrice || 0;
   const subtotalKK  = priceData ? priceData.label : '—';
   const subtotalBRL = subtotalRaw > 0
     ? (subtotalRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     : '—';
-  const _calcPriceBRL = subtotalRaw > 0
-    ? Math.round(subtotalRaw / 1000000 * KK_TO_BRL * 100) / 100
-    : 0;
+  const _calcPriceBRL = subtotalRaw > 0 ? Math.round(subtotalRaw / 1000000 * KK_TO_BRL * 100) / 100 : 0;
 
   const payload = {
-    user_id:          user.id || null,
-    nick_jogo:        nick,
-    status:           'pendente',
-    status_v3:        'waiting_queue',
-    tipo_servico:     serviceType,
-    service_type:     serviceType,
-    service_quantity: 1,
-    started_at:       null,
-    sla_min_days:     null,
-    sla_max_days:     null,
-    itens:            [itemSupabase],
-    subtotal_kk:      subtotalKK,
-    subtotal_brl:     subtotalBRL,
-    total_kk:         subtotalKK,
-    total_brl:        subtotalBRL,
-    taxa_servico:     false,
-    ball_type:             ball.id,
-    calculated_price_brl:  _calcPriceBRL,
-    calculated_price_kk:   finalPrice || 0,
-    calculated_price_dd:   0,
-    ball_returned:         false,
-    client_supplied_balls: true,
+    user_id: user.id || null, nick_jogo: nick, status: 'pendente', status_v3: 'waiting_queue',
+    tipo_servico: serviceType, service_type: serviceType, service_quantity: 1,
+    started_at: null, sla_min_days: null, sla_max_days: null,
+    itens: [itemSupabase],
+    subtotal_kk: subtotalKK, subtotal_brl: subtotalBRL,
+    total_kk: subtotalKK, total_brl: subtotalBRL, taxa_servico: false,
+    ball_type: ball.id, calculated_price_brl: _calcPriceBRL,
+    calculated_price_kk: finalPrice || 0, calculated_price_dd: 0,
+    ball_returned: false, client_supplied_balls: true,
   };
 
-  // Remove campos ball_* se a tabela pedidos ainda não tem as colunas
-  // (proteção: se der 400, tenta sem esses campos)
   const _ballFields = ['ball_type','calculated_price_brl','calculated_price_kk',
     'calculated_price_dd','ball_returned','client_supplied_balls'];
-  
-  console.log('[CAPTURA v4] Salvando no Supabase...', payload);
 
-  // ── 5. UI: bloqueia botão durante o envio ─────────────────────────────────
   const btn = document.getElementById('captura-confirm-btn');
   const msg = document.getElementById('captura-success-msg');
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Registrando...'; }
 
   try {
-    // ── 6. INSERT no Supabase — tenta com campos ball, fallback sem ────────
     let saved;
-    try {
-      saved = await _salvarPedidoSupabase(payload);
-    } catch (ballErr) {
+    try { saved = await _salvarPedidoSupabase(payload); }
+    catch (ballErr) {
       if (ballErr.message && ballErr.message.includes('ball_')) {
         const fallback = Object.assign({}, payload);
         _ballFields.forEach(f => delete fallback[f]);
         saved = await _salvarPedidoSupabase(fallback);
-      } else {
-        throw ballErr;
-      }
+      } else { throw ballErr; }
     }
     const pedidoId = saved?.id ? ' #' + String(saved.id).padStart(4, '0') : '';
-    console.log('[CAPTURA v4] ✅ Pedido salvo no Supabase:', saved);
-
-    // ── 7. Notificação de sucesso ─────────────────────────────────────────
     if (typeof OrdersNotifications !== 'undefined') {
-      OrdersNotifications.show(
-        `Pedido${pedidoId} criado! Aguarde confirmação.`,
-        'pendente',
-        6000
-      );
+      OrdersNotifications.show(`Pedido${pedidoId} criado! Aguarde confirmação.`, 'pendente', 6000);
     }
+    if (typeof pedidosCarregar === 'function') setTimeout(() => pedidosCarregar(), 300);
+    else if (typeof OrdersUI !== 'undefined') setTimeout(() => OrdersUI.refresh(), 300);
 
-    // ── 8. Recarrega a fila do banco (atualiza localStorage como cache) ───
-    if (typeof pedidosCarregar === 'function') {
-      setTimeout(() => pedidosCarregar(), 300);
-    } else if (typeof OrdersUI !== 'undefined') {
-      setTimeout(() => OrdersUI.refresh(), 300);
-    }
-
-    // ── 9. Feedback visual de sucesso ────────────────────────────────────
     const priceStr = priceData ? ` · ${priceData.label} (${priceData.brl})` : '';
     if (msg) {
       const txtEl = document.getElementById('captura-success-text');
       if (txtEl) txtEl.textContent = `${pokeData.name} adicionado aos pedidos${priceStr}!`;
       msg.classList.add('show');
     }
-    if (btn) {
-      btn.innerHTML = '<span>✓ Adicionado aos Pedidos</span>';
-      btn.style.borderColor = 'rgba(37,211,102,0.5)';
-      btn.style.color = '#25d366';
-    }
+    if (btn) { btn.innerHTML = '<span>✓ Adicionado aos Pedidos</span>'; btn.style.borderColor = 'rgba(37,211,102,0.5)'; btn.style.color = '#25d366'; }
     setTimeout(() => closeCapturaModal(), 2200);
-
   } catch (err) {
-    console.error('[CAPTURA v4] ❌ Falha ao salvar no Supabase:', err);
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '⬟ Tentar Novamente';
-      btn.style.borderColor = 'rgba(255,80,80,0.5)';
-      btn.style.color = '#ff5050';
-    }
-    if (typeof OrdersNotifications !== 'undefined') {
-      OrdersNotifications.show(
-        'Erro ao registrar pedido. Verifique sua conexão.',
-        'cancelado',
-        5000
-      );
-    }
-    if (typeof showToast === 'function') showToast('Erro ao salvar pedido: ' + err.message, 'error');
+    console.error('[confirmCaptura LEGACY] ❌ Falha:', err);
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span>⬟ Tentar Novamente</span>'; }
+    if (typeof showToast === 'function') showToast('Erro ao registrar: ' + err.message, 'error');
   }
 }
-
 function closeCapturaModal() {
   document.getElementById('captura-overlay').classList.remove('open');
   currentCapturaIdx = null;
