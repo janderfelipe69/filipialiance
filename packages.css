@@ -468,12 +468,13 @@
 
 .pkg-detail-hero {
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: relative;
   overflow: hidden;
   padding: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  /* Garante que o hero nunca some */
+  min-height: fit-content;
+  z-index: 2;
 }
 
 /* fundo atmosférico do hero */
@@ -961,6 +962,8 @@
   gap: 4px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.06) transparent;
+  /* Garante que o body não empurra o hero */
+  min-height: 0;
 }
 .pkg-detail-body::-webkit-scrollbar { width: 3px; }
 .pkg-detail-body::-webkit-scrollbar-track { background: transparent; }
