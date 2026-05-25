@@ -193,6 +193,12 @@ function selectPkg(pi) {
   pkgState.activePkgIdx = pi;
   renderPackages();
   renderPkgDetail(pi);
+  requestAnimationFrame(function() {
+    var body = document.getElementById('pkg-detail-body-' + pi);
+    if (body) { body.scrollTop = 0; return; }
+    var body2 = document.querySelector('.pkg-detail-body');
+    if (body2) body2.scrollTop = 0;
+  });
 }
 
 function selectPkgCat(cat) {
