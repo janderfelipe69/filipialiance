@@ -157,7 +157,15 @@ function _render() {
             '<div class="wt-avatar">'+t.npc.charAt(0)+'</div>' +
             '<div style="flex:1;min-width:0">' +
               '<div class="wt-npc-name">'+_esc(t.npc)+'</div>' +
-              '<div class="wt-npc-loc">📍 '+_esc(t.loc)+'</div>' +
+              (function(){
+        var parts = t.loc.split('—');
+        var city = parts[0].trim();
+        var sub = parts.slice(1).join('—').trim();
+        return '<div class="wt-npc-loc">'+
+          '<span class="wt-city">'+_esc(city)+'</span>'+
+          (sub ? '<span class="wt-subloc"> — '+_esc(sub)+'</span>' : '')+
+        '</div>';
+      })() +
             '</div>' +
             '<span class="wt-badge">'+cfg2.icon+' '+cfg2.label+'</span>' +
           '</div>' +
@@ -209,6 +217,8 @@ function _injectCSS() {
     .wt-avatar { width:36px;height:36px;border-radius:50%;background:var(--bg,rgba(255,255,255,.08));border:1.5px solid var(--bd,rgba(255,255,255,.15));display:flex;align-items:center;justify-content:center;font-family:var(--font-title);font-size:.95rem;font-weight:700;color:var(--c,#fff);flex-shrink:0 }
     .wt-npc-name { font-family:var(--font-title);font-size:1rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--c,#fff);line-height:1.2 }
     .wt-npc-loc { font-size:.73rem;color:var(--muted);margin-top:3px;line-height:1.3 }
+    .wt-npc-loc .wt-city { color:var(--c,#fff);font-weight:700;opacity:.9 }
+    .wt-npc-loc .wt-subloc { color:var(--muted) }
     .wt-badge { padding:3px 9px;border-radius:20px;border:1px solid var(--bd);background:var(--bg);color:var(--c);font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:2px }
 
     /* Pokemon chips */
