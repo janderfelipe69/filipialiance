@@ -194,10 +194,12 @@ function selectPkg(pi) {
   renderPackages();
   renderPkgDetail(pi);
   requestAnimationFrame(function() {
-    var body = document.getElementById('pkg-detail-body-' + pi);
-    if (body) { body.scrollTop = 0; return; }
-    var body2 = document.querySelector('.pkg-detail-body');
-    if (body2) body2.scrollTop = 0;
+    // Reseta scroll do container interno do detalhe
+    var body = document.getElementById('pkg-detail-body-' + pi) || document.querySelector('.pkg-detail-body');
+    if (body) body.scrollTop = 0;
+    // Reseta scroll do pkg-detail inteiro
+    var detail = document.getElementById('pkg-detail');
+    if (detail) detail.scrollTop = 0;
   });
 }
 

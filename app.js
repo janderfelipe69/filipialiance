@@ -698,6 +698,14 @@ function switchTab(tab, btn) {
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
   if (tab === 'pacotes') {
+    // Define altura real para o pkg-main-area funcionar com overflow:hidden
+    var tabEl = document.getElementById('tab-pacotes');
+    if (tabEl) {
+      var hh = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 72;
+      var th = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tabs-h')) || 44;
+      tabEl.style.height = (window.innerHeight - hh - th) + 'px';
+      tabEl.style.overflow = 'hidden';
+    }
     if (window.__dbReady) renderPackages();
     else document.addEventListener('db:ready', function() { renderPackages(); }, { once: true });
   }
