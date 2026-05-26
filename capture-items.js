@@ -712,14 +712,19 @@
    */
   async function startItem(event) {
     var btn      = event.target;
-    var itemEl   = btn.closest('[data-item-ref]');
+    // FIX: use .closest('.capture-item') — the btn itself also has data-item-ref,
+    // so closest('[data-item-ref]') would return the button, not the container
+    var itemEl   = btn.closest('.capture-item') || btn.closest('[data-item-ref]');
     var cardEl   = btn.closest('[data-order-id]');
     if (!itemEl || !cardEl) {
-      _warn('startItem: não encontrou [data-item-ref] ou [data-order-id] no DOM');
+      _warn('startItem: não encontrou .capture-item ou [data-order-id] no DOM');
       return;
     }
 
-    var itemRef  = itemEl.getAttribute('data-item-ref');
+    // Read itemRef from container first, fall back to button attribute
+    var itemRef  = (itemEl.classList && itemEl.classList.contains('capture-item'))
+      ? itemEl.getAttribute('data-item-ref')
+      : (btn.getAttribute('data-item-ref') || itemEl.getAttribute('data-item-ref'));
     var orderId  = cardEl.getAttribute('data-order-id');
 
     // Debug temporário (Fase 5.3.2 bugfix)
@@ -765,15 +770,33 @@
     _unlockItem(supabaseId, itemRef); // release lock regardless of outcome
 
     if (result && result.success) {
-      itemEl.setAttribute('data-ci-status', 'in_progress');
-      itemEl.setAttribute('data-ci-updated-at', Date.now().toString());
-      var statusEl = itemEl.querySelector('.capture-item-status, .ci-status-label');
-      if (statusEl) statusEl.textContent = 'Em andamento';
-      itemEl.classList.remove('ci-pending');
-      itemEl.classList.add('ci-in-progress');
-      var oldBtn = itemEl.querySelector('.ci-btn--start');
-      if (oldBtn) oldBtn.replaceWith(_makeCompleteBtn(itemRef));
-      else btn.replaceWith(_makeCompleteBtn(itemRef));
+      // Visual update isolated in try/catch — DOM failure cannot abort the PATCH
+      try {
+        itemEl.setAttribute('data-ci-status', 'in_progress');
+        itemEl.setAttribute('data-ci-updated-at', Date.now().toString());
+        var statusEl = itemEl.querySelector('.capture-item-status, .ci-status-label');
+        if (statusEl) { statusEl.textContent = 'Em andamento'; }
+        else { console.warn('[captureItems.DOMMissing]', { selector: '.ci-status-label', itemRef: itemRef, mode: 'startItem' }); }
+        itemEl.classList.remove('ci-pending');
+        itemEl.classList.add('ci-in-progress');
+        var oldBtn = itemEl.querySelector('.ci-btn--start');
+        if (oldBtn) oldBtn.replaceWith(_makeCompleteBtn(itemRef));
+        else btn.replaceWith(_makeCompleteBtn(itemRef));
+        // Add live timer
+        var startedAt = new Date().toISOString();
+        var ciRight = itemEl.querySelector && itemEl.querySelector('.ci-right');
+        if (ciRight && !itemEl.querySelector('[data-started-at]')) {
+          var timerEl = global.document.createElement('span');
+          timerEl.className = 'ci-timer';
+          timerEl.setAttribute('data-started-at', startedAt);
+          timerEl.textContent = '\u23f1 0m';
+          ciRight.appendChild(timerEl);
+        }
+        _tel('capture_item_morph', { itemRef: itemRef, status: 'in_progress' });
+      } catch (domErr) {
+        console.warn('[captureItems.DOMMissing]', { error: domErr.message, itemRef: itemRef, mode: 'startItem-visual' });
+        // PATCH succeeded — realtime will sync the UI
+      }
     } else if (result && result.reason === 'status_mismatch') {
       // Another admin already started it — reflect server state silently
       btn.disabled = false;
@@ -794,11 +817,14 @@
    */
   async function completeItem(event) {
     var btn    = event.target;
-    var itemEl = btn.closest('[data-item-ref]');
+    // FIX: use .closest('.capture-item') — same issue as startItem
+    var itemEl = btn.closest('.capture-item') || btn.closest('[data-item-ref]');
     var cardEl = btn.closest('[data-order-id]');
     if (!itemEl || !cardEl) return;
 
-    var itemRef  = itemEl.getAttribute('data-item-ref');
+    var itemRef  = (itemEl.classList && itemEl.classList.contains('capture-item'))
+      ? itemEl.getAttribute('data-item-ref')
+      : (btn.getAttribute('data-item-ref') || itemEl.getAttribute('data-item-ref'));
     var orderId  = cardEl.getAttribute('data-order-id');
 
     console.log('[captureItems.complete]', { orderId: orderId, itemRef: itemRef });
@@ -841,13 +867,19 @@
     _unlockItem(supabaseId, itemRef); // always release
 
     if (result && result.success) {
-      itemEl.setAttribute('data-ci-status', 'completed');
-      itemEl.setAttribute('data-ci-updated-at', Date.now().toString());
-      var statusElC = itemEl.querySelector('.capture-item-status, .ci-status-label');
-      if (statusElC) statusElC.textContent = 'Entregue';
-      itemEl.classList.remove('ci-in-progress');
-      itemEl.classList.add('ci-completed');
-      btn.remove();
+      // Visual update isolated — DOM failure cannot cancel PATCH
+      try {
+        itemEl.setAttribute('data-ci-status', 'completed');
+        itemEl.setAttribute('data-ci-updated-at', Date.now().toString());
+        var statusElC = itemEl.querySelector('.capture-item-status, .ci-status-label');
+        if (statusElC) { statusElC.textContent = 'Entregue'; }
+        else { console.warn('[captureItems.DOMMissing]', { selector: '.ci-status-label', itemRef: itemRef, mode: 'completeItem' }); }
+        itemEl.classList.remove('ci-in-progress');
+        itemEl.classList.add('ci-completed');
+        btn.remove();
+      } catch (domErrC) {
+        console.warn('[captureItems.DOMMissing]', { error: domErrC.message, itemRef: itemRef, mode: 'completeItem-visual' });
+      }
 
       _tel('partial_delivery_completed', { itemRef: itemRef, allDone: !!result.allDone });
 
@@ -1057,12 +1089,14 @@
   // Abre upload inline para um captureItem específico
   function openUploadForItem(event) {
     var btn    = event.target;
-    var itemEl = btn.closest('[data-item-ref]');
+    var itemEl = btn.closest('.capture-item') || btn.closest('[data-item-ref]');
     var cardEl = btn.closest('[data-order-id]');
     if (!itemEl || !cardEl) return;
-    var itemRef = itemEl.getAttribute('data-item-ref');
+    var itemRef = (itemEl.classList && itemEl.classList.contains('capture-item'))
+      ? itemEl.getAttribute('data-item-ref')
+      : (btn.getAttribute('data-item-ref') || itemEl.getAttribute('data-item-ref'));
     var orderId = cardEl.getAttribute('data-order-id');
-    var supId   = orderId && orderId.startsWith('sb_') ? orderId.slice(3) : orderId;
+    var supId   = orderId ? orderId.replace(/^sb_/i, '') : null;
 
     _tel('capture_item_upload', { itemRef: itemRef, orderId: supId });
 
