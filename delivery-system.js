@@ -647,10 +647,14 @@
           quantity:         orderData?.quantity     || null,
           order_created_at: orderData?.created_at   || null,
           concluido_at:     new Date().toISOString(),
-          // [SchemaAudit] price_brl NÃO é coluna de delivery_proofs — é do catálogo.
-          // Removido do INSERT para evitar HTTP 400. O valor financeiro é salvo
-          // via DeliveryFinancial.savePaymentOnDelivery() no passo 2.5 abaixo.
+          // Fase 5.3.2: vincula proof ao captureItem individual se houver item_ref pendente
+          item_ref:         DeliveryAdmin._pendingItemRef || null,
         };
+        const _pendingItemRef = DeliveryAdmin._pendingItemRef || null;
+        const _pendingItemEl  = DeliveryAdmin._pendingItemEl  || null;
+        // Limpa estado pendente para próximo upload
+        DeliveryAdmin._pendingItemRef = null;
+        DeliveryAdmin._pendingItemEl  = null;
         // Guarda price_brl em memória apenas para o modal de pagamento (passo 2.5)
         const _orderPriceBrl = orderData && (orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
           ? parseFloat(orderData.price_brl || orderData.subtotal_brl || orderData.total_brl || orderData.pagamento_brl)
@@ -681,8 +685,33 @@
           });
         }
 
-        // ── PASSO 3: UPDATE pedidos → status = 'concluido' ──
-        await DeliveryAdmin._updatePedidoStatus(orderId);
+        // ── PASSO 3: UPDATE pedidos ──────────────────────────
+        // Fase 5.3.2: se há item_ref, atualiza apenas o captureItem individual.
+        // O pedido só conclui automaticamente quando todos os items estiverem done.
+        // Se não há item_ref, usa o fluxo legado (conclui pedido inteiro).
+        if (_pendingItemRef && window.PA && window.PA.captureItems) {
+          await window.PA.captureItems.completeCaptureItem(orderId, _pendingItemRef, {
+            image_url:          imgurLink,
+            delivery_proof_id:  deliveryId,
+          });
+          // Atualiza preview inline se o elemento estiver disponível
+          if (_pendingItemEl) {
+            var existingProof = _pendingItemEl.querySelector('.ci-proof-preview');
+            if (!existingProof) {
+              var previewEl = document.createElement('div');
+              previewEl.className = 'ci-proof-preview';
+              previewEl.innerHTML = '<a href="' + imgurLink + '" target="_blank" class="ci-proof-link">' +
+                '<img src="' + imgurLink + '" class="ci-proof-thumb" onerror="this.style.display=\'none\'" />' +
+                '<span class="ci-proof-label">📸 Ver print</span></a>';
+              _pendingItemEl.appendChild(previewEl);
+            }
+            var uploadBtn = _pendingItemEl.querySelector('.ci-btn--upload');
+            if (uploadBtn) uploadBtn.remove();
+          }
+          // Não chama _updatePedidoStatus aqui — completeCaptureItem já cuida disso
+        } else {
+          await DeliveryAdmin._updatePedidoStatus(orderId);
+        }
 
         if (progressFill) progressFill.style.width = '88%';
 

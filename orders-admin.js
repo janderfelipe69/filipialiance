@@ -826,26 +826,46 @@ const OrdersAdmin = (() => {
       `;
     }
 
-    // Item progress rows
-    const itemRows = (order.items || []).map(item => {
-      const pct = OrdersProgress.calcItemProgress(item);
-      return `
-        <div class="oa-item-row" data-item-id="${item.id}">
-          <span class="oa-item-name">${item.name}</span>
-          <div class="oa-item-controls">
-            <input type="number" class="oa-item-qty-input"
-                   min="0" max="${item.qtdTotal}" value="${item.qtdEntregue}"
-                   aria-label="Entregues de ${item.name}"
-                   onchange="OrdersAdmin.updateItemQty('${order.id}', '${item.id}', this.value)" />
-            <span class="oa-item-total">/ ${item.qtdTotal}</span>
-            <div class="oa-item-mini-bar">
-              <div class="oa-item-mini-fill" style="width:${pct}%; background:${OrdersProgress.progressBarColor(pct)}"></div>
+    // Fase 5.3.2: pedidos de captura usam mini-cards individuais via PA.captureItems
+    let itemRowsSection = '';
+    const _serviceType = (order.service_type || '').toLowerCase();
+    const _isCaptureOrder = _serviceType.includes('pokemon') || _serviceType.includes('capture');
+
+    if (_isCaptureOrder && typeof window.PA !== 'undefined' && window.PA.captureItems) {
+      const captItems = window.PA.captureItems.extractCaptureItems(order);
+      if (captItems.length) {
+        const progressBar = captItems.length > 1
+          ? window.PA.captureItems.renderAggregateProgress(captItems)
+          : '';
+        const cards = captItems.map(function(ci) {
+          return window.PA.captureItems.renderCaptureItemPrivileged(ci, true);
+        }).join('');
+        itemRowsSection = progressBar + '<div class="capture-items-list oa-capture-items">' + cards + '</div>';
+      }
+    }
+
+    // Fallback para pedidos não-captura: controles de qty legacy
+    const itemRows = (!_isCaptureOrder)
+      ? (order.items || []).map(item => {
+        const pct = OrdersProgress.calcItemProgress(item);
+        return `
+          <div class="oa-item-row" data-item-id="${item.id}">
+            <span class="oa-item-name">${item.name}</span>
+            <div class="oa-item-controls">
+              <input type="number" class="oa-item-qty-input"
+                     min="0" max="${item.qtdTotal}" value="${item.qtdEntregue}"
+                     aria-label="Entregues de ${item.name}"
+                     onchange="OrdersAdmin.updateItemQty('${order.id}', '${item.id}', this.value)" />
+              <span class="oa-item-total">/ ${item.qtdTotal}</span>
+              <div class="oa-item-mini-bar">
+                <div class="oa-item-mini-fill" style="width:${pct}%; background:${OrdersProgress.progressBarColor(pct)}"></div>
+              </div>
+              ${item.concluido ? '<span class="oa-item-check">✓</span>' : ''}
             </div>
-            ${item.concluido ? '<span class="oa-item-check">✓</span>' : ''}
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('')
+      : '';
 
     return `
       <div class="oa-panel" id="oa-panel-${order.id}">
@@ -860,12 +880,17 @@ const OrdersAdmin = (() => {
 
         ${serviceTypeHTML}
 
-        ${order.items && order.items.length ? `
+        ${itemRowsSection ? `
+        <div class="oa-section">
+          <div class="oa-section-label">Progresso dos Itens</div>
+          ${itemRowsSection}
+        </div>
+        ` : (order.items && order.items.length && itemRows ? `
         <div class="oa-section">
           <div class="oa-section-label">Progresso dos Itens</div>
           <div class="oa-items-list">${itemRows}</div>
         </div>
-        ` : ''}
+        ` : '')}
 
         <div class="oa-section">
           <div class="oa-section-label">Observação (interna)</div>

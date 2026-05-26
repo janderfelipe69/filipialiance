@@ -979,6 +979,25 @@
       });
     }
 
+    // Capture Items UX (Fase 5.3.2)
+    if (global.PA.telemetry) {
+      var ciRenders    = PA.telemetry.getByCategory('capture_item_render').length;
+      var ciMorphs     = PA.telemetry.getByCategory('capture_item_morph').length;
+      var ciUploads    = PA.telemetry.getByCategory('capture_item_upload').length;
+      var ciPartial    = PA.telemetry.getByCategory('partial_delivery_completed').length;
+      var ciProgress   = PA.telemetry.getByCategory('partial_delivery_progress').length;
+      if (ciRenders + ciMorphs + ciUploads + ciPartial > 0) {
+        html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Capture Items UX</div>';
+        if (ciRenders > 0) html += _row('renders', ciRenders + 'x');
+        if (ciMorphs  > 0) html += _row('morphs', ciMorphs  + 'x (re-renders evitados)');
+        if (ciUploads > 0) html += _row('uploads', ciUploads + 'x');
+        if (ciPartial > 0) {
+          var ciAllDone = PA.telemetry.getByCategory('partial_delivery_progress').filter(function(e){ return e.data && e.data.allDone; }).length;
+          html += _row('itens concluídos', ciPartial + 'x (' + ciAllDone + ' pedidos fechados)');
+        }
+      }
+    }
+
     // Recent warnings (últimos 5 da telemetria de erros)
     var errs = PA.telemetry.getByCategory('safe-call-error')
       .concat(PA.telemetry.getByCategory('render-error'))

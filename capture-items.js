@@ -449,16 +449,30 @@
       duration = d.durationFmt ? ' <span class="ci-duration">em ' + d.durationFmt + '</span>' : '';
     }
 
+    // Timer
+    var timerHtml = '';
+    if (captureItem.status === 'in_progress' && captureItem.started_at) {
+      timerHtml = '<span class="ci-timer" data-started-at="' + _esc(captureItem.started_at) + '">'
+        + '\u23f1 ' + _elapsedSince(captureItem.started_at) + '</span>';
+    } else if (captureItem.status === 'completed') {
+      var dur2 = computeItemDuration(captureItem);
+      if (dur2.durationFmt) timerHtml = '<span class="ci-timer ci-timer--done">\u23f1 ' + dur2.durationFmt + '</span>';
+    }
+
     return [
-      '<div class="capture-item capture-item--' + cfg.cssClass + '" data-item-ref="' + _esc(captureItem.item_ref) + '">',
-      '  <div class="capture-item-header">',
-      '    ' + tierBadge,
-      '    <span class="capture-item-status" style="color:' + cfg.color + '">',
-      '      ' + cfg.icon + ' ' + cfg.label + duration,
-      '    </span>',
+      '<div class="capture-item capture-item--' + cfg.cssClass + '"',
+      '     data-item-ref="' + _esc(captureItem.item_ref) + '" data-ci-status="' + captureItem.status + '">',
+      '  <div class="capture-item-row">',
+      '    <div class="ci-left">' + tierBadge + '</div>',
+      '    <div class="ci-right">',
+      '      <span class="capture-item-status ci-status-badge">',
+      '        ' + cfg.icon + ' <span class="ci-status-label">' + cfg.label + '</span>',
+      '      </span>',
+      (timerHtml ? '      ' + timerHtml : ''),
+      '    </div>',
       '  </div>',
       '</div>',
-    ].join('\n');
+    ].filter(function(l){ return l.trim(); }).join('\n');
   }
 
   /**
@@ -491,20 +505,62 @@
       }
     }
 
+    // Timer individual
+    var timerHtmlP = '';
+    if (captureItem.status === 'in_progress' && captureItem.started_at) {
+      timerHtmlP = '<span class="ci-timer" data-started-at="' + _esc(captureItem.started_at) + '">'
+        + '\u23f1 ' + _elapsedSince(captureItem.started_at) + '</span>';
+    } else if (captureItem.status === 'completed') {
+      var dp = computeItemDuration(captureItem);
+      if (dp.durationFmt) timerHtmlP = '<span class="ci-timer ci-timer--done">\u23f1 ' + dp.durationFmt + '</span>';
+    } else if (captureItem.status === 'pending') {
+      timerHtmlP = '<span class="ci-timer ci-timer--waiting">\u23f3 Aguardando</span>';
+    }
+
+    // Proof preview inline
+    var proofHtml = '';
+    if (captureItem.delivery_image_url) {
+      proofHtml = '<div class="ci-proof-preview">'
+        + '<a href="' + _esc(captureItem.delivery_image_url) + '" target="_blank" rel="noopener" class="ci-proof-link">'
+        + '<img src="' + _esc(captureItem.delivery_image_url) + '" class="ci-proof-thumb"'
+        + ' onerror="this.style.display=\'none\'" />'
+        + '<span class="ci-proof-label">\uD83D\uDCF8 Ver print</span></a></div>';
+    }
+
+    // Upload button for in_progress items without proof
+    var uploadBtn = (isAdmin && captureItem.status === 'in_progress' && !captureItem.delivery_image_url)
+      ? '<button class="ci-btn ci-btn--upload" onclick="PA.captureItems.openUploadForItem(event)"'
+        + ' data-item-ref="' + _esc(captureItem.item_ref) + '">'
+        + '\uD83D\uDCCE Upload print</button>'
+      : '';
+
+    // Replace adminBtns to include upload
+    if (isAdmin && captureItem.status === 'in_progress') {
+      adminBtns = uploadBtn
+        + '<button class="ci-btn ci-btn--complete" onclick="PA.captureItems.completeItem(event)"'
+        + ' data-item-ref="' + _esc(captureItem.item_ref) + '">\u2713 Concluir</button>';
+    }
+
     return [
-      '<div class="capture-item capture-item--' + cfg.cssClass + '" data-item-ref="' + _esc(captureItem.item_ref) + '">',
-      '  <div class="capture-item-header">',
-      '    ' + tierBadge,
-      '    ' + pokeName,
-      '    ' + ballBadge,
-      '    <span class="capture-item-status" style="color:' + cfg.color + '">',
-      '      ' + cfg.icon + ' ' + cfg.label + duration,
-      '    </span>',
+      '<div class="capture-item capture-item--' + cfg.cssClass + '"',
+      '     data-item-ref="' + _esc(captureItem.item_ref) + '" data-ci-status="' + captureItem.status + '">',
+      '  <div class="capture-item-row">',
+      '    <div class="ci-left">',
+      '      ' + tierBadge,
+      (pokeName  ? '      ' + pokeName  : ''),
+      (ballBadge ? '      ' + ballBadge : ''),
+      '    </div>',
+      '    <div class="ci-right">',
+      '      <span class="capture-item-status ci-status-badge" style="color:' + cfg.color + '">',
+      '        ' + cfg.icon + ' <span class="ci-status-label">' + cfg.label + '</span>',
+      '      </span>',
+      (timerHtmlP ? '      ' + timerHtmlP : ''),
+      '    </div>',
       '  </div>',
-      (deliveryImg ? '  <div class="ci-proof">' + deliveryImg + '</div>' : ''),
-      (adminBtns   ? '  <div class="ci-actions">' + adminBtns + '</div>' : ''),
+      (proofHtml ? '  ' + proofHtml : ''),
+      (adminBtns ? '  <div class="ci-actions">' + adminBtns + '</div>' : ''),
       '</div>',
-    ].filter(Boolean).join('\n');
+    ].filter(function(l){ return l.trim(); }).join('\n');
   }
 
   function _esc(s) {
@@ -614,47 +670,208 @@
     var style = global.document.createElement('style');
     style.id = 'pa-capture-items-css';
     style.textContent = [
-      /* Container de capture items */
-      '.capture-items-list { display:flex; flex-direction:column; gap:6px; padding:8px 0; }',
+      /* Layout */
+      '.capture-items-list { display:flex; flex-direction:column; gap:6px; padding:6px 0; }',
 
-      /* Card individual */
-      '.capture-item { display:flex; flex-direction:column; gap:4px;',
-      '  padding:8px 12px; border-radius:8px;',
-      '  background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); }',
+      /* Card */
+      '.capture-item { display:flex; flex-direction:column; gap:4px; padding:9px 12px;',
+      '  border-radius:9px; background:rgba(255,255,255,0.03);',
+      '  border:1px solid rgba(255,255,255,0.07);',
+      '  transition:border-color .2s, background .2s, box-shadow .2s; }',
 
-      /* Estados visuais */
-      '.capture-item.ci-completed  { border-color:rgba(74,222,128,0.2);  background:rgba(74,222,128,0.04); }',
-      '.capture-item.ci-in-progress { border-color:rgba(96,165,250,0.25); background:rgba(96,165,250,0.04); }',
+      /* Estados */
+      '.capture-item.ci-completed  { border-color:rgba(74,222,128,0.25); background:rgba(74,222,128,0.04); }',
+      '.capture-item.ci-in-progress { border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.05); box-shadow:0 0 12px rgba(96,165,250,0.07); }',
       '.capture-item.ci-pending    { border-color:rgba(255,255,255,0.06); }',
 
-      /* Header da linha */
-      '.capture-item-header { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }',
-      '.capture-item-status { font-size:11px; margin-left:auto; }',
+      /* Pulse in_progress */
+      '@media (prefers-reduced-motion:no-preference) {',
+      '  .capture-item.ci-in-progress { animation:ci-pulse 2.5s ease-in-out infinite; }',
+      '  @keyframes ci-pulse { 0%,100% { box-shadow:0 0 6px rgba(96,165,250,0.07); } 50% { box-shadow:0 0 16px rgba(96,165,250,0.18); } }',
+      '  .capture-item.ci-completed { animation:ci-done-flash 0.4s ease-out; }',
+      '  @keyframes ci-done-flash { 0% { background:rgba(74,222,128,0.15); } 100% { background:rgba(74,222,128,0.04); } }',
+      '}',
 
-      /* Nome do pokémon (admin/dono) */
-      '.ci-pokemon-name { font-size:12px; font-weight:600; color:rgba(255,255,255,0.75); }',
-      '.ci-ball { font-size:10px; color:rgba(255,255,255,0.4); font-style:italic; }',
-      '.ci-duration { font-size:10px; color:rgba(255,255,255,0.5); }',
+      /* Row layout */
+      '.capture-item-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }',
+      '.ci-left  { display:flex; align-items:center; gap:5px; flex:1; min-width:0; }',
+      '.ci-right { display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }',
 
-      /* Proof link */
-      '.ci-proof { margin-top:2px; }',
-      '.ci-proof-link { font-size:11px; color:#3a8cff; text-decoration:none; }',
-      '.ci-proof-link:hover { text-decoration:underline; }',
+      /* Content */
+      '.ci-pokemon-name { font-size:12px; font-weight:600; color:rgba(255,255,255,0.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }',
+      '.ci-ball         { font-size:10px; color:rgba(255,255,255,0.35); font-style:italic; }',
+      '.ci-status-badge { display:inline-flex; align-items:center; gap:3px; font-size:11px; }',
+      '.ci-status-label { font-size:11px; }',
+      '.ci-timer        { font-size:10px; color:rgba(255,255,255,0.45); font-family:var(--font-mono,monospace); }',
+      '.ci-timer--done    { color:#4ade80; }',
+      '.ci-timer--waiting { color:rgba(255,255,255,0.3); }',
 
-      /* Botões de ação */
-      '.ci-actions { display:flex; gap:6px; margin-top:4px; }',
-      '.ci-btn { font-size:11px; padding:4px 10px; border-radius:6px; border:1px solid; cursor:pointer;',
-      '  background:none; font-family:inherit; font-weight:600; transition:opacity .15s; }',
-      '.ci-btn:disabled { opacity:.5; cursor:not-allowed; }',
-      '.ci-btn--start    { border-color:rgba(96,165,250,.4); color:#60a5fa; }',
-      '.ci-btn--complete { border-color:rgba(74,222,128,.4); color:#4ade80; }',
-      '.ci-btn:hover:not(:disabled) { opacity:.8; }',
+      /* Proof */
+      '.ci-proof-preview { margin-top:5px; }',
+      '.ci-proof-link { display:inline-flex; align-items:center; gap:5px; text-decoration:none; }',
+      '.ci-proof-thumb { width:40px; height:40px; border-radius:6px; object-fit:cover; border:1px solid rgba(255,255,255,0.1); flex-shrink:0; }',
+      '.ci-proof-label { font-size:11px; color:#3a8cff; }',
+      '.ci-proof-label:hover { text-decoration:underline; }',
+
+      /* Buttons */
+      '.ci-actions { display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; }',
+      '.ci-btn { font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid; cursor:pointer; background:none; font-family:inherit; font-weight:600; transition:opacity .15s,transform .1s; min-height:30px; min-width:44px; }',
+      '.ci-btn:disabled { opacity:.4; cursor:not-allowed; }',
+      '.ci-btn:hover:not(:disabled) { opacity:.8; transform:translateY(-1px); }',
+      '.ci-btn--start    { border-color:rgba(96,165,250,.5);  color:#60a5fa; }',
+      '.ci-btn--complete { border-color:rgba(74,222,128,.5);  color:#4ade80; }',
+      '.ci-btn--upload   { border-color:rgba(251,191,36,.45); color:#fbbf24; }',
+
+      /* Aggregate progress bar */
+      '.ci-aggregate-progress { padding:6px 0 4px; }',
+      '.ci-agg-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }',
+      '.ci-agg-count { font-size:11px; color:rgba(255,255,255,0.5); }',
+      '.ci-agg-pct   { font-size:11px; font-weight:700; font-family:var(--font-mono,monospace); }',
+      '.ci-agg-bar   { height:4px; border-radius:2px; background:rgba(255,255,255,0.07); overflow:hidden; }',
+      '.ci-agg-fill  { height:100%; border-radius:2px; transition:width .3s ease, background .3s; }',
+
+      /* Mobile */
+      '@media (max-width:480px) {',
+      '  .ci-right { flex-wrap:wrap; gap:4px; }',
+      '  .ci-btn   { padding:5px 9px; font-size:11px; }',
+      '}',
     ].join('\n');
     global.document.head.appendChild(style);
     _log('capture-items CSS injetado');
   }
 
-  global.document.addEventListener('DOMContentLoaded', function() { _injectCSS(); });
+  // ══════════════════════════════════════════════════════════════════════
+  // FASE 5.3.2 — helpers adicionais
+  // ══════════════════════════════════════════════════════════════════════
+
+  // Tempo decorrido desde um timestamp ISO
+  function _elapsedSince(isoStr) {
+    if (!isoStr) return '0m';
+    var ms = Date.now() - new Date(isoStr).getTime();
+    if (ms < 0) return '0m';
+    var m = Math.floor(ms / 60000);
+    var h = Math.floor(m / 60);
+    if (h > 0) return h + 'h ' + (m % 60) + 'm';
+    return m + 'm';
+  }
+
+  // Morph incremental de um capture-item no DOM — sem reescrever card inteiro
+  function morphCaptureItem(itemEl, captureItem) {
+    if (!itemEl || !captureItem) return;
+    var cfg = ITEM_STATUS_CONFIG[captureItem.status] || ITEM_STATUS_CONFIG.pending;
+
+    ['ci-pending','ci-in-progress','ci-partial','ci-completed'].forEach(function(c) {
+      itemEl.classList.remove('capture-item--' + c);
+    });
+    itemEl.classList.add('capture-item--' + cfg.cssClass);
+    if (itemEl.setAttribute) itemEl.setAttribute('data-ci-status', captureItem.status);
+
+    var labelEl = itemEl.querySelector && itemEl.querySelector('.ci-status-label');
+    if (labelEl && labelEl.textContent !== cfg.label) labelEl.textContent = cfg.label;
+
+    var timerEl = itemEl.querySelector && itemEl.querySelector('.ci-timer');
+    if (timerEl) {
+      if (captureItem.status === 'in_progress' && captureItem.started_at) {
+        timerEl.textContent = '\u23f1 ' + _elapsedSince(captureItem.started_at);
+        timerEl.setAttribute('data-started-at', captureItem.started_at);
+        timerEl.className = 'ci-timer';
+      } else if (captureItem.status === 'completed') {
+        var dur = computeItemDuration(captureItem);
+        if (dur.durationFmt) {
+          timerEl.textContent = '\u23f1 ' + dur.durationFmt;
+          timerEl.className = 'ci-timer ci-timer--done';
+        }
+      }
+    }
+    _tel('capture_item_morph', { itemRef: captureItem.item_ref, status: captureItem.status });
+  }
+
+  // Barra de progresso agregada do pedido composto
+  function renderAggregateProgress(captureItems) {
+    if (!captureItems || !captureItems.length) return '';
+    var counts   = countByStatus(captureItems);
+    var total    = captureItems.length;
+    var done     = counts.completed || 0;
+    var pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+    var aggStatus = getAggregateStatus(captureItems);
+    var barColor  = aggStatus === 'completed' ? '#4ade80'
+      : aggStatus === 'partial' ? '#fbbf24'
+      : aggStatus === 'in_progress' ? '#60a5fa'
+      : 'rgba(255,255,255,0.2)';
+
+    return [
+      '<div class="ci-aggregate-progress" data-agg-status="' + aggStatus + '">',
+      '  <div class="ci-agg-label">',
+      '    <span class="ci-agg-count">' + done + '/' + total + ' conclu\xeddos</span>',
+      '    <span class="ci-agg-pct" style="color:' + barColor + '">' + pct + '%</span>',
+      '  </div>',
+      '  <div class="ci-agg-bar">',
+      '    <div class="ci-agg-fill" style="width:' + pct + '%;background:' + barColor + ';',
+      '         box-shadow:0 0 6px ' + barColor + '"></div>',
+      '  </div>',
+      '</div>',
+    ].join('\n');
+  }
+
+  // Abre upload inline para um captureItem específico
+  function openUploadForItem(event) {
+    var btn    = event.target;
+    var itemEl = btn.closest('[data-item-ref]');
+    var cardEl = btn.closest('[data-order-id]');
+    if (!itemEl || !cardEl) return;
+    var itemRef = itemEl.getAttribute('data-item-ref');
+    var orderId = cardEl.getAttribute('data-order-id');
+    var supId   = orderId && orderId.startsWith('sb_') ? orderId.slice(3) : orderId;
+
+    _tel('capture_item_upload', { itemRef: itemRef, orderId: supId });
+
+    if (typeof DeliveryAdmin !== 'undefined' && typeof DeliveryAdmin.openModal === 'function') {
+      DeliveryAdmin._pendingItemRef = itemRef;
+      DeliveryAdmin._pendingItemEl  = itemEl;
+      DeliveryAdmin.openModal(supId, null);
+      return;
+    }
+
+    // Fallback: Imgur link via prompt
+    var imgurUrl = (typeof prompt === 'function') ? prompt('Cole o link da imagem:') : null;
+    if (!imgurUrl || imgurUrl.indexOf('http') !== 0) return;
+
+    completeCaptureItem(supId, itemRef, { image_url: imgurUrl }).then(function(result) {
+      if (result && result.success) {
+        var proofEl = global.document.createElement('div');
+        proofEl.className = 'ci-proof-preview';
+        proofEl.innerHTML = '<a href="' + _esc(imgurUrl) + '" target="_blank" class="ci-proof-link">'
+          + '<span class="ci-proof-label">\uD83D\uDCF8 Ver print</span></a>';
+        itemEl.appendChild(proofEl);
+        btn.remove();
+        _tel('capture_item_morph', { itemRef: itemRef, op: 'proof-inline' });
+      }
+    });
+  }
+
+  // Timer vivo para ci-timer elements (RAF a cada 1 min, respeita virtual SLA)
+  var _timerRAFId = null;
+  function _startTimerUpdates() {
+    if (_timerRAFId) return;
+    function tick() {
+      var timers = global.document.querySelectorAll('.ci-timer[data-started-at]');
+      if (timers && timers.length) {
+        timers.forEach(function(el) {
+          var card = el.closest && el.closest('[data-order-id]');
+          if (card && card._slaTickerPaused) return;
+          var startedAt = el.getAttribute('data-started-at');
+          if (startedAt) el.textContent = '\u23f1 ' + _elapsedSince(startedAt);
+        });
+      }
+      _timerRAFId = setTimeout(tick, 60000); // a cada 1 minuto
+    }
+    tick();
+  }
+
+  global.document.addEventListener('DOMContentLoaded', function() {
+    _injectCSS();
+    _startTimerUpdates();
+  });
 
   // ══════════════════════════════════════════════════════════════════════
   // 10. API PÚBLICA
@@ -688,6 +905,9 @@
     // UI renderers
     renderCaptureItemPublic:     renderCaptureItemPublic,
     renderCaptureItemPrivileged: renderCaptureItemPrivileged,
+    renderAggregateProgress:     renderAggregateProgress,
+    morphCaptureItem:            morphCaptureItem,
+    openUploadForItem:           openUploadForItem,
     ITEM_STATUS_CONFIG:          ITEM_STATUS_CONFIG,
   };
 

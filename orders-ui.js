@@ -519,10 +519,15 @@ const OrdersUI = (() => {
         if (info.type === 'capture' && window.PA && window.PA.captureItems) {
           const captItems = window.PA.captureItems.extractCaptureItems(order);
           if (captItems.length) {
-            const html = captItems.map(function(ci) {
+            // T1: barra de progresso agregada
+            const progressBar = captItems.length > 1
+              ? window.PA.captureItems.renderAggregateProgress(captItems)
+              : '';
+            const itemsHtml = captItems.map(function(ci) {
               return window.PA.captureItems.renderCaptureItemPrivileged(ci, isAdmin);
             }).join('');
-            return '<div class="capture-items-list">' + html + '</div>';
+            window.PA.telemetry && window.PA.telemetry.push('capture_item_render', { count: captItems.length, privileged: true });
+            return progressBar + '<div class="capture-items-list">' + itemsHtml + '</div>';
           }
         }
         return _renderItems(items);
@@ -537,7 +542,11 @@ const OrdersUI = (() => {
       if (info.type === 'capture' && window.PA && window.PA.captureItems) {
         const captItems = window.PA.captureItems.extractCaptureItems(order);
         if (captItems.length) {
-          captureItemsHtml = '<div class="capture-items-list">' +
+          const progBar = captItems.length > 1
+              ? window.PA.captureItems.renderAggregateProgress(captItems)
+              : '';
+          window.PA.telemetry && window.PA.telemetry.push('capture_item_render', { count: captItems.length, privileged: false });
+          captureItemsHtml = progBar + '<div class="capture-items-list">' +
             captItems.map(ci => window.PA.captureItems.renderCaptureItemPublic(ci)).join('') +
             '</div>';
         }
