@@ -498,18 +498,25 @@ const OrdersUI = (() => {
         return _renderItems(items);
       }
 
-      // Usuário comum vendo pedido de terceiro → título genérico
+      // Usuário comum vendo pedido de terceiro → título genérico + badges individuais
       const iconMap = { capture: '⚡', package: '📦', item: '🎁' };
       const icon = iconMap[info.type] || '📦';
-      const tierBadge = info.tierLabel
-        ? `<span class="order-item-tier-badge order-item-tier--${info.tierLabel.toLowerCase()}">${info.tierLabel}</span>`
-        : '';
+
+      // Fase 5.3.0c: badges individuais por item de captura (um por pokémon)
+      const tierBadgesHtml = (info.type === 'capture' && typeof QueuePrivacy.buildTierBadges === 'function')
+        ? QueuePrivacy.buildTierBadges(info.captureItems || order.items || [])
+        : (info.tierLabel
+            ? `<span class="order-item-tier-badge order-item-tier--${info.tierLabel.toLowerCase()}">${info.tierLabel}</span>`
+            : '');
+
       return `
         <div class="order-item order-item--public">
           <div class="order-item-info">
             <span class="order-item-public-icon">${icon}</span>
-            <span class="order-item-name order-item-name--public">${_escHtml(info.label)}</span>
-            ${tierBadge}
+            <div class="order-item-public-content">
+              <span class="order-item-name order-item-name--public">${_escHtml(info.label)}</span>
+              ${tierBadgesHtml}
+            </div>
           </div>
           <div class="order-item-progress">
             <span class="order-item-waiting-label">Em processamento</span>
@@ -1108,6 +1115,18 @@ const OrdersUI = (() => {
       .order-item-tier--t2 { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.35); color: #60a5fa; }
       .order-item-tier--t3 { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.35);  color: #4ade80; }
       .order-item-tier--sr { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.35); color: #fbbf24; }
+      /* Fase 5.3.0c: badges individuais por item de captura */
+      .order-item-public-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+      .order-item-tier-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
 
 
       /* ─── Observation ─────────────────────────────────────────────── */

@@ -353,26 +353,15 @@ const QueuePrivacy = (() => {
       const tierKeys    = Object.keys(tierCount).filter(function(k) { return k !== '_sem_tier'; });
       const totalCount  = captureItems.reduce(function(s, it) { return s + (it.qtdTotal || 1); }, 0);
 
-      if (tierKeys.length === 0) {
-        // Nenhum tier identificável — exibe só a contagem se > 1
-        return totalCount > 1
-          ? 'Captura Pokémon ×' + totalCount
-          : 'Captura Pokémon';
+      // Fase 5.3.0c: título limpo — tier não vai mais no texto.
+      // As badges individuais (buildTierBadges) exibem os tiers visualmente.
+      // Mantemos só a contagem no fallback de acessibilidade quando não há badges.
+      if (tierKeys.length === 0 && totalCount > 1) {
+        // Sem tier identificável e múltiplos itens: exibe contagem mínima
+        return 'Captura Pokémon ×' + totalCount;
       }
 
-      if (tierKeys.length === 1) {
-        // Todos do mesmo tier: "Captura Pokémon T1" ou "Captura Pokémon T1 ×3"
-        const lbl = tierKeys[0];
-        return totalCount > 1
-          ? 'Captura Pokémon ' + lbl + ' ×' + totalCount
-          : 'Captura Pokémon ' + lbl;
-      }
-
-      // Múltiplos tiers: "Captura Pokémon T1, SR ×4"
-      const tierStr = tierKeys.join(', ');
-      return totalCount > 1
-        ? 'Captura Pokémon ' + tierStr + ' ×' + totalCount
-        : 'Captura Pokémon ' + tierStr;
+      return 'Captura Pokémon';
     }
 
     if (_isPackageOrder(order)) {
@@ -478,7 +467,33 @@ const QueuePrivacy = (() => {
       ? _buildRealTitle(order)
       : _buildMaskedTitle(order);
 
-    return { label, isPrivileged, isAdmin: admin, isOwner: owner, type, tierLabel };
+    // Fase 5.3.0c: captureItems exposed so renderer can build individual badges
+    const captureItems = (type === 'capture') ? items.filter(function(it) { return _isCaptureItem(it); }) : [];
+    return { label, isPrivileged, isAdmin: admin, isOwner: owner, type, tierLabel, captureItems };
+  }
+
+
+  // ── buildTierBadges — Fase 5.3.0c ──────────────────────────────────────
+  // Recebe items[] de um pedido e retorna HTML de badges individuais por item.
+  // Regras:
+  //   - cada item de captura gera 1 badge com seu tier
+  //   - itens sem tier identificável: badge omitida (não gera vazio)
+  //   - não revela o nome do Pokémon
+  //   - retorna '' se nenhum badge gerado (compatibilidade com pedidos antigos)
+  function buildTierBadges(items) {
+    if (!items || !items.length) return '';
+
+    const badges = [];
+    items.forEach(function(it) {
+      if (!_isCaptureItem(it)) return;
+      const lbl = normalizeTierLabel(it.tier || it.tag || '');
+      if (!lbl) return;
+      badges.push('<span class="order-item-tier-badge order-item-tier--' + lbl.toLowerCase() + '">' + lbl + '</span>');
+    });
+
+    if (!badges.length) return '';
+
+    return '<div class="order-item-tier-badges">' + badges.join('') + '</div>';
   }
 
   // Auto-injeção de estilos quando o módulo carrega
@@ -494,6 +509,8 @@ const QueuePrivacy = (() => {
     getPublicOrderLabel,
     // Normalização centralizada de tier (Fase 5.3.0b)
     normalizeTierLabel,
+    // Badges individuais por item de captura (Fase 5.3.0c)
+    buildTierBadges,
 
     // Funções existentes mantidas para compatibilidade
     maskNick,
