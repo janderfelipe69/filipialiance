@@ -46,6 +46,29 @@
     return 'ORD' + id + '_PK_' + (index + 1);
   }
 
+  /**
+   * ensureItemRef — helper central (Fase 5.3.2 bugfix)
+   *
+   * Garante que um captureItem sempre tenha item_ref.
+   * Hierarquia:
+   *   1. item.item_ref já existente (mais confiável)
+   *   2. item.id (pode vir do JSONB original)
+   *   3. Gera a partir de orderId + índice
+   *
+   * NUNCA retorna vazio/null.
+   */
+  function ensureItemRef(orderId, item, idx) {
+    if (item && item.item_ref && String(item.item_ref).length > 0) {
+      return item.item_ref;
+    }
+    if (item && item.id && String(item.id).length > 0) {
+      // Se o id parece um item_ref gerado por nós (ORD..._PK_), usa direto
+      // Caso contrário (ex: UUID do Supabase), usa como fallback
+      return item.id;
+    }
+    return generateItemRef(orderId, idx !== undefined ? idx : 0);
+  }
+
   // ══════════════════════════════════════════════════════════════════════
   // 2. ITERA ITENS JSONB → captureItems normalizados
   // ══════════════════════════════════════════════════════════════════════
@@ -65,8 +88,8 @@
       ? global.QueuePrivacy.normalizeTierLabel(tier)
       : tier.toUpperCase();
 
-    // item_ref: usa o existente se já tiver, gera novo caso contrário
-    var itemRef = rawItem.item_ref || rawItem.id || generateItemRef(orderId, index);
+    // item_ref: usa ensureItemRef para garantir valor sempre presente
+    var itemRef = ensureItemRef(orderId, rawItem, index);
 
     // Status do item
     var status = rawItem.status || (rawItem.concluido ? 'completed' : 'pending');
@@ -322,9 +345,66 @@
       });
 
       if (!found) {
-        _warn('updateCaptureItemInOrder: item_ref não encontrado:', itemRef);
-        _tel('capture-item-update', { error: 'item_ref not found', itemRef: itemRef });
-        return false;
+        // ── FALLBACK (Fase 5.3.2 bugfix) ─────────────────────────────────────────
+        // O item_ref no DOM foi gerado em memória pelo normalizeRawCaptureItem,
+        // mas o JSONB no banco pode não ter item_ref escrito.
+        // Estratégia de match por ordem de prioridade:
+        //   1. Busca item cujo id === itemRef (alias frontend)
+        //   2. Busca pelo índice embutido no item_ref (ex: ORD42_PK_1 → índice 0)
+        //   3. Usa primeiro item de captura sem status (pending)
+        // Após encontrar, escreve item_ref de volta no banco.
+        _warn('updateCaptureItemInOrder: item_ref não encontrado via match direto. Tentando fallback.', itemRef);
+        console.log('[captureItems.update] fallback search', { itemRef: itemRef, totalItems: itens.length, itens: itens.map(function(x){ return { id: x.id, item_ref: x.item_ref, type: x.type, pokemon: x.pokemon }; }) });
+
+        var fallbackIdx = -1;
+
+        // Estratégia 1: id == itemRef (id gerado localmente em normalizeRawCaptureItem)
+        for (var fi = 0; fi < itens.length; fi++) {
+          if (itens[fi].id && itens[fi].id === itemRef) { fallbackIdx = fi; break; }
+        }
+
+        // Estratégia 2: item_ref tem sufixo _PK_N → usar índice N-1
+        if (fallbackIdx === -1) {
+          var pkMatch = String(itemRef).match(/_PK_(\d+)$/);
+          if (pkMatch) {
+            var pkIdx = parseInt(pkMatch[1], 10) - 1;
+            // Conta apenas itens de captura
+            var captureCount = 0;
+            for (var ci = 0; ci < itens.length; ci++) {
+              if (itens[ci].type === 'capture' || itens[ci].pokemon) {
+                if (captureCount === pkIdx) { fallbackIdx = ci; break; }
+                captureCount++;
+              }
+            }
+          }
+        }
+
+        // Estratégia 3: primeiro item de captura com status pending/sem status
+        if (fallbackIdx === -1) {
+          for (var pi = 0; pi < itens.length; pi++) {
+            if (itens[pi].type === 'capture' || itens[pi].pokemon) {
+              var st = itens[pi].status || (itens[pi].concluido ? 'completed' : 'pending');
+              if (st === 'pending') { fallbackIdx = pi; break; }
+            }
+          }
+        }
+
+        if (fallbackIdx === -1) {
+          _warn('updateCaptureItemInOrder: fallback esgotado, nenhum item encontrado para', itemRef);
+          _tel('capture-item-update', { error: 'item_ref not found after fallback', itemRef: itemRef });
+          return false;
+        }
+
+        // Encontrou via fallback — escreve item_ref de volta + aplica patch
+        _warn('updateCaptureItemInOrder: fallback encontrou item no índice', fallbackIdx, '— gravando item_ref');
+        found = true;
+        updatedItens = itens.map(function(it, idx2) {
+          if (idx2 === fallbackIdx) {
+            return Object.assign({}, it, patch, { item_ref: itemRef });
+          }
+          return it;
+        });
+        _tel('capture-item-update', { fallback: true, idx: fallbackIdx, itemRef: itemRef });
       }
 
       // 3. Determina se o pedido inteiro deve ser concluído
@@ -579,17 +659,36 @@
     var btn      = event.target;
     var itemEl   = btn.closest('[data-item-ref]');
     var cardEl   = btn.closest('[data-order-id]');
-    if (!itemEl || !cardEl) return;
+    if (!itemEl || !cardEl) {
+      _warn('startItem: não encontrou [data-item-ref] ou [data-order-id] no DOM');
+      return;
+    }
 
     var itemRef  = itemEl.getAttribute('data-item-ref');
     var orderId  = cardEl.getAttribute('data-order-id');
-    if (!itemRef || !orderId) return;
 
-    // Resolve supabaseId do orderId (formato 'sb_123')
-    var supabaseId = orderId.startsWith('sb_') ? orderId.slice(3) : orderId;
+    // Debug temporário (Fase 5.3.2 bugfix)
+    console.log('[captureItems.start]', { orderId: orderId, itemRef: itemRef, btnText: btn.textContent });
+
+    if (!orderId) {
+      _warn('startItem: orderId ausente no data-order-id');
+      return;
+    }
+
+    // item_ref ausente: gera emergência em vez de abortar
+    if (!itemRef || itemRef === 'undefined' || itemRef === 'null') {
+      _warn('startItem: item_ref ausente no DOM — gerando emergência');
+      itemRef = ensureItemRef(orderId.replace('sb_', ''), {}, 0);
+      itemEl.setAttribute('data-item-ref', itemRef);
+    }
+
+    // Resolve supabaseId do orderId (formato 'sb_123' ou número puro)
+    var supabaseId = orderId.replace(/^sb_/i, '');
 
     btn.disabled = true;
     btn.textContent = '⏳';
+
+    _tel('capture_item_morph', { op: 'start-attempt', itemRef: itemRef, supabaseId: supabaseId });
 
     var result = await startCaptureItem(supabaseId, itemRef);
     if (result && result.success) {
@@ -616,9 +715,17 @@
 
     var itemRef  = itemEl.getAttribute('data-item-ref');
     var orderId  = cardEl.getAttribute('data-order-id');
-    if (!itemRef || !orderId) return;
 
-    var supabaseId = orderId.startsWith('sb_') ? orderId.slice(3) : orderId;
+    console.log('[captureItems.complete]', { orderId: orderId, itemRef: itemRef });
+
+    if (!orderId) { _warn('completeItem: orderId ausente'); return; }
+    if (!itemRef || itemRef === 'undefined' || itemRef === 'null') {
+      _warn('completeItem: item_ref ausente — gerando emergência');
+      itemRef = ensureItemRef(orderId.replace('sb_', ''), {}, 0);
+      itemEl.setAttribute('data-item-ref', itemRef);
+    }
+
+    var supabaseId = orderId.replace(/^sb_/i, '');
 
     var confirmed = (typeof showConfirmModal === 'function')
       ? await showConfirmModal({ title: 'Concluir item', message: 'Marcar este pokémon como entregue?', confirmText: 'Concluir', cancelText: 'Cancelar', type: 'success' })
@@ -883,6 +990,7 @@
     normalizeLegacyOrder:     normalizeLegacyOrder,
     normalizeRawCaptureItem:  normalizeRawCaptureItem,
     generateItemRef:          generateItemRef,
+    ensureItemRef:            ensureItemRef,
     isLegacyOrder:            isLegacyOrder,
 
     // Status
