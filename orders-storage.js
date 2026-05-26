@@ -369,7 +369,21 @@ const OrdersStorage = (() => {
 
   // ── Exporta API pública ───────────────────────────────────────────────
 
+  /**
+   * Limpa cache local de pedidos (logout / troca de conta).
+   * NÃO afeta o Supabase — apenas o localStorage.
+   * Chamado por Session.onAuthChange em logout para prevenir vazamento
+   * de dados de um usuário para outro na mesma máquina.
+   */
+  function clearLocalCache() {
+    try {
+      localStorage.removeItem(KEYS.ORDERS);
+      console.log('[OrdersStorage] Cache local limpo.');
+    } catch (_) {}
+  }
+
   return {
+    clearLocalCache,
     getAllOrders,
     createOrder,
     getOrderById,

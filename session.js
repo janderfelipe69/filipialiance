@@ -459,9 +459,17 @@ const Session = (() => {
 
   function _forceLogoutSync() {
     _currentUser = null;
+    // HOTFIX (Fase 5.3): SESSION_READY = false durante logout.
+    // Garante que render() aguarde nova sessão antes de exibir dados.
+    // Isso previne a janela de race onde render() usa SESSION_READY=true
+    // mas _currentUser=null, potencialmente exibindo dados de sessão anterior.
+    window.SESSION_READY = false;
     _clearTokens();
     _renderLoggedOut();
     _notify('logout', null);
+    // Restaura SESSION_READY após notificar todos os listeners
+    // (permite que render() saiba que o logout foi concluído)
+    window.SESSION_READY = true;
   }
 
   // ══════════════════════════════════════════════════════════════════════════

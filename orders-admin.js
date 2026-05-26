@@ -628,6 +628,15 @@ const OrdersAdmin = (() => {
   // ── Painel Admin Inline ───────────────────────────────────────────────────
 
   function renderAdminPanel(order) {
+    // DEFESA EM PROFUNDIDADE (Fase 5.3 HOTFIX):
+    // renderAdminPanel NÃO deve gerar HTML de admin para não-admins.
+    // Esta verificação é redundante com a do caller (orders-ui.js),
+    // mas garante segurança mesmo se chamada diretamente de outro lugar.
+    if (!isCurrentUserAdmin()) {
+      console.warn('[OrdersAdmin] renderAdminPanel chamado por não-admin — bloqueado.');
+      return '';
+    }
+
     const status     = OrdersProgress.normalizeStatus(order.status_v3 || order.status);
     const supabaseId = order._supabaseId || order.orderNumber;
     const eta        = OrdersProgress.calcETA(order);
@@ -658,6 +667,9 @@ const OrdersAdmin = (() => {
     // Timer persistente: calcula SEMPRE a partir do started_at do banco.
     // Nunca usa setInterval em memória — o tempo é now - started_at.
 
+    // FASE 5.2.1: usa PA.pipeline.formatDuration como engine central.
+    // _fmtElapsed é um alias local com o comportamento original (sempre mostra minutos).
+    var _paFmt = (window.PA && window.PA.pipeline) ? window.PA.pipeline.formatDuration : null;
     function _fmtElapsed(ms) {
       if (!ms || ms < 0) return '0m';
       const totalMin = Math.floor(ms / 60000);
@@ -667,8 +679,12 @@ const OrdersAdmin = (() => {
       const parts = [];
       if (d > 0) parts.push(d + 'd');
       if (h > 0) parts.push(h + 'h');
-      parts.push(m + 'm');
+      parts.push(m + 'm'); // sempre mostra minutos (diferença intencional de orders-admin)
       return parts.join(' ');
+    }
+    // Telemetria: registra uso do engine temporal
+    if (window.PA && window.PA.telemetry) {
+      window.PA.telemetry.push('temporal_engine_used', { module: 'orders-admin', fn: '_fmtElapsed' });
     }
 
     let slaInfoHTML = '';

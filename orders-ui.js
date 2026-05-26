@@ -73,6 +73,21 @@ const OrdersUI = (() => {
           _state.viewMode = 'list';
           try { localStorage.removeItem('orders_view_mode'); } catch (_e) {}
         }
+
+        // HOTFIX: limpa painéis admin expandidos em auth change.
+        // Garante que painel admin aberto por admin não persiste quando
+        // outro usuário loga na mesma sessão ou admin faz logout.
+        if (!nowAdmin) {
+          _state.expandedPanels.clear();
+        }
+
+        // HOTFIX: limpa cache local de pedidos no logout para evitar
+        // que dados de sessão anterior apareçam para próximo usuário.
+        const _nowUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+        if (!_nowUser && typeof OrdersStorage !== 'undefined' && typeof OrdersStorage.clearLocalCache === 'function') {
+          OrdersStorage.clearLocalCache();
+        }
+
         render();
       });
     }
@@ -138,6 +153,25 @@ const OrdersUI = (() => {
     // GUARD: não renderiza antes da sessão estar pronta (admin role pode não ter chegado ainda)
     if (!window.SESSION_READY) {
       Session.ready().then(function () { render(); }).catch(function () { render(); });
+      return;
+    }
+
+    // GUARD DE AUTORIZAÇÃO (Fase 5.3 HOTFIX):
+    // Usuário deslogado NÃO deve ver a fila de pedidos.
+    // Isso impede que dados do localStorage de sessões anteriores (admin ou outro user)
+    // sejam exibidos para qualquer pessoa não autenticada.
+    const _authUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!_authUser) {
+      const lista   = document.getElementById('pedidos-lista');
+      const loading = document.getElementById('pedidos-loading');
+      const empty   = document.getElementById('pedidos-empty');
+      if (lista)   lista.innerHTML = '';
+      if (loading) loading.style.display = 'none';
+      if (empty) {
+        empty.style.display = 'flex';
+        const msg = empty.querySelector('.pedidos-empty-msg');
+        if (msg) msg.textContent = 'Faça login para ver seus pedidos.';
+      }
       return;
     }
 
