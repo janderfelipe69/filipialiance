@@ -28,6 +28,31 @@
   if (!global.PA) { console.warn('[CaptureItems] PA namespace não encontrado.'); return; }
   if (global.PA.captureItems) return; // singleton
 
+  // ── Per-item operation locks (RACE 1 + 2 fix) ─────────────────────────
+  // Prevents double-click, rapid re-entry, and concurrent ops on the same item.
+  // Key: "supabaseOrderId:itemRef"  Value: { op, ts }
+  var _itemLocks = {};
+
+  function _lockItem(orderId, itemRef, op) {
+    var key = orderId + ':' + itemRef;
+    if (_itemLocks[key]) {
+      console.log('[captureItems.race] lock conflict', { key: key, existing: _itemLocks[key].op, attempted: op });
+      _tel('capture-item-race', { key: key, existing: _itemLocks[key].op, attempted: op });
+      return false; // locked
+    }
+    _itemLocks[key] = { op: op, ts: Date.now() };
+    return true; // acquired
+  }
+
+  function _unlockItem(orderId, itemRef) {
+    var key = orderId + ':' + itemRef;
+    delete _itemLocks[key];
+  }
+
+  function _isItemLocked(orderId, itemRef) {
+    return !!_itemLocks[orderId + ':' + itemRef];
+  }
+
   var _log  = function() { if (global.PA_DEBUG) console.log.apply(console, ['[CaptureItems]'].concat([].slice.call(arguments))); };
   var _warn = function() { console.warn.apply(console, ['[CaptureItems ⚠️]'].concat([].slice.call(arguments))); };
 
@@ -303,8 +328,12 @@
    * @param {Object} patch            Campos a atualizar no item
    * @returns {Promise<boolean>}
    */
-  async function updateCaptureItemInOrder(supabaseOrderId, itemRef, patch) {
+  async function updateCaptureItemInOrder(supabaseOrderId, itemRef, patch, opts) {
     if (!supabaseOrderId || !itemRef || !patch) return false;
+
+    opts = opts || {};
+    // opts.expectedStatus: if set, abort if current item status !== expectedStatus (optimistic lock)
+    // opts.allowedFromStatuses: array of statuses that allow this transition
 
     var jwt = (typeof Session !== 'undefined' && Session.getAccessToken)
       ? Session.getAccessToken() : null;
@@ -333,16 +362,38 @@
       if (typeof itens === 'string') { try { itens = JSON.parse(itens); } catch(e) { itens = []; } }
       if (!Array.isArray(itens)) itens = [];
 
-      // 2. Localiza o item pelo item_ref
+      // 2. Localiza o item e verifica status atual (RACE 2+3 fix — optimistic lock)
       var found = false;
+      var currentItemStatus = null;
       var updatedItens = itens.map(function(it) {
         // Compara pelo item_ref (ou id para compatibilidade)
         if ((it.item_ref && it.item_ref === itemRef) || (it.id && it.id === itemRef)) {
           found = true;
-          return Object.assign({}, it, patch);
+          currentItemStatus = it.status || (it.concluido ? 'completed' : 'pending');
+
+          // Optimistic lock: verifica se transição é permitida
+          var allowedStatuses = opts.allowedFromStatuses || (opts.expectedStatus ? [opts.expectedStatus] : null);
+          if (allowedStatuses && allowedStatuses.indexOf(currentItemStatus) === -1) {
+            console.log('[captureItems.concurrentPatch]', {
+              itemRef: itemRef, expected: opts.expectedStatus, actual: currentItemStatus,
+              msg: 'Status mudou enquanto aguardávamos — abortando PATCH'
+            });
+            found = 'status_mismatch'; // sentinel — aborta mais abaixo
+            return it; // retorna sem modificar
+          }
+
+          // Adiciona updated_at para rastreamento de versão
+          return Object.assign({}, it, patch, { updated_at: new Date().toISOString() });
         }
         return it;
       });
+
+      // Abort se houve status mismatch (outro admin ganhou a corrida)
+      if (found === 'status_mismatch') {
+        _warn('updateCaptureItemInOrder: status mismatch — operação abortada para evitar overwrite');
+        _tel('capture-item-race', { itemRef: itemRef, expected: opts.expectedStatus, actual: currentItemStatus });
+        return { success: false, reason: 'status_mismatch', currentStatus: currentItemStatus };
+      }
 
       if (!found) {
         // ── FALLBACK (Fase 5.3.2 bugfix) ─────────────────────────────────────────
@@ -461,10 +512,11 @@
    * Grava started_at no item individual.
    */
   async function startCaptureItem(supabaseOrderId, itemRef) {
+    // Optimistic lock: only start if still pending
     return updateCaptureItemInOrder(supabaseOrderId, itemRef, {
       status:     'in_progress',
       started_at: new Date().toISOString(),
-    });
+    }, { expectedStatus: 'pending' });
   }
 
   /**
@@ -496,7 +548,10 @@
     if (opts.notes)             patch.delivery_notes       = opts.notes;
     if (opts.delivery_proof_id) patch.delivery_proof_id   = opts.delivery_proof_id;
 
-    return updateCaptureItemInOrder(supabaseOrderId, itemRef, patch);
+    // Optimistic lock: allow complete from in_progress OR pending (skip start)
+    // Don't complete if already completed (prevents double proof upload)
+    return updateCaptureItemInOrder(supabaseOrderId, itemRef, patch,
+      { allowedFromStatuses: ['in_progress', 'pending'] });
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -685,17 +740,47 @@
     // Resolve supabaseId do orderId (formato 'sb_123' ou número puro)
     var supabaseId = orderId.replace(/^sb_/i, '');
 
+    // RACE 1 fix: item-level lock prevents double-click and concurrent ops
+    if (_isItemLocked(supabaseId, itemRef)) {
+      console.log('[captureItems.race] startItem blocked — item already locked', { supabaseId, itemRef });
+      return;
+    }
+
+    // RACE 4 fix: check current DOM status — abort if already started/completed
+    var domStatus = itemEl.getAttribute('data-ci-status');
+    if (domStatus === 'in_progress' || domStatus === 'completed') {
+      console.log('[captureItems.race] startItem blocked — DOM already shows', domStatus);
+      return;
+    }
+
+    if (!_lockItem(supabaseId, itemRef, 'start')) return;
+
     btn.disabled = true;
     btn.textContent = '⏳';
 
     _tel('capture_item_morph', { op: 'start-attempt', itemRef: itemRef, supabaseId: supabaseId });
 
     var result = await startCaptureItem(supabaseId, itemRef);
+
+    _unlockItem(supabaseId, itemRef); // release lock regardless of outcome
+
     if (result && result.success) {
-      itemEl.querySelector('.capture-item-status').textContent = '⏳ Em andamento';
+      itemEl.setAttribute('data-ci-status', 'in_progress');
+      itemEl.setAttribute('data-ci-updated-at', Date.now().toString());
+      var statusEl = itemEl.querySelector('.capture-item-status, .ci-status-label');
+      if (statusEl) statusEl.textContent = 'Em andamento';
       itemEl.classList.remove('ci-pending');
       itemEl.classList.add('ci-in-progress');
-      btn.replaceWith(_makeCompleteBtn(itemRef));
+      var oldBtn = itemEl.querySelector('.ci-btn--start');
+      if (oldBtn) oldBtn.replaceWith(_makeCompleteBtn(itemRef));
+      else btn.replaceWith(_makeCompleteBtn(itemRef));
+    } else if (result && result.reason === 'status_mismatch') {
+      // Another admin already started it — reflect server state silently
+      btn.disabled = false;
+      btn.textContent = '▶ Iniciar';
+      console.log('[captureItems.race] startItem: status_mismatch — refreshing UI', result.currentStatus);
+      if (typeof showToast === 'function') showToast('Item já foi iniciado por outro admin.', 'info');
+      if (typeof OrdersUI !== 'undefined') setTimeout(function(){ OrdersUI.refresh(); }, 300);
     } else {
       btn.disabled = false;
       btn.textContent = '▶ Iniciar';
@@ -733,25 +818,59 @@
 
     if (!confirmed) return;
 
+    // RACE 1+2 fix: item-level lock
+    if (_isItemLocked(supabaseId, itemRef)) {
+      console.log('[captureItems.race] completeItem blocked — item locked', { supabaseId, itemRef });
+      return;
+    }
+
+    // RACE 4 fix: abort if DOM already shows completed
+    var domStatusC = itemEl.getAttribute('data-ci-status');
+    if (domStatusC === 'completed') {
+      console.log('[captureItems.race] completeItem blocked — already completed in DOM');
+      return;
+    }
+
+    if (!_lockItem(supabaseId, itemRef, 'complete')) return;
+
     btn.disabled = true;
     btn.textContent = '⏳';
 
     var result = await completeCaptureItem(supabaseId, itemRef, {});
+
+    _unlockItem(supabaseId, itemRef); // always release
+
     if (result && result.success) {
-      itemEl.querySelector('.capture-item-status').textContent = '✅ Entregue';
+      itemEl.setAttribute('data-ci-status', 'completed');
+      itemEl.setAttribute('data-ci-updated-at', Date.now().toString());
+      var statusElC = itemEl.querySelector('.capture-item-status, .ci-status-label');
+      if (statusElC) statusElC.textContent = 'Entregue';
       itemEl.classList.remove('ci-in-progress');
       itemEl.classList.add('ci-completed');
       btn.remove();
 
+      _tel('partial_delivery_completed', { itemRef: itemRef, allDone: !!result.allDone });
+
       if (result.allDone) {
         if (typeof showToast === 'function') showToast('✅ Todos os pokémons entregues! Pedido concluído.', 'success');
-        // Dispara refresh da fila
-        if (typeof pedidosCarregar === 'function') setTimeout(pedidosCarregar, 400);
-        else if (typeof OrdersUI !== 'undefined') setTimeout(function(){ OrdersUI.refresh(); }, 400);
+        if (typeof pedidosCarregar === 'function') setTimeout(pedidosCarregar, 600);
+        else if (typeof OrdersUI !== 'undefined') {
+          if (global.PA && global.PA.pipeline) {
+            global.PA.pipeline.coalesceRender('orders-ui', function(){ OrdersUI.refresh(); }, 200);
+          } else {
+            setTimeout(function(){ OrdersUI.refresh(); }, 600);
+          }
+        }
       } else {
         if (typeof showToast === 'function') showToast('✅ Item entregue! Restam outros itens.', 'info');
-        if (typeof OrdersUI !== 'undefined') setTimeout(function(){ OrdersUI.refresh(); }, 400);
+        // Não faz refresh automático — realtime propagará para outros clientes
       }
+    } else if (result && result.reason === 'status_mismatch') {
+      btn.disabled = false;
+      btn.textContent = '✓ Concluir';
+      console.log('[captureItems.race] completeItem: status_mismatch — current:', result.currentStatus);
+      if (typeof showToast === 'function') showToast('Item já foi atualizado por outro admin.', 'info');
+      if (typeof OrdersUI !== 'undefined') setTimeout(function(){ OrdersUI.refresh(); }, 300);
     } else {
       btn.disabled = false;
       btn.textContent = '✓ Concluir';
@@ -865,6 +984,21 @@
   // Morph incremental de um capture-item no DOM — sem reescrever card inteiro
   function morphCaptureItem(itemEl, captureItem) {
     if (!itemEl || !captureItem) return;
+
+    // RACE 4 fix: stale state guard
+    // If the element was updated more recently than this captureItem data, skip the morph.
+    // This prevents realtime events arriving out-of-order from reverting newer local state.
+    var domUpdatedAt = parseInt(itemEl.getAttribute('data-ci-updated-at') || '0', 10);
+    if (captureItem._updatedAt && captureItem._updatedAt < domUpdatedAt) {
+      console.log('[captureItems.realtimeSync] morphCaptureItem skipped — stale data', {
+        itemRef: captureItem.item_ref,
+        dataAge: captureItem._updatedAt,
+        domAge: domUpdatedAt
+      });
+      _tel('capture-item-race', { op: 'stale-morph-skipped', itemRef: captureItem.item_ref });
+      return;
+    }
+
     var cfg = ITEM_STATUS_CONFIG[captureItem.status] || ITEM_STATUS_CONFIG.pending;
 
     ['ci-pending','ci-in-progress','ci-partial','ci-completed'].forEach(function(c) {
@@ -985,6 +1119,12 @@
   // ══════════════════════════════════════════════════════════════════════
 
   global.PA.captureItems = {
+    // Concorrência (diagnóstico/teste)
+    _locks:       _itemLocks,
+    _lockItem:    _lockItem,
+    _unlockItem:  _unlockItem,
+    _isItemLocked: _isItemLocked,
+
     // Normalização
     extractCaptureItems:      extractCaptureItems,
     normalizeLegacyOrder:     normalizeLegacyOrder,
