@@ -515,19 +515,41 @@ const OrdersUI = (() => {
       const info = QueuePrivacy.getPublicOrderLabel(order, user, isAdmin);
 
       if (info.isPrivileged) {
+        // Fase 5.3.1: pedidos de captura usam renderização de capture items (com nome do pokémon)
+        if (info.type === 'capture' && window.PA && window.PA.captureItems) {
+          const captItems = window.PA.captureItems.extractCaptureItems(order);
+          if (captItems.length) {
+            const html = captItems.map(function(ci) {
+              return window.PA.captureItems.renderCaptureItemPrivileged(ci, isAdmin);
+            }).join('');
+            return '<div class="capture-items-list">' + html + '</div>';
+          }
+        }
         return _renderItems(items);
       }
 
-      // Usuário comum vendo pedido de terceiro → título genérico + badges individuais
+      // Usuário comum vendo pedido de terceiro → capture items individuais (Fase 5.3.1)
       const iconMap = { capture: '⚡', package: '📦', item: '🎁' };
       const icon = iconMap[info.type] || '📦';
 
-      // Fase 5.3.0c: badges individuais por item de captura (um por pokémon)
-      const tierBadgesHtml = (info.type === 'capture' && typeof QueuePrivacy.buildTierBadges === 'function')
-        ? QueuePrivacy.buildTierBadges(info.captureItems || order.items || [])
-        : (info.tierLabel
-            ? `<span class="order-item-tier-badge order-item-tier--${info.tierLabel.toLowerCase()}">${info.tierLabel}</span>`
-            : '');
+      // Fase 5.3.1: renderiza capture items individuais com status por pokémon (público)
+      let captureItemsHtml = '';
+      if (info.type === 'capture' && window.PA && window.PA.captureItems) {
+        const captItems = window.PA.captureItems.extractCaptureItems(order);
+        if (captItems.length) {
+          captureItemsHtml = '<div class="capture-items-list">' +
+            captItems.map(ci => window.PA.captureItems.renderCaptureItemPublic(ci)).join('') +
+            '</div>';
+        }
+      }
+      // Fallback para badges simples
+      if (!captureItemsHtml) {
+        captureItemsHtml = (info.type === 'capture' && typeof QueuePrivacy.buildTierBadges === 'function')
+          ? QueuePrivacy.buildTierBadges(info.captureItems || order.items || [])
+          : (info.tierLabel
+              ? `<span class="order-item-tier-badge order-item-tier--${info.tierLabel.toLowerCase()}">${info.tierLabel}</span>`
+              : '');
+      }
 
       return `
         <div class="order-item order-item--public">
@@ -535,11 +557,8 @@ const OrdersUI = (() => {
             <span class="order-item-public-icon">${icon}</span>
             <div class="order-item-public-content">
               <span class="order-item-name order-item-name--public">${_escHtml(info.label)}</span>
-              ${tierBadgesHtml}
+              ${captureItemsHtml}
             </div>
-          </div>
-          <div class="order-item-progress">
-            <span class="order-item-waiting-label">Em processamento</span>
           </div>
         </div>
       `;
