@@ -65,7 +65,8 @@
     var items = itens.map(function (it, idx) {
       // FASE 5.3.0b: preserva tier, type, pokemon para queue-privacy (mesmo fix de pedidos.js)
       return {
-        id:          'sb_item_' + p.id + '_' + idx,
+        id:          it.item_ref || it.id || ('sb_item_' + p.id + '_' + idx),
+        item_ref:    it.item_ref || it.id || ('sb_item_' + p.id + '_' + idx),
         name:        it.nome || it.name || '—',
         qtdTotal:    parseInt(it.quantidade || it.qty || it.qtdTotal || 1, 10),
         qtdEntregue: parseInt(it.qtdEntregue || 0, 10),
@@ -75,6 +76,11 @@
         pokemon:     it.pokemon         || '',
         ball_type:   it.ball_type       || '',
         ball:        it.ball            || '',
+        // Lifecycle — preservados para capture items (Fase 5.3.2 fix)
+        status:      it.status          || (it.concluido ? 'completed' : 'pending'),
+        started_at:  it.started_at      || null,
+        completed_at: it.completed_at   || null,
+        actual_duration_minutes: it.actual_duration_minutes || null,
       };
     });
 

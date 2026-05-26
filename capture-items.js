@@ -498,6 +498,9 @@
       _log('CaptureItem atualizado:', itemRef, '| allDone:', allDone);
       _tel('capture-item-update', { itemRef: itemRef, allDone: allDone, patch: Object.keys(patch) });
 
+      // CRITICAL FIX: update localStorage immediately so next render shows correct state
+      _updateLocalCache(supabaseOrderId, itemRef, patch);
+
       return { success: true, allDone: allDone };
 
     } catch (err) {
@@ -793,6 +796,7 @@
           ciRight.appendChild(timerEl);
         }
         _tel('capture_item_morph', { itemRef: itemRef, status: 'in_progress' });
+        console.log('[captureItems.morph]', { itemRef: itemRef, status: 'in_progress', domUpdated: true });
       } catch (domErr) {
         console.warn('[captureItems.DOMMissing]', { error: domErr.message, itemRef: itemRef, mode: 'startItem-visual' });
         // PATCH succeeded — realtime will sync the UI
@@ -802,7 +806,7 @@
       btn.disabled = false;
       btn.textContent = '▶ Iniciar';
       console.log('[captureItems.race] startItem: status_mismatch — refreshing UI', result.currentStatus);
-      if (typeof showToast === 'function') showToast('Item já foi iniciado por outro admin.', 'info');
+      if (typeof showToast === 'function') showToast('Este item já está em andamento.', 'info');
       if (typeof OrdersUI !== 'undefined') setTimeout(function(){ OrdersUI.refresh(); }, 300);
     } else {
       btn.disabled = false;
@@ -901,7 +905,7 @@
       btn.disabled = false;
       btn.textContent = '✓ Concluir';
       console.log('[captureItems.race] completeItem: status_mismatch — current:', result.currentStatus);
-      if (typeof showToast === 'function') showToast('Item já foi atualizado por outro admin.', 'info');
+      if (typeof showToast === 'function') showToast('Este item já foi atualizado. Recarregando...', 'info');
       if (typeof OrdersUI !== 'undefined') setTimeout(function(){ OrdersUI.refresh(); }, 300);
     } else {
       btn.disabled = false;
@@ -996,6 +1000,88 @@
     ].join('\n');
     global.document.head.appendChild(style);
     _log('capture-items CSS injetado');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LOCAL CACHE UPDATE — sincroniza localStorage após PATCH no Supabase
+  // Garante que OrdersUI.render() re-lê estado correto após morph local
+  // ══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Atualiza o status de um captureItem no localStorage (pa_orders_v2)
+   * imediatamente após o PATCH, antes que o realtime chegue.
+   *
+   * @param {*}      supabaseOrderId
+   * @param {string} itemRef
+   * @param {Object} patch  Mesmo patch enviado ao Supabase
+   */
+  function _updateLocalCache(supabaseOrderId, itemRef, patch) {
+    try {
+      var raw = localStorage.getItem('pa_orders_v2');
+      if (!raw) return;
+      var orders = JSON.parse(raw);
+      var changed = false;
+
+      orders = orders.map(function(order) {
+        // Match pelo supabaseId (que pode estar em _supabaseId, orderNumber, id)
+        var sid = String(order._supabaseId || order.orderNumber || order.id || '');
+        if (sid !== String(supabaseOrderId)) return order;
+
+        // Atualiza o item correspondente em order.items[]
+        var newItems = (order.items || []).map(function(item) {
+          var itemId = item.id || item.item_ref || '';
+          if (itemId !== itemRef && item.item_ref !== itemRef) return item;
+          changed = true;
+          console.log('[captureItems.start.success] localStorage cache updated', {
+            orderId: supabaseOrderId, itemRef: itemRef, patch: Object.keys(patch)
+          });
+          return Object.assign({}, item, {
+            status:     patch.status     || item.status,
+            started_at: patch.started_at || item.started_at,
+            completed_at: patch.completed_at || item.completed_at,
+            actual_duration_minutes: patch.actual_duration_minutes || item.actual_duration_minutes,
+            concluido: patch.concluido !== undefined ? patch.concluido : item.concluido,
+            delivery_image_url: patch.delivery_image_url || item.delivery_image_url,
+          });
+        });
+
+        if (!changed) {
+          // item not found by ref — try by index (fallback orders without item_ref)
+          // Use the fallback index logic from _PK_N suffix
+          var pkMatch = String(itemRef).match(/_PK_(\d+)$/);
+          if (pkMatch) {
+            var pkIdx = parseInt(pkMatch[1], 10) - 1;
+            var captureIdx = 0;
+            newItems = (order.items || []).map(function(item) {
+              if (item.type === 'capture' || item.pokemon) {
+                if (captureIdx === pkIdx) {
+                  changed = true;
+                  captureIdx++;
+                  console.log('[captureItems.start.success] localStorage fallback-idx updated', { idx: pkIdx, itemRef: itemRef });
+                  return Object.assign({}, item, {
+                    status:     patch.status     || item.status,
+                    started_at: patch.started_at || item.started_at,
+                    item_ref:   itemRef,  // write it back
+                  });
+                }
+                captureIdx++;
+              }
+              return item;
+            });
+          }
+        }
+
+        return Object.assign({}, order, { items: newItems });
+      });
+
+      if (changed) {
+        localStorage.setItem('pa_orders_v2', JSON.stringify(orders));
+        _tel('capture-item-localcache', { itemRef: itemRef, patch: Object.keys(patch) });
+      }
+    } catch (e) {
+      // localStorage update is best-effort — never crash
+      _warn('_updateLocalCache: erro não-crítico:', e.message);
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════
