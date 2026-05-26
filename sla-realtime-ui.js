@@ -55,7 +55,14 @@
   // HELPERS
   // ══════════════════════════════════════════════════════════
 
+  // FASE 5.2.1: _fmtDuration delega para PA.pipeline.formatDuration (engine central).
+  // Mantém lógica local idêntica como fallback para garantir compatibilidade total.
   function _fmtDuration(ms) {
+    if (window.PA && window.PA.pipeline && typeof window.PA.pipeline.formatDuration === 'function') {
+      if (window.PA.telemetry) window.PA.telemetry.push('temporal_engine_used', { module: 'sla-realtime-ui' });
+      return window.PA.pipeline.formatDuration(ms);
+    }
+    // Fallback local (comportamento idêntico ao engine central)
     if (!ms || ms < 0) return '0m';
     var totalMin = Math.floor(Math.abs(ms) / 60000);
     var d = Math.floor(totalMin / 1440);
@@ -437,10 +444,13 @@
 
     var iv = setInterval(function () {
       // Para se o card saiu do DOM
-      if (!document.contains(cardEl)) { clearInterval(iv); return; }
+      if (!document.contains(cardEl)) { clearInterval(iv); cardEl._slaTickerRunning = false; return; }
+
+      // Fase 5.2.3 T2: pausa ticker para cards fora da viewport (virtual SLA)
+      if (cardEl._slaTickerPaused) return;
 
       var sla = _slaData(order);
-      if (!sla) { clearInterval(iv); return; }
+      if (!sla) { clearInterval(iv); cardEl._slaTickerRunning = false; return; }
 
       // Atualiza elapsed text
       var elapsedEl = cardEl.querySelector('[data-sla-elapsed]');

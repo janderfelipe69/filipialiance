@@ -283,6 +283,13 @@ const OrdersUI = (() => {
 
     if (empty) empty.style.display = 'none';
 
+    // Fase 5.2.3 T4: Se a lista está vazia (primeira carga), mostra skeletons
+    // brevemente para evitar layout jump
+    if (lista.children.length === 0 && baseList.length > 0 &&
+        window.PA && window.PA.skeleton) {
+      window.PA.skeleton.showOrders(lista, Math.min(baseList.length, 3));
+    }
+
     // ── Renderiza cards ───────────────────────────────────────────────────
     const existingCards = new Map();
     lista.querySelectorAll('.order-card[data-order-id]').forEach(el => {
@@ -300,9 +307,20 @@ const OrdersUI = (() => {
       }
     });
 
-    existingCards.forEach(el => el.remove());
+    // Fase 5.2.3: unobserve removed cards before clearing lista
+    existingCards.forEach(el => {
+      if (window.PA && window.PA.hardening) window.PA.hardening.unobserveCard(el);
+      el.remove();
+    });
     lista.innerHTML = '';
     lista.appendChild(frag);
+
+    // Fase 5.2.3: observe new/existing cards for lazy SLA (T1+T2)
+    if (window.PA && window.PA.hardening) {
+      lista.querySelectorAll('.order-card[data-order-id]').forEach(function(cardEl) {
+        window.PA.hardening.observeCard(cardEl);
+      });
+    }
   }
 
   // ── Renderização das Tabs ──────────────────────────────────────────────
@@ -348,6 +366,8 @@ const OrdersUI = (() => {
 
   function _renderCard(order, user, isAdmin, activeQueue, existingEl) {
     const cfg = OrdersProgress.getStatusConfig(order.status_v3 || order.status);
+    // Fase 5.2.3 T8: marca card novo para animação de entrada (CSS pa-card-in)
+    const _isNewCard = !existingEl;
     const progress = OrdersProgress.calcOrderProgress(order);
     const relTime = OrdersProgress.formatRelativeTime(order.createdAt);
     const isOwner = user && (order.userId === user.id);

@@ -864,17 +864,136 @@
       html += _row(cat, tel[cat] + ' registros');
     });
 
+    // DOM Ownership (Fase 5)
+    if (global.PA.renderRegistry) {
+      var dump = global.PA.renderRegistry.dump();
+      var conflicts = global.PA.renderRegistry.dumpConflicts();
+      html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">DOM Ownership</div>';
+      Object.keys(dump).forEach(function (cid) {
+        var d = dump[cid];
+        var hasConflict = conflicts[cid];
+        var label = '#' + cid;
+        var val = d.owner + ' | ' + d.renders + 'x' +
+          (d.storms > 0 ? ' ⚠️ ' + d.storms + ' storms' : '') +
+          (hasConflict ? ' 🔴 conflito!' : '');
+        html += _row(label, val);
+      });
+      if (Object.keys(conflicts).length > 0) {
+        html += '<div style="color:#e24b4a;font-size:10px;padding:2px 0">⚠️ ' +
+                Object.keys(conflicts).length + ' conflito(s) de ownership detectado(s)</div>';
+      }
+    }
+
+    // Hooks status (Fase 5)
+    if (global.PA.hooks) {
+      var hookStatus = global.PA.hooks.status();
+      var hookTotal = Object.values(hookStatus).reduce(function(s, arr) { return s + arr.length; }, 0);
+      html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Hooks (' + hookTotal + ')</div>';
+      Object.keys(hookStatus).forEach(function (evt) {
+        if (hookStatus[evt].length > 0) {
+          html += _row(evt, hookStatus[evt].map(function(h) { return h.id + '(' + h.calls + 'x)'; }).join(', '));
+        }
+      });
+    }
+
+    // State Selectors (Fase 5.1)
+    if (global.PA.state && typeof global.PA.state.getCacheDump === 'function') {
+      var cacheDump = global.PA.state.getCacheDump();
+      var cacheKeys = Object.keys(cacheDump);
+      if (cacheKeys.length > 0) {
+        html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Selectors (' + cacheKeys.length + ')</div>';
+        cacheKeys.slice(0, 6).forEach(function (k) {
+          var c = cacheDump[k];
+          var label = k.length > 24 ? k.slice(0, 24) + '…' : k;
+          html += _row(label, (c.valid ? '✅' : '⏳') + ' hits:' + c.hits + ' ' + c.durationMs + 'ms');
+        });
+      }
+      var stateWarnings = global.PA.state.dumpWarnings ? global.PA.state.dumpWarnings() : [];
+      if (stateWarnings.length > 0) {
+        html += _row('state warnings', stateWarnings.length + ' (PA.state.dumpWarnings())');
+      }
+    }
+
+    // Pipeline Locks (Fase 5.2)
+    if (global.PA.pipeline) {
+      var locks = global.PA.pipeline.getLockStatus();
+      var lockKeys = Object.keys(locks);
+      if (lockKeys.length > 0) {
+        html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Pipeline Locks</div>';
+        lockKeys.forEach(function(cid) {
+          var l = locks[cid];
+          html += _row('#' + cid,
+            (l.locked ? '🔒 LOCKED' : '✅ free') +
+            ' gen:' + l.generation +
+            (l.hasQueued ? ' ⏳ queued' : ''));
+        });
+        var staleCount = PA.telemetry.getByCategory('stale_render_detected').length;
+        var prevented  = PA.telemetry.getByCategory('duplicate_render_prevented').length;
+        if (staleCount > 0) html += _row('stale renders', staleCount + ' detectados');
+        if (prevented  > 0) html += _row('dupes prevented', prevented);
+      }
+    }
+
+    // Temporal Engine (Fase 5.2.1)
+    if (global.PA.telemetry) {
+      var temporalUses    = PA.telemetry.getByCategory('temporal_engine_used').length;
+      var legacyBlocked   = PA.telemetry.getByCategory('legacy_duration_blocked').length;
+      var suspiciousDur   = PA.telemetry.getByCategory('suspicious_duration').length;
+      if (temporalUses > 0 || legacyBlocked > 0 || suspiciousDur > 0) {
+        html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Temporal Engine</div>';
+        html += _row('engine uses', temporalUses + 'x computeServiceDuration');
+        if (legacyBlocked > 0)  html += _row('legacy blocked', legacyBlocked + ' ⚠️ (sem started_at)');
+        if (suspiciousDur > 0)  html += _row('suspicious', suspiciousDur + ' 🔴 duração divergente');
+        // Mostra o último cálculo temporal se houver
+        var lastTel = PA.telemetry.getByCategory('temporal_engine_used').slice(-1)[0];
+        if (lastTel) html += _row('último uso', '@' + lastTel.t + ' ' + (lastTel.data.module || lastTel.data.controller || ''));
+      }
+    }
+
+    // Render Health (Fase 5.2.2)
+    if (global.PA.health) {
+      var healthM = global.PA.health.dumpMetrics();
+      var beats   = global.PA.health.getHeartbeats();
+      html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Render Health</div>';
+      if (healthM.ownershipViolations > 0) html += _row('ownership violations', healthM.ownershipViolations + ' 🔴');
+      else                                 html += _row('ownership', '✅ sem violações');
+      if (healthM.staleDomsDetected > 0)   html += _row('stale DOMs', healthM.staleDomsDetected + ' ⚠️');
+      html += _row('heartbeats ativos', beats.length);
+      beats.forEach(function(b) {
+        html += _row('⏱ ' + b.id, b.runCount + 'x cada ' + b.intervalMs + 'ms');
+      });
+      Object.keys(healthM.renderGenerations).forEach(function(cid) {
+        html += _row('#' + cid + ' gen', 'g' + healthM.renderGenerations[cid]);
+      });
+    }
+
+    // Hardening section (Fase 5.2.3)
+    if (global.PA.hardening && typeof global.PA.hardening.debugSection === 'function') {
+      var hSec = global.PA.hardening.debugSection();
+      Object.keys(hSec).forEach(function(sectionName) {
+        html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">' + sectionName + '</div>';
+        var fields = hSec[sectionName];
+        Object.keys(fields).forEach(function(k) {
+          html += _row(k, fields[k] !== undefined ? String(fields[k]) : '—');
+        });
+      });
+    }
+
     // Recent warnings (últimos 5 da telemetria de erros)
     var errs = PA.telemetry.getByCategory('safe-call-error')
       .concat(PA.telemetry.getByCategory('render-error'))
       .concat(PA.telemetry.getByCategory('mutation-error'))
+      .concat(PA.telemetry.getByCategory('render-conflict'))
+      .concat(PA.telemetry.getByCategory('snapshot_conflict'))
+      .concat(PA.telemetry.getByCategory('stale_render_detected'))
       .slice(-5);
     if (errs.length > 0) {
       html += '<div style="color:#e24b4a;font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Erros recentes</div>';
       errs.forEach(function (e) {
-        html += '<div style="color:#f09595;font-size:10px;padding:1px 0">@' + e.t + ' ' + (e.data.fn || e.data.label || '') + ': ' + (e.data.error || '') + '</div>';
+        html += '<div style="color:#f09595;font-size:10px;padding:1px 0">@' + e.t + ' ' + (e.data.fn || e.data.label || e.data.container || e.data.prop || '') + ': ' + (e.data.error || e.data.challenger || e.data.reason || '') + '</div>';
       });
     }
+
 
     _panel.innerHTML = html;
   };
