@@ -63,12 +63,18 @@
     try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch (e) { itens = []; }
 
     var items = itens.map(function (it, idx) {
+      // FASE 5.3.0b: preserva tier, type, pokemon para queue-privacy (mesmo fix de pedidos.js)
       return {
         id:          'sb_item_' + p.id + '_' + idx,
         name:        it.nome || it.name || '—',
         qtdTotal:    parseInt(it.quantidade || it.qty || it.qtdTotal || 1, 10),
-        qtdEntregue: 0,
-        concluido:   false,
+        qtdEntregue: parseInt(it.qtdEntregue || 0, 10),
+        concluido:   !!(it.concluido),
+        tier:        it.tier || it.tag  || '',
+        type:        it.type            || '',
+        pokemon:     it.pokemon         || '',
+        ball_type:   it.ball_type       || '',
+        ball:        it.ball            || '',
       };
     });
 
@@ -175,14 +181,22 @@
   }
 
   // ── Renderização ───────────────────────────────────────────────────────
+  // FASE 5.1: debounce leve (80ms) para evitar render storm em eventos
+  // realtime rápidos (ex: UPDATE + INSERT simultâneos do WebSocket).
+  var _renderDebounceTimer = null;
+
   function _renderUI() {
-    if (typeof OrdersUI !== 'undefined' && typeof OrdersUI.render === 'function') {
-      OrdersUI.render();
-    } else if (typeof OrdersKanban !== 'undefined' && typeof OrdersKanban.render === 'function') {
-      OrdersKanban.render();
-    } else if (typeof global.pedidosCarregar === 'function') {
-      global.pedidosCarregar();
-    }
+    clearTimeout(_renderDebounceTimer);
+    _renderDebounceTimer = setTimeout(function() {
+      if (typeof OrdersUI !== 'undefined' && typeof OrdersUI.render === 'function') {
+        OrdersUI.render();
+      } else if (typeof OrdersKanban !== 'undefined' && typeof OrdersKanban.render === 'function') {
+        OrdersKanban.render();
+      } else if (typeof global.pedidosCarregar === 'function') {
+        global.pedidosCarregar();
+      }
+    }, 80);
+
   }
 
   function _refreshDelivery() {

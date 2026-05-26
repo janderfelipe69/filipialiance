@@ -323,11 +323,56 @@ const QueuePrivacy = (() => {
     const isPokemon   = !!(captureItem || serviceType.includes('pokemon'));
 
     if (isPokemon) {
-      const rawTier = captureItem
-        ? (captureItem.tier || captureItem.tag || '').toLowerCase()
-        : (items[0] ? (items[0].tier || '') : '').toLowerCase();
-      const lbl = _tierToLabel(rawTier);
-      return lbl ? 'Captura Pokémon ' + lbl : 'Captura Pokémon';
+      const captureItems = items.filter(function(it) { return _isCaptureItem(it); });
+
+      // Log de diagnóstico temporário (Fase 5.3.0b)
+      if (typeof console !== 'undefined') {
+        console.log('[QUEUE_PRIVACY]', {
+          orderId:      order.id || order.orderNumber,
+          captureItems: captureItems.length,
+          tiers:        captureItems.map(function(it) { return it.tier || it.tag || '(vazio)'; }),
+          serviceType:  serviceType,
+        });
+      }
+
+      if (captureItems.length === 0) {
+        // Pedido marcado como captura mas sem itens: fallback por service_type
+        const stTier = serviceType.includes('pokemon_sr') || serviceType.includes('sr')
+          ? 'SR' : '';
+        return stTier ? 'Captura Pokémon ' + stTier : 'Captura Pokémon';
+      }
+
+      // Conta por tier para "T1 ×3" ou "T1, SR"
+      const tierCount = {};  // { 'T1': 2, 'SR': 1 }
+      captureItems.forEach(function(it) {
+        const lbl = normalizeTierLabel(it.tier || it.tag || '');
+        const key = lbl || '_sem_tier';
+        tierCount[key] = (tierCount[key] || 0) + (it.qtdTotal || 1);
+      });
+
+      const tierKeys    = Object.keys(tierCount).filter(function(k) { return k !== '_sem_tier'; });
+      const totalCount  = captureItems.reduce(function(s, it) { return s + (it.qtdTotal || 1); }, 0);
+
+      if (tierKeys.length === 0) {
+        // Nenhum tier identificável — exibe só a contagem se > 1
+        return totalCount > 1
+          ? 'Captura Pokémon ×' + totalCount
+          : 'Captura Pokémon';
+      }
+
+      if (tierKeys.length === 1) {
+        // Todos do mesmo tier: "Captura Pokémon T1" ou "Captura Pokémon T1 ×3"
+        const lbl = tierKeys[0];
+        return totalCount > 1
+          ? 'Captura Pokémon ' + lbl + ' ×' + totalCount
+          : 'Captura Pokémon ' + lbl;
+      }
+
+      // Múltiplos tiers: "Captura Pokémon T1, SR ×4"
+      const tierStr = tierKeys.join(', ');
+      return totalCount > 1
+        ? 'Captura Pokémon ' + tierStr + ' ×' + totalCount
+        : 'Captura Pokémon ' + tierStr;
     }
 
     if (_isPackageOrder(order)) {
@@ -342,16 +387,24 @@ const QueuePrivacy = (() => {
     return order.service_name || '—';
   }
 
-  function _tierToLabel(tier) {
+  // ── normalizeTierLabel — função pública centralizada (Fase 5.3.0b) ──────
+  // Normaliza qualquer representação de tier para label canônico.
+  // Exposta em QueuePrivacy.normalizeTierLabel para uso externo.
+  function normalizeTierLabel(tier) {
     if (!tier) return '';
-    const t = tier.toLowerCase().replace(/[\s_-]/g, '');
+    const t = String(tier).toLowerCase().replace(/[\s_-]/g, '');
     if (t === 't1') return 'T1';
     if (t === 't2') return 'T2';
     if (t === 't3') return 'T3';
+    // SR: aceita super-raro, superraro, sr, pokemon_sr, pokemonsr, ultra-raro, t4..t6
     if (t === 'superraro' || t === 'sr' || t === 'pokemonsr' ||
-        t === 'ultrararo' || t === 't4' || t === 't5' || t === 't6') return 'SR';
+        t === 'ultrararo' || t === 'ultrarare' ||
+        t === 't4' || t === 't5' || t === 't6') return 'SR';
     return '';
   }
+
+  // Alias interno
+  const _tierToLabel = normalizeTierLabel;
 
   function _isCaptureItem(item) {
     if (!item) return false;
@@ -439,6 +492,8 @@ const QueuePrivacy = (() => {
   return {
     // Função canônica — use esta em novos componentes
     getPublicOrderLabel,
+    // Normalização centralizada de tier (Fase 5.3.0b)
+    normalizeTierLabel,
 
     // Funções existentes mantidas para compatibilidade
     maskNick,

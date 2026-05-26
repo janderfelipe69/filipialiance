@@ -53,12 +53,19 @@
     try { if (typeof p.itens === 'string') itens = JSON.parse(p.itens); } catch (e) { itens = []; }
 
     var items = itens.map(function (it, idx) {
+      // FASE 5.3.0b: preserva tier, type, pokemon para queue-privacy renderizar corretamente
       return {
         id:          'sb_item_' + p.id + '_' + idx,
         name:        it.nome || it.name || '—',
         qtdTotal:    parseInt(it.quantidade || it.qty || it.qtdTotal || 1, 10),
-        qtdEntregue: 0,
-        concluido:   false,
+        qtdEntregue: parseInt(it.qtdEntregue || 0, 10),
+        concluido:   !!(it.concluido),
+        // Campos preservados para exibição e privacidade
+        tier:        it.tier || it.tag  || '',
+        type:        it.type            || '',
+        pokemon:     it.pokemon         || '',
+        ball_type:   it.ball_type       || '',
+        ball:        it.ball            || '',
       };
     });
 
