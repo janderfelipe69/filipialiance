@@ -32,7 +32,6 @@
   var OFFICIAL_EVENTS = [
     'captura:rendered', 'items:rendered', 'packages:rendered',
     'pedidos:rendered', 'wiki:rendered', 'tab:changed', 'cart:updated',
-    'captura:cart_updated',  // Fase 5.3: CapturaCart emite ao adicionar/remover
   ];
 
   // ── Registro de handlers: { eventName → [ { id, fn, ts, callCount } ] } ──

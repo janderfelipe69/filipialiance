@@ -274,6 +274,8 @@ async function _salvarPedidoSupabase(payload) {
 }
 
 function _limparCarrinhoAposPedido() {
+  // Remove também os slots virtuais de captura do items[]
+  _limparCapturaSlots();
   Object.keys(cart).forEach(k => delete cart[k]);
   updateCartBadge();
   closeCart();
@@ -304,7 +306,9 @@ async function sendToWhatsApp() {
     const qty     = cart[k];
     const unitRaw = item.price ?? 0;
     const totRaw  = unitRaw * qty;
-    return {
+
+    // Base comum para todos os itens
+    const base = {
       nome:            item.name,
       tier:            item.tier || '',
       quantidade:      qty,
@@ -319,29 +323,70 @@ async function sendToWhatsApp() {
         ? (totRaw / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
         : '—',
     };
+
+    // Campos extras para itens de captura (Fase 5.3 — unificado)
+    if (item._capturaId) {
+      Object.assign(base, {
+        type:        'capture',
+        pokemon:     item.pokemon || (item._pokeData && item._pokeData.name) || '',
+        ball:        item.ball_name || (item._ball && item._ball.name) || '',
+        ball_type:   item.ball_type || (item._ball && item._ball.id) || '',
+        drops:       (typeof getPokeDrops === 'function' && item._pokeData)
+                       ? getPokeDrops(item._pokeData.name).map(function(d){ return d.name; })
+                       : [],
+        status:      'pending',
+        started_at:  null,
+        completed_at: null,
+        actual_duration_minutes: null,
+      });
+    }
+
+    return base;
+  });
+
+  // Determina service_type quando há capturas: pokemon_sr supera normal_package
+  const hasCapturas = keys.some(k => items[k] && items[k]._capturaId);
+  const hasSRCaptura = hasCapturas && keys.some(k => {
+    const it = items[k];
+    if (!it || !it._capturaId) return false;
+    const tag = (it.tier || '').toLowerCase();
+    return tag === 'super-raro' || tag === 'sr';
   });
 
   const { pagamento_modo, pagamento_kk, pagamento_brl, pagamento_dd } = _buildPagamentoInfo(grandTotalFinal);
 
+  // service_type: se há captura SR → pokemon_sr; se só captura normal → normal_package; misto → mixed
+  const _serviceType = hasSRCaptura ? 'pokemon_sr'
+    : hasCapturas ? 'normal_package'
+    : null; // null = pedido de itens/pacotes normais (sem service_type específico)
+
   const payload = {
-    nick_jogo:      nick,
-    itens:          itensPedido,
-    subtotal_kk:    grandTotalRaw  > 0 ? (formatKK(grandTotalRaw)?.label  || '—') : '—',
-    subtotal_brl:   grandTotalRaw  > 0
+    nick_jogo:        nick,
+    itens:            itensPedido,
+    subtotal_kk:      grandTotalRaw  > 0 ? (formatKK(grandTotalRaw)?.label  || '—') : '—',
+    subtotal_brl:     grandTotalRaw  > 0
       ? (grandTotalRaw  / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       : '—',
-    taxa_servico:   hasTaxa,
-    total_kk:       grandTotalFinal > 0 ? (formatKK(grandTotalFinal)?.label || '—') : '—',
-    total_brl:      grandTotalFinal > 0
+    taxa_servico:     hasTaxa,
+    total_kk:         grandTotalFinal > 0 ? (formatKK(grandTotalFinal)?.label || '—') : '—',
+    total_brl:        grandTotalFinal > 0
       ? (grandTotalFinal / 1000000 * KK_TO_BRL).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       : '—',
     pagamento_modo,
     pagamento_kk,
     pagamento_brl,
-    pagamento_dd:   pagamento_dd || null,
-    status:         'pendente',
-    status_v3:      'waiting_queue',
-    user_id:        _sessionUser ? (_sessionUser.id || null) : null,
+    pagamento_dd:     pagamento_dd || null,
+    status:           'pendente',
+    status_v3:        'waiting_queue',
+    user_id:          _sessionUser ? (_sessionUser.id || null) : null,
+    // Campos de captura (só presentes quando o carrinho tem pokémons)
+    ...(hasCapturas ? {
+      service_type:     _serviceType,
+      tipo_servico:     _serviceType,
+      service_quantity: keys.filter(k => items[k] && items[k]._capturaId).length,
+      composite_order:  keys.filter(k => items[k] && items[k]._capturaId).length > 1,
+      item_count:       keys.filter(k => items[k] && items[k]._capturaId).length,
+    } : {}),
   };
 
   // Desabilita botão durante o envio
@@ -654,6 +699,11 @@ function removeFromCart(i) {
   // Reseta botão pack-500
   const btn500 = document.getElementById('itembtn-500-' + i);
   if (btn500) btn500.classList.remove('added');
+  // Limpa slot de captura do items[] se for item de captura
+  const _CAPTURA_BASE = 900000;
+  if (parseInt(i, 10) >= _CAPTURA_BASE && items[i] && items[i]._capturaId) {
+    delete items[i];
+  }
   updateCartBadge();
   renderCart();
 }
@@ -2586,6 +2636,96 @@ function selectBall(ballId) {
   selectedBall = ballId;
 }
 
+
+// ── _addCapturaToMainCart — integra captura no carrinho principal (Fase 5.3 unificado) ──
+// Adiciona um pokémon diretamente no cart[] + items[] existentes.
+// Usa o slot dinâmico em items[] para não conflitar com itens do catálogo.
+// O carrinho exibe o item via renderCart() que já suporta _capturaId.
+function _addCapturaToMainCart(pokeData, ball, finalPrice, priceData) {
+  if (!pokeData) return null;
+
+  // Gera slot único em items[] para este item de captura
+  // Usa índice a partir de 900000 para não conflitar com catálogo real
+  const _CAPTURA_BASE = 900000;
+  const capturaId = 'cap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+  // Encontra próximo slot livre >= CAPTURA_BASE
+  let slot = _CAPTURA_BASE;
+  while (items[slot] !== undefined) slot++;
+
+  // Monta item de captura com campos necessários para renderCart() e sendToWhatsApp()
+  const tag = (pokeData.tag || '').toLowerCase();
+  const tierLabel = tag === 'super-raro' || tag === 'sr' ? 'SR'
+    : tag === 't1' ? 'T1'
+    : tag === 't2' ? 'T2'
+    : tag === 't3' ? 'T3'
+    : (pokeData.tag ? pokeData.tag.toUpperCase() : '');
+
+  // Nome público: oculta identidade do pokémon para outros usuários (QueuePrivacy)
+  const publicName = tierLabel
+    ? 'Captura ' + tierLabel + ' · ' + ball.name
+    : 'Captura · ' + ball.name;
+
+  // Ball emoji SVG (reutilizado do BallsSelector se disponível)
+  let ballEmoji = '';
+  if (typeof BallsSelector !== 'undefined' && typeof BallsSelector.getBallSvg === 'function') {
+    ballEmoji = BallsSelector.getBallSvg(ball.id) || '';
+  }
+
+  items[slot] = {
+    name:        publicName,               // exibido no carrinho
+    image:       pokeData.image || '',     // imagem do pokémon (privada — só para o dono)
+    price:       finalPrice,               // preço calculado
+    tier:        pokeData.tag || '',       // tier original
+    // Campos de captura
+    _capturaId:  capturaId,               // marca como item de captura
+    _pokeData:   pokeData,                // dados completos do pokémon
+    _ball:       ball,                    // ball escolhida
+    _ballEmoji:  ballEmoji,
+    _priceData:  priceData,
+    // Campos para sendToWhatsApp payload
+    type:        'capture',
+    pokemon:     pokeData.name,
+    ball_name:   ball.name,
+    ball_type:   ball.id,
+  };
+
+  // Adiciona ao cart com qty=1
+  cart[slot] = 1;
+  updateCartBadge();
+
+  // Re-renderiza cart se estiver aberto
+  if (document.getElementById('cart-overlay') &&
+      document.getElementById('cart-overlay').classList.contains('open')) {
+    renderCart();
+  }
+
+  // Abre o carrinho para o usuário ver o item adicionado
+  setTimeout(function() { openCart(); }, 300);
+
+  if (window.PA && window.PA.telemetry) {
+    window.PA.telemetry.push('state_mutation', {
+      prop: 'cart', op: 'capture-add', slot: slot, capturaId: capturaId,
+    });
+  }
+
+  return { slot: slot, capturaId: capturaId, item: items[slot] };
+}
+
+// Limpa slots de captura do items[] quando o carrinho é limpo
+// (necessário para não vazar slots entre sessões)
+const _origLimparCarrinho = typeof _limparCarrinhoAposPedido === 'function'
+  ? _limparCarrinhoAposPedido : null;
+
+function _limparCapturaSlots() {
+  const _CAPTURA_BASE = 900000;
+  Object.keys(items).forEach(function(k) {
+    if (parseInt(k, 10) >= _CAPTURA_BASE && items[k] && items[k]._capturaId) {
+      delete items[k];
+    }
+  });
+}
+
 // ── confirmCaptura — v5 — Adiciona ao CapturaCart (Fase 5.3) ─────────────────
 // MUDANÇA: Em vez de submeter pedido direto, adiciona ao carrinho de captura.
 // O usuário pode acumular múltiplos pokémons e enviar como pedido composto.
@@ -2615,38 +2755,32 @@ async function confirmCaptura() {
   const finalPrice = _calcCapturaFinalPrice(pokeData, ball);
   const priceData  = formatKK(finalPrice);
 
-  // ── 2. CapturaCart: adiciona ao carrinho (Fase 5.3) ──────────────────────
-  if (typeof CapturaCart !== 'undefined') {
-    const entry = CapturaCart.add(pokeData, ball, finalPrice, priceData);
-    if (!entry) return; // add() falhou
-
-    // Feedback visual rápido no modal
-    const btn = document.getElementById('captura-confirm-btn');
-    const msg = document.getElementById('captura-success-msg');
-    if (btn) {
-      btn.innerHTML = '<span>✓ Adicionado ao Carrinho</span>';
-      btn.style.borderColor = 'rgba(37,211,102,0.5)';
-      btn.style.color = '#25d366';
-    }
-    if (msg) {
-      const txtEl = document.getElementById('captura-success-text');
-      if (txtEl) txtEl.textContent = `${pokeData.name} adicionado! (${CapturaCart.getCount()} no carrinho)`;
-      msg.classList.add('show');
-    }
-
-    // Fecha modal após 1.2s (mais rápido — usuário pode adicionar próximo)
-    setTimeout(() => closeCapturaModal(), 1200);
-
-    if (window.PA && window.PA.telemetry) {
-      window.PA.telemetry.push('state_mutation', { prop: 'confirmCaptura', op: 'add-to-cart', count: CapturaCart.getCount() });
-    }
+  // ── 2. Adiciona ao carrinho principal unificado (Fase 5.3 — arquitetura corrigida) ─
+  const cartEntry = _addCapturaToMainCart(pokeData, ball, finalPrice, priceData);
+  if (!cartEntry) {
+    console.error('[confirmCaptura] _addCapturaToMainCart falhou.');
     return;
   }
 
-  // ── FALLBACK LEGACY: CapturaCart não carregado — comportamento original ────
-  // Mantém o pedido direto para garantir compatibilidade total
-  console.warn('[confirmCaptura] CapturaCart não encontrado — usando modo legacy (pedido direto).');
-  _confirmCapturaLegacy(pokeData, ball, finalPrice, priceData, user);
+  // Feedback visual no modal
+  const btn = document.getElementById('captura-confirm-btn');
+  const msg = document.getElementById('captura-success-msg');
+  if (btn) {
+    btn.innerHTML = '<span>✓ Adicionado ao Carrinho</span>';
+    btn.style.borderColor = 'rgba(37,211,102,0.5)';
+    btn.style.color = '#25d366';
+  }
+  if (msg) {
+    const totalCaptura = Object.keys(cart).filter(k =>
+      items[parseInt(k,10)] && items[parseInt(k,10)]._capturaId
+    ).length;
+    const txtEl = document.getElementById('captura-success-text');
+    if (txtEl) txtEl.textContent = pokeData.name + ' adicionado ao carrinho! (' + totalCaptura + ' captura' + (totalCaptura !== 1 ? 's' : '') + ')';
+    msg.classList.add('show');
+  }
+
+  // Fecha modal após 1.2s para o usuário poder adicionar mais pokémons
+  setTimeout(() => closeCapturaModal(), 1200);
 }
 
 // ── _confirmCapturaLegacy — comportamento original v4 (fallback) ─────────────
