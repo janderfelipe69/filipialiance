@@ -1,15 +1,14 @@
 // ============================================================
-// marketplace-render.js — Filipi Marketplace M1
+// marketplace-render.js — Filipi Marketplace M2
 // PokeAlliance Shop
 //
 // RESPONSABILIDADES:
-//   • Renderizar cards de listings com morph incremental
-//   • Skeleton durante loading
-//   • Filtros aplicados antes de renderizar
-//   • Reutiliza getSprites() de tierlist-popup.js
-//   • Reutiliza formatKK() de app.js
-//   • Classes CSS de mk-type-- de marketplace.css
-//   • Usa PA.hardening (skeleton, observeCard)
+//   • Cards premium com owner actions (Editar/Cancelar)
+//   • Morph incremental (sem recriar cards estáveis)
+//   • Lazy render via PA.hardening.observeCard
+//   • Sprite automática (getSprites de tierlist-popup.js)
+//   • Formatação de preço (formatKK de app.js)
+//   • Ownership check via Session.getCurrentUser()
 // ============================================================
 
 ;(function (global) {
@@ -20,158 +19,206 @@
   var _log  = function () { console.log.apply(console,  ['[PA.marketplace.render]'].concat(Array.prototype.slice.call(arguments))); };
   var _warn = function () { console.warn.apply(console, ['[PA.marketplace.render ⚠]'].concat(Array.prototype.slice.call(arguments))); };
 
-  // ── Telemetria ───────────────────────────────────────────────
-  function _tel(cat, data) {
-    if (global.PA && global.PA.telemetry) global.PA.telemetry.push(cat, data);
-  }
+  function _tel(cat, data) { if (global.PA && global.PA.telemetry) global.PA.telemetry.push(cat, data); }
+  function _esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _user() { return typeof Session !== 'undefined' ? Session.getCurrentUser() : null; }
+  function _isAdmin() { return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin(); }
 
-  // ── Escape HTML ──────────────────────────────────────────────
-  function _esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // ── Sprite URL (delega para getSprites se disponível) ────────
+  // ── Sprite URL ────────────────────────────────────────────────
   function _spriteUrl(pokemonName) {
     if (!pokemonName) return null;
     if (typeof getSprites === 'function') {
       try { return getSprites(pokemonName); } catch (_) {}
     }
-    // Fallback manual
     var isShiny = /^shiny\s+/i.test(pokemonName);
     var base = pokemonName.replace(/^shiny\s+/i, '').toLowerCase()
       .replace(/\s+/g, '').replace(/['\u2019]/g, '');
-    var animBase   = isShiny ? 'https://play.pokemonshowdown.com/sprites/gen5ani-shiny/' : 'https://play.pokemonshowdown.com/sprites/gen5ani/';
-    var staticBase = isShiny ? 'https://play.pokemonshowdown.com/sprites/dex-shiny/'     : 'https://play.pokemonshowdown.com/sprites/dex/';
     return {
-      animated: animBase   + base + '.gif',
-      static:   staticBase + base + '.png',
-      fallback: 'https://play.pokemonshowdown.com/sprites/dex/' + base + '.png',
+      animated: (isShiny ? 'https://play.pokemonshowdown.com/sprites/gen5ani-shiny/' : 'https://play.pokemonshowdown.com/sprites/gen5ani/') + base + '.gif',
+      static:   (isShiny ? 'https://play.pokemonshowdown.com/sprites/dex-shiny/'     : 'https://play.pokemonshowdown.com/sprites/dex/')     + base + '.png',
     };
   }
 
-  // ── Boost class por faixa ─────────────────────────────────────
+  // ── Boost class ───────────────────────────────────────────────
   function _boostClass(boost) {
-    if (!boost || boost === 0) return 'mk-card-boost--low';
+    if (!boost) return 'mk-card-boost--low';
     if (boost < 25)  return 'mk-card-boost--mid';
     if (boost < 50)  return 'mk-card-boost--high';
     return 'mk-card-boost--max';
   }
 
-  // ── Stars HTML ───────────────────────────────────────────────
+  // ── Stars HTML ─────────────────────────────────────────────────
   function _starsHtml(stars) {
-    var total = 5;
     var out = '';
-    for (var i = 1; i <= total; i++) {
+    for (var i = 1; i <= 5; i++)
       out += '<span class="mk-star' + (i <= (stars || 0) ? ' mk-star--lit' : '') + '">★</span>';
-    }
     return '<div class="mk-stars">' + out + '</div>';
   }
 
-  // ── Types badges ─────────────────────────────────────────────
+  // ── Types badges ──────────────────────────────────────────────
   function _typesHtml(types) {
     if (!types || !types.length) return '';
     return '<div class="mk-types">'
-      + types.map(function (t) {
+      + types.map(function(t){
           return '<span class="mk-type-badge mk-type--' + _esc(t.toLowerCase()) + '">' + _esc(t) + '</span>';
         }).join('')
       + '</div>';
   }
 
-  // ── Held chip ────────────────────────────────────────────────
+  // ── Held chip ─────────────────────────────────────────────────
   function _heldChip(held, label) {
-    if (!held) return '<div class="mk-held-chip"><span class="mk-held-label">' + _esc(label) + '</span><span style="opacity:.3">—</span></div>';
-    return '<div class="mk-held-chip"><span class="mk-held-label">' + _esc(label) + '</span><span>' + _esc(held.name || '—') + '</span></div>';
+    if (!held) return '<div class="mk-held-chip">'
+      + '<span class="mk-held-label">' + _esc(label) + '</span>'
+      + '<span style="opacity:.3">—</span></div>';
+    return '<div class="mk-held-chip">'
+      + '<span class="mk-held-label">' + _esc(label) + '</span>'
+      + '<span>' + _esc(held.name || '—') + '</span></div>';
   }
 
-  // ── Training mini bars ────────────────────────────────────────
+  // ── Training bars ─────────────────────────────────────────────
   var TRAIN_STATS = [
-    { key: 'attack',             label: 'ATK'    },
-    { key: 'defense',            label: 'DEF'    },
-    { key: 'hp',                 label: 'HP'     },
-    { key: 'precision',          label: 'PRE'    },
-    { key: 'evasion',            label: 'EVA'    },
-    { key: 'critical_damage',    label: 'C.DMG'  },
-    { key: 'critical_chance',    label: 'C.CHC'  },
-    { key: 'critical_resistance',label: 'C.RES'  },
+    { key:'attack',              label:'ATK'   },
+    { key:'defense',             label:'DEF'   },
+    { key:'hp',                  label:'HP'    },
+    { key:'precision',           label:'PRE'   },
+    { key:'evasion',             label:'EVA'   },
+    { key:'critical_damage',     label:'C.DMG' },
+    { key:'critical_chance',     label:'C.CHC' },
+    { key:'critical_resistance', label:'C.RES' },
   ];
 
   function _trainingHtml(training) {
     if (!training || typeof training !== 'object') return '';
-    var hasAny = TRAIN_STATS.some(function (s) {
-      var v = training[s.key];
-      return v && (v.level > 0 || v.pct > 0);
-    });
-    if (!hasAny) return '';
-
     var rows = TRAIN_STATS
-      .filter(function (s) {
-        var v = training[s.key];
-        return v && (v.level > 0 || v.pct > 0);
-      })
-      .slice(0, 4) // mostra até 4 no card compacto
-      .map(function (s) {
+      .filter(function(s){ var v=training[s.key]; return v && (v.pct > 0 || v.level > 0); })
+      .slice(0, 4)
+      .map(function(s){
         var v = training[s.key] || {};
         var pct = Math.min(100, Math.max(0, Number(v.pct) || 0));
         return '<div class="mk-train-row">'
           + '<span class="mk-train-label">' + _esc(s.label) + '</span>'
           + '<div class="mk-train-bar"><div class="mk-train-fill" style="width:' + pct + '%"></div></div>'
+          + '<span class="mk-train-pct">' + pct + '%</span>'
           + '</div>';
       });
-
-    return '<div class="mk-training-mini">' + rows.join('') + '</div>';
+    return rows.length ? '<div class="mk-training-mini">' + rows.join('') + '</div>' : '';
   }
 
-  // ── Build single card HTML ────────────────────────────────────
-  function _buildCardHtml(listing) {
-    var sprites    = _spriteUrl(listing.pokemon_name);
-    var boostCls   = _boostClass(listing.boost);
+  // ── Time ago ──────────────────────────────────────────────────
+  function _timeAgo(isoStr) {
+    if (!isoStr) return '';
+    var ms = Date.now() - new Date(isoStr).getTime();
+    if (ms < 60000)   return 'agora mesmo';
+    var m = Math.floor(ms / 60000);
+    if (m < 60) return m + 'm atrás';
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + 'h atrás';
+    return Math.floor(h / 24) + 'd atrás';
+  }
+
+  // ── Build full card HTML ───────────────────────────────────────
+  function _buildCardHtml(listing, currentUserId, isAdmin) {
+    var isOwner  = currentUserId && listing.seller_id === currentUserId;
+    var sprites  = _spriteUrl(listing.pokemon_name);
+    var boostCls = _boostClass(listing.boost);
     var priceLabel = (typeof formatKK === 'function' && listing.price_kk)
       ? formatKK(listing.price_kk) : null;
+    var heldX = listing.helds_x || null;
+    var heldY = listing.helds_y || null;
+    var status = listing.status || 'active';
 
-    var spriteHtml = '';
-    if (sprites) {
-      spriteHtml = '<img class="mk-sprite" loading="lazy"'
+    var spriteHtml = sprites
+      ? '<img class="mk-sprite" loading="lazy"'
         + ' src="' + _esc(sprites.animated) + '"'
         + ' data-static="' + _esc(sprites.static) + '"'
         + ' alt="' + _esc(listing.pokemon_name || '') + '"'
-        + ' onerror="this.src=this.dataset.static||this.src;this.onerror=null"'
-        + '>';
-    } else {
-      spriteHtml = '<div class="mk-sprite-fallback">🎴</div>';
+        + ' onerror="this.src=this.dataset.static;this.onerror=null">'
+      : '<div class="mk-sprite-fallback">🎴</div>';
+
+    // Negotiate button for non-owner buyers (disabled in locked/sold state)
+    var negotiateHtml = '';
+    var canNegotiate = !isOwner && !isAdmin && (status === 'active' || status === 'locked');
+    if (canNegotiate) {
+      var isLocked = status === 'locked';
+      negotiateHtml = '<div class="mk-card-negotiate">'
+        + '<button class="mk-btn mk-btn--primary mk-btn--negotiate"'
+        + (isLocked ? ' disabled' : '')
+        + ' onclick="event.stopPropagation();MarketplaceTrade&&MarketplaceTrade.startNegotiation(\'' + _esc(listing.id) + '\')">'
+        + (isLocked ? '⏳ Em negociação' : '🤝 Negociar')
+        + '</button></div>';
     }
 
-    return '<div class="mk-card" data-listing-id="' + _esc(listing.id) + '" data-status="' + _esc(listing.status) + '">'
+    // Owner / admin action buttons
+    var actionsHtml = '';
+    if (isOwner || isAdmin) {
+      actionsHtml = '<div class="mk-card-actions">'
+        + '<button class="mk-btn mk-btn--ghost mk-btn--sm" '
+        + 'onclick="event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.openEdit(' + _esc(JSON.stringify({
+            id: listing.id,
+            pokemon_name: listing.pokemon_name,
+            pokemon_slug: listing.pokemon_slug,
+            pokemon_types: listing.pokemon_types,
+            stars: listing.stars,
+            boost: listing.boost,
+            held_x_id: listing.held_x_id,
+            held_y_id: listing.held_y_id,
+            training: listing.training,
+            price_kk: listing.price_kk,
+            observations: listing.observations,
+          })) + ')">✏️ Editar</button>'
+        + '<button class="mk-btn mk-btn--danger-ghost mk-btn--sm" '
+        + 'onclick="event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.cancel(\'' + _esc(listing.id) + '\')">✕ Cancelar</button>'
+        + '</div>';
+    }
+
+    // Status badge label
+    var statusLabel = status === 'sold' ? 'Vendido' : status === 'cancelled' || status === 'deleted' ? 'Cancelado' : 'À venda';
+
+    return '<div class="mk-card mk-card--' + _esc(status) + '"'
+      + ' data-listing-id="' + _esc(listing.id) + '"'
+      + ' data-status="' + _esc(status) + '"'
+      + ' data-seller="' + _esc(listing.seller_id || '') + '">'
+
+      // Top: sprite + boost + stars + types
       + '<div class="mk-card-top">'
-      +   (listing.boost ? '<span class="mk-card-boost ' + boostCls + '">+' + _esc(String(listing.boost)) + '</span>' : '')
-      +   '<div class="mk-sprite-wrap">' + spriteHtml + '</div>'
-      +   _starsHtml(listing.stars)
-      +   _typesHtml(listing.pokemon_types)
+      + (listing.boost ? '<span class="mk-card-boost ' + boostCls + '">+' + _esc(String(listing.boost)) + '</span>' : '')
+      + '<div class="mk-sprite-wrap">' + spriteHtml + '</div>'
+      + _starsHtml(listing.stars)
+      + _typesHtml(listing.pokemon_types)
       + '</div>'
+
+      // Body: name + helds + training
       + '<div class="mk-card-body">'
-      +   '<div class="mk-card-name">' + _esc(listing.pokemon_name || listing.listing_type) + '</div>'
-      +   '<div class="mk-helds">'
-      +     _heldChip(listing.helds_x, 'X')
-      +     _heldChip(listing.helds_y, 'Y')
-      +   '</div>'
-      +   _trainingHtml(listing.training)
+      + '<div class="mk-card-name">' + _esc(listing.pokemon_name || listing.listing_type) + '</div>'
+      + '<div class="mk-helds">' + _heldChip(heldX, 'X') + _heldChip(heldY, 'Y') + '</div>'
+      + _trainingHtml(listing.training)
       + '</div>'
+
+      // Footer: price + status + time
       + '<div class="mk-card-footer">'
-      +   '<div class="mk-price">'
-      +     '<span class="mk-price-kk">' + (priceLabel ? _esc(priceLabel.label) : '—') + '</span>'
-      +     (priceLabel ? '<span class="mk-price-brl">' + _esc(priceLabel.brl) + '</span>' : '')
-      +   '</div>'
-      +   '<span class="mk-status-badge mk-status--' + _esc(listing.status || 'active') + '">'
-      +     (listing.status === 'sold' ? 'Vendido' : listing.status === 'cancelled' ? 'Cancelado' : 'À venda')
-      +   '</span>'
+      + '<div class="mk-price">'
+      + '<span class="mk-price-kk">' + (priceLabel ? _esc(priceLabel.label) : '—') + '</span>'
+      + (priceLabel ? '<span class="mk-price-brl">' + _esc(priceLabel.brl) + '</span>' : '')
       + '</div>'
-      + '</div>';
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
+      + '<span class="mk-status-badge mk-status--' + _esc(status) + '">' + statusLabel + '</span>'
+      + '<span class="mk-card-time">' + _timeAgo(listing.created_at) + '</span>'
+      + '</div>'
+      + '</div>'
+
+      // Buyer negotiate button
+      + negotiateHtml
+      // Owner actions
+      + actionsHtml
+
+      + '</div>'; // .mk-card
   }
 
   // ── Apply filters ─────────────────────────────────────────────
   function _applyFilters(listings, filters) {
     if (!filters) return listings;
-    return listings.filter(function (l) {
-      if (filters.type !== 'all' && l.listing_type !== filters.type) return false;
+    return (listings || []).filter(function(l) {
+      if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;
       if (filters.search) {
         var q = filters.search.toLowerCase();
         if (!(l.pokemon_name || '').toLowerCase().includes(q)) return false;
@@ -180,65 +227,76 @@
     });
   }
 
-  // ── Reconcile DOM: morph existing, add new, remove stale ─────
+  // ── Reconcile DOM (morph) ─────────────────────────────────────
   function _reconcile(container, listings) {
+    var user      = _user();
+    var userId    = user ? user.id : null;
+    var admin     = _isAdmin();
+
+    // Build map of existing cards
     var existing = {};
     Array.prototype.forEach.call(
       container.querySelectorAll('[data-listing-id]'),
-      function (el) { existing[el.getAttribute('data-listing-id')] = el; }
+      function(el) { existing[el.getAttribute('data-listing-id')] = el; }
     );
 
     var frag = global.document.createDocumentFragment();
-    var morphCount = 0, addCount = 0;
+    var adds = 0, morphs = 0;
 
-    listings.forEach(function (listing) {
+    listings.forEach(function(listing) {
       var el = existing[listing.id];
       if (el) {
-        // Morph: atualiza campos que podem ter mudado
+        // Morph: update only changed fields
         var newStatus = listing.status || 'active';
         if (el.getAttribute('data-status') !== newStatus) {
           el.setAttribute('data-status', newStatus);
+          el.className = 'mk-card mk-card--' + newStatus;
           var badge = el.querySelector('.mk-status-badge');
-          if (badge) badge.textContent = newStatus === 'sold' ? 'Vendido' : newStatus === 'cancelled' ? 'Cancelado' : 'À venda';
+          if (badge) {
+            badge.className = 'mk-status-badge mk-status--' + newStatus;
+            badge.textContent = newStatus === 'sold' ? 'Vendido' : newStatus === 'cancelled' ? 'Cancelado' : 'À venda';
+          }
         }
-        var priceEl = el.querySelector('.mk-price-kk');
-        if (priceEl && typeof formatKK === 'function') {
+        // Price morph
+        if (typeof formatKK === 'function') {
           var pf = formatKK(listing.price_kk);
-          if (pf && priceEl.textContent !== pf.label) priceEl.textContent = pf.label;
+          var priceEl = el.querySelector('.mk-price-kk');
+          if (priceEl && pf && priceEl.textContent !== pf.label) priceEl.textContent = pf.label;
         }
-        delete existing[listing.id]; // marca como "ainda presente"
-        morphCount++;
+        delete existing[listing.id];
+        morphs++;
         frag.appendChild(el);
       } else {
-        // Novo card
+        // New card
         var div = global.document.createElement('div');
-        div.innerHTML = _buildCardHtml(listing);
-        var card = div.firstChild;
-        // Observa com lazy render
-        if (global.PA && global.PA.hardening) global.PA.hardening.observeCard(card);
-        addCount++;
-        frag.appendChild(card);
+        div.innerHTML = _buildCardHtml(listing, userId, admin);
+        var card = div.firstElementChild;
+        if (card) {
+          if (global.PA && global.PA.hardening) global.PA.hardening.observeCard(card);
+          adds++;
+          frag.appendChild(card);
+        }
       }
     });
 
-    // Remove stale
-    Object.keys(existing).forEach(function (id) {
-      if (global.PA && global.PA.hardening) global.PA.hardening.unobserveCard(existing[id]);
-      existing[id].remove();
+    // Remove stale cards
+    var removes = Object.keys(existing).length;
+    Object.keys(existing).forEach(function(id) {
+      var el = existing[id];
+      if (global.PA && global.PA.hardening) global.PA.hardening.unobserveCard(el);
+      el.remove();
     });
 
     container.innerHTML = '';
     container.appendChild(frag);
-    _log('reconcile: ' + addCount + ' adicionados, ' + morphCount + ' morphed, ' + Object.keys(existing).length + ' removidos');
-    _tel('marketplace-render', { add: addCount, morph: morphCount });
+    _log('reconcile: +' + adds + ' morph:' + morphs + ' -' + removes);
+    _tel('marketplace-render', { adds: adds, morphs: morphs, removes: removes });
   }
 
   // ── Main render ───────────────────────────────────────────────
   function render(listings, filters) {
     var container = global.document.getElementById('marketplace-list');
     if (!container) return;
-
-    var filtered = _applyFilters(listings || [], filters || {});
 
     // Loading state
     if (global.PA && global.PA.marketplace && global.PA.marketplace.loading) {
@@ -250,13 +308,15 @@
       return;
     }
 
+    var filtered = _applyFilters(listings || [], filters || {});
+
     // Empty state
     if (!filtered.length) {
       container.innerHTML = '<div class="mk-empty">'
         + '<div class="mk-empty-icon">🎴</div>'
         + '<div class="mk-empty-title">Nenhum anúncio encontrado</div>'
         + '<div class="mk-empty-sub">'
-        + (listings && listings.length ? 'Tente mudar os filtros.' : 'Seja o primeiro a anunciar!')
+        + ((listings && listings.length) ? 'Tente mudar os filtros.' : 'Seja o primeiro a anunciar!')
         + '</div></div>';
       return;
     }
@@ -264,9 +324,8 @@
     _reconcile(container, filtered);
   }
 
-  // ── API pública ───────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────
   global.MarketplaceRender = { render: render };
-
-  _log('marketplace-render.js v1 pronto');
+  _log('marketplace-render.js M2 pronto');
 
 }(window));

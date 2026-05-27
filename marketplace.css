@@ -674,3 +674,265 @@
   .mk-sprite, .mk-sprite-wrap { width: 64px; height: 64px; }
   .mk-modal { max-width: 100%; }
 }
+
+/* ── M2 additions ──────────────────────────────────────────── */
+
+/* Owner action buttons on card */
+.mk-card-actions {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--mk-border);
+  display: flex;
+  gap: 6px;
+}
+.mk-btn--sm     { padding: 4px 10px; font-size: 10px; min-height: 26px; }
+.mk-btn--danger-ghost {
+  background: none;
+  border-color: rgba(248,113,113,.3);
+  color: #f87171;
+}
+.mk-btn--danger-ghost:hover:not(:disabled) {
+  border-color: rgba(248,113,113,.6);
+  opacity: 1;
+}
+
+/* Training grid in modal */
+.mk-training-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mk-train-input-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.mk-train-input-label {
+  font-size: 9px;
+  color: var(--mk-muted);
+  width: 48px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+.mk-train-range {
+  flex: 1;
+  accent-color: var(--mk-blue);
+  height: 3px;
+}
+.mk-train-num {
+  width: 42px;
+  padding: 3px 5px;
+  font-size: 11px;
+  text-align: center;
+  font-family: var(--font-mono);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: 4px;
+  color: var(--mk-text);
+}
+.mk-train-pct-label {
+  font-size: 9px;
+  color: var(--mk-blue);
+  font-family: var(--font-mono);
+  width: 28px;
+  text-align: right;
+}
+
+/* Training pct on card */
+.mk-train-pct {
+  font-size: 9px;
+  color: var(--mk-blue);
+  font-family: var(--font-mono);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Field error + hint */
+.mk-field-error {
+  font-size: 10px;
+  color: #f87171;
+  min-height: 14px;
+}
+.mk-field-hint {
+  font-size: 10px;
+  color: var(--mk-blue);
+  font-family: var(--font-mono);
+}
+
+/* Time on card footer */
+.mk-card-time {
+  font-size: 9px;
+  color: rgba(255,255,255,0.22);
+  font-family: var(--font-mono);
+}
+
+/* Cancelled/sold card overlay */
+.mk-card--sold::after,
+.mk-card--cancelled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ── M3: Lock overlay, trade states, chat panel ──────────── */
+
+/* Locked card */
+.mk-card--locked {
+  border-color: rgba(240,184,41,0.4) !important;
+  box-shadow: 0 0 16px rgba(240,184,41,0.12), 0 0 0 1px rgba(240,184,41,0.15) !important;
+}
+
+/* Lock overlay */
+.mk-lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(1px);
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 2;
+  pointer-events: none;
+}
+.mk-lock-badge {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--mk-gold);
+  background: rgba(240,184,41,0.12);
+  border: 1px solid rgba(240,184,41,0.35);
+  padding: 4px 12px;
+  border-radius: 4px;
+  text-shadow: 0 0 8px rgba(240,184,41,0.5);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mk-lock-badge { animation: mk-lock-pulse 2s ease-in-out infinite; }
+  @keyframes mk-lock-pulse {
+    0%,100% { box-shadow: 0 0 4px rgba(240,184,41,0.2); }
+    50%      { box-shadow: 0 0 12px rgba(240,184,41,0.5); }
+  }
+}
+.mk-lock-timer {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+}
+
+/* Negotiate button area */
+.mk-card-negotiate {
+  padding: 8px 12px 10px;
+}
+.mk-btn--negotiate {
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(135deg,#1a3a5c,#1d4ed8);
+  border-color: rgba(79,163,247,0.5);
+  color: #fff;
+  font-size: 12px;
+}
+.mk-btn--negotiate:hover:not(:disabled) {
+  background: linear-gradient(135deg,#1d4ed8,#2563eb);
+  opacity: 1;
+}
+.mk-btn--negotiate:disabled {
+  opacity: .5;
+  background: rgba(255,255,255,0.05);
+  border-color: var(--mk-border);
+  color: var(--mk-muted);
+}
+
+/* mk-status--locked */
+.mk-status--locked { background:rgba(240,184,41,.1); color:var(--mk-gold); border:1px solid rgba(240,184,41,.25); }
+
+/* Chat panel */
+#mk-chat-wrap {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 12000;
+  width: 340px;
+}
+.mk-chat-panel {
+  background: var(--mk-raised);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  overflow: hidden;
+  animation: mk-slide-up .18s ease;
+}
+.mk-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--mk-border);
+}
+.mk-chat-title {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mk-gold);
+  letter-spacing: 0.05em;
+}
+.mk-chat-list {
+  flex: 1;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+}
+.mk-chat-msg { display: flex; justify-content: flex-start; }
+.mk-chat-msg--own { justify-content: flex-end; }
+.mk-chat-bubble {
+  max-width: 75%;
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: 10px 10px 10px 3px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mk-chat-msg--own .mk-chat-bubble {
+  background: var(--mk-blue-dim);
+  border-color: rgba(79,163,247,0.25);
+  border-radius: 10px 10px 3px 10px;
+}
+.mk-chat-content { font-size: 12px; color: var(--mk-text); word-break: break-word; }
+.mk-chat-time { font-size: 9px; color: var(--mk-muted); font-family: var(--font-mono); }
+.mk-chat-bubble--deleted em { font-size: 11px; color: var(--mk-muted); }
+.mk-chat-footer {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--mk-border);
+}
+.mk-chat-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 7px 10px;
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: 7px;
+  color: var(--mk-text);
+  font-family: var(--font-body);
+  outline: none;
+}
+.mk-chat-input:focus { border-color: var(--mk-blue); }
+
+@media (max-width: 480px) {
+  #mk-chat-wrap { width: calc(100vw - 24px); right: 12px; bottom: 12px; }
+}

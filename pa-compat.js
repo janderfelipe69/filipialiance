@@ -979,6 +979,61 @@
       });
     }
 
+    // PA.lifecycle stability (M3.2)
+    if (global.PA && global.PA.lifecycle && typeof global.PA.lifecycle.debugSection === 'function') {
+      var lcSec = global.PA.lifecycle.debugSection();
+      Object.keys(lcSec).forEach(function(sectionName) {
+        html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">' + sectionName + '</div>';
+        var fields = lcSec[sectionName];
+        Object.keys(fields).forEach(function(k) {
+          html += _row(k, fields[k] !== undefined ? String(fields[k]) : '—');
+        });
+      });
+    }
+
+    // Marketplace Stability M3.1
+    if (global.MarketplaceTrade) {
+      var mt = global.MarketplaceTrade;
+      var stats = mt.getStats ? mt.getStats() : {};
+      html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Marketplace Stability</div>';
+      html += _row('online', stats.isOnline ? '✅' : '❌ OFFLINE');
+      html += _row('sessões ativas', stats.activeSessions || 0);
+      html += _row('locks pendentes', stats.pendingLocks || 0);
+      html += _row('timer ativo', stats.timerActive ? '⏱ sim' : 'não');
+      html += _row('reconnects', stats.reconnectCount || 0);
+      html += _row('stale packets', stats.stalePackets || 0);
+      if (global.PA.telemetry) {
+        html += _row('orphan unlocks', global.PA.telemetry.getByCategory('marketplace-orphan-unlock').length);
+        html += _row('trade started', global.PA.telemetry.getByCategory('marketplace-trade-started').length);
+        html += _row('morph trade', global.PA.telemetry.getByCategory('marketplace-trade-morph').length);
+      }
+    }
+    if (global.MarketplaceChat) {
+      var mc = global.MarketplaceChat;
+      var chatStats = mc.getStats ? mc.getStats() : {};
+      html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Chat Stability</div>';
+      html += _row('sessão ativa', chatStats.activeSessionId ? '✅ ' + String(chatStats.activeSessionId).slice(0,8) + '...' : 'nenhuma');
+      html += _row('msgs vistas', chatStats.seenMsgCount || 0);
+      html += _row('dedup hits', chatStats.dedupHits || 0);
+      html += _row('reconexões chat', chatStats.reconnectCount || 0);
+      html += _row('submitting', chatStats.submitting ? '⏳ sim' : 'não');
+    }
+
+    // Marketplace M2
+    if (global.PA && global.PA.marketplace) {
+      var mk = global.PA.marketplace;
+      var mkListings = (mk.listings||[]).length;
+      html += '<div style="color:rgba(255,255,255,.5);font-size:10px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:1px">Marketplace</div>';
+      html += _row('listings carregados', mkListings);
+      html += _row('loading', mk.loading ? '⏳ sim' : 'não');
+      html += _row('filtro tipo', mk.filters && mk.filters.type || 'all');
+      if (global.PA.telemetry) {
+        html += _row('renders', global.PA.telemetry.getByCategory('marketplace-render').length + 'x');
+        html += _row('realtime events', global.PA.telemetry.getByCategory('marketplace-realtime').length + 'x');
+        html += _row('listings criados', global.PA.telemetry.getByCategory('marketplace-listing-created').length + 'x');
+      }
+    }
+
     // Capture Items UX (Fase 5.3.2)
     if (global.PA.telemetry) {
       var ciRenders    = PA.telemetry.getByCategory('capture_item_render').length;

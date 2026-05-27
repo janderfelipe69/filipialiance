@@ -34,6 +34,9 @@
     'pedidos:rendered', 'wiki:rendered', 'tab:changed', 'cart:updated',
     // Marketplace M1
     'marketplace:listing_created', 'marketplace:listing_updated', 'marketplace:listing_deleted',
+    // Marketplace M3
+    'marketplace:trade_started', 'marketplace:trade_cancelled', 'marketplace:trade_expired',
+    'marketplace:message_received',
   ];
 
   // ── Registro de handlers: { eventName → [ { id, fn, ts, callCount } ] } ──

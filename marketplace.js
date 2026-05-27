@@ -190,20 +190,25 @@
 
         _log('[PA.marketplace.realtime]', tipo, record.id);
 
+        // S2: realtime packet versioning (M3.2)
+        var _rv = global.PA && global.PA.realtimeVersions;
+        var entityKey = 'listing:' + record.id;
+        if (_rv && !_rv.shouldApply(entityKey, record.updated_at || record.created_at)) {
+          return; // stale packet — ignore
+        }
+
         if (tipo === 'INSERT') {
-          // Adiciona no topo se não existe
           var exists = _state.listings.some(function (l) { return l.id === record.id; });
           if (!exists) {
             _state.listings.unshift(record);
             _emitHook('marketplace:listing_created', record);
           }
         } else if (tipo === 'UPDATE') {
-          // Morph incremental: atualiza o objeto no array
           var idx = _state.listings.findIndex(function (l) { return l.id === record.id; });
           if (idx !== -1) {
             _state.listings[idx] = Object.assign({}, _state.listings[idx], record);
           } else if (record.status === 'active') {
-            _state.listings.unshift(record); // apareceu como active
+            _state.listings.unshift(record);
           }
           _emitHook('marketplace:listing_updated', record);
         } else if (tipo === 'DELETE') {
