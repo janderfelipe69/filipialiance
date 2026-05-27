@@ -118,7 +118,16 @@
 
   // ── Build full card HTML ───────────────────────────────────────
   function _buildCardHtml(listing, currentUserId, isAdmin) {
-    var isOwner  = currentUserId && listing.seller_id === currentUserId;
+    var isOwner  = !!(currentUserId && listing.seller_id === currentUserId);
+    // Debug log (temporary) — remove after confirming ownership is correct in production
+    if (global.PA_DEBUG) {
+      console.log('[marketplace.ownership]', {
+        listingSellerId: listing.seller_id,
+        authUserId: currentUserId,
+        isOwner: isOwner,
+        isAdmin: isAdmin,
+      });
+    }
     var sprites  = _spriteUrl(listing.pokemon_name);
     var boostCls = _boostClass(listing.boost);
     var priceLabel = (typeof formatKK === 'function' && listing.price_kk)
@@ -247,7 +256,7 @@
     listings.forEach(function(listing) {
       var el = existing[listing.id];
       if (el) {
-        // Morph: update only changed fields
+        // Morph: update status badge
         var newStatus = listing.status || 'active';
         if (el.getAttribute('data-status') !== newStatus) {
           el.setAttribute('data-status', newStatus);
@@ -264,6 +273,75 @@
           var priceEl = el.querySelector('.mk-price-kk');
           if (priceEl && pf && priceEl.textContent !== pf.label) priceEl.textContent = pf.label;
         }
+
+        // FIX: Always rebuild ownership buttons on morph.
+        // Ownership depends on current auth state which can change between renders
+        // (login/logout/account switch). Never reuse old button HTML.
+        var isOwnerMorph = userId && listing.seller_id === userId;
+        var isAdminMorph = admin;
+
+        // Remove old action divs
+        var oldActions = el.querySelector('.mk-card-actions');
+        if (oldActions) oldActions.remove();
+        var oldNegotiate = el.querySelector('.mk-card-negotiate');
+        if (oldNegotiate) oldNegotiate.remove();
+
+        // Rebuild negotiate button (buyer only)
+        var canNegotiateMorph = !isOwnerMorph && !isAdminMorph &&
+          (newStatus === 'active' || newStatus === 'locked');
+        if (canNegotiateMorph) {
+          var negWrap = global.document.createElement('div');
+          var negBtn = global.document.createElement('button');
+          negBtn.className = 'mk-btn mk-btn--primary mk-btn--negotiate';
+          negBtn.disabled = newStatus === 'locked';
+          negBtn.textContent = newStatus === 'locked' ? '⏳ Em negociação' : '🤝 Negociar';
+          negBtn.setAttribute('onclick',
+            'event.stopPropagation();MarketplaceTrade&&MarketplaceTrade.startNegotiation(\'' + _esc(listing.id) + '\')');
+          negWrap.className = 'mk-card-negotiate';
+          negWrap.appendChild(negBtn);
+          el.appendChild(negWrap);
+        }
+
+        // Rebuild owner actions (edit/cancel — seller only, never admin)
+        if (isOwnerMorph) {
+          var actWrap = global.document.createElement('div');
+          actWrap.className = 'mk-card-actions';
+
+          var editBtn = global.document.createElement('button');
+          editBtn.className = 'mk-btn mk-btn--ghost mk-btn--sm';
+          editBtn.textContent = '✏️ Editar';
+          editBtn.setAttribute('onclick',
+            'event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.openEdit('
+            + _esc(JSON.stringify({
+                id: listing.id, pokemon_name: listing.pokemon_name,
+                pokemon_slug: listing.pokemon_slug, pokemon_types: listing.pokemon_types,
+                stars: listing.stars, boost: listing.boost,
+                held_x_id: listing.held_x_id, held_y_id: listing.held_y_id,
+                training: listing.training, price_kk: listing.price_kk,
+                observations: listing.observations,
+              })) + ')');
+
+          var cancelBtn = global.document.createElement('button');
+          cancelBtn.className = 'mk-btn mk-btn--danger-ghost mk-btn--sm';
+          cancelBtn.textContent = '✕ Cancelar';
+          cancelBtn.setAttribute('onclick',
+            'event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.cancel(\'' + _esc(listing.id) + '\')');
+
+          actWrap.appendChild(editBtn);
+          actWrap.appendChild(cancelBtn);
+          el.appendChild(actWrap);
+        }
+
+                // Debug log for ownership verification (temporary)
+        if (global.PA_DEBUG) {
+          console.log('[marketplace.ownership]', {
+            listingSellerId: listing.seller_id,
+            authUserId: userId,
+            isOwner: isOwnerMorph,
+            isAdmin: isAdminMorph,
+          });
+        }
+
         delete existing[listing.id];
         morphs++;
         frag.appendChild(el);
