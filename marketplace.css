@@ -1329,3 +1329,220 @@
 @media (max-width: 480px) {
   #mk-inbox-wrap { width: calc(100vw - 24px); right: 12px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   HELD PICKER — Visual card gallery (replaces select dropdowns)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Selected name badge next to label ── */
+.mk-held-selected-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mk-gold);
+  margin-left: 6px;
+  opacity: 0.9;
+}
+
+/* ── Grid container ── */
+.held-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 10px;
+  background: var(--mk-raised);
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r);
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240,184,41,0.3) transparent;
+}
+
+.held-picker-grid::-webkit-scrollbar        { width: 5px; }
+.held-picker-grid::-webkit-scrollbar-track  { background: transparent; }
+.held-picker-grid::-webkit-scrollbar-thumb  { background: rgba(240,184,41,0.35); border-radius: 99px; }
+
+/* ── States ── */
+.held-picker-loading,
+.held-picker-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--mk-muted);
+  font-size: 12px;
+  padding: 18px 0;
+}
+
+/* ── Individual card ── */
+.held-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 5px 6px;
+  background: var(--mk-card);
+  border: 1.5px solid var(--mk-border);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.12s, background 0.15s;
+  outline: none;
+  overflow: visible;
+}
+
+.held-card:hover,
+.held-card:focus-visible {
+  background: var(--mk-card-hover);
+  border-color: rgba(240,184,41,0.55);
+  box-shadow: 0 0 10px rgba(240,184,41,0.22), 0 2px 8px rgba(0,0,0,0.4);
+  transform: translateY(-2px);
+  z-index: 2;
+}
+
+.held-card.selected {
+  background: var(--mk-gold-dim);
+  border-color: var(--mk-gold);
+  box-shadow: 0 0 14px var(--mk-gold-glow), 0 2px 10px rgba(0,0,0,0.45);
+}
+
+.held-card.selected:hover {
+  box-shadow: 0 0 18px rgba(240,184,41,0.5), 0 3px 12px rgba(0,0,0,0.5);
+}
+
+/* ── Card image ── */
+.held-card img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Fallback icon (no sprite) ── */
+.held-card__fallback {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--mk-muted);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  flex-shrink: 0;
+}
+
+/* ── Card name label ── */
+.held-card span:not(.held-card__fallback):not(.held-tooltip *) {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--mk-text);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.held-card.selected span:not(.held-card__fallback):not(.held-tooltip *) {
+  color: var(--mk-gold);
+}
+
+/* ── Tooltip ── */
+.held-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  min-width: 180px;
+  max-width: 240px;
+  padding: 10px 13px;
+  background: rgba(4, 10, 22, 0.97);
+  border: 1px solid rgba(240,184,41,0.45);
+  border-radius: 9px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7), 0 0 12px rgba(240,184,41,0.12);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000;
+  white-space: normal;
+  text-align: left;
+}
+
+/* Tooltip arrow */
+.held-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(240,184,41,0.45);
+}
+
+.held-tooltip::before {
+  content: '';
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(4, 10, 22, 0.97);
+  z-index: 1;
+}
+
+.held-tooltip strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mk-gold);
+  margin-bottom: 5px;
+  letter-spacing: 0.02em;
+}
+
+.held-tooltip p {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(221,230,247,0.82);
+  line-height: 1.5;
+}
+
+/* Show tooltip on hover/focus */
+.held-card:hover .held-tooltip,
+.held-card:focus-visible .held-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Responsive breakpoints ── */
+@media (max-width: 900px) {
+  .held-picker-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .held-picker-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 8px;
+  }
+  .held-card img,
+  .held-card__fallback {
+    width: 38px;
+    height: 38px;
+  }
+  .held-tooltip {
+    min-width: 150px;
+    max-width: 190px;
+  }
+}
+
+@media (max-width: 420px) {
+  .held-picker-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
