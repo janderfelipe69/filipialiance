@@ -148,9 +148,10 @@
         + '</button></div>';
     }
 
-    // Owner / admin action buttons
+    // Owner-only action buttons (Edit / Cancel)
+    // Admin is NOT owner — admin moderation tools are separate (future admin panel)
     var actionsHtml = '';
-    if (isOwner || isAdmin) {
+    if (isOwner) {
       actionsHtml = '<div class="mk-card-actions">'
         + '<button class="mk-btn mk-btn--ghost mk-btn--sm" '
         + 'onclick="event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.openEdit(' + _esc(JSON.stringify({
