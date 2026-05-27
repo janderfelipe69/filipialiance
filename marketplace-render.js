@@ -65,14 +65,48 @@
       + '</div>';
   }
 
-  // ── Held chip ─────────────────────────────────────────────────
+  // ── Held chip with image + tooltip ───────────────────────────
   function _heldChip(held, label) {
-    if (!held) return '<div class="mk-held-chip">'
+    var slotClass = label === 'X' ? 'mk-held-chip--x' : 'mk-held-chip--y';
+
+    if (!held) {
+      return '<div class="mk-held-chip ' + slotClass + ' mk-held-chip--empty">'
+        + '<span class="mk-held-label">' + _esc(label) + '</span>'
+        + '<span class="mk-held-empty-icon">—</span>'
+        + '</div>';
+    }
+
+    var imgSrc = held.sprite_url || '';
+    var imgHtml = imgSrc
+      ? '<img class="mk-held-icon" src="' + _esc(imgSrc) + '" alt="' + _esc(held.name) + '"'
+          + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+          + '<span class="mk-held-icon-fallback" style="display:none">🎯</span>'
+      : '<span class="mk-held-icon-fallback">🎯</span>';
+
+    var tooltipDesc = held.description || held.bonus || '';
+    var tooltipBonus = held.bonus && held.description ? held.bonus : '';
+    var rarityClass = held.rarity ? 'mk-held-rarity--' + held.rarity : '';
+
+    var tooltipHtml = '<div class="mk-held-tooltip">'
+      + '<div class="mk-held-tooltip-header">'
+      + (imgSrc ? '<img class="mk-held-tooltip-icon" src="' + _esc(imgSrc) + '" alt="" onerror="this.style.display=\'none\'">' : '<span class="mk-held-tooltip-icon-fallback">🎯</span>')
+      + '<div>'
+      + '<strong class="mk-held-tooltip-name">' + _esc(held.name) + '</strong>'
+      + (held.rarity ? '<span class="mk-held-tooltip-rarity ' + rarityClass + '">' + _esc(held.rarity) + '</span>' : '')
+      + '</div>'
+      + '</div>'
+      + (tooltipDesc ? '<p class="mk-held-tooltip-desc">' + _esc(tooltipDesc) + '</p>' : '')
+      + (tooltipBonus ? '<p class="mk-held-tooltip-bonus">' + _esc(tooltipBonus) + '</p>' : '')
+      + '</div>';
+
+    return '<div class="mk-held-chip ' + slotClass + '">'
       + '<span class="mk-held-label">' + _esc(label) + '</span>'
-      + '<span style="opacity:.3">—</span></div>';
-    return '<div class="mk-held-chip">'
-      + '<span class="mk-held-label">' + _esc(label) + '</span>'
-      + '<span>' + _esc(held.name || '—') + '</span></div>';
+      + '<div class="mk-held-img-wrap">'
+      + imgHtml
+      + tooltipHtml
+      + '</div>'
+      + '<span class="mk-held-name">' + _esc(held.name) + '</span>'
+      + '</div>';
   }
 
   // ── Training bars ─────────────────────────────────────────────

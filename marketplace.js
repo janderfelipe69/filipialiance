@@ -135,7 +135,7 @@
         + '?status=in.(active,locked)'
         + '&order=updated_at.desc'
         + '&limit=100'
-        + '&select=*,helds_x:held_x_id(id,name,sprite_url,category,rarity),helds_y:held_y_id(id,name,sprite_url,category,rarity)';
+        + '&select=*,helds_x:held_x_id(id,name,sprite_url,category,rarity,description,bonus),helds_y:held_y_id(id,name,sprite_url,category,rarity,description,bonus)';
 
       var opts = { headers: _headers() };
       if (controller) opts.signal = controller.signal;
