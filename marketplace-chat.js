@@ -214,7 +214,10 @@
       input.removeEventListener('keydown', _inputHandler);
       _inputHandler = null;
     }
-    if (_chatEl) _chatEl.innerHTML = '';
+    if (_chatEl) {
+      _chatEl.innerHTML = '';
+      _chatEl.style.display = 'none'; // FIX M3.2: hide wrapper — innerHTML='' alone leaves fixed div visible
+    }
     _activeSessionId  = null;
     _submitting       = false;
     _log('Chat fechado');

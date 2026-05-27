@@ -2401,7 +2401,36 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- TAB: MARKETPLACE -->
-<div class="tab-content" id="tab-marketplace"><div class="mk-wrap"><div id="marketplace-list"></div></div></div>
+<div class="tab-content" id="tab-marketplace">
+<div class="mk-wrap">
+
+  <div class="mk-header">
+    <div>
+      <div class="mk-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Marketplace
+      </div>
+      <div class="mk-subtitle">Pok&eacute;mon &amp; Helds &mdash; Filipi Server</div>
+    </div>
+    <div class="mk-header-actions">
+      <button class="mk-btn mk-btn--primary" onclick="MarketplaceCreate && MarketplaceCreate.open()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Anunciar
+      </button>
+    </div>
+  </div>
+
+  <div class="mk-filters" id="mk-filters">
+    <button class="mk-filter-chip active" data-filter="all"    onclick="_mkFilter(this,'all')">Todos</button>
+    <button class="mk-filter-chip"        data-filter="pokemon" onclick="_mkFilter(this,'pokemon')">Pok&eacute;mon</button>
+    <button class="mk-filter-chip"        data-filter="held"    onclick="_mkFilter(this,'held')">Helds</button>
+    <input class="mk-search" id="mk-search" placeholder="Buscar Pok&eacute;mon..." oninput="_mkSearch(this.value)">
+  </div>
+
+  <div id="marketplace-list"></div>
+
+</div>
+</div><!-- /tab-marketplace -->
 <!-- Marketplace M1 scripts -->
 <script src="marketplace.js"></script>
 <script src="marketplace-render.js"></script>
