@@ -539,6 +539,8 @@
           _state.activeSessions[lId] = record;
           _morphToLocked(lId, record);
           _emit('marketplace:trade_started', { listingId: lId, session: record });
+          // Notify inbox so seller sees the new negotiation
+          if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
         } else if (tipo === 'UPDATE') {
           if (['cancelled','expired','refused','completed'].indexOf(record.status) !== -1) {
             delete _state.activeSessions[lId];

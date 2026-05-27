@@ -2413,6 +2413,10 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="mk-subtitle">Pok&eacute;mon &amp; Helds &mdash; Filipi Server</div>
     </div>
     <div class="mk-header-actions">
+      <button class="mk-inbox-btn" onclick="MarketplaceInbox && MarketplaceInbox.toggle()" title="Minhas negociações" aria-label="Negociações">
+        💬
+        <span id="mk-inbox-badge"></span>
+      </button>
       <button class="mk-btn mk-btn--primary" onclick="MarketplaceCreate && MarketplaceCreate.open()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Anunciar
@@ -2440,6 +2444,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Marketplace M3 -->
 <script src="marketplace-trade.js"></script>
 <script src="marketplace-chat.js"></script>
+<script src="marketplace-inbox.js"></script>
 <!-- Marketplace filter helpers (inline) -->
 <script>
 function _mkFilter(btn, type) {

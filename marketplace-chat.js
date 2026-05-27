@@ -317,6 +317,7 @@
     close:       close,
     sendMessage: sendMessage,
     sendFromUI:  sendFromUI,
+    getActiveSessionId: function() { return _activeSessionId; },
     // Debug
     getStats: function() {
       return {

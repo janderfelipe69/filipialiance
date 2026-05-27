@@ -1173,3 +1173,159 @@
   .mk-held-tooltip::after  { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: rgba(240,184,41,0.4); }
   .mk-held-tooltip::before { top: auto; bottom: calc(100% + 1px); border-top-color: transparent; border-bottom-color: rgba(4,10,22,0.96); }
 }
+
+/* ── Inbox panel (M3.3) ─────────────────────────────────────── */
+
+#mk-inbox-wrap {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 12500;
+  width: 340px;
+}
+
+.mk-inbox-panel {
+  background: var(--mk-raised);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(240,184,41,0.06);
+  animation: mk-slide-up .18s ease;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.mk-inbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--mk-border);
+  flex-shrink: 0;
+}
+
+.mk-inbox-title {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mk-gold);
+  letter-spacing: 0.05em;
+}
+
+.mk-inbox-list {
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+}
+
+.mk-inbox-empty {
+  padding: 24px 16px;
+  font-size: 12px;
+  color: var(--mk-muted);
+  text-align: center;
+}
+
+/* Session row */
+.mk-inbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mk-border);
+  cursor: pointer;
+  transition: background .12s;
+}
+.mk-inbox-row:last-child { border-bottom: none; }
+.mk-inbox-row:hover { background: rgba(255,255,255,0.04); }
+.mk-inbox-row.mk-is-closed { opacity: .55; }
+
+.mk-inbox-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--mk-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mk-inbox-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.mk-inbox-avatar-fallback { font-size: 18px; }
+
+.mk-inbox-info { flex: 1; min-width: 0; }
+.mk-inbox-pokemon {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mk-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mk-inbox-meta { font-size: 10px; color: var(--mk-muted); margin-top: 2px; }
+.mk-inbox-role { color: var(--mk-blue); font-weight: 600; }
+
+.mk-inbox-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mk-inbox-time { font-size: 9px; color: rgba(255,255,255,0.25); font-family: var(--font-mono); }
+
+.mk-inbox-status {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.mk-is-active     { background: var(--mk-green-dim); color: var(--mk-green); border: 1px solid rgba(74,222,128,0.2); }
+.mk-is-completed  { background: rgba(240,184,41,.08); color: var(--mk-gold); border: 1px solid rgba(240,184,41,0.2); }
+.mk-is-cancelled  { background: rgba(248,113,113,.08); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+.mk-is-expired    { background: rgba(255,255,255,.05); color: rgba(255,255,255,0.3); border: 1px solid var(--mk-border); }
+
+/* Inbox button in marketplace header */
+.mk-inbox-btn {
+  position: relative;
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: var(--mk-r-sm);
+  color: var(--mk-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: border-color .15s, color .15s;
+}
+.mk-inbox-btn:hover { border-color: var(--mk-gold); color: var(--mk-gold); }
+
+#mk-inbox-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border-radius: 10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  display: none;
+}
+
+@media (max-width: 480px) {
+  #mk-inbox-wrap { width: calc(100vw - 24px); right: 12px; }
+}
