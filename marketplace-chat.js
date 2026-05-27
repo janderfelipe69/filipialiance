@@ -1,90 +1,75 @@
 // ============================================================
-// marketplace-chat.js — Filipi Marketplace M4
+// marketplace-chat.js — Filipi Marketplace M4.1
 // PokeAlliance Shop
 //
-// Janela de chat DRAGGABLE, multi-instância, persistente.
-//   • Uma janela por sessão (singleton por session_id)
-//   • Drag livre pela tela
-//   • Minimizar / restaurar / fechar
-//   • Realtime: subscribe trade_messages INSERT
-//   • Paginação: 30 msgs por vez, lazy load histórico
-//   • Botões: Cancelar negociação | Venda Efetuada (seller only)
+// Janela de chat DRAGGABLE multi-instância.
+// Usa MarketplaceChannels para receber mensagens realtime.
+// Optimistic: append local ANTES do INSERT no banco.
+// Dedup via seenIds para ignorar o echo do realtime.
 // ============================================================
 
 ;(function (global) {
   'use strict';
 
-  if (global.MarketplaceChat) return; // singleton manager
+  if (global.MarketplaceChat) return;
 
   var SB_URL = global.SUPABASE_URL || '';
   var SB_KEY = global.SUPABASE_KEY || '';
 
-  function _jwt()  { return typeof Session !== 'undefined' && Session.getAccessToken ? Session.getAccessToken() : null; }
-  function _user() { return typeof Session !== 'undefined' ? Session.getCurrentUser() : null; }
-  function _isAdmin() { return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin(); }
+  function _jwt()  { return typeof Session!=='undefined'&&Session.getAccessToken?Session.getAccessToken():null; }
+  function _user() { return typeof Session!=='undefined'?Session.getCurrentUser():null; }
   function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function _tel(c,d) { if (global.PA && global.PA.telemetry) global.PA.telemetry.push(c,d); }
-  function _toast(m,t) { if (typeof showToast==='function') showToast(m,t||'info'); }
+  function _tel(c,d){ if(global.PA&&global.PA.telemetry) global.PA.telemetry.push(c,d); }
+  function _toast(m,t){ if(typeof showToast==='function') showToast(m,t||'info'); }
 
-  // ── Active windows: sessionId → ChatWindow instance ─────────
+  // ── Window registry (sessionId → ChatWindow) ─────────────────
   var _windows = {};
 
-  // ── ChatWindow class ─────────────────────────────────────────
+  // ── ChatWindow ───────────────────────────────────────────────
   function ChatWindow(sessionId, listingId, opts) {
     opts = opts || {};
     this.sessionId   = sessionId;
     this.listingId   = listingId;
     this.listingName = opts.listingName || '—';
     this.buyerName   = opts.buyerName   || '—';
-    this.isSeller    = opts.isSeller    || false;
+    this.isSeller    = !!opts.isSeller;
     this.el          = null;
     this.minimized   = false;
     this.seenIds     = new Set();
     this.page        = 0;
     this.allLoaded   = false;
     this.submitting  = false;
-    this._inputHandler = null;
-    this._x = opts.x || (120 + Object.keys(_windows).length * 30);
-    this._y = opts.y || (120 + Object.keys(_windows).length * 30);
-    this._init();
+    this._realtimeHandler = null;
+    // Position: offset per window count to avoid overlap
+    var offset = Object.keys(_windows).length;
+    this._x = opts.x || Math.min(80 + offset * 340, global.innerWidth - 340 || 80);
+    this._y = opts.y || Math.max(80, (global.innerHeight || 600) - 480 - offset * 20);
+    this._build();
   }
 
-  ChatWindow.prototype._init = function() {
+  ChatWindow.prototype._build = function() {
     var self = this;
     var el = global.document.createElement('div');
     el.className = 'mk-cw';
     el.id = 'mk-cw-' + self.sessionId.slice(0,8);
     el.setAttribute('data-session', self.sessionId);
     el.style.cssText = 'left:' + self._x + 'px;top:' + self._y + 'px';
-    el.innerHTML = self._buildHtml();
+    el.innerHTML = self._html();
     global.document.body.appendChild(el);
     self.el = el;
     self._bindDrag();
-    self._bindButtons();
-    self._loadHistory();
+    self._bindUI();
+    self._registerRealtime();
+    self._loadHistory(true);
     self._markRead();
-    console.log('[trade_session] ChatWindow opened', { sessionId: self.sessionId, seller: self.isSeller });
+    console.log('[subscription create] ChatWindow registered for session', self.sessionId);
   };
 
-  ChatWindow.prototype._buildHtml = function() {
-    var self = this;
-    var title = self.isSeller
-      ? ('💬 ' + _esc(self.buyerName))
-      : ('💬 ' + _esc(self.listingName));
-
-    var sellerBtns = self.isSeller
-      ? '<div class="mk-cw-actions">'
-        + '<button class="mk-btn mk-btn--ghost mk-btn--sm mk-cw-cancel-btn">✕ Cancelar</button>'
-        + '<button class="mk-btn mk-btn--primary mk-btn--sm mk-cw-sold-btn">🏷 Venda Efetuada</button>'
-        + '</div>'
-      : '<div class="mk-cw-actions">'
-        + '<button class="mk-btn mk-btn--ghost mk-btn--sm mk-cw-cancel-btn">✕ Cancelar negociação</button>'
-        + '</div>';
-
+  ChatWindow.prototype._html = function() {
+    var isSeller = this.isSeller;
+    var title = isSeller ? ('💬 ' + _esc(this.buyerName)) : ('💬 ' + _esc(this.listingName));
     return '<div class="mk-cw-header">'
-      + '<div class="mk-cw-drag-handle">'
-      +   '<span class="mk-cw-title">' + title + '</span>'
-      + '</div>'
+      + '<div class="mk-cw-drag-handle"><span class="mk-cw-title">' + title + '</span></div>'
       + '<div class="mk-cw-controls">'
       +   '<button class="mk-cw-min" title="Minimizar">—</button>'
       +   '<button class="mk-cw-close" title="Fechar">✕</button>'
@@ -95,90 +80,119 @@
       +   '<div class="mk-cw-msgs"></div>'
       + '</div>'
       + '<div class="mk-cw-footer">'
-      +   sellerBtns
-      +   '<div class="mk-cw-input-row">'
-      +     '<input class="mk-chat-input mk-cw-input" type="text" maxlength="500" placeholder="Mensagem...">'
-      +     '<button class="mk-btn mk-btn--primary mk-btn--sm mk-cw-send">Enviar</button>'
-      +   '</div>'
+      + (isSeller
+        ? '<div class="mk-cw-actions">'
+          + '<button class="mk-btn mk-btn--ghost mk-btn--sm mk-cw-cancel-btn">✕ Cancelar</button>'
+          + '<button class="mk-btn mk-btn--primary mk-btn--sm mk-cw-sold-btn">🏷 Venda Efetuada</button>'
+          + '</div>'
+        : '<div class="mk-cw-actions">'
+          + '<button class="mk-btn mk-btn--ghost mk-btn--sm mk-cw-cancel-btn">✕ Cancelar negociação</button>'
+          + '</div>')
+      + '<div class="mk-cw-input-row">'
+      +   '<input class="mk-chat-input mk-cw-input" type="text" maxlength="500" placeholder="Mensagem...">'
+      +   '<button class="mk-btn mk-btn--primary mk-btn--sm mk-cw-send">Enviar</button>'
+      + '</div>'
       + '</div>';
   };
 
   ChatWindow.prototype._bindDrag = function() {
     var self = this;
     var handle = self.el.querySelector('.mk-cw-drag-handle');
-    var isDragging = false, startX, startY, origX, origY;
-
+    var isDrag = false, sx, sy, ox, oy;
     handle.addEventListener('mousedown', function(e) {
       if (e.target.tagName === 'BUTTON') return;
-      isDragging = true;
-      startX = e.clientX; startY = e.clientY;
-      origX = parseInt(self.el.style.left) || 0;
-      origY = parseInt(self.el.style.top)  || 0;
+      isDrag = true; sx = e.clientX; sy = e.clientY;
+      ox = parseInt(self.el.style.left)||0;
+      oy = parseInt(self.el.style.top)||0;
       global.document.body.style.userSelect = 'none';
     });
     global.document.addEventListener('mousemove', function(e) {
-      if (!isDragging) return;
-      self._x = origX + (e.clientX - startX);
-      self._y = origY + (e.clientY - startY);
+      if (!isDrag) return;
+      self._x = Math.max(0, ox + e.clientX - sx);
+      self._y = Math.max(0, oy + e.clientY - sy);
       self.el.style.left = self._x + 'px';
       self.el.style.top  = self._y + 'px';
     });
     global.document.addEventListener('mouseup', function() {
-      if (isDragging) { isDragging = false; global.document.body.style.userSelect = ''; }
+      if (isDrag) { isDrag = false; global.document.body.style.userSelect = ''; }
     });
   };
 
-  ChatWindow.prototype._bindButtons = function() {
+  ChatWindow.prototype._bindUI = function() {
     var self = this;
+    var q = function(sel) { return self.el.querySelector(sel); };
 
-    // Minimize
-    var minBtn = self.el.querySelector('.mk-cw-min');
-    if (minBtn) minBtn.addEventListener('click', function() { self.toggleMinimize(); });
+    q('.mk-cw-min').addEventListener('click', function() { self.toggleMinimize(); });
+    q('.mk-cw-close').addEventListener('click', function() { self.destroy(); });
+    q('.mk-cw-send').addEventListener('click', function() { self._sendFromInput(); });
 
-    // Close
-    var closeBtn = self.el.querySelector('.mk-cw-close');
-    if (closeBtn) closeBtn.addEventListener('click', function() { self.close(); });
+    var input = q('.mk-cw-input');
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); self._sendFromInput(); }
+    });
 
-    // Send via button
-    var sendBtn = self.el.querySelector('.mk-cw-send');
-    if (sendBtn) sendBtn.addEventListener('click', function() { self._sendFromInput(); });
+    var cancelBtn = q('.mk-cw-cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { self._cancel(); });
 
-    // Send via Enter
-    var input = self.el.querySelector('.mk-cw-input');
-    if (input) {
-      self._inputHandler = function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); self._sendFromInput(); }
-      };
-      input.addEventListener('keydown', self._inputHandler);
-    }
+    var soldBtn = q('.mk-cw-sold-btn');
+    if (soldBtn) soldBtn.addEventListener('click', function() { self._sold(); });
 
-    // Cancel negotiation
-    var cancelBtn = self.el.querySelector('.mk-cw-cancel-btn');
-    if (cancelBtn) cancelBtn.addEventListener('click', function() { self._cancelNegotiation(); });
-
-    // Mark sold (seller only)
-    var soldBtn = self.el.querySelector('.mk-cw-sold-btn');
-    if (soldBtn) soldBtn.addEventListener('click', function() { self._markSold(); });
-
-    // Load more
-    var loadMore = self.el.querySelector('.mk-cw-load-more');
-    if (loadMore) loadMore.addEventListener('click', function() { self._loadHistory(); });
+    var loadMore = q('.mk-cw-load-more');
+    if (loadMore) loadMore.addEventListener('click', function() { self._loadHistory(false); });
   };
 
+  ChatWindow.prototype._registerRealtime = function() {
+    var self = this;
+    var key = 'messages:' + self.sessionId;
+
+    self._realtimeHandler = function(event, record) {
+      if (event !== 'INSERT') return;
+      // Dedup: optimistic append already added this message via its temp ID
+      // Server echo comes with real UUID — seenIds handles both
+      self.appendMessage(record);
+    };
+
+    if (global.MarketplaceChannels) {
+      global.MarketplaceChannels.register(key, self._realtimeHandler);
+    }
+  };
+
+  ChatWindow.prototype._unregisterRealtime = function() {
+    if (global.MarketplaceChannels && this._realtimeHandler) {
+      global.MarketplaceChannels.unregister('messages:' + this.sessionId, this._realtimeHandler);
+      this._realtimeHandler = null;
+    }
+  };
+
+  // ── Send message with OPTIMISTIC append ──────────────────────
   ChatWindow.prototype._sendFromInput = function() {
     var input = this.el && this.el.querySelector('.mk-cw-input');
-    if (input) this.send(input.value);
+    if (input && input.value.trim()) this.send(input.value.trim());
   };
 
   ChatWindow.prototype.send = async function(content) {
     var self = this;
-    if (self.submitting || !content || !content.trim()) return;
-    var user = _user();
-    if (!user) return;
+    if (self.submitting || !content) return;
+    var user = _user(); if (!user) return;
     self.submitting = true;
 
+    // 1. Generate optimistic temp ID
+    var tempId = 'opt_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+    // 2. Append locally BEFORE hitting the bank (< 1ms UX)
+    var tempMsg = {
+      id:         tempId,
+      session_id: self.sessionId,
+      sender_id:  user.id,
+      content:    content,
+      body:       content,
+      created_at: new Date().toISOString(),
+      _optimistic: true,
+    };
+    self.appendMessage(tempMsg);
+
     var input = self.el && self.el.querySelector('.mk-cw-input');
-    if (input) { input.disabled = true; }
+    if (input) input.value = '';
 
     try {
       var res = await fetch(SB_URL + '/rest/v1/trade_messages', {
@@ -189,19 +203,31 @@
           'Authorization': 'Bearer ' + _jwt(),
           'Prefer': 'return=representation',
         },
-        body: JSON.stringify({ session_id: self.sessionId, sender_id: user.id, content: content.trim() }),
+        body: JSON.stringify({ session_id: self.sessionId, sender_id: user.id, content: content }),
       });
+
       if (!res.ok) {
-        var txt = await res.text().catch(function(){return '';});
-        _toast(txt.includes('rate_limit') ? 'Aguarde antes de enviar.' : 'Erro ao enviar.', 'error');
+        var errText = await res.text().catch(function(){return '';});
+        console.error('[trade message] send error', { status: res.status, body: errText });
+        // Rollback: mark temp message as failed
+        var tempEl = self.el && self.el.querySelector('[data-msg-id="' + tempId + '"]');
+        if (tempEl) tempEl.classList.add('mk-cw-msg--failed');
+        _toast(errText.includes('rate_limit') ? 'Aguarde antes de enviar.' : 'Erro ao enviar.', 'error');
         return;
       }
+
       var data = await res.json();
-      var msg = Array.isArray(data) ? data[0] : data;
-      if (msg) self.appendMessage(msg); // optimistic
-      if (input) input.value = '';
-      _tel('mk-chat-sent', { sessionId: self.sessionId });
+      var realMsg = Array.isArray(data) ? data[0] : data;
+
+      if (realMsg && realMsg.id) {
+        // Replace temp element with real ID so realtime echo gets deduped
+        self.seenIds.add(realMsg.id);
+        var tempEl2 = self.el && self.el.querySelector('[data-msg-id="' + tempId + '"]');
+        if (tempEl2) tempEl2.setAttribute('data-msg-id', realMsg.id);
+        _tel('mk-chat-sent', { sessionId: self.sessionId });
+      }
     } catch(e) {
+      console.error('[trade message] send exception:', e.message);
       _toast('Erro ao enviar mensagem.', 'error');
     } finally {
       self.submitting = false;
@@ -214,16 +240,16 @@
     if (this.seenIds.has(msg.id)) return;
     this.seenIds.add(msg.id);
 
-    var user = _user();
+    var user  = _user();
     var isOwn = user && msg.sender_id === user.id;
     var msgs  = this.el && this.el.querySelector('.mk-cw-msgs');
     if (!msgs) return;
 
-    var nearBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 80;
+    var nearBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 100;
 
     var el = global.document.createElement('div');
-    el.className = 'mk-cw-msg' + (isOwn ? ' mk-cw-msg--own' : '');
-    el.setAttribute('data-msg-id', _esc(msg.id));
+    el.className = 'mk-cw-msg' + (isOwn ? ' mk-cw-msg--own' : '') + (msg._optimistic ? ' mk-cw-msg--sending' : '');
+    el.setAttribute('data-msg-id', msg.id);
     el.innerHTML = '<div class="mk-chat-bubble">'
       + '<span class="mk-chat-content">' + _esc(msg.content || msg.body || '') + '</span>'
       + '<span class="mk-chat-time">' + _fmt(msg.created_at) + '</span>'
@@ -232,114 +258,143 @@
 
     if (nearBottom || isOwn) msgs.scrollTop = msgs.scrollHeight;
 
-    // Trim DOM to max 200 messages
+    // Trim DOM to 200 messages max
     var all = msgs.querySelectorAll('.mk-cw-msg');
-    if (all.length > 200) for (var i = 0; i < 50 && all[i]; i++) msgs.removeChild(all[i]);
+    if (all.length > 200) {
+      for (var i = 0; i < 30; i++) if (all[i]) msgs.removeChild(all[i]);
+    }
 
-    console.log('[incoming_message]', { id: msg.id, sessionId: msg.session_id });
-    this._markRead();
+    // If window is visible, mark as read
+    if (!this.minimized) this._markRead();
   };
 
-  ChatWindow.prototype._loadHistory = async function() {
+  ChatWindow.prototype._loadHistory = async function(initial) {
     var self = this;
-    if (self.allLoaded) return;
+    if (self.allLoaded && !initial) return;
     var jwt = _jwt(); if (!jwt) return;
 
-    var offset = self.page * 30;
+    var offset = initial ? 0 : self.page * 30;
+    var limit  = 30;
+
     try {
       var res = await fetch(
-        SB_URL + '/rest/v1/trade_messages?session_id=eq.' + self.sessionId
-          + '&is_deleted=eq.false&order=created_at.desc&limit=30&offset=' + offset,
+        SB_URL + '/rest/v1/trade_messages'
+          + '?session_id=eq.' + self.sessionId
+          + '&is_deleted=eq.false'
+          + '&order=created_at.desc'
+          + '&limit=' + limit
+          + '&offset=' + offset,
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt } }
       );
       if (!res.ok) return;
       var data = await res.json();
-      var msgs = Array.isArray(data) ? data : [];
-      if (msgs.length < 30) { self.allLoaded = true; }
-      if (!msgs.length && self.page === 0) {
+      var msgs = Array.isArray(data) ? data.reverse() : [];
+
+      if (msgs.length < limit) self.allLoaded = true;
+      if (initial && !msgs.length) {
         var lm = self.el && self.el.querySelector('.mk-cw-load-more');
         if (lm) lm.style.display = 'none';
         return;
       }
 
-      // Prepend in correct order (they arrived desc, show asc)
-      msgs.reverse().forEach(function(m) { self.appendMessage(m); });
-      self.page++;
+      // Prepend: save scroll position, insert before existing, restore
+      var msgContainer = self.el && self.el.querySelector('.mk-cw-msgs');
+      var prevHeight = msgContainer ? msgContainer.scrollHeight : 0;
 
+      msgs.forEach(function(m) { self.appendMessage(m); });
+
+      if (!initial && msgContainer) {
+        // Maintain scroll position after prepend
+        msgContainer.scrollTop = msgContainer.scrollHeight - prevHeight;
+      }
+      if (initial && msgContainer) {
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      }
+
+      self.page++;
       var lm = self.el && self.el.querySelector('.mk-cw-load-more');
       if (lm) lm.style.display = self.allLoaded ? 'none' : '';
-    } catch(e) {}
+    } catch(e) {
+      console.error('[trade message] loadHistory error:', e.message);
+    }
   };
 
   ChatWindow.prototype._markRead = async function() {
     var jwt = _jwt(); if (!jwt) return;
-    try {
-      await fetch(SB_URL + '/rest/v1/rpc/rpc_mark_session_read', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt },
-        body: JSON.stringify({ p_session_id: this.sessionId }),
-      });
+    fetch(SB_URL + '/rest/v1/rpc/rpc_mark_session_read', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt },
+      body: JSON.stringify({ p_session_id: this.sessionId }),
+    }).then(function() {
       if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
-    } catch(e) {}
+    }).catch(function(){});
   };
 
-  ChatWindow.prototype._cancelNegotiation = async function() {
+  ChatWindow.prototype._cancel = async function() {
     var self = this;
-    var confirmed = global.confirm ? global.confirm('Cancelar esta negociação?') : true;
-    if (!confirmed) return;
+    if (!global.confirm('Cancelar esta negociação?')) return;
     try {
       var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_cancel_negotiation', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+_jwt() },
         body: JSON.stringify({ p_session_id: self.sessionId }),
       });
-      var data = await res.json();
+      var raw = await res.text();
+      var data = null; try { data = JSON.parse(raw); } catch(_){}
       if (data && data.success) {
         _toast('Negociação cancelada.', 'info');
-        self.close();
+        self.destroy();
         if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
-        if (typeof MarketplaceRender !== 'undefined' && global.PA && global.PA.marketplace) {
-          MarketplaceRender.render(global.PA.marketplace.listings, global.PA.marketplace.filters || {});
-        }
+        if (typeof MarketplaceTrade !== 'undefined') MarketplaceTrade.refreshBadge(self.listingId);
       } else {
-        _toast((data && data.error) || 'Erro ao cancelar.', 'error');
+        console.error('[trade session] cancel error:', raw);
+        _toast((data&&data.error)||'Erro ao cancelar.', 'error');
       }
     } catch(e) { _toast('Erro ao cancelar.', 'error'); }
   };
 
-  ChatWindow.prototype._markSold = async function() {
+  ChatWindow.prototype._sold = async function() {
     var self = this;
-    var confirmed = global.confirm ? global.confirm('Confirmar venda para este comprador? Todas as outras negociações serão fechadas.') : true;
-    if (!confirmed) return;
+    var listingName = self.listingName;
+    var buyerName   = self.buyerName;
+    if (!global.confirm('Confirmar venda de "' + listingName + '" para ' + buyerName + '?\n\nTodas as outras negociações serão fechadas.')) return;
+
     try {
       var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_mark_sold', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+_jwt() },
         body: JSON.stringify({ p_session_id: self.sessionId }),
       });
-      var data = await res.json();
+      var raw = await res.text();
+      var data = null; try { data = JSON.parse(raw); } catch(_){}
       if (data && data.success) {
-        _toast('🎉 Venda registrada com sucesso!', 'success');
-        _tel('mk-listing-sold', { sessionId: self.sessionId });
-        self.close();
-        // Remove listing card from active view
+        _toast('🎉 Venda registrada!', 'success');
+        _tel('mk-listing-sold', { listingId: self.listingId });
+        self.destroy();
+
+        // Remove listing card immediately (partial render, no full refresh)
         if (global.PA && global.PA.marketplace) {
-          global.PA.marketplace.listings = (global.PA.marketplace.listings||[]).filter(function(l){
-            return l.id !== self.listingId;
-          });
-          if (typeof MarketplaceRender !== 'undefined') {
-            MarketplaceRender.render(global.PA.marketplace.listings, global.PA.marketplace.filters||{});
+          global.PA.marketplace.listings = (global.PA.marketplace.listings||[])
+            .filter(function(l){ return l.id !== self.listingId; });
+          var lEl = global.document.querySelector('[data-listing-id="' + self.listingId + '"]');
+          if (lEl) {
+            lEl.style.transition = 'opacity .3s, transform .3s';
+            lEl.style.opacity = '0';
+            lEl.style.transform = 'scale(0.95)';
+            setTimeout(function() { lEl.remove(); }, 300);
           }
         }
+
         // Close all other windows for this listing
         Object.keys(_windows).forEach(function(sid) {
-          if (_windows[sid] && _windows[sid].listingId === self.listingId && sid !== self.sessionId) {
-            _windows[sid].close();
-          }
+          var w = _windows[sid];
+          if (w && w.listingId === self.listingId) w.destroy();
         });
+
         if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
       } else {
-        _toast((data && data.error) || 'Erro ao registrar venda.', 'error');
+        console.error('[trade session] mark_sold error:', raw);
+        _toast((data&&data.error)||'Erro ao registrar venda.', 'error');
       }
     } catch(e) { _toast('Erro ao registrar venda.', 'error'); }
   };
@@ -351,20 +406,23 @@
     if (body)   body.style.display   = this.minimized ? 'none' : '';
     if (footer) footer.style.display = this.minimized ? 'none' : '';
     if (this.el) this.el.classList.toggle('mk-cw--minimized', this.minimized);
+    if (!this.minimized) this._markRead();
   };
 
   ChatWindow.prototype.focus = function() {
-    if (this.el) {
-      if (this.minimized) this.toggleMinimize();
-      this.el.style.zIndex = String(Date.now()).slice(-5);
-    }
+    if (!this.el) return;
+    if (this.minimized) this.toggleMinimize();
+    this.el.style.zIndex = String(Date.now()).slice(-6);
+    var input = this.el.querySelector('.mk-cw-input');
+    if (input) input.focus();
   };
 
-  ChatWindow.prototype.close = function() {
-    var input = this.el && this.el.querySelector('.mk-cw-input');
-    if (input && this._inputHandler) input.removeEventListener('keydown', this._inputHandler);
+  // destroy: closes window but keeps session alive in DB
+  ChatWindow.prototype.destroy = function() {
+    this._unregisterRealtime();
     if (this.el && this.el.parentNode) this.el.parentNode.removeChild(this.el);
     delete _windows[this.sessionId];
+    console.log('[channel cleanup] ChatWindow destroyed', this.sessionId);
   };
 
   function _fmt(iso) {
@@ -373,8 +431,7 @@
     return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
   }
 
-  // ── Public manager API ────────────────────────────────────────
-
+  // ── Public API ────────────────────────────────────────────────
   function open(sessionId, listingId, opts) {
     if (!sessionId) return;
     if (_windows[sessionId]) { _windows[sessionId].focus(); return; }
@@ -382,31 +439,18 @@
     _windows[sessionId] = w;
   }
 
+  function close(sessionId) {
+    if (_windows[sessionId]) _windows[sessionId].destroy();
+  }
+
   function closeAll() {
-    Object.keys(_windows).forEach(function(sid) { _windows[sid].close(); });
+    Object.keys(_windows).forEach(function(sid) { _windows[sid].destroy(); });
   }
 
   function getActiveSessionId() {
     var keys = Object.keys(_windows);
     return keys.length ? keys[keys.length-1] : null;
   }
-
-  // ── Realtime: handle incoming messages ───────────────────────
-  global.document.addEventListener('trade_messages:changed', function(e) {
-    try {
-      var d = (e && e.detail) || {};
-      var record = d.record || {};
-      if (d.event !== 'INSERT' || !record.session_id) return;
-      console.log('[trade_subscribe]', { sessionId: record.session_id, msgId: record.id });
-      var w = _windows[record.session_id];
-      if (w) {
-        w.appendMessage(record);
-      } else {
-        // Window not open — update inbox badge
-        if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.notifyNewMessage(record);
-      }
-    } catch(err) {}
-  });
 
   global.document.addEventListener('DOMContentLoaded', function() {
     if (global.PA && global.PA.lifecycle) {
@@ -419,11 +463,11 @@
 
   global.MarketplaceChat = {
     open:               open,
-    close:              function(sid) { if (_windows[sid]) _windows[sid].close(); },
+    close:              close,
     closeAll:           closeAll,
     getActiveSessionId: getActiveSessionId,
     getStats: function() {
-      return { openWindows: Object.keys(_windows).length, sessions: Object.keys(_windows) };
+      return { openWindows: Object.keys(_windows).length };
     },
   };
 

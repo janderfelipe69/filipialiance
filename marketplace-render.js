@@ -180,9 +180,9 @@
     // Negotiate button for non-owner buyers (disabled in locked/sold state)
     var negotiateHtml = '';
     // Admin is a normal buyer for listings they don't own (Bug 3 fix)
-    var canNegotiate = !isOwner && (status === 'active' || status === 'negotiating');
+    var canNegotiate = !isOwner && status === 'active';
     if (canNegotiate) {
-      var isLocked = status === 'negotiating';
+      var isLocked = false; // M4.1: no more negotiating status
       negotiateHtml = '<div class="mk-card-negotiate">'
         + '<button class="mk-btn mk-btn--primary mk-btn--negotiate"'
         + (isLocked ? ' disabled' : '')
@@ -259,18 +259,9 @@
   }
 
   // ── Apply filters ─────────────────────────────────────────────
-  // NOTE: 'cancelled' and 'deleted' are never shown in public listing cards.
-  // Soft-delete safety: if a cancelled listing leaks into the local store
-  // (e.g. optimistic revert or realtime update), it is suppressed here.
-  var _HIDDEN_STATUSES = { cancelled: true, deleted: true };
-
   function _applyFilters(listings, filters) {
+    if (!filters) return listings;
     return (listings || []).filter(function(l) {
-      // Always hide non-active/negotiating statuses from the card grid
-      var status = l.status || 'active';
-      if (_HIDDEN_STATUSES[status]) return false;
-
-      if (!filters) return true;
       if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;
       if (filters.search) {
         var q = filters.search.toLowerCase();
@@ -332,13 +323,13 @@
         // Rebuild negotiate button (buyer only)
         // Admin negotiates as a normal buyer (Bug 3 fix)
         var canNegotiateMorph = !isOwnerMorph &&
-          (newStatus === 'active' || newStatus === 'negotiating');
+          newStatus === 'active';
         if (canNegotiateMorph) {
           var negWrap = global.document.createElement('div');
           var negBtn = global.document.createElement('button');
           negBtn.className = 'mk-btn mk-btn--primary mk-btn--negotiate';
-          negBtn.disabled = newStatus === 'negotiating';
-          negBtn.textContent = newStatus === 'negotiating' ? '⏳ Em negociação' : '🤝 Negociar';
+          negBtn.disabled = false;
+          negBtn.textContent = '🤝 Negociar';
           negBtn.setAttribute('onclick',
             'event.stopPropagation();MarketplaceTrade&&MarketplaceTrade.startNegotiation(\'' + _esc(listing.id) + '\')');
           negWrap.className = 'mk-card-negotiate';

@@ -1,0 +1,141 @@
+// ============================================================
+// marketplace-channels.js — Filipi Marketplace M4.1
+// PokeAlliance Shop
+//
+// CHANNEL REGISTRY GLOBAL — window.MarketplaceChannels
+//
+// Responsável por:
+//   • Registrar / remover listeners por canal lógico
+//   • Despachar eventos recebidos do realtime-manager para
+//     handlers específicos registrados por session_id ou listing_id
+//   • Deduplicação por (table, event, record.id)
+//   • Cleanup automático ao fechar janelas / trocar aba
+//   • Zero subscriptions duplicadas
+// ============================================================
+
+;(function (global) {
+  'use strict';
+
+  if (global.MarketplaceChannels) return; // singleton
+
+  // ── Registry ─────────────────────────────────────────────────
+  // Map: channelKey → Set of handler functions
+  // channelKey examples:
+  //   'messages:SESSION_ID'   — mensagens de uma sessão específica
+  //   'sessions:LISTING_ID'   — sessões de um listing
+  //   'sessions:*'            — todas as sessões do usuário
+  //   'listings:*'            — todos os listings
+  var _registry = {};
+  var _seenKeys = new Set(); // global dedup across all handlers
+
+  function register(channelKey, handlerFn) {
+    if (!_registry[channelKey]) _registry[channelKey] = new Set();
+    _registry[channelKey].add(handlerFn);
+    console.log('[channel cleanup] registered', channelKey,
+      '(total handlers:', _registry[channelKey].size, ')');
+  }
+
+  function unregister(channelKey, handlerFn) {
+    if (!_registry[channelKey]) return;
+    _registry[channelKey].delete(handlerFn);
+    if (_registry[channelKey].size === 0) delete _registry[channelKey];
+    console.log('[channel cleanup] unregistered', channelKey);
+  }
+
+  function unregisterAll(channelKey) {
+    delete _registry[channelKey];
+    console.log('[channel cleanup] unregisteredAll', channelKey);
+  }
+
+  function cleanup() {
+    var count = Object.keys(_registry).length;
+    _registry = {};
+    _seenKeys.clear();
+    console.log('[channel cleanup] cleanup — removed', count, 'channels');
+  }
+
+  // ── Dispatch helpers ─────────────────────────────────────────
+  function _dispatch(channelKey, event, record) {
+    var handlers = _registry[channelKey];
+    if (!handlers || !handlers.size) return;
+    handlers.forEach(function(fn) {
+      try { fn(event, record); } catch(e) {
+        console.warn('[channel cleanup] handler error on', channelKey, e.message);
+      }
+    });
+  }
+
+  // ── Wire to realtime-manager CustomEvents ────────────────────
+  global.document.addEventListener('trade_messages:changed', function(e) {
+    var d = (e&&e.detail)||{};
+    var record = d.record||{};
+    if (!record.id || !record.session_id) return;
+
+    var dedup = 'tm:' + d.event + ':' + record.id;
+    if (_seenKeys.has(dedup)) return;
+    _seenKeys.add(dedup);
+    if (_seenKeys.size > 2000) {
+      var iter = _seenKeys.values();
+      for (var i = 0; i < 500; i++) _seenKeys.delete(iter.next().value);
+    }
+
+    console.log('[trade message]', { event: d.event, id: record.id, session: record.session_id });
+    _dispatch('messages:' + record.session_id, d.event, record);
+    _dispatch('messages:*', d.event, record);
+  });
+
+  global.document.addEventListener('trade_sessions:changed', function(e) {
+    var d = (e&&e.detail)||{};
+    var record = d.record||{};
+    if (!record.id) return;
+
+    var dedup = 'ts:' + d.event + ':' + record.id + ':' + (record.updated_at||'');
+    if (_seenKeys.has(dedup)) return;
+    _seenKeys.add(dedup);
+
+    console.log('[trade session]', { event: d.event, id: record.id, status: record.status });
+    if (record.listing_id) _dispatch('sessions:' + record.listing_id, d.event, record);
+    _dispatch('sessions:*', d.event, record);
+  });
+
+  global.document.addEventListener('marketplace_listings:changed', function(e) {
+    var d = (e&&e.detail)||{};
+    var record = d.record||{};
+    if (!record.id) return;
+
+    var dedup = 'ml:' + d.event + ':' + record.id + ':' + (record.updated_at||'');
+    if (_seenKeys.has(dedup)) return;
+    _seenKeys.add(dedup);
+
+    console.log('[listing update]', { event: d.event, id: record.id, status: record.status });
+    _dispatch('listings:' + record.id, d.event, record);
+    _dispatch('listings:*', d.event, record);
+  });
+
+  // ── Cleanup on tab switch / unload ───────────────────────────
+  if (global.window && typeof global.window.addEventListener === 'function') global.window.addEventListener('beforeunload', cleanup);
+  global.document.addEventListener('visibilitychange', function() {
+    if (global.document.visibilityState === 'hidden') {
+      // Only clear message-level handlers, keep session/listing ones
+      Object.keys(_registry).forEach(function(k) {
+        if (k.startsWith('messages:')) unregisterAll(k);
+      });
+    }
+  });
+
+  console.log('[subscription create] MarketplaceChannels initialized');
+
+  global.MarketplaceChannels = {
+    register:        register,
+    unregister:      unregister,
+    unregisterAll:   unregisterAll,
+    cleanup:         cleanup,
+    getKeys:         function() { return Object.keys(_registry); },
+    getHandlerCount: function() {
+      return Object.keys(_registry).reduce(function(sum, k) {
+        return sum + (_registry[k] ? _registry[k].size : 0);
+      }, 0);
+    },
+  };
+
+}(window));

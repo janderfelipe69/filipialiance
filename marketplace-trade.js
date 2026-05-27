@@ -1,12 +1,11 @@
 // ============================================================
-// marketplace-trade.js — Filipi Marketplace M4
+// marketplace-trade.js — Filipi Marketplace M4.1
 // PokeAlliance Shop
 //
-// Responsável por:
-//   • Iniciar negociação (rpc_start_negotiation)
-//   • Badge "N conversas" no card do listing
-//   • Painel de compradores por listing
-//   • Realtime de trade_sessions
+// • startNegotiation (sem lock)
+// • Badge de conversas por listing
+// • Painel de compradores
+// • Realtime via MarketplaceChannels
 // ============================================================
 
 ;(function (global) {
@@ -19,24 +18,25 @@
 
   function _jwt()    { return typeof Session!=='undefined'&&Session.getAccessToken?Session.getAccessToken():null; }
   function _user()   { return typeof Session!=='undefined'?Session.getCurrentUser():null; }
-  function _isAdmin(){ return typeof Session!=='undefined'&&Session.isAdmin&&Session.isAdmin(); }
   function _esc(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function _tel(c,d) { if(global.PA&&global.PA.telemetry) global.PA.telemetry.push(c,d); }
   function _toast(m,t){ if(typeof showToast==='function') showToast(m,t||'info'); }
   function _emit(ev,p){ if(global.PA&&global.PA.hooks&&global.PA.hooks.emit) try{global.PA.hooks.emit(ev,p);}catch(_){} }
 
-  var _pendingLocks = {};
+  var _pendingLocks   = {};
+  var _sessionHandler = null; // MarketplaceChannels handler for sessions:*
+  var _listingHandler = null; // MarketplaceChannels handler for listings:*
 
-  // ── Fetch sessions for a listing (seller view) ─────────────
+  // ── Fetch sessions for a listing ─────────────────────────────
   async function fetchListingSessions(listingId) {
     var jwt = _jwt(); if (!jwt) return [];
     try {
       var res = await fetch(
         SB_URL + '/rest/v1/trade_sessions'
           + '?listing_id=eq.' + listingId
-          + '&status=in.(active,open)'
+          + '&status=in.(open,active)'
           + '&order=last_message_at.desc.nullslast'
-          + '&select=*,buyer:buyer_id(id,nickname,avatar)',
+          + '&select=id,buyer_id,unread_seller,last_message_at,buyer:buyer_id(id,nickname,avatar)',
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt } }
       );
       if (!res.ok) return [];
@@ -44,80 +44,94 @@
     } catch(e) { return []; }
   }
 
-  // ── Badge: show conversation count on seller's card ─────────
-  function updateConvBadge(listingId, count) {
-    var card = global.document.querySelector('[data-listing-id="' + listingId + '"]');
+  // ── Badge: conversation count on seller's card ────────────────
+  function refreshBadge(listingId) {
+    fetchListingSessions(listingId).then(function(sessions) {
+      updateConvBadge(listingId, sessions.length, sessions);
+    });
+  }
+
+  function updateConvBadge(listingId, count, sessions) {
+    var card = global.document.querySelector('[data-listing-id="' + _esc(listingId) + '"]');
     if (!card) return;
     var existing = card.querySelector('.mk-conv-badge');
+
     if (count > 0) {
+      // Total unread across all sessions
+      var totalUnread = (sessions||[]).reduce(function(s,sess){ return s + (sess.unread_seller||0); }, 0);
+
       if (!existing) {
         existing = global.document.createElement('div');
         existing.className = 'mk-conv-badge';
-        existing.setAttribute('onclick',
-          'event.stopPropagation();MarketplaceTrade.openBuyerPanel("' + _esc(listingId) + '")');
-        card.querySelector('.mk-card-top').appendChild(existing);
+        var top = card.querySelector('.mk-card-top');
+        if (top) top.appendChild(existing);
       }
-      existing.textContent = count + (count === 1 ? ' conversa' : ' conversas');
+      existing.textContent = count + (count===1?' conversa':' conversas') + (totalUnread > 0 ? ' ('+totalUnread+' novas)' : '');
+      existing.setAttribute('onclick', 'event.stopPropagation();MarketplaceTrade.openBuyerPanel("' + _esc(listingId) + '")');
     } else if (existing) {
       existing.remove();
     }
   }
 
-  // ── Buyer panel: inline list of open negotiations ────────────
-  var _openPanels = {};
-
+  // ── Buyer panel ───────────────────────────────────────────────
   async function openBuyerPanel(listingId) {
-    var card = global.document.querySelector('[data-listing-id="' + listingId + '"]');
+    var card = global.document.querySelector('[data-listing-id="' + _esc(listingId) + '"]');
     if (!card) return;
 
-    // Toggle
     var existing = card.querySelector('.mk-buyer-panel');
-    if (existing) { existing.remove(); delete _openPanels[listingId]; return; }
+    if (existing) { existing.remove(); return; }
 
     var sessions = await fetchListingSessions(listingId);
+    var listing  = (global.PA&&global.PA.marketplace&&global.PA.marketplace.listings||[])
+      .find(function(l){ return l.id === listingId; });
+    var listingName = listing ? listing.pokemon_name : '—';
 
     var panel = global.document.createElement('div');
     panel.className = 'mk-buyer-panel';
-    panel.innerHTML = sessions.length === 0
-      ? '<div class="mk-buyer-panel-empty">Nenhuma negociação aberta.</div>'
-      : sessions.map(function(s) {
-          var buyer = s.buyer || {};
-          var unread = s.unread_seller || 0;
-          return '<div class="mk-buyer-row" data-session="' + _esc(s.id) + '">'
-            + '<div class="mk-buyer-avatar">'
-            + (buyer.avatar ? '<img src="' + _esc(buyer.avatar) + '" alt="" onerror="this.style.display=\'none\'">' : '👤')
-            + '</div>'
-            + '<span class="mk-buyer-name">' + _esc(buyer.nickname || '—') + '</span>'
-            + (unread > 0 ? '<span class="mk-buyer-unread">' + unread + '</span>' : '')
-            + '</div>';
-        }).join('');
 
-    // Click each row → open chat window
-    var listing = (global.PA && global.PA.marketplace && global.PA.marketplace.listings || [])
-      .find(function(l){ return l.id === listingId; });
-    var listingName = listing ? (listing.pokemon_name || '—') : '—';
+    if (!sessions.length) {
+      panel.innerHTML = '<div class="mk-buyer-panel-empty">Nenhuma negociação aberta.</div>';
+    } else {
+      panel.innerHTML = sessions.map(function(s) {
+        var b = s.buyer || {};
+        var unread = s.unread_seller || 0;
+        return '<div class="mk-buyer-row" data-session="' + _esc(s.id) + '">'
+          + '<div class="mk-buyer-avatar">'
+          + (b.avatar ? '<img src="' + _esc(b.avatar) + '" alt="" onerror="this.style.display=\'none\'">' : '👤')
+          + '</div>'
+          + '<span class="mk-buyer-name">' + _esc(b.nickname || '—') + '</span>'
+          + (unread > 0 ? '<span class="mk-buyer-unread">' + unread + '</span>' : '')
+          + '</div>';
+      }).join('');
 
-    Array.prototype.forEach.call(panel.querySelectorAll('.mk-buyer-row'), function(row) {
-      row.addEventListener('click', function() {
-        var sid = row.getAttribute('data-session');
-        var sess = sessions.find(function(s){ return s.id === sid; });
-        if (typeof MarketplaceChat !== 'undefined') {
-          MarketplaceChat.open(sid, listingId, {
-            listingName: listingName,
-            buyerName:   (sess && sess.buyer && sess.buyer.nickname) || '—',
-            isSeller:    true,
-          });
-        }
-        panel.remove();
-        delete _openPanels[listingId];
+      Array.prototype.forEach.call(panel.querySelectorAll('.mk-buyer-row'), function(row) {
+        row.addEventListener('click', function() {
+          var sid  = row.getAttribute('data-session');
+          var sess = sessions.find(function(s){ return s.id === sid; });
+          if (typeof MarketplaceChat !== 'undefined') {
+            MarketplaceChat.open(sid, listingId, {
+              listingName: listingName,
+              buyerName:   (sess&&sess.buyer&&sess.buyer.nickname)||'—',
+              isSeller:    true,
+            });
+          }
+          panel.remove();
+        });
       });
-    });
+    }
+
+    // Close on outside click
+    setTimeout(function() {
+      global.document.addEventListener('click', function _closePanel(e) {
+        if (!panel.contains(e.target)) { panel.remove(); global.document.removeEventListener('click', _closePanel); }
+      });
+    }, 50);
 
     card.appendChild(panel);
-    _openPanels[listingId] = panel;
+    card.style.position = 'relative'; // ensure panel positions correctly
   }
 
-  // ── Start negotiation (buyer) ────────────────────────────────
+  // ── Start negotiation ─────────────────────────────────────────
   async function startNegotiation(listingId) {
     var user = _user();
     if (!user) { _toast('Faça login para negociar.', 'info'); return; }
@@ -127,7 +141,7 @@
     var card = global.document.querySelector('[data-listing-id="' + listingId + '"]');
     var btn  = card && card.querySelector('.mk-btn--negotiate');
     var orig = btn ? btn.textContent : '🤝 Negociar';
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Abrindo...'; }
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
       var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_start_negotiation', {
@@ -136,26 +150,21 @@
         body: JSON.stringify({ p_listing_id: listingId }),
       });
       var raw = await res.text();
-
       if (!res.ok) {
-        console.error('[PA.marketplace.trade] RPC error', { fn:'rpc_start_negotiation', status:res.status, raw:raw });
+        console.error('[trade session] start error', { status: res.status, body: raw });
         _toast('Erro ao iniciar negociação.', 'error');
         return;
       }
-
-      var data = null;
-      try { data = JSON.parse(raw); } catch(_) {}
-      console.log('[PA.marketplace.trade] rpc_start_negotiation result:', data);
+      var data = null; try { data = JSON.parse(raw); } catch(_){}
+      console.log('[trade session]', { event: 'start', result: data });
 
       if (data && data.success) {
         var listing = (global.PA&&global.PA.marketplace&&global.PA.marketplace.listings||[])
           .find(function(l){ return l.id === listingId; });
-
         if (typeof MarketplaceChat !== 'undefined') {
           MarketplaceChat.open(data.session_id, listingId, {
             listingName: listing ? listing.pokemon_name : '—',
             isSeller:    false,
-            reused:      !!data.reused,
           });
         }
         if (!data.reused) _toast('✅ Conversa iniciada!', 'success');
@@ -163,15 +172,15 @@
         _tel('mk-trade-started', { listingId: listingId });
       } else {
         var errMap = {
-          listing_unavailable:    'Este anúncio não está mais disponível.',
+          listing_unavailable:    'Este anúncio não está disponível.',
           cannot_buy_own_listing: 'Você não pode negociar seu próprio anúncio.',
           not_authenticated:      'Faça login para negociar.',
         };
-        _toast(errMap[(data&&data.error)] || 'Não foi possível iniciar.', 'error');
+        _toast(errMap[(data&&data.error)]||'Não foi possível iniciar.', 'error');
         if (btn) { btn.disabled = false; btn.textContent = orig; }
       }
-    } catch(err) {
-      console.error('[PA.marketplace.trade] startNegotiation error:', err.message);
+    } catch(e) {
+      console.error('[trade session] startNegotiation exception:', e.message);
       _toast('Erro ao iniciar negociação.', 'error');
       if (btn) { btn.disabled = false; btn.textContent = orig; }
     } finally {
@@ -179,55 +188,67 @@
     }
   }
 
-  // ── Realtime: trade_sessions ─────────────────────────────────
+  // ── Realtime via MarketplaceChannels ──────────────────────────
   function _initRealtime() {
-    global.document.addEventListener('trade_sessions:changed', function(e) {
-      try {
-        var d = (e&&e.detail)||{};
-        var tipo = d.event; var record = d.record||{};
-        var user = _user(); if (!user) return;
+    var ch = global.MarketplaceChannels;
+    if (!ch) return;
 
-        console.log('[trade_session]', { event: tipo, session: record });
-
-        // Seller: new session opened on MY listing → refresh badge
-        if (tipo === 'INSERT' && record.seller_id === user.id) {
-          _refreshBadge(record.listing_id);
+    // Sessions: new/updated session → refresh badge for seller
+    _sessionHandler = function(event, record) {
+      var user = _user(); if (!user) return;
+      if (record.seller_id === user.id) {
+        refreshBadge(record.listing_id);
+        if (event === 'INSERT') {
           _toast('💬 Novo comprador quer negociar!', 'info');
           if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
         }
+      }
+      if (event === 'UPDATE' && (record.buyer_id === user.id || record.seller_id === user.id)) {
+        if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
+      }
+    };
+    ch.register('sessions:*', _sessionHandler);
 
-        // UPDATE on a session I'm in
-        if (tipo === 'UPDATE') {
-          if (record.seller_id === user.id) _refreshBadge(record.listing_id);
-          if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
-        }
-      } catch(err) {}
-    });
+    // Listings: if listing sold → remove card
+    _listingHandler = function(event, record) {
+      if (event !== 'UPDATE' || record.status !== 'sold') return;
+      if (!global.PA || !global.PA.marketplace) return;
+      var listings = global.PA.marketplace.listings || [];
+      var exists = listings.some(function(l){ return l.id === record.id; });
+      if (!exists) return;
+      console.log('[listing update]', { event: 'sold', id: record.id });
+      global.PA.marketplace.listings = listings.filter(function(l){ return l.id !== record.id; });
+      var lEl = global.document.querySelector('[data-listing-id="' + record.id + '"]');
+      if (lEl) {
+        lEl.style.transition = 'opacity .3s, transform .3s';
+        lEl.style.opacity = '0';
+        setTimeout(function(){ lEl.remove(); }, 300);
+      }
+      if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
+    };
+    ch.register('listings:*', _listingHandler);
+
+    console.log('[subscription create] MarketplaceTrade realtime registered');
   }
 
-  async function _refreshBadge(listingId) {
-    var sessions = await fetchListingSessions(listingId);
-    updateConvBadge(listingId, sessions.length);
-  }
-
-  // ── Init ──────────────────────────────────────────────────────
   global.document.addEventListener('DOMContentLoaded', function() {
     _initRealtime();
     if (global.PA && global.PA.lifecycle) {
       global.PA.lifecycle.registerCleanup('marketplace-trade', function() {
+        if (global.MarketplaceChannels && _sessionHandler) global.MarketplaceChannels.unregister('sessions:*', _sessionHandler);
+        if (global.MarketplaceChannels && _listingHandler) global.MarketplaceChannels.unregister('listings:*', _listingHandler);
         _pendingLocks = {};
       });
     }
   });
 
   global.MarketplaceTrade = {
-    startNegotiation:  startNegotiation,
-    openBuyerPanel:    openBuyerPanel,
-    updateConvBadge:   updateConvBadge,
+    startNegotiation:     startNegotiation,
+    openBuyerPanel:       openBuyerPanel,
+    updateConvBadge:      updateConvBadge,
+    refreshBadge:         refreshBadge,
     fetchListingSessions: fetchListingSessions,
-    getStats: function() {
-      return { pendingLocks: Object.keys(_pendingLocks).length };
-    },
+    getStats: function() { return { pendingLocks: Object.keys(_pendingLocks).length }; },
   };
 
 }(window));
