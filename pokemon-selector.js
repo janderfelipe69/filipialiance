@@ -47,12 +47,47 @@
       .replace(/[^a-z0-9\-]/g, '');
   }
 
-  // ── Fonte de pokémons: POKEMONS de dados.js ──────────────────
+  // ── Cache de pokémons completo (ativo + inativo) para o marketplace ─────────
+  var _allPokemons = [];  // populated by _loadAllPokemons on first use
+  var _loadingAll  = false;
+
+  async function _loadAllPokemons() {
+    if (_allPokemons.length || _loadingAll) return;
+    _loadingAll = true;
+    try {
+      var jwt = typeof Session !== 'undefined' && Session.getAccessToken ? Session.getAccessToken() : null;
+      var headers = { 'apikey': global.SUPABASE_KEY };
+      if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
+
+      // Busca TODOS os pokémons (ativo E inativo) para o seletor do marketplace
+      // is_active=false são os pokémons desabilitados para compra mas precisam
+      // estar disponíveis no seletor pois suas sprites são as mesmas da captura
+      var res = await fetch(
+        global.SUPABASE_URL + '/rest/v1/catalog_pokemons?select=id,name,tier,is_active&order=name',
+        { headers: headers }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      _allPokemons = Array.isArray(data) ? data : [];
+      _log('Carregados', _allPokemons.length, 'pokémons (ativo + inativo) para o seletor');
+    } catch(e) {
+      _warn('_loadAllPokemons error:', e.message);
+    } finally {
+      _loadingAll = false;
+    }
+  }
+
+  // ── Fonte de pokémons ─────────────────────────────────────────
+  // Para o marketplace: usa todos (is_active=true E false)
+  // Para compatibilidade com o restante do site: usa window.POKEMONS (apenas ativos)
   function _getSource() {
-    var raw = global.POKEMONS || global.window && global.window.POKEMONS;
-    if (Array.isArray(raw)) return raw;
-    // Fallback: extrai nomes únicos dos items se POKEMONS não existir
-    var items = global.items || global.window && global.window.items;
+    // Se temos o cache completo (marketplace), usá-lo
+    if (_allPokemons.length) return _allPokemons;
+    // Fallback: POKEMONS global (somente ativos, carregado pelo db-bootstrap)
+    var raw = global.POKEMONS || (global.window && global.window.POKEMONS);
+    if (Array.isArray(raw) && raw.length) return raw;
+    // Último fallback: items
+    var items = global.items || (global.window && global.window.items);
     if (Array.isArray(items)) return items.map(function(it){ return { name: it.name }; });
     return [];
   }
@@ -67,27 +102,42 @@
     }, 180);
   }
 
-  function _doSearch(query, callback) {
-    if (!query || query.length < 2) { callback([]); return; }
-    var q = query.toLowerCase().trim();
-    var source = _getSource();
+  function _runSearch(q, source, callback) {
     var results = source
       .filter(function (p) {
         var name = (p.name || p[0] || '').toLowerCase();
         return name.includes(q);
       })
-      .slice(0, 12)
+      .slice(0, 15)
       .map(function (p) {
         var name = p.name || p[0] || '';
         var spr  = _sprites(name);
         return {
-          name:  name,
-          slug:  toSlug(name),
-          types: p.types || p.pokemon_types || [],
+          name:   name,
+          slug:   toSlug(name),
+          types:  p.types || p.pokemon_types || [],
           sprite: spr ? spr.static : null,
+          tag:    p.tag || p.tier || '',
         };
       });
     callback(results);
+  }
+
+  function _doSearch(query, callback) {
+    if (!query || query.length < 2) { callback([]); return; }
+    var q = query.toLowerCase().trim();
+
+    // Trigger background load of full pokemon list if not yet loaded
+    if (!_allPokemons.length && !_loadingAll) {
+      _loadAllPokemons().then(function() {
+        // Re-run search after loading
+        var source = _getSource();
+        _runSearch(q, source, callback);
+      });
+    }
+
+    var source = _getSource();
+    _runSearch(q, source, callback);
   }
 
   // ── Mount: vincula ao input e cria dropdown ───────────────────
@@ -169,7 +219,7 @@
     });
   }
 
-  global.PokemonSelector = { mount: mount, search: search, toSlug: toSlug };
+  global.PokemonSelector = { mount: mount, search: search, toSlug: toSlug, loadAll: _loadAllPokemons };
   _log('pokemon-selector.js v1 pronto');
 
 }(window));
