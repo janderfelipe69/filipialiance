@@ -32,6 +32,8 @@
   var OFFICIAL_EVENTS = [
     'captura:rendered', 'items:rendered', 'packages:rendered',
     'pedidos:rendered', 'wiki:rendered', 'tab:changed', 'cart:updated',
+    // Marketplace M1
+    'marketplace:listing_created', 'marketplace:listing_updated', 'marketplace:listing_deleted',
   ];
 
   // ── Registro de handlers: { eventName → [ { id, fn, ts, callCount } ] } ──

@@ -6,9 +6,10 @@
 // ============================================================
 
 const TABS_CONFIG = {
-  itens:     true,
-  pacotes:   true,
-  captura:   true,
-  entregas:  true,
-  wiki:      true,
+  itens:       true,
+  pacotes:     true,
+  captura:     true,
+  entregas:    true,
+  wiki:        true,
+  marketplace: true,   // Fase M1 — aba marketplace
 };

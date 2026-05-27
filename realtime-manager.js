@@ -50,6 +50,12 @@
       customEvent: 'delivery:changed',
       topic:      'realtime:public:delivery_proofs',
     },
+    // Marketplace M1 — adicionado de forma não-destrutiva
+    {
+      table:      'marketplace_listings',
+      customEvent: 'marketplace_listings:changed',
+      topic:      'realtime:public:marketplace_listings',
+    },
   ];
 
   // ── Logging ────────────────────────────────────────────────────────────

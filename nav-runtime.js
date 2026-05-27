@@ -33,12 +33,13 @@
   ═══════════════════════════════════════════════════════════════ */
 
   var MAIN_TABS = {
-    itens:    '#itens',
-    pacotes:  '#pacotes',
-    captura:  '#captura',
-    entregas: '#entregas',
-    pedidos:  '#pedidos',
-    wiki:     '#wiki',
+    itens:       '#itens',
+    pacotes:     '#pacotes',
+    captura:     '#captura',
+    entregas:    '#entregas',
+    pedidos:     '#pedidos',
+    wiki:        '#wiki',
+    marketplace: '#marketplace',   // Fase M1
   };
 
   /* ═══════════════════════════════════════════════════════════════

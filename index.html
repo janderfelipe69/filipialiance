@@ -139,6 +139,10 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Afiliado
   </button>
+  <button class="tab-btn tab-btn--marketplace" onclick="switchTab('marketplace', this); PA.marketplace && PA.marketplace.onTabActivated()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    Marketplace
+  </button>
   <button class="tab-btn tab-btn--wiki" onclick="switchTab('wiki', this)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     Wiki
@@ -1245,6 +1249,9 @@
     </div>
   </div>
 </div>
+
+<!-- Marketplace M1 -->
+<link rel="stylesheet" href="css/marketplace.css">
 
 <script src="supabase-client.js"></script>
 <script src="db-bootstrap.js"></script>
@@ -2389,6 +2396,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+</script>
+
+<!-- TAB: MARKETPLACE -->
+<div class="tab-content" id="tab-marketplace"><div class="mk-wrap"><div id="marketplace-list"></div></div></div>
+<!-- Marketplace M1 scripts -->
+<script src="js/marketplace.js"></script>
+<script src="js/marketplace-render.js"></script>
+<script src="js/helds-catalog.js"></script>
+<script src="js/pokemon-selector.js"></script>
+<script src="js/marketplace-create.js"></script>
+<!-- Marketplace filter helpers (inline) -->
+<script>
+function _mkFilter(btn, type) {
+  document.querySelectorAll('.mk-filter-chip').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('type', type);
+}
+function _mkSearch(q) {
+  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('search', q);
+}
 </script>
 </body>
 </html>
