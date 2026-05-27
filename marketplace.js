@@ -132,7 +132,7 @@
 
     try {
       var url = SB_URL + '/rest/v1/marketplace_listings'
-        + '?status=eq.active'
+        + '?status=in.(active,locked)'
         + '&order=updated_at.desc'
         + '&limit=100'
         + '&select=*,helds_x:held_x_id(id,name,sprite_url,category,rarity),helds_y:held_y_id(id,name,sprite_url,category,rarity)';
