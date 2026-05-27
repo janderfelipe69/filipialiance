@@ -132,7 +132,7 @@
 
     try {
       var url = SB_URL + '/rest/v1/marketplace_listings'
-        + '?status=in.(active,negotiating)'
+        + '?status=eq.active'
         + '&order=updated_at.desc'
         + '&limit=100'
         + '&select=*,helds_x:held_x_id(id,name,sprite_url,category,rarity,description,bonus),helds_y:held_y_id(id,name,sprite_url,category,rarity,description,bonus)';
@@ -153,6 +153,17 @@
       _state.lastFetch = Date.now();
       _state.loading = false;
       _log('[PA.marketplace.fetch] ' + _state.listings.length + ' listings carregados');
+      // Refresh conversation badges for seller's own listings
+      var me = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+      if (me && typeof MarketplaceTrade !== 'undefined') {
+        _state.listings.forEach(function(l) {
+          if (l.seller_id === me.id) {
+            MarketplaceTrade.fetchListingSessions(l.id).then(function(sessions) {
+              MarketplaceTrade.updateConvBadge(l.id, sessions.length);
+            });
+          }
+        });
+      }
       _tel('marketplace-fetch', { count: _state.listings.length });
       _triggerRender('fetch-complete');
 
