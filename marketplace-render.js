@@ -91,7 +91,6 @@
     if (!training || typeof training !== 'object') return '';
     var rows = TRAIN_STATS
       .filter(function(s){ var v=training[s.key]; return v && (v.pct > 0 || v.level > 0); })
-      .slice(0, 4)
       .map(function(s){
         var v = training[s.key] || {};
         var pct = Math.min(100, Math.max(0, Number(v.pct) || 0));
