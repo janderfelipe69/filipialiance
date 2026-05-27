@@ -529,17 +529,21 @@
       + '  <span class="mk-field-error" id="mk-err-boost"></span>'
       + '</div>'
 
-      // Held X
+      // Held X picker
       + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-held-x">Held X</label>'
-      + '  <select class="mk-select" id="mk-held-x"><option value="">— Carregando... —</option></select>'
+      + '  <label class="mk-label">Held X <span class="mk-held-selected-name" id="mk-held-x-name"></span></label>'
+      + '  <div class="held-picker-grid" id="mk-held-x-grid" role="group" aria-label="Selecionar Held X">'
+      + '    <div class="held-picker-loading">Carregando helds...</div>'
+      + '  </div>'
       + '  <span class="mk-field-error" id="mk-err-held_x"></span>'
       + '</div>'
 
-      // Held Y
+      // Held Y picker
       + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-held-y">Held Y</label>'
-      + '  <select class="mk-select" id="mk-held-y"><option value="">— Carregando... —</option></select>'
+      + '  <label class="mk-label">Held Y <span class="mk-held-selected-name" id="mk-held-y-name"></span></label>'
+      + '  <div class="held-picker-grid" id="mk-held-y-grid" role="group" aria-label="Selecionar Held Y">'
+      + '    <div class="held-picker-loading">Carregando helds...</div>'
+      + '  </div>'
       + '  <span class="mk-field-error" id="mk-err-held_y"></span>'
       + '</div>'
 
@@ -672,24 +676,108 @@
     if (obsEl) obsEl.addEventListener('input', function () { _form.observations = obsEl.value; });
   }
 
-  // ── Populate held selects ─────────────────────────────────────
-  function _populateHelds() {
-    function _fill(selectId, category, currentId) {
-      var sel = global.document.getElementById(selectId);
-      if (!sel) return;
-      function _render(helds) {
-        var opts = '<option value="">— Nenhum —</option>';
-        helds.forEach(function (h) {
-          opts += '<option value="' + _esc(h.id) + '"' + (h.id === currentId ? ' selected' : '') + '>'
-            + _esc(h.name)
-            + (h.rarity ? ' [' + _esc(h.rarity) + ']' : '')
-            + '</option>';
-        });
-        sel.innerHTML = opts;
-        sel.addEventListener('change', function () {
-          _form[category === 'X' ? 'held_x_id' : 'held_y_id'] = sel.value || null;
-        });
+  // ── Held picker — build a single card element ─────────────────
+  function _buildHeldCard(held, category, currentId) {
+    var isSelected = held.id === currentId;
+    var imgSrc = held.sprite_url || '';
+    var desc   = _esc(held.description || '');
+
+    var card = global.document.createElement('button');
+    card.type = 'button';
+    card.className = 'held-card' + (isSelected ? ' selected' : '');
+    card.setAttribute('data-id',       held.id);
+    card.setAttribute('data-category', category);
+    card.setAttribute('aria-pressed',  isSelected ? 'true' : 'false');
+    card.setAttribute('aria-label',    held.name + (held.description ? ': ' + held.description : ''));
+
+    var img = global.document.createElement('img');
+    img.src = imgSrc;
+    img.alt = '';
+    img.setAttribute('aria-hidden', 'true');
+    if (!imgSrc) img.style.display = 'none';
+
+    var fallback = global.document.createElement('span');
+    fallback.className = 'held-card__fallback';
+    fallback.setAttribute('aria-hidden', 'true');
+    fallback.textContent = '✦';
+    if (imgSrc) fallback.style.display = 'none';
+
+    img.addEventListener('error', function () {
+      img.style.display = 'none';
+      fallback.style.display = '';
+    });
+
+    var nameEl = global.document.createElement('span');
+    nameEl.textContent = held.name;
+
+    var tooltip = global.document.createElement('div');
+    tooltip.className = 'held-tooltip';
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.innerHTML = desc
+      ? '<strong>' + _esc(held.name) + '</strong><p>' + desc + '</p>'
+      : '<strong>' + _esc(held.name) + '</strong>';
+
+    card.appendChild(img);
+    card.appendChild(fallback);
+    card.appendChild(nameEl);
+    card.appendChild(tooltip);
+
+    card.addEventListener('click', function () {
+      var formKey = category === 'X' ? 'held_x_id' : 'held_y_id';
+      var gridId  = category === 'X' ? 'mk-held-x-grid' : 'mk-held-y-grid';
+      var nameId  = category === 'X' ? 'mk-held-x-name' : 'mk-held-y-name';
+
+      if (_form[formKey] === held.id) {
+        _form[formKey] = null;
+        card.classList.remove('selected');
+        card.setAttribute('aria-pressed', 'false');
+      } else {
+        var grid = global.document.getElementById(gridId);
+        if (grid) {
+          Array.prototype.forEach.call(grid.querySelectorAll('.held-card.selected'), function (c) {
+            c.classList.remove('selected');
+            c.setAttribute('aria-pressed', 'false');
+          });
+        }
+        _form[formKey] = held.id;
+        card.classList.add('selected');
+        card.setAttribute('aria-pressed', 'true');
       }
+
+      var nameLabel = global.document.getElementById(nameId);
+      if (nameLabel) {
+        var sel = _form[formKey] ? HeldsCatalog.getById(_form[formKey]) : null;
+        nameLabel.textContent = sel ? '— ' + sel.name : '';
+      }
+    });
+
+    return card;
+  }
+
+  // ── Populate held grids ───────────────────────────────────────
+  function _populateHelds() {
+    function _fill(gridId, category, currentId) {
+      var grid = global.document.getElementById(gridId);
+      if (!grid) return;
+
+      function _render(helds) {
+        grid.innerHTML = '';
+        if (!helds || !helds.length) {
+          grid.innerHTML = '<span class="held-picker-empty">Nenhum held disponível.</span>';
+          return;
+        }
+        helds.forEach(function (h) {
+          grid.appendChild(_buildHeldCard(h, category, currentId));
+        });
+
+        var nameId = category === 'X' ? 'mk-held-x-name' : 'mk-held-y-name';
+        var nameLabel = global.document.getElementById(nameId);
+        if (nameLabel && currentId) {
+          var current = HeldsCatalog.getById(currentId);
+          if (current) nameLabel.textContent = '— ' + current.name;
+        }
+      }
+
       if (typeof HeldsCatalog !== 'undefined') {
         if (HeldsCatalog.isLoaded()) {
           _render(HeldsCatalog.getByCategory(category));
@@ -698,8 +786,9 @@
         }
       }
     }
-    _fill('mk-held-x', 'X', _form.held_x_id);
-    _fill('mk-held-y', 'Y', _form.held_y_id);
+
+    _fill('mk-held-x-grid', 'X', _form.held_x_id);
+    _fill('mk-held-y-grid', 'Y', _form.held_y_id);
   }
 
   // ── Prefill form values into DOM (edit mode) ──────────────────
