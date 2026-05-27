@@ -237,11 +237,19 @@
       _state.initialized = true;
       _registerWithRegistry();
       fetchListings(true);
-      if (typeof HeldsCatalog !== 'undefined') HeldsCatalog.load();
+      if (typeof HeldsCatalog !== 'undefined') {
+        HeldsCatalog.load();
+        // Render "+ Held" admin button if admin
+        setTimeout(function() {
+          if (typeof HeldsCatalog.renderAdminButton === 'function') HeldsCatalog.renderAdminButton();
+        }, 100);
+      }
       _log('Tab marketplace ativada — inicialização completa');
     } else {
-      // Refetch suave em re-visita
       fetchListings(false);
+      if (typeof HeldsCatalog !== 'undefined' && typeof HeldsCatalog.renderAdminButton === 'function') {
+        HeldsCatalog.renderAdminButton();
+      }
     }
   }
 

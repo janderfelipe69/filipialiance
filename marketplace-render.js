@@ -146,7 +146,8 @@
 
     // Negotiate button for non-owner buyers (disabled in locked/sold state)
     var negotiateHtml = '';
-    var canNegotiate = !isOwner && !isAdmin && (status === 'active' || status === 'locked');
+    // Admin is a normal buyer for listings they don't own (Bug 3 fix)
+    var canNegotiate = !isOwner && (status === 'active' || status === 'locked');
     if (canNegotiate) {
       var isLocked = status === 'locked';
       negotiateHtml = '<div class="mk-card-negotiate">'
@@ -287,7 +288,8 @@
         if (oldNegotiate) oldNegotiate.remove();
 
         // Rebuild negotiate button (buyer only)
-        var canNegotiateMorph = !isOwnerMorph && !isAdminMorph &&
+        // Admin negotiates as a normal buyer (Bug 3 fix)
+        var canNegotiateMorph = !isOwnerMorph &&
           (newStatus === 'active' || newStatus === 'locked');
         if (canNegotiateMorph) {
           var negWrap = global.document.createElement('div');

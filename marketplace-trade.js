@@ -159,6 +159,9 @@
 
   // ── RPC helper ───────────────────────────────────────────────
   async function _rpc(fn, params) {
+    // DEBUG LOG (BUG 2 diagnosis)
+    console.log('[captureItems.race] _rpc call', { fn: fn, params: params, hasJwt: !!_jwt() });
+
     var res = await fetch(SB_URL + '/rest/v1/rpc/' + fn, {
       method: 'POST',
       headers: {
@@ -169,9 +172,25 @@
       body: JSON.stringify(params || {}),
     });
     var raw = await res.text();
+
+    // ALWAYS log raw response for 400/500 — critical for diagnosing RPC errors
+    if (!res.ok) {
+      console.error('[PA.marketplace.trade] RPC error', {
+        fn:     fn,
+        status: res.status,
+        raw:    raw,
+        params: params,
+      });
+    }
+
     var data = null;
     try { data = raw ? JSON.parse(raw) : null; } catch (_) {}
-    if (!res.ok) throw new Error((data && (data.message || data.hint)) || 'HTTP ' + res.status);
+    if (!res.ok) {
+      var errMsg = (data && (data.message || data.hint || data.details))
+        || raw
+        || ('HTTP ' + res.status);
+      throw new Error(errMsg);
+    }
     return data;
   }
 
@@ -388,8 +407,15 @@
       } else {
         result = await _rpc('rpc_start_negotiation', { p_listing_id: listingId });
       }
+      // Debug: log exactly what was sent
+      console.log('[PA.marketplace.trade] rpc_start_negotiation sent', {
+        listingId: listingId,
+        authUser: _user() ? _user().id : null,
+        payload: { p_listing_id: listingId },
+        rpcName: 'rpc_start_negotiation',
+      });
 
-      console.log('[PA.marketplace.trade] rpc_start_negotiation:', result);
+      console.log('[PA.marketplace.trade] rpc_start_negotiation result:', result);
 
       if (result && result.success) {
         var session = { session_id: result.session_id, expires_at: result.expires_at, buyer_id: user.id };
