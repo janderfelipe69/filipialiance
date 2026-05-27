@@ -45,7 +45,7 @@
       // Join: trade_sessions + last message + listing info
       var url = SB_URL + '/rest/v1/trade_sessions'
         + '?or=(buyer_id.eq.' + user.id + ',seller_id.eq.' + user.id + ')'
-        + '&status=neq.expired'
+        + '&status=in.(active,negotiating,completed,cancelled,refused)'
         + '&order=updated_at.desc'
         + '&limit=30'
         + '&select=*'
@@ -238,7 +238,7 @@
     console.log('[trade_session]', { event: tipo, session: record });
 
     // Seller: new negotiation started on MY listing
-    if (tipo === 'INSERT' && record.status === 'active' && record.seller_id === user.id) {
+    if (tipo === 'INSERT' && (record.status === 'active' || record.status === 'negotiating') && record.seller_id === user.id) {
       _log('Seller notified of new negotiation');
       _toast('💬 ' + (record.buyer_nickname || 'Um comprador') + ' quer negociar!', 'info');
       _tel('marketplace-inbox-seller-notified', { sessionId: record.id });

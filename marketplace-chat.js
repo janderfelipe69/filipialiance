@@ -229,37 +229,59 @@
   }
 
   // ── Realtime ──────────────────────────────────────────────────
-  // M3.1: reconnect recovery — if chat is open and WS reconnects,
-  // re-fetch history to pick up missed messages
+  // Listens on the global trade_messages:changed CustomEvent emitted by
+  // realtime-manager. Filters to _activeSessionId only.
+  // On reconnect (realtime:status='connected'), re-fetches history to
+  // recover any missed messages.
   var _lastReconnectTs = 0;
 
-  function _initRealtime() {
-    global.document.addEventListener('trade_messages:changed', function(e) {
-      try {
-        var detail = e.detail || {};
-        var tipo   = detail.event;
-        var record = detail.record || {};
+  function _handleRealtimeMessage(e) {
+    try {
+      var detail = (e && e.detail) || {};
+      var tipo   = detail.event;
+      var record = detail.record || {};
 
-        if (record.session_id !== _activeSessionId) return;
+      if (record.session_id !== _activeSessionId) return;
 
-        console.log('[PA.marketplace.chat] realtime message:', tipo, record.id);
+      console.log('[incoming_message]', { event: tipo, id: record.id, sessionId: record.session_id });
 
-        if (tipo === 'INSERT' && !record.is_deleted) {
-          // S2: realtime packet versioning
-          var _sv = global.PA && global.PA.realtimeVersions;
-          if (!_sv || _sv.shouldApply('trade_msg:' + record.id, record.created_at)) {
-            _appendMessage(record);
+      if (tipo === 'INSERT' && !record.is_deleted) {
+        var _sv = global.PA && global.PA.realtimeVersions;
+        if (!_sv || _sv.shouldApply('trade_msg:' + record.id, record.created_at)) {
+          _appendMessage(record);
+          // Mark seen if chat is open (user is looking at it)
+          if (_chatEl && _chatEl.style.display !== 'none') {
+            _markSeenDebounced(record.session_id);
           }
-        } else if (tipo === 'UPDATE' && record.is_deleted) {
-          var el = _chatEl && _chatEl.querySelector('[data-msg-id="' + record.id + '"]');
-          if (el) el.innerHTML = '<div class="mk-chat-bubble mk-chat-bubble--deleted"><em>Mensagem removida</em></div>';
         }
-      } catch (err) {
-        _warn('realtime trade_messages error:', err.message);
+      } else if (tipo === 'UPDATE' && record.is_deleted) {
+        var el = _chatEl && _chatEl.querySelector('[data-msg-id="' + record.id + '"]');
+        if (el) el.innerHTML = '<div class="mk-chat-bubble mk-chat-bubble--deleted"><em>Mensagem removida</em></div>';
       }
-    });
+    } catch (err) {
+      _warn('realtime trade_messages error:', err.message);
+    }
+  }
 
-    // M3.1: on realtime reconnect, re-fetch history for open sessions
+  // Debounced mark-seen to avoid spamming the RPC on every message
+  var _markSeenTimer = null;
+  function _markSeenDebounced(sessionId) {
+    clearTimeout(_markSeenTimer);
+    _markSeenTimer = setTimeout(function() {
+      var jwt = _jwt();
+      if (!jwt || !sessionId) return;
+      fetch(global.SUPABASE_URL + '/rest/v1/rpc/rpc_mark_messages_seen', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','apikey':global.SUPABASE_KEY,'Authorization':'Bearer '+jwt },
+        body: JSON.stringify({ p_session_id: sessionId }),
+      }).catch(function(){});
+    }, 1500);
+  }
+
+  function _initRealtime() {
+    global.document.addEventListener('trade_messages:changed', _handleRealtimeMessage);
+
+    // Reconnect recovery: re-fetch history to pick up missed messages
     global.document.addEventListener('realtime:status', function(e) {
       var detail = (e && e.detail) || {};
       if (detail.status === 'connected' && _activeSessionId) {
@@ -267,9 +289,9 @@
         if (now - _lastReconnectTs > 5000) {
           _lastReconnectTs = now;
           _realtimeConCount++;
-          _log('[PA.marketplace.chat] realtime reconnected — re-fetching history (#' + _realtimeConCount + ')');
+          _log('realtime reconnected — re-fetching history (#' + _realtimeConCount + ')');
           _fetchHistory(_activeSessionId).then(function(msgs) {
-            msgs.forEach(function(msg) { _appendMessage(msg); }); // dedup will skip seen
+            msgs.forEach(function(msg) { _appendMessage(msg); });
           });
         }
       }

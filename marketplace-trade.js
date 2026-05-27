@@ -203,9 +203,9 @@
   function _morphToLocked(listingId, session) {
     var card = _findCard(listingId);
     if (!card) return;
-    if (card.getAttribute('data-status') === 'locked') return; // already locked
+    if (card.getAttribute('data-status') === 'negotiating') return; // already locked
 
-    card.setAttribute('data-status', 'locked');
+    card.setAttribute('data-status', 'negotiating');
     card.className = 'mk-card mk-card--locked';
 
     var badge = card.querySelector('.mk-status-badge');
@@ -226,7 +226,7 @@
     _startTimerRAF();
 
     console.log('[PA.marketplace.trade] morphed', listingId, '→ locked');
-    _tel('marketplace-trade-morph', { listingId: listingId, toStatus: 'locked' });
+    _tel('marketplace-trade-morph', { listingId: listingId, toStatus: 'negotiating' });
   }
 
   // ── Morph: active (unlock) ────────────────────────────────────
@@ -330,7 +330,7 @@
 
     try {
       // Scan all locked cards in DOM
-      var lockedCards = global.document.querySelectorAll('[data-status="locked"][data-listing-id]');
+      var lockedCards = global.document.querySelectorAll('[data-status="negotiating"][data-listing-id]');
       if (!lockedCards.length) { _orphanCheckRunning = false; return; }
 
       _log('[PA.marketplace.trade] orphan scan:', lockedCards.length, 'locked cards');

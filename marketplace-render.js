@@ -180,9 +180,9 @@
     // Negotiate button for non-owner buyers (disabled in locked/sold state)
     var negotiateHtml = '';
     // Admin is a normal buyer for listings they don't own (Bug 3 fix)
-    var canNegotiate = !isOwner && (status === 'active' || status === 'locked');
+    var canNegotiate = !isOwner && (status === 'active' || status === 'negotiating');
     if (canNegotiate) {
-      var isLocked = status === 'locked';
+      var isLocked = status === 'negotiating';
       negotiateHtml = '<div class="mk-card-negotiate">'
         + '<button class="mk-btn mk-btn--primary mk-btn--negotiate"'
         + (isLocked ? ' disabled' : '')
@@ -323,13 +323,13 @@
         // Rebuild negotiate button (buyer only)
         // Admin negotiates as a normal buyer (Bug 3 fix)
         var canNegotiateMorph = !isOwnerMorph &&
-          (newStatus === 'active' || newStatus === 'locked');
+          (newStatus === 'active' || newStatus === 'negotiating');
         if (canNegotiateMorph) {
           var negWrap = global.document.createElement('div');
           var negBtn = global.document.createElement('button');
           negBtn.className = 'mk-btn mk-btn--primary mk-btn--negotiate';
-          negBtn.disabled = newStatus === 'locked';
-          negBtn.textContent = newStatus === 'locked' ? '⏳ Em negociação' : '🤝 Negociar';
+          negBtn.disabled = newStatus === 'negotiating';
+          negBtn.textContent = newStatus === 'negotiating' ? '⏳ Em negociação' : '🤝 Negociar';
           negBtn.setAttribute('onclick',
             'event.stopPropagation();MarketplaceTrade&&MarketplaceTrade.startNegotiation(\'' + _esc(listing.id) + '\')');
           negWrap.className = 'mk-card-negotiate';
