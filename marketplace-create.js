@@ -270,29 +270,100 @@
     }
   }
 
-  // ── Cancel listing ────────────────────────────────────────────
+  // ── Cancel listing — soft delete (status = 'cancelled') ───────
   async function cancelListing(listingId) {
     if (!listingId) return;
+
     var user = _user();
-    if (!user) return;
+    if (!user) { _toast('Faça login para cancelar.', 'error'); return; }
 
     var confirmed = global.confirm ? global.confirm('Cancelar este anúncio?') : true;
     if (!confirmed) return;
 
-    try {
-      await _patchListing(listingId, { status: 'deleted' });
+    // ── Optimistic UI: remove card immediately ──────────────────
+    var store = global.PA && global.PA.marketplace;
+    if (store) {
+      store.listings = (store.listings || []).filter(function(l){ return l.id !== listingId; });
+      _triggerRender();
+    }
 
-      // Remove do estado local imediatamente
-      if (global.PA && global.PA.marketplace) {
-        global.PA.marketplace.listings = (global.PA.marketplace.listings || [])
-          .filter(function(l){ return l.id !== listingId; });
-        _triggerRender();
+    try {
+      var patch = {
+        status:       'cancelled',
+        cancelled_at: new Date().toISOString(),
+      };
+
+      var res = await fetch(
+        SB_URL + '/rest/v1/marketplace_listings?id=eq.' + encodeURIComponent(listingId),
+        {
+          method:  'PATCH',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        SB_KEY,
+            'Authorization': 'Bearer ' + (_jwt() || ''),
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify(patch),
+        }
+      );
+
+      var rawBody = await res.text().catch(function(){ return ''; });
+      _log('[cancelListing] PATCH', res.status, listingId);
+
+      if (!res.ok) {
+        var parsed = null;
+        try { parsed = JSON.parse(rawBody); } catch (_) {}
+
+        // Full diagnostic log for debugging RLS 403s
+        console.error('[cancelListing]', {
+          listingId:    listingId,
+          userId:       user.id,
+          httpStatus:   res.status,
+          supabaseCode: parsed && parsed.code,
+          hint:         parsed && parsed.hint,
+          message:      parsed && parsed.message,
+          rawBody:      rawBody,
+        });
+
+        // Revert optimistic removal — fetch current state from server
+        _warn('cancelListing: PATCH falhou (' + res.status + ') — revertendo estado local');
+        try {
+          var revertRes = await fetch(
+            SB_URL + '/rest/v1/marketplace_listings?id=eq.' + encodeURIComponent(listingId) + '&select=*',
+            { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (_jwt() || '') } }
+          );
+          if (revertRes.ok) {
+            var revertData = await revertRes.json().catch(function(){ return []; });
+            var restored = Array.isArray(revertData) ? revertData[0] : null;
+            if (restored && store) {
+              store.listings = (store.listings || []).concat([restored]);
+              _triggerRender();
+            }
+          }
+        } catch (_) {}
+
+        var userMsg = 'Erro ao cancelar anúncio.';
+        if (res.status === 403 || res.status === 401) {
+          userMsg = 'Sem permissão. Verifique se você é o dono do anúncio.';
+          userMsg += ' (RLS 403 — execute o SQL da policy marketplace_cancel_own_listing)';
+        } else if (res.status === 404) {
+          userMsg = 'Anúncio não encontrado.';
+        } else if (parsed && parsed.message) {
+          userMsg = parsed.message;
+        }
+        _toast(userMsg, 'error');
+        return;
       }
-      _toast('Anúncio cancelado.', 'info');
-      _tel('marketplace-listing-cancelled', { id: listingId });
+
+      // Success — optimistic state already applied above
+      _toast('✅ Anúncio cancelado.', 'success');
+      _tel('marketplace-listing-cancelled', { id: listingId, userId: user.id });
+      _log('cancelListing: ok', listingId);
+
     } catch (err) {
-      _warn('cancelListing error:', err.message);
-      _toast('Erro ao cancelar. Tente novamente.', 'error');
+      console.error('[cancelListing]', { listingId: listingId, userId: user.id, error: err });
+      _warn('cancelListing exception:', err.message);
+      _toast('Erro de rede ao cancelar. Tente novamente.', 'error');
     }
   }
 
@@ -458,21 +529,17 @@
       + '  <span class="mk-field-error" id="mk-err-boost"></span>'
       + '</div>'
 
-      // Held X picker
+      // Held X
       + '<div class="mk-field">'
-      + '  <label class="mk-label">Held X <span class="mk-held-selected-name" id="mk-held-x-name"></span></label>'
-      + '  <div class="held-picker-grid" id="mk-held-x-grid" role="group" aria-label="Selecionar Held X">'
-      + '    <div class="held-picker-loading">Carregando helds...</div>'
-      + '  </div>'
+      + '  <label class="mk-label" for="mk-held-x">Held X</label>'
+      + '  <select class="mk-select" id="mk-held-x"><option value="">— Carregando... —</option></select>'
       + '  <span class="mk-field-error" id="mk-err-held_x"></span>'
       + '</div>'
 
-      // Held Y picker
+      // Held Y
       + '<div class="mk-field">'
-      + '  <label class="mk-label">Held Y <span class="mk-held-selected-name" id="mk-held-y-name"></span></label>'
-      + '  <div class="held-picker-grid" id="mk-held-y-grid" role="group" aria-label="Selecionar Held Y">'
-      + '    <div class="held-picker-loading">Carregando helds...</div>'
-      + '  </div>'
+      + '  <label class="mk-label" for="mk-held-y">Held Y</label>'
+      + '  <select class="mk-select" id="mk-held-y"><option value="">— Carregando... —</option></select>'
       + '  <span class="mk-field-error" id="mk-err-held_y"></span>'
       + '</div>'
 
@@ -605,117 +672,24 @@
     if (obsEl) obsEl.addEventListener('input', function () { _form.observations = obsEl.value; });
   }
 
-  // ── Held picker — build a single card element ─────────────────
-  function _buildHeldCard(held, category, currentId) {
-    var isSelected = held.id === currentId;
-    var imgSrc = held.sprite_url || '';
-    var desc   = _esc(held.description || '');
-
-    var card = global.document.createElement('button');
-    card.type = 'button';
-    card.className = 'held-card' + (isSelected ? ' selected' : '');
-    card.setAttribute('data-id',       held.id);
-    card.setAttribute('data-category', category);
-    card.setAttribute('aria-pressed',  isSelected ? 'true' : 'false');
-    card.setAttribute('aria-label',    held.name + (held.description ? ': ' + held.description : ''));
-
-    // Image
-    var img = global.document.createElement('img');
-    img.src   = imgSrc;
-    img.alt   = '';
-    img.setAttribute('aria-hidden', 'true');
-    if (!imgSrc) img.style.display = 'none';
-
-    // Fallback icon when no sprite
-    var fallback = global.document.createElement('span');
-    fallback.className = 'held-card__fallback';
-    fallback.setAttribute('aria-hidden', 'true');
-    fallback.textContent = '✦';
-    if (imgSrc) fallback.style.display = 'none';
-
-    img.addEventListener('error', function () {
-      img.style.display = 'none';
-      fallback.style.display = '';
-    });
-
-    // Name
-    var nameEl = global.document.createElement('span');
-    nameEl.textContent = held.name;
-
-    // Tooltip
-    var tooltip = global.document.createElement('div');
-    tooltip.className = 'held-tooltip';
-    tooltip.setAttribute('role', 'tooltip');
-    tooltip.innerHTML = desc
-      ? '<strong>' + _esc(held.name) + '</strong><p>' + desc + '</p>'
-      : '<strong>' + _esc(held.name) + '</strong>';
-
-    card.appendChild(img);
-    card.appendChild(fallback);
-    card.appendChild(nameEl);
-    card.appendChild(tooltip);
-
-    // Click: toggle selection
-    card.addEventListener('click', function () {
-      var formKey = category === 'X' ? 'held_x_id' : 'held_y_id';
-      var gridId  = category === 'X' ? 'mk-held-x-grid' : 'mk-held-y-grid';
-      var nameId  = category === 'X' ? 'mk-held-x-name' : 'mk-held-y-name';
-
-      if (_form[formKey] === held.id) {
-        // Deselect
-        _form[formKey] = null;
-        card.classList.remove('selected');
-        card.setAttribute('aria-pressed', 'false');
-      } else {
-        // Select — deselect others in same grid
-        var grid = global.document.getElementById(gridId);
-        if (grid) {
-          Array.prototype.forEach.call(grid.querySelectorAll('.held-card.selected'), function (c) {
-            c.classList.remove('selected');
-            c.setAttribute('aria-pressed', 'false');
-          });
-        }
-        _form[formKey] = held.id;
-        card.classList.add('selected');
-        card.setAttribute('aria-pressed', 'true');
-      }
-
-      // Update label badge
-      var nameLabel = global.document.getElementById(nameId);
-      if (nameLabel) {
-        var sel = _form[formKey] ? HeldsCatalog.getById(_form[formKey]) : null;
-        nameLabel.textContent = sel ? '— ' + sel.name : '';
-      }
-    });
-
-    return card;
-  }
-
-  // ── Populate held grids ───────────────────────────────────────
+  // ── Populate held selects ─────────────────────────────────────
   function _populateHelds() {
-    function _fill(gridId, category, currentId) {
-      var grid = global.document.getElementById(gridId);
-      if (!grid) return;
-
+    function _fill(selectId, category, currentId) {
+      var sel = global.document.getElementById(selectId);
+      if (!sel) return;
       function _render(helds) {
-        grid.innerHTML = '';
-        if (!helds || !helds.length) {
-          grid.innerHTML = '<span class="held-picker-empty">Nenhum held disponível.</span>';
-          return;
-        }
+        var opts = '<option value="">— Nenhum —</option>';
         helds.forEach(function (h) {
-          grid.appendChild(_buildHeldCard(h, category, currentId));
+          opts += '<option value="' + _esc(h.id) + '"' + (h.id === currentId ? ' selected' : '') + '>'
+            + _esc(h.name)
+            + (h.rarity ? ' [' + _esc(h.rarity) + ']' : '')
+            + '</option>';
         });
-
-        // Set initial badge label
-        var nameId = category === 'X' ? 'mk-held-x-name' : 'mk-held-y-name';
-        var nameLabel = global.document.getElementById(nameId);
-        if (nameLabel && currentId) {
-          var current = HeldsCatalog.getById(currentId);
-          if (current) nameLabel.textContent = '— ' + current.name;
-        }
+        sel.innerHTML = opts;
+        sel.addEventListener('change', function () {
+          _form[category === 'X' ? 'held_x_id' : 'held_y_id'] = sel.value || null;
+        });
       }
-
       if (typeof HeldsCatalog !== 'undefined') {
         if (HeldsCatalog.isLoaded()) {
           _render(HeldsCatalog.getByCategory(category));
@@ -724,9 +698,8 @@
         }
       }
     }
-
-    _fill('mk-held-x-grid', 'X', _form.held_x_id);
-    _fill('mk-held-y-grid', 'Y', _form.held_y_id);
+    _fill('mk-held-x', 'X', _form.held_x_id);
+    _fill('mk-held-y', 'Y', _form.held_y_id);
   }
 
   // ── Prefill form values into DOM (edit mode) ──────────────────

@@ -259,9 +259,18 @@
   }
 
   // ── Apply filters ─────────────────────────────────────────────
+  // NOTE: 'cancelled' and 'deleted' are never shown in public listing cards.
+  // Soft-delete safety: if a cancelled listing leaks into the local store
+  // (e.g. optimistic revert or realtime update), it is suppressed here.
+  var _HIDDEN_STATUSES = { cancelled: true, deleted: true };
+
   function _applyFilters(listings, filters) {
-    if (!filters) return listings;
     return (listings || []).filter(function(l) {
+      // Always hide non-active/negotiating statuses from the card grid
+      var status = l.status || 'active';
+      if (_HIDDEN_STATUSES[status]) return false;
+
+      if (!filters) return true;
       if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;
       if (filters.search) {
         var q = filters.search.toLowerCase();
