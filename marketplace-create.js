@@ -276,7 +276,9 @@
     var user = _user();
     if (!user) return;
 
-    var confirmed = global.confirm ? global.confirm('Excluir este anúncio permanentemente? Todas as negociações em aberto serão encerradas.') : true;
+    var confirmed = typeof confirmAction === 'function'
+      ? await confirmAction('Excluir anúncio', 'Excluir este anúncio permanentemente? Todas as negociações em aberto serão encerradas.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
+      : global.confirm('Excluir este anúncio permanentemente? Todas as negociações em aberto serão encerradas.');
     if (!confirmed) return;
 
     try {

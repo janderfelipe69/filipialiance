@@ -1173,7 +1173,7 @@
   }
 
   // Abre upload inline para um captureItem específico
-  function openUploadForItem(event) {
+  async function openUploadForItem(event) {
     var btn    = event.target;
     var itemEl = btn.closest('.capture-item') || btn.closest('[data-item-ref]');
     var cardEl = btn.closest('[data-order-id]');
@@ -1193,8 +1193,10 @@
       return;
     }
 
-    // Fallback: Imgur link via prompt
-    var imgurUrl = (typeof prompt === 'function') ? prompt('Cole o link da imagem:') : null;
+    // Fallback: Imgur link via promptInput (FilipiUI) ou prompt nativo
+    var imgurUrl = typeof promptInput === 'function'
+      ? await promptInput({ title: 'Link da imagem', message: 'Cole o link do Imgur ou outra imagem:', placeholder: 'https://i.imgur.com/...', confirmText: 'Confirmar', type: 'info', required: true, validate: function(v){ return v && v.indexOf('http') === 0 ? null : 'URL inválida — deve começar com http'; } })
+      : (typeof prompt === 'function') ? prompt('Cole o link da imagem:') : null;
     if (!imgurUrl || imgurUrl.indexOf('http') !== 0) return;
 
     completeCaptureItem(supId, itemRef, { image_url: imgurUrl }).then(function(result) {

@@ -336,7 +336,10 @@
 
   ChatWindow.prototype._cancel = async function() {
     var self = this;
-    if (!global.confirm('Cancelar esta negociação?')) return;
+    var _cancelOk = typeof confirmAction === 'function'
+      ? await confirmAction('Cancelar negociação', 'Cancelar esta negociação?', { type: 'warning', confirmText: 'Cancelar negociação', cancelText: 'Voltar' })
+      : global.confirm('Cancelar esta negociação?');
+    if (!_cancelOk) return;
     try {
       var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_cancel_negotiation', {
         method: 'POST',
@@ -361,7 +364,10 @@
     var self = this;
     var listingName = self.listingName;
     var buyerName   = self.buyerName;
-    if (!global.confirm('Confirmar venda de "' + listingName + '" para ' + buyerName + '?\n\nTodas as outras negociações serão fechadas.')) return;
+    var _soldOk = typeof confirmAction === 'function'
+      ? await confirmAction('Confirmar venda', 'Confirmar venda de "' + listingName + '" para ' + buyerName + '? Todas as outras negociações serão fechadas.', { type: 'success', confirmText: 'Confirmar venda', cancelText: 'Cancelar' })
+      : global.confirm('Confirmar venda de "' + listingName + '" para ' + buyerName + '?\n\nTodas as outras negociações serão fechadas.');
+    if (!_soldOk) return;
 
     try {
       var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_mark_sold', {

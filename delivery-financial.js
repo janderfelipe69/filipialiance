@@ -274,8 +274,11 @@
     document.getElementById('df-btn-cancel').onclick = closeModal;
 
     if (document.getElementById('df-btn-remove')) {
-      document.getElementById('df-btn-remove').onclick = function() {
-        if (!confirm('Remover dados de pagamento desta entrega?')) return;
+      document.getElementById('df-btn-remove').onclick = async function() {
+        var _removeOk = typeof confirmAction === 'function'
+          ? await confirmAction('Remover pagamento', 'Remover dados de pagamento desta entrega?', { type: 'danger', confirmText: 'Remover', cancelText: 'Cancelar' })
+          : confirm('Remover dados de pagamento desta entrega?');
+        if (!_removeOk) return;
         sbPatch(entry.id, { payment_method: null, payment_value: null, payment_value_kk: null, payment_value_dd: null, obs_financeiro: null })
           .then(function() {
             var e2 = _findEntry(entry.id);

@@ -405,7 +405,10 @@
   }
 
   async function _finishService(id) {
-    if (!confirm('Confirma conclusão? O admin precisará entregar ao cliente antes do pagamento ser liberado.')) return;
+    var _finishOk = typeof confirmAction === 'function'
+      ? await confirmAction('Confirmar conclusão', 'O admin precisará entregar ao cliente antes do pagamento ser liberado.', { type: 'warning', confirmText: 'Confirmar', cancelText: 'Cancelar' })
+      : confirm('Confirma conclusão? O admin precisará entregar ao cliente antes do pagamento ser liberado.');
+    if (!_finishOk) return;
     try {
       const res = await AffiliateService.finishService(id);
       if (res.success) {
@@ -452,8 +455,11 @@
   }
 
   function _showToast(msg, isError = false) {
-    if (typeof showToast === 'function') { showToast(msg, !isError); return; }
-    alert(msg);
+    if (typeof showToast === 'function') { showToast(msg, isError ? 'error' : 'success'); return; }
+    // Fallback via FilipiUI se showToast não disponível
+    if (typeof showAlertModal === 'function') { showAlertModal({ title: isError ? 'Erro' : 'Aviso', message: msg, type: isError ? 'danger' : 'info' }); return; }
+    // último recurso
+    if (typeof window !== 'undefined' && window.console) console.warn('[affiliate-dashboard]', msg);
   }
 
   // ── Carregamento de dados ──────────────────────────────────────

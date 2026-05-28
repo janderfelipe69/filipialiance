@@ -236,7 +236,10 @@
   function _setTab(tab) { _data.tab = tab; _render(); }
 
   async function _completeService(id) {
-    if (!confirm('Confirmar entrega ao cliente e liberar pagamento ao afiliado?')) return;
+    var _completeOk = typeof confirmAction === 'function'
+      ? await confirmAction('Confirmar entrega', 'Confirmar entrega ao cliente e liberar pagamento ao afiliado?', { type: 'success', confirmText: 'Confirmar', cancelText: 'Cancelar' })
+      : confirm('Confirmar entrega ao cliente e liberar pagamento ao afiliado?');
+    if (!_completeOk) return;
     try {
       const res = await AffiliateService.admin.completeService(id);
       if (res.success) {
@@ -249,7 +252,9 @@
   }
 
   async function _strike(affiliateId, name) {
-    const reason = prompt(`Motivo do strike para ${name}:`);
+    const reason = typeof promptInput === 'function'
+      ? await promptInput({ title: `Strike: ${name}`, message: 'Descreva o motivo do strike.', placeholder: 'Motivo...', confirmText: 'Emitir strike', type: 'danger', required: true })
+      : prompt(`Motivo do strike para ${name}:`);
     if (reason === null) return;
     try {
       const res = await AffiliateService.admin.issueStrike(affiliateId, reason);
@@ -261,7 +266,9 @@
   }
 
   async function _approveWithdrawal(id) {
-    const notes = prompt('Notas para aprovação (opcional):') || '';
+    const notes = typeof promptInput === 'function'
+      ? (await promptInput({ title: 'Aprovar saque', message: 'Notas para aprovação (opcional).', placeholder: 'Notas...', confirmText: 'Aprovar', type: 'success', required: false })) || ''
+      : prompt('Notas para aprovação (opcional):') || '';
     try {
       await AffiliateService.admin.approveWithdrawal(id, notes);
       if (typeof showToast === 'function') showToast('Saque aprovado!');
@@ -270,7 +277,9 @@
   }
 
   async function _rejectWithdrawal(id) {
-    const notes = prompt('Motivo da rejeição:');
+    const notes = typeof promptInput === 'function'
+      ? await promptInput({ title: 'Rejeitar saque', message: 'Informe o motivo da rejeição.', placeholder: 'Motivo...', confirmText: 'Rejeitar', type: 'danger', required: true })
+      : prompt('Motivo da rejeição:');
     if (!notes) return;
     const SB_URL = global.SUPABASE_URL;
     const SB_KEY = global.SUPABASE_KEY;

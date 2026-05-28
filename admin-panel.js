@@ -278,8 +278,11 @@
         .then(function() { showToast('Item desabilitado.'); close(); reloadItems(); reloadDisabledItems(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     };
-    document.getElementById('btn-harddelete-item').onclick = function() {
-      if (!confirm('Tem certeza? Isso vai excluir "'+item.name+'" do banco de dados permanentemente.')) return;
+    document.getElementById('btn-harddelete-item').onclick = async function() {
+      var _delOk = typeof confirmAction === 'function'
+        ? await confirmAction('Excluir item', 'Excluir "' + item.name + '" do banco permanentemente? Esta ação não pode ser desfeita.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
+        : confirm('Tem certeza? Isso vai excluir "' + item.name + '" do banco de dados permanentemente.');
+      if (!_delOk) return;
       sbFetch('DELETE', 'catalog_items?id=eq.' + item.id, null)
         .then(function() { showToast('Item excluído permanentemente.'); close(); reloadItems(); reloadDisabledItems(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
@@ -774,8 +777,11 @@
         .then(function() { showToast('Pokémon desabilitado.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     };
-    document.getElementById('btn-harddelete-poke').onclick = function() {
-      if (!confirm('Tem certeza? Isso vai excluir "'+poke.name+'" do banco de dados permanentemente.')) return;
+    document.getElementById('btn-harddelete-poke').onclick = async function() {
+      var _delOk = typeof confirmAction === 'function'
+        ? await confirmAction('Excluir pokémon', 'Excluir "' + poke.name + '" do banco permanentemente? Esta ação não pode ser desfeita.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
+        : confirm('Tem certeza? Isso vai excluir "' + poke.name + '" do banco de dados permanentemente.');
+      if (!_delOk) return;
       sbFetch('DELETE', 'catalog_pokemons?id=eq.' + poke.id, null)
         .then(function() { showToast('Pokémon excluído permanentemente.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
@@ -1200,8 +1206,11 @@
         .then(function() { showToast('Pacote desabilitado.'); close(); reloadDisabledPackages(); location.reload(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     };
-    document.getElementById('btn-harddelete-pkg').onclick = function() {
-      if (!confirm('Tem certeza? Isso vai excluir o pacote "'+pkg.name+'" permanentemente.')) return;
+    document.getElementById('btn-harddelete-pkg').onclick = async function() {
+      var _delOk = typeof confirmAction === 'function'
+        ? await confirmAction('Excluir pacote', 'Excluir o pacote "' + pkg.name + '" permanentemente? Esta ação não pode ser desfeita.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
+        : confirm('Tem certeza? Isso vai excluir o pacote "' + pkg.name + '" permanentemente.');
+      if (!_delOk) return;
       sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
         .then(function(rows) {
           if (!rows || !rows[0]) throw new Error('Pacote não encontrado');
