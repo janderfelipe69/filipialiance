@@ -42,9 +42,22 @@
 
   // ── Helper: fetch com tratamento de erro ─────────────────────────────────
   async function _fetch(url, options) {
+    // PA.monitor: rastreia fetches Supabase (sem wrapper global de fetch)
+    var _monRef = url + ':' + Date.now();
+    if (typeof window !== 'undefined' && window.PA && window.PA.monitor) {
+      window.PA.monitor._fetchHook('fetch:start', {
+        url:    url,
+        method: (options && options.method) || 'GET',
+        _ref:   _monRef,
+      });
+    }
     var res = await fetch(url, options);
     var body = null;
     try { body = await res.json(); } catch (_) { body = null; }
+    // PA.monitor: registra fim do fetch
+    if (typeof window !== 'undefined' && window.PA && window.PA.monitor) {
+      window.PA.monitor._fetchHook('fetch:end', { _ref: _monRef, status: res.status });
+    }
     if (!res.ok) {
       var msg = (body && (body.error_description || body.message || body.msg || body.error)) || ('HTTP ' + res.status);
       throw new Error(msg);

@@ -67,6 +67,17 @@
       customEvent: 'trade_messages:changed',
       topic:      'realtime:public:trade_messages',
     },
+    // Passo 5B — canais unificados (sem consumidor ainda; apenas emitem CustomEvents)
+    {
+      table:       'user_notifications',
+      customEvent: 'notifications:changed',
+      topic:       'realtime:public:user_notifications',
+    },
+    {
+      table:       'affiliate_orders',
+      customEvent: 'affiliate:changed',
+      topic:       'realtime:public:affiliate_orders',
+    },
   ];
 
   // ── Logging ────────────────────────────────────────────────────────────
@@ -95,7 +106,9 @@
   function _sanitizeRealtimeRecord(customEventName, record) {
     // Aplica apenas para eventos de delivery_proofs
     if (!record || customEventName !== 'delivery:changed') return record;
-    var isAdminUser = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+    // Fase 2 Passo 3.7: padrão único — Session.isAdmin().
+    var isAdminUser = typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+      ? Session.isAdmin() : false;
     if (isAdminUser) return record; // admin recebe payload completo
     // Cliente: remove todos os campos financeiros do payload realtime
     var safe = Object.assign({}, record);
@@ -124,11 +137,19 @@
     } catch (e) {}
   }
 
-  // Marketplace tables must NOT go through normalizeRealtimeRecord/normalizeDeliveryProof.
-  // That function (schema-compat.js) strips session_id, content and sender_id from
-  // trade_messages — the realtime handler would emit 'messages:undefined' and no
-  // ChatWindow would ever receive the event.
-  var _SKIP_NORMALIZE = { trade_messages: true, trade_sessions: true, marketplace_listings: true };
+  // Tables that must NOT be passed through normalizeDeliveryProof.
+  // normalizeRealtimeRecord (schema-compat.js) calls normalizeDeliveryProof on
+  // every record regardless of table, which destroys session_id/content/sender_id
+  // for trade_messages and corrupts trade_sessions.
+  // Passo 5B: user_notifications e affiliate_orders adicionados — mesma razão que
+  // trade_messages: normalizeDeliveryProof corromperia campos próprios dessas tabelas.
+  var _RAW_TABLES = {
+    trade_messages:     true,
+    trade_sessions:     true,
+    marketplace_listings: true,
+    user_notifications: true,
+    affiliate_orders:   true,
+  };
 
   // ── Extractor: normaliza payload nos 3 formatos do Supabase Realtime ──
   function _extractFromMsg(msg) {
@@ -138,22 +159,29 @@
 
     if (msg.event !== 'postgres_changes') return { tipo: null, record: null, table: null };
 
-    // Detect table from topic to decide whether to run normalizeRealtimeRecord
+    // Detect table from topic so we can decide whether to normalise
     var msgTopic = msg.topic || '';
     var topicTable = null;
     for (var ci = 0; ci < CHANNELS.length; ci++) {
-      if (msgTopic.indexOf(CHANNELS[ci].table) !== -1) { topicTable = CHANNELS[ci].table; break; }
-    }
-
-    // Only normalise for non-marketplace tables (pedidos, delivery_proofs)
-    if (!_SKIP_NORMALIZE[topicTable] && typeof normalizeRealtimeRecord === 'function') {
-      var norm = normalizeRealtimeRecord(msg, null);
-      if (norm && norm.record) {
-        return { tipo: norm.event || 'UPDATE', record: norm.record, table: norm.table || topicTable || null };
+      if (msgTopic.indexOf(CHANNELS[ci].table) !== -1) {
+        topicTable = CHANNELS[ci].table;
+        break;
       }
     }
 
-    // Raw extraction — all original fields preserved (session_id, content, sender_id, etc.)
+    // Use normalizeRealtimeRecord ONLY for delivery/pedidos tables.
+    // For marketplace tables (trade_messages, trade_sessions, marketplace_listings)
+    // extract the raw record to preserve all original fields.
+    var skipNormalize = topicTable && _RAW_TABLES[topicTable];
+
+    if (!skipNormalize && typeof normalizeRealtimeRecord === 'function') {
+      var norm = normalizeRealtimeRecord(msg, null);
+      if (norm && norm.record) {
+        return { tipo: norm.event || 'UPDATE', record: norm.record, table: norm.table || null };
+      }
+    }
+
+    // Raw extraction — preserves all original fields
     // Formato 1: msg.payload.data.type + msg.payload.data.record
     if (msg.payload && msg.payload.data && msg.payload.data.type && msg.payload.data.record) {
       tipo   = msg.payload.data.type;
@@ -166,7 +194,7 @@
       record = msg.payload.record;
       table  = msg.payload.table || topicTable || null;
     }
-    // Formato 3: msg.payload.new (INSERT/UPDATE) — Supabase Realtime v2 standard
+    // Formato 3: msg.payload.new (INSERT/UPDATE) — Supabase Realtime v2 padrão
     else if (msg.payload && msg.payload.new && Object.keys(msg.payload.new).length) {
       tipo   = msg.payload.type || 'INSERT';
       record = msg.payload.new;
@@ -179,10 +207,8 @@
       table  = topicTable || null;
     }
 
-    var sessionId = record && record.session_id;
-    console.log('[REALTIME INSERT]', topicTable, tipo,
-      sessionId ? 'session=' + sessionId : 'id=' + (record && record.id));
-
+    console.log('[REALTIME MESSAGE]', topicTable, tipo, record && record.id,
+      record && record.session_id ? 'session=' + record.session_id : '');
     return { tipo: tipo, record: record, table: table };
   }
 
@@ -218,6 +244,10 @@
     var key = _eventKey(channel.table, extracted.tipo, extracted.record);
     if (_seenEvents.has(key)) {
       _log('Evento duplicado ignorado:', key);
+      // PA.monitor: registra evento duplicado descartado
+      if (global.PA && global.PA.monitor) {
+        global.PA.monitor._realtimeHook('event:duplicate', { key: key, module: 'RealtimeManager' });
+      }
       return;
     }
     _markSeen(key);
@@ -260,6 +290,16 @@
     ws.onopen = function () {
       if (myRef !== _subscribeRef) { ws.close(); return; }
       _log('WebSocket aberto (ref=' + myRef + ') — inscrevendo canais…');
+      // PA.monitor: registra abertura de WebSocket (Fase 2 Passo 5A)
+      if (global.PA && global.PA.monitor) {
+        // Fase 2 Passo 5A.1: apenas ws:open — byModule[mod] = true já registra presença.
+        // Hook 'module' removido — causava byModule: { RealtimeManager: 2 }.
+        global.PA.monitor._realtimeHook('ws:open', {
+          module:    'RealtimeManager',
+          url:       wsUrl,
+          openedAt:  Date.now(),
+        });
+      }
 
       // Heartbeat a cada 25s para manter a conexão viva
       _heartbeatTimer = setInterval(function () {
@@ -292,6 +332,13 @@
           },
           ref: String(_msgRef++),
         }));
+        // PA.monitor: registra canal subscrito (Fase 2 Passo 5A)
+        if (global.PA && global.PA.monitor) {
+          global.PA.monitor._realtimeHook('channel', {
+            channel: ch.topic,
+            module:  'RealtimeManager',
+          });
+        }
       });
     };
 
@@ -334,6 +381,10 @@
       clearInterval(_heartbeatTimer);
       _heartbeatTimer = null;
       _emitStatus('disconnected');
+      // PA.monitor: registra fechamento de WebSocket
+      if (global.PA && global.PA.monitor) {
+        global.PA.monitor._realtimeHook('ws:close', { module: 'RealtimeManager' });
+      }
 
       if (_destroyed) return;
 
@@ -341,6 +392,12 @@
       var attempt = myRef;
       var delay = Math.min(60000, 5000 * Math.pow(1.5, Math.min(attempt % 5, 4)));
       _log('Reconectando em ' + Math.round(delay / 1000) + 's…');
+      // PA.monitor: registra reconexão agendada (Fase 2 Passo 5A)
+      if (global.PA && global.PA.monitor) {
+        global.PA.monitor.reconnects.count++;
+        global.PA.monitor.reconnects.byModule['RealtimeManager'] =
+          (global.PA.monitor.reconnects.byModule['RealtimeManager'] || 0) + 1;
+      }
       _reconnectTimer = setTimeout(function () {
         if (myRef !== _subscribeRef) return;
         if (_destroyed) return;
