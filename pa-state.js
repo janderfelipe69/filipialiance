@@ -417,7 +417,7 @@
     }
   }
 
-  // Reset a cada tick
+  // Reset a cada frame (~16ms). Era 0ms (~250x/seg) — corrigido Fase 2 Passo 0.
   var _tickCleanupActive = false;
   function _ensureTickReset() {
     if (_tickCleanupActive) return;
@@ -425,7 +425,7 @@
     setInterval(function() {
       _mutationInTick = {};
       _renderInTick   = {};
-    }, 0); // próximo tick
+    }, 16); // 1 frame — suficiente para detectar mutações duplas no mesmo ciclo de render
   }
 
   // ══════════════════════════════════════════════════════════════════════

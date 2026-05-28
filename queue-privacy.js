@@ -50,13 +50,13 @@ const QueuePrivacy = (() => {
 
   /**
    * Detecta se o usuário atual é admin.
-   * Usa Session.isAdmin() se disponível; fallback para role direto.
+   * Delega exclusivamente para Session.isAdmin() — fonte única de verdade.
+   * Fase 2 Passo 3.1: removido fallback local (currentUser.role).
    */
   function _isAdmin(currentUser) {
-    if (typeof Session !== 'undefined' && typeof Session.isAdmin === 'function') {
-      return Session.isAdmin();
-    }
-    return currentUser?.role === 'admin';
+    return typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+      ? Session.isAdmin()
+      : false;
   }
 
   /**

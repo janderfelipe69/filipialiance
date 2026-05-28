@@ -212,12 +212,18 @@
   // via OrdersAdmin. Este método só é para updates simples de status.
 
   async function _atualizarStatusBD(supabaseId, novoStatus) {
+    // Fase 2 Passo 4: JWT validado antes do fetch — nunca 'Bearer null'.
+    var jwt = _getJWT();
+    if (!jwt) {
+      _warn('[_atualizarStatusBD] JWT indisponível — operação abortada.');
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
     var res = await fetch(SB_URL + '/rest/v1/pedidos?id=eq.' + supabaseId, {
       method:  'PATCH',
       headers: {
         'Content-Type':  'application/json',
         'apikey':        SB_KEY,
-        'Authorization': 'Bearer ' + _getJWT(), // PATCH 5.1: JWT real do usuário
+        'Authorization': 'Bearer ' + jwt,
         'Prefer':        'return=minimal',
       },
       body: JSON.stringify({ status_v3: novoStatus }),
