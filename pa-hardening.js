@@ -552,6 +552,252 @@
     unobserveCard:     unobserveCard,
   };
 
+  // ══════════════════════════════════════════════════════════════════════
+  // PA.monitor — Observabilidade (Fase 2, Passo 1)
+  //
+  // NÃO usa wrappers globais de fetch/WebSocket.
+  // Alimentado por pontos de instrumentação explícitos em:
+  //   realtime-manager.js → PA.monitor._realtimeHook(event, data)
+  //   supabase-client.js  → PA.monitor._fetchHook(event, data)
+  //   módulos de UI       → PA.monitor._renderHook(module)
+  //
+  // Acesso: PA.monitor.report() no console do browser.
+  // ══════════════════════════════════════════════════════════════════════
+
+  var _monitor = {
+    // ── WebSockets ───────────────────────────────────────────────────
+    // Preenchido por realtime-manager via _realtimeHook(type, payload)
+    websockets: {
+      count:    0,
+      list:     [],     // [{ module, url, state, openedAt, closedAt }]
+      channels: {},     // { 'realtime:public:pedidos': true, ... } — canais únicos ativos
+      byModule: {},     // { 'RealtimeManager': true, ... } — módulos com socket ativo
+    },
+
+    // ── Eventos duplicados ──────────────────────────────────────────
+    // Preenchido quando _seenEvents descarta um evento já processado
+    duplicateEvents: {
+      count: 0,
+      log:   [],  // últimos 50: [{ key, module, ts }]
+      _MAX:  50,
+    },
+
+    // ── Fetches Supabase em andamento ───────────────────────────────
+    // Preenchido por supabase-client via _fetchHook('start'/'end', data)
+    pendingFetches: {
+      count: 0,
+      log:   [],  // últimos 50: [{ url, method, startedAt, endedAt, status }]
+      _MAX:  50,
+    },
+
+    // ── Reconexões WebSocket ────────────────────────────────────────
+    // Preenchido via CustomEvent 'realtime:status' (já emitido pelo realtime-manager)
+    reconnects: {
+      count:    0,
+      byModule: {},  // { 'RealtimeManager': 2, ... }
+    },
+
+    // ── Renders de UI ───────────────────────────────────────────────
+    // Preenchido por módulos de UI via _renderHook(module)
+    renders: {
+      count:    0,
+      byModule: {},  // { 'OrdersUI': 12, 'DeliveryGallery': 3, ... }
+      lastTs:   null,
+    },
+  };
+
+  // ── Hook público: chamado pelo realtime-manager ──────────────────────
+  // Eventos:
+  //   'ws:open'        → { module, url, openedAt }  — socket aberto
+  //   'ws:close'       → { module }                 — socket fechado
+  //   'ws:reconnect'   → { module }                 — reconexão detectada
+  //   'channel'        → { channel, module }        — canal subscrito (phx_join enviado)
+  //   'module'         → { module }                 — módulo registrou presença
+  //   'event:duplicate'→ { key, module }             — evento duplicado descartado
+  function _realtimeHook(event, data) {
+    try {
+      if (event === 'ws:open') {
+        _monitor.websockets.count++;
+        _monitor.websockets.list.push({
+          module:    data.module    || 'unknown',
+          url:       data.url       || '',
+          state:     'open',
+          openedAt:  data.openedAt  || Date.now(),
+          closedAt:  null,
+        });
+        // Registra presença do módulo (booleana — não conta múltiplas conexões)
+        var mod = data.module || 'unknown';
+        _monitor.websockets.byModule[mod] = true;
+
+      } else if (event === 'ws:close') {
+        _monitor.websockets.count = Math.max(0, _monitor.websockets.count - 1);
+        var mod = data.module || 'unknown';
+        var entry = _monitor.websockets.list.find(function(e) {
+          return e.module === mod && e.closedAt === null;
+        });
+        if (entry) { entry.state = 'closed'; entry.closedAt = Date.now(); }
+
+      } else if (event === 'ws:reconnect') {
+        _monitor.reconnects.count++;
+        var mod = data.module || 'unknown';
+        _monitor.reconnects.byModule[mod] = (_monitor.reconnects.byModule[mod] || 0) + 1;
+
+      } else if (event === 'channel') {
+        // Canal subscrito: phx_join enviado para o servidor.
+        // Fase 2 Passo 5A.1: presença booleana — reconexão não altera contagem.
+        var ch = data.channel || 'unknown';
+        _monitor.websockets.channels[ch] = true;
+
+      } else if (event === 'module') {
+        // Fase 2 Passo 5A.1: byModule registra presença (não conta conexões).
+        // 'module' hook removido do realtime-manager — este branch mantido
+        // para compatibilidade com módulos externos futuros.
+        var mod = data.module || 'unknown';
+        _monitor.websockets.byModule[mod] = true;
+
+      } else if (event === 'event:duplicate') {
+        _monitor.duplicateEvents.count++;
+        _monitor.duplicateEvents.log.push({
+          key:    data.key    || '',
+          module: data.module || 'unknown',
+          ts:     Date.now(),
+        });
+        if (_monitor.duplicateEvents.log.length > _monitor.duplicateEvents._MAX) {
+          _monitor.duplicateEvents.log.shift();
+        }
+      }
+    } catch (e) {
+      _warn('[PA.monitor] _realtimeHook erro:', e.message);
+    }
+  }
+
+  // ── Hook público: chamado pela camada Supabase ───────────────────────
+  // Eventos esperados: 'fetch:start', 'fetch:end'
+  function _fetchHook(event, data) {
+    try {
+      if (event === 'fetch:start') {
+        _monitor.pendingFetches.count++;
+        _monitor.pendingFetches.log.push({
+          url:       data.url    || '',
+          method:    data.method || 'GET',
+          startedAt: new Date().toISOString(),
+          endedAt:   null,
+          status:    null,
+          _ref:      data._ref   || null,
+        });
+        if (_monitor.pendingFetches.log.length > _monitor.pendingFetches._MAX) {
+          _monitor.pendingFetches.log.shift();
+        }
+      } else if (event === 'fetch:end') {
+        _monitor.pendingFetches.count = Math.max(0, _monitor.pendingFetches.count - 1);
+        var ref = data._ref || null;
+        if (ref) {
+          var fe = _monitor.pendingFetches.log.find(function(e) { return e._ref === ref && e.endedAt === null; });
+          if (fe) { fe.endedAt = new Date().toISOString(); fe.status = data.status || null; }
+        }
+      }
+    } catch (e) {
+      _warn('[PA.monitor] _fetchHook erro:', e.message);
+    }
+  }
+
+  // ── Hook público: chamado por módulos de UI ──────────────────────────
+  function _renderHook(moduleName) {
+    try {
+      _monitor.renders.count++;
+      _monitor.renders.byModule[moduleName] = (_monitor.renders.byModule[moduleName] || 0) + 1;
+      _monitor.renders.lastTs = new Date().toISOString();
+    } catch (e) {}
+  }
+
+  // ── Reconexões: contadas diretamente pelo realtime-manager.js ─────────
+  // Fase 2 Passo 5A.1: listener realtime:status removido — causava dupla
+  // contagem junto com o hook direto em realtime-manager.js ws.onclose.
+  // Fonte única: realtime-manager.js → PA.monitor.reconnects (direto).
+
+  // ── report(): impressão formatada no console ─────────────────────────
+  function _report() {
+    var sep = '─'.repeat(50);
+    console.group('%c PA.monitor.report()', 'color:#7eb3ff;font-weight:bold;font-size:13px');
+    console.log(sep);
+
+    // ── WebSockets ──────────────────────────────────────────────────
+    console.log('%c WebSockets', 'color:#60aaff;font-weight:bold');
+    console.log('Ativos agora        :', _monitor.websockets.count);
+    if (_monitor.websockets.list.length) {
+      console.table(_monitor.websockets.list.map(function(e) {
+        return {
+          module:    e.module,
+          state:     e.state,
+          openedAt:  e.openedAt,
+          closedAt:  e.closedAt,
+        };
+      }));
+    }
+    console.log(sep);
+
+    // ── Canais, Módulos, Reconexões ─────────────────────────────────────
+    // channels e byModule são mapas de presença { key: true }.
+    // Reconexão não altera a contagem — canal permanece único.
+    console.log('%c Canais / Módulos / Reconexões', 'color:#60aaff;font-weight:bold');
+    console.log('Canais únicos       :', Object.keys(_monitor.websockets.channels).length);
+    console.log({
+      channels:   _monitor.websockets.channels,
+      modules:    _monitor.websockets.byModule,
+      reconnects: _monitor.reconnects,
+    });    console.log(sep);
+
+    // ── Fetches ─────────────────────────────────────────────────────
+    console.log('%c Fetches Supabase', 'color:#60aaff;font-weight:bold');
+    console.log('Pendentes agora     :', _monitor.pendingFetches.count);
+    console.log('Total no log        :', _monitor.pendingFetches.log.length);
+    console.log(sep);
+
+    // ── Eventos duplicados ──────────────────────────────────────────
+    console.log('%c Eventos Realtime', 'color:#60aaff;font-weight:bold');
+    console.log('Duplicados (discard):', _monitor.duplicateEvents.count);
+    if (_monitor.duplicateEvents.log.length) {
+      console.table(_monitor.duplicateEvents.log.slice(-10));
+    }
+    console.log(sep);
+
+    // ── Renders ─────────────────────────────────────────────────────
+    console.log('%c Renders', 'color:#60aaff;font-weight:bold');
+    console.log('Total               :', _monitor.renders.count);
+    console.log('Por módulo          :', _monitor.renders.byModule);
+    console.log('Último              :', _monitor.renders.lastTs);
+    console.log(sep);
+
+    console.groupEnd();
+
+    // Retorna snapshot para uso programático
+    return {
+      websockets:      _monitor.websockets,
+      pendingFetches:  _monitor.pendingFetches,
+      duplicateEvents: _monitor.duplicateEvents,
+      reconnects:      _monitor.reconnects,
+      renders:         _monitor.renders,
+    };
+  }
+
+  // ── Expõe API pública ────────────────────────────────────────────────
+  global.PA.monitor = {
+    // Dados brutos (leitura direta — objeto live, sempre atualizado)
+    websockets:      _monitor.websockets,   // .count .list .channels .byModule
+    duplicateEvents: _monitor.duplicateEvents,
+    pendingFetches:  _monitor.pendingFetches,
+    reconnects:      _monitor.reconnects,   // .count .byModule
+    renders:         _monitor.renders,
+    // Hooks para instrumentação explícita (chamados por módulos externos)
+    _realtimeHook:   _realtimeHook,  // 'ws:open','ws:close','ws:reconnect','channel','module','event:duplicate'
+    _fetchHook:      _fetchHook,     // 'fetch:start','fetch:end'
+    _renderHook:     _renderHook,    // moduleName string
+    // Utilitários
+    report:          _report,        // PA.monitor.report() no console
+  };
+
+  _log('[PA.monitor] Observabilidade inicializada. Use PA.monitor.report() no console.');
+
   _log('pa-hardening.js v1 carregado');
 
 }(window));
