@@ -284,34 +284,21 @@
       var jwt = _jwt();
       if (!jwt) { _toast('Sem sessão. Faça login.', 'error'); return; }
 
-      // ── DEBUG 5D: remover após diagnóstico ─────────────────────────────
-      var _dbgUrl     = SB_URL + '/rest/v1/rpc/rpc_delete_listing';
-      var _dbgPayload = { p_listing_id: listingId };
-      console.log('[DELETE DEBUG] endpoint=', _dbgUrl);
-      console.log('[DELETE DEBUG] payload=', JSON.stringify(_dbgPayload));
-      console.log('[DELETE DEBUG] jwt=', !!jwt);
-      console.log('[DELETE DEBUG] listingId=', listingId, '| type=', typeof listingId);
-      console.log('[DELETE DEBUG] user.id=', (_user()||{}).id);
-      // ────────────────────────────────────────────────────────────────────
-
-      var res = await fetch(_dbgUrl, {
+      var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_delete_listing', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt },
-        body: JSON.stringify(_dbgPayload),
+        body: JSON.stringify({ p_listing_id: listingId }),
       });
 
-      // ── DEBUG 5D ─────────────────────────────────────────────────────
-      console.log('[DELETE DEBUG] status=', res.status);
-      var raw = await res.clone().text();
-      console.log('[DELETE DEBUG] response=', raw);
-      // ────────────────────────────────────────────────────────────────────
-
-      var data = null; try { data = JSON.parse(raw); } catch(_){}
+      // Leitura segura: text() primeiro, JSON.parse com fallback para texto puro
+      var raw  = await res.text();
+      var data = null;
+      try { data = JSON.parse(raw); } catch (_) {}
 
       if (!res.ok || !(data && data.success)) {
+        console.error('[DELETE RPC ERROR]', { status: res.status, body: data || raw, listingId: listingId });
         var errMap = { unauthorized:'Você não tem permissão.', listing_not_found:'Anúncio não encontrado.', not_authenticated:'Faça login.' };
-        _warn('cancelListing error:', raw);
-        _toast(errMap[(data&&data.error)] || 'Erro ao excluir anúncio.', 'error');
+        _toast(errMap[(data && data.error)] || 'Erro ao excluir anúncio.', 'error');
         return;
       }
 
