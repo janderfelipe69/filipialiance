@@ -10,8 +10,11 @@
   'use strict';
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+  // Fase 2 Passo 3.9: padrão único — Session.isAdmin().
   function isAdmin() {
-    return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+    return typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+      ? Session.isAdmin()
+      : false;
   }
 
   // Aguarda Session.ready() e retorna o JWT real
@@ -47,14 +50,24 @@
     });
   }
 
-  // Para GETs que não precisam de auth (usa anon key)
+  // GETs autenticados — usa JWT do usuário logado (Fase 2 Passo 4).
+  // Antes usava anon key; agora exige sessão ativa para respeitar RLS admin.
   function sbGet(path) {
-    return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
-      headers: {
-        'apikey':        global.SUPABASE_KEY,
-        'Authorization': 'Bearer ' + global.SUPABASE_KEY,
+    return getJwtAsync().then(function(jwt) {
+      if (!jwt) {
+        console.error('[admin-panel] sbGet: JWT indisponível — operação abortada.');
+        throw new Error('Sessão expirada. Faça login novamente.');
       }
-    }).then(function(r) { return r.json(); });
+      return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
+        headers: {
+          'apikey':        global.SUPABASE_KEY,
+          'Authorization': 'Bearer ' + jwt,
+        },
+      });
+    }).then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error(t.slice(0, 300)); });
+      return r.json();
+    });
   }
 
   // ── Modal base ───────────────────────────────────────────────────────────
