@@ -146,6 +146,7 @@
     var key = 'messages:' + self.sessionId;
 
     self._realtimeHandler = function(event, record) {
+      console.log('[CHAT MSG RX]', event, record);
       if (event !== 'INSERT') return;
       // Dedup: optimistic append already added this message via its temp ID
       // Server echo comes with real UUID — seenIds handles both
@@ -154,6 +155,9 @@
 
     if (global.MarketplaceChannels) {
       global.MarketplaceChannels.register(key, self._realtimeHandler);
+      console.log('[CHAT SUB]', self.sessionId);
+    } else {
+      console.warn('[CHAT SUB] MarketplaceChannels não disponível ao registrar', self.sessionId);
     }
   };
 

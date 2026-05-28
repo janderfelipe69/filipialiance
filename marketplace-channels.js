@@ -31,7 +31,7 @@
   function register(channelKey, handlerFn) {
     if (!_registry[channelKey]) _registry[channelKey] = new Set();
     _registry[channelKey].add(handlerFn);
-    console.log('[channel cleanup] registered', channelKey,
+    console.log('[CHANNEL REGISTER]', channelKey,
       '(total handlers:', _registry[channelKey].size, ')');
   }
 
@@ -58,6 +58,7 @@
   function _dispatch(channelKey, event, record) {
     var handlers = _registry[channelKey];
     if (!handlers || !handlers.size) return;
+    console.log('[CHANNEL EMIT]', channelKey, event, record && record.id);
     handlers.forEach(function(fn) {
       try { fn(event, record); } catch(e) {
         console.warn('[channel cleanup] handler error on', channelKey, e.message);
@@ -115,18 +116,12 @@
     _dispatch('listings:*', d.event, record);
   });
 
-  // ── Cleanup on tab switch / unload ───────────────────────────
+  // ── Cleanup on unload only ───────────────────────────────────
+  // NOTE: visibilitychange cleanup was intentionally removed.
+  // Killing 'messages:*' handlers on tab hide caused realtime messages
+  // received while the tab was backgrounded to be silently dropped —
+  // the handler was gone by the time the user returned.
   if (global.window && typeof global.window.addEventListener === 'function') global.window.addEventListener('beforeunload', cleanup);
-  global.document.addEventListener('visibilitychange', function() {
-    // M5: do NOT clear message handlers on hidden — chat windows accumulate
-    // messages while tab is hidden and show them on refocus.
-    // Session and listing handlers must always remain active.
-    if (global.document.visibilityState === 'visible') {
-      // Tab refocused: clear stale dedup keys so realtime works again
-      // (dedup keys are time-based and safe to clear after a hidden period)
-      if (_seenKeys.size > 100) _seenKeys.clear();
-    }
-  });
 
   console.log('[subscription create] MarketplaceChannels initialized');
 
