@@ -78,7 +78,7 @@
     var card = global.document.querySelector('[data-listing-id="' + _esc(listingId) + '"]');
     if (!card) return;
 
-    var existing = card.querySelector('.mk-buyer-panel');
+    var existing = global.document.querySelector('[data-panel-listing="' + _esc(listingId) + '"]');
     if (existing) { existing.remove(); return; }
 
     var sessions = await fetchListingSessions(listingId);
@@ -90,7 +90,7 @@
     if (!card) return;
 
     // Dismiss any panel opened by a concurrent call during the await
-    var racePanel = card.querySelector('.mk-buyer-panel');
+    var racePanel = global.document.querySelector('[data-panel-listing="' + _esc(listingId) + '"]');
     if (racePanel) { racePanel.remove(); return; }
 
     var listing  = (global.PA&&global.PA.marketplace&&global.PA.marketplace.listings||[])
@@ -131,15 +131,25 @@
       });
     }
 
+    // BUGFIX: .mk-card has overflow:hidden which clips position:absolute children.
+    // Append to document.body and position using getBoundingClientRect so the
+    // panel is never clipped by the card's overflow context.
+    var rect = card.getBoundingClientRect();
+    panel.style.position   = 'fixed';
+    panel.style.top        = (rect.bottom) + 'px';
+    panel.style.left       = rect.left + 'px';
+    panel.style.width      = rect.width + 'px';
+    panel.style.zIndex     = '99999';
+    // Tag panel with listingId so we can find/remove it later
+    panel.setAttribute('data-panel-listing', listingId);
+    global.document.body.appendChild(panel);
+
     // Close on outside click
     setTimeout(function() {
       global.document.addEventListener('click', function _closePanel(e) {
         if (!panel.contains(e.target)) { panel.remove(); global.document.removeEventListener('click', _closePanel); }
       });
     }, 50);
-
-    card.appendChild(panel);
-    card.style.position = 'relative'; // ensure panel positions correctly
   }
 
   // ── Start negotiation ─────────────────────────────────────────
