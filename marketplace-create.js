@@ -284,12 +284,28 @@
       var jwt = _jwt();
       if (!jwt) { _toast('Sem sessão. Faça login.', 'error'); return; }
 
-      var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_delete_listing', {
+      // ── DEBUG 5D: remover após diagnóstico ─────────────────────────────
+      var _dbgUrl     = SB_URL + '/rest/v1/rpc/rpc_delete_listing';
+      var _dbgPayload = { p_listing_id: listingId };
+      console.log('[DELETE DEBUG] endpoint=', _dbgUrl);
+      console.log('[DELETE DEBUG] payload=', JSON.stringify(_dbgPayload));
+      console.log('[DELETE DEBUG] jwt=', !!jwt);
+      console.log('[DELETE DEBUG] listingId=', listingId, '| type=', typeof listingId);
+      console.log('[DELETE DEBUG] user.id=', (_user()||{}).id);
+      // ────────────────────────────────────────────────────────────────────
+
+      var res = await fetch(_dbgUrl, {
         method: 'POST',
         headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt },
-        body: JSON.stringify({ p_listing_id: listingId }),
+        body: JSON.stringify(_dbgPayload),
       });
-      var raw = await res.text();
+
+      // ── DEBUG 5D ─────────────────────────────────────────────────────
+      console.log('[DELETE DEBUG] status=', res.status);
+      var raw = await res.clone().text();
+      console.log('[DELETE DEBUG] response=', raw);
+      // ────────────────────────────────────────────────────────────────────
+
       var data = null; try { data = JSON.parse(raw); } catch(_){}
 
       if (!res.ok || !(data && data.success)) {
