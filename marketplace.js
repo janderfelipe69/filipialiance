@@ -159,7 +159,7 @@
         _state.listings.forEach(function(l) {
           if (l.seller_id === me.id) {
             MarketplaceTrade.fetchListingSessions(l.id).then(function(sessions) {
-              MarketplaceTrade.updateConvBadge(l.id, sessions.length);
+              MarketplaceTrade.updateConvBadge(l.id, sessions.length, sessions);
             });
           }
         });

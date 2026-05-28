@@ -82,6 +82,17 @@
     if (existing) { existing.remove(); return; }
 
     var sessions = await fetchListingSessions(listingId);
+
+    // Re-query after the async gap — the card may have been re-inserted by a
+    // reconcile cycle while fetchListingSessions was in flight. Appending to
+    // the old (possibly detached) node would make the panel invisible.
+    card = global.document.querySelector('[data-listing-id="' + _esc(listingId) + '"]');
+    if (!card) return;
+
+    // Dismiss any panel opened by a concurrent call during the await
+    var racePanel = card.querySelector('.mk-buyer-panel');
+    if (racePanel) { racePanel.remove(); return; }
+
     var listing  = (global.PA&&global.PA.marketplace&&global.PA.marketplace.listings||[])
       .find(function(l){ return l.id === listingId; });
     var listingName = listing ? listing.pokemon_name : '—';
