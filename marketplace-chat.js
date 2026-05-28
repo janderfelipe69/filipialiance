@@ -146,16 +146,18 @@
     var key = 'messages:' + self.sessionId;
 
     self._realtimeHandler = function(event, record) {
-      console.log('[CHAT RX]', event, record);
+      console.log('[CHAT MSG RX]', event, record);
       if (event !== 'INSERT') return;
+      // Dedup: optimistic append already added this message via its temp ID
+      // Server echo comes with real UUID — seenIds handles both
       self.appendMessage(record);
     };
 
     if (global.MarketplaceChannels) {
       global.MarketplaceChannels.register(key, self._realtimeHandler);
-      console.log('[CHAT REGISTER]', self.sessionId);
+      console.log('[CHAT SUB]', self.sessionId);
     } else {
-      console.warn('[CHAT REGISTER] MarketplaceChannels not ready for', self.sessionId);
+      console.warn('[CHAT SUB] MarketplaceChannels não disponível ao registrar', self.sessionId);
     }
   };
 
@@ -239,7 +241,6 @@
 
   ChatWindow.prototype.appendMessage = function(msg) {
     if (!msg || !msg.id) return;
-    console.log('[DEDUP CHECK]', msg.id, this.seenIds.has(msg.id));
     if (this.seenIds.has(msg.id)) return;
     this.seenIds.add(msg.id);
 

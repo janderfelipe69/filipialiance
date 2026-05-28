@@ -227,7 +227,35 @@
           _emitHook('marketplace:listing_deleted', record);
         }
 
-        _triggerRender('realtime-' + tipo);
+        // Passo 5C.2 — coordenação com marketplace-channels.js para evitar render
+        // completo quando trade.js já manipulou o DOM via 'listings:*'.
+        //
+        // Para DELETE:
+        //   trade.js (via channels) faz fade-out (260ms) + remove elemento.
+        //   render completo de marketplace.js (80ms) reconstruiria o DOM antes
+        //   do fade-out terminar, cancelando a animação visualmente.
+        //   → Pular _triggerRender se channels.js já processou o DELETE.
+        //
+        // Para INSERT/UPDATE:
+        //   trade.js não manipula DOM diretamente — render completo é necessário.
+        //   → Sempre renderizar.
+        //
+        // Se MarketplaceChannels não estiver presente: renderizar normalmente (sem regressão).
+        var _mcSkipRender = false;
+        if (tipo === 'DELETE') {
+          var _mcDedupKey = 'ml:DELETE:' + record.id;
+          _mcSkipRender = typeof global.MarketplaceChannels !== 'undefined' &&
+            typeof global.MarketplaceChannels.hasProcessed === 'function' &&
+            global.MarketplaceChannels.hasProcessed(_mcDedupKey);
+          if (_mcSkipRender) {
+            _log('[PA.marketplace.realtime] DELETE', record.id,
+              '— trade.js tratou o DOM via channels, pulando re-render completo');
+          }
+        }
+
+        if (!_mcSkipRender) {
+          _triggerRender('realtime-' + tipo);
+        }
       } catch (err) {
         _warn('[PA.marketplace.realtime] erro ao processar evento:', err.message);
       }

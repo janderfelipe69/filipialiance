@@ -31,7 +31,8 @@
   function register(channelKey, handlerFn) {
     if (!_registry[channelKey]) _registry[channelKey] = new Set();
     _registry[channelKey].add(handlerFn);
-    console.log('[CHANNEL REGISTER]', channelKey, '(handlers:', _registry[channelKey].size, ')');
+    console.log('[CHANNEL REGISTER]', channelKey,
+      '(total handlers:', _registry[channelKey].size, ')');
   }
 
   function unregister(channelKey, handlerFn) {
@@ -116,17 +117,27 @@
   });
 
   // ── Cleanup on unload only ───────────────────────────────────
-  // visibilitychange removed: killing messages:* handlers on tab-hide caused
-  // realtime messages received while the tab was in background to be dropped.
+  // NOTE: visibilitychange cleanup was intentionally removed.
+  // Killing 'messages:*' handlers on tab hide caused realtime messages
+  // received while the tab was backgrounded to be silently dropped —
+  // the handler was gone by the time the user returned.
   if (global.window && typeof global.window.addEventListener === 'function') global.window.addEventListener('beforeunload', cleanup);
 
   console.log('[subscription create] MarketplaceChannels initialized');
+
+  // Passo 5C.2 — expõe consulta ao _seenKeys para coordenação com marketplace.js
+  // Permite que marketplace.js verifique se um evento já foi roteado para sub-canais
+  // antes de disparar um re-render completo (evita render após trade.js já manipulou DOM).
+  function hasProcessed(dedupKey) {
+    return _seenKeys.has(dedupKey);
+  }
 
   global.MarketplaceChannels = {
     register:        register,
     unregister:      unregister,
     unregisterAll:   unregisterAll,
     cleanup:         cleanup,
+    hasProcessed:    hasProcessed,
     getKeys:         function() { return Object.keys(_registry); },
     getHandlerCount: function() {
       return Object.keys(_registry).reduce(function(sum, k) {
