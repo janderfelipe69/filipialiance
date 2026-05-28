@@ -124,11 +124,11 @@
     } catch (e) {}
   }
 
-  // Tables that must NOT be passed through normalizeDeliveryProof.
-  // normalizeRealtimeRecord (schema-compat.js) calls normalizeDeliveryProof on
-  // every record regardless of table, which destroys session_id/content/sender_id
-  // for trade_messages and corrupts trade_sessions.
-  var _RAW_TABLES = { trade_messages: true, trade_sessions: true, marketplace_listings: true };
+  // Marketplace tables must NOT go through normalizeRealtimeRecord/normalizeDeliveryProof.
+  // That function (schema-compat.js) strips session_id, content and sender_id from
+  // trade_messages — the realtime handler would emit 'messages:undefined' and no
+  // ChatWindow would ever receive the event.
+  var _SKIP_NORMALIZE = { trade_messages: true, trade_sessions: true, marketplace_listings: true };
 
   // ── Extractor: normaliza payload nos 3 formatos do Supabase Realtime ──
   function _extractFromMsg(msg) {
@@ -138,29 +138,22 @@
 
     if (msg.event !== 'postgres_changes') return { tipo: null, record: null, table: null };
 
-    // Detect table from topic so we can decide whether to normalise
+    // Detect table from topic to decide whether to run normalizeRealtimeRecord
     var msgTopic = msg.topic || '';
     var topicTable = null;
     for (var ci = 0; ci < CHANNELS.length; ci++) {
-      if (msgTopic.indexOf(CHANNELS[ci].table) !== -1) {
-        topicTable = CHANNELS[ci].table;
-        break;
-      }
+      if (msgTopic.indexOf(CHANNELS[ci].table) !== -1) { topicTable = CHANNELS[ci].table; break; }
     }
 
-    // Use normalizeRealtimeRecord ONLY for delivery/pedidos tables.
-    // For marketplace tables (trade_messages, trade_sessions, marketplace_listings)
-    // extract the raw record to preserve all original fields.
-    var skipNormalize = topicTable && _RAW_TABLES[topicTable];
-
-    if (!skipNormalize && typeof normalizeRealtimeRecord === 'function') {
+    // Only normalise for non-marketplace tables (pedidos, delivery_proofs)
+    if (!_SKIP_NORMALIZE[topicTable] && typeof normalizeRealtimeRecord === 'function') {
       var norm = normalizeRealtimeRecord(msg, null);
       if (norm && norm.record) {
-        return { tipo: norm.event || 'UPDATE', record: norm.record, table: norm.table || null };
+        return { tipo: norm.event || 'UPDATE', record: norm.record, table: norm.table || topicTable || null };
       }
     }
 
-    // Raw extraction — preserves all original fields
+    // Raw extraction — all original fields preserved (session_id, content, sender_id, etc.)
     // Formato 1: msg.payload.data.type + msg.payload.data.record
     if (msg.payload && msg.payload.data && msg.payload.data.type && msg.payload.data.record) {
       tipo   = msg.payload.data.type;
@@ -173,7 +166,7 @@
       record = msg.payload.record;
       table  = msg.payload.table || topicTable || null;
     }
-    // Formato 3: msg.payload.new (INSERT/UPDATE) — Supabase Realtime v2 padrão
+    // Formato 3: msg.payload.new (INSERT/UPDATE) — Supabase Realtime v2 standard
     else if (msg.payload && msg.payload.new && Object.keys(msg.payload.new).length) {
       tipo   = msg.payload.type || 'INSERT';
       record = msg.payload.new;
@@ -186,8 +179,10 @@
       table  = topicTable || null;
     }
 
-    console.log('[REALTIME MESSAGE]', topicTable, tipo, record && record.id,
-      record && record.session_id ? 'session=' + record.session_id : '');
+    var sessionId = record && record.session_id;
+    console.log('[REALTIME INSERT]', topicTable, tipo,
+      sessionId ? 'session=' + sessionId : 'id=' + (record && record.id));
+
     return { tipo: tipo, record: record, table: table };
   }
 

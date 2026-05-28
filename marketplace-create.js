@@ -284,12 +284,14 @@
       var jwt = _jwt();
       if (!jwt) { _toast('Sem sessão. Faça login.', 'error'); return; }
 
+      console.log('[DELETE RPC] rpc_delete_listing', listingId);
       var res = await fetch(SB_URL + '/rest/v1/rpc/rpc_delete_listing', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt },
         body: JSON.stringify({ p_listing_id: listingId }),
       });
       var raw = await res.text();
+      console.log('[DELETE RPC] status=' + res.status, raw.slice(0, 200));
       var data = null; try { data = JSON.parse(raw); } catch(_){}
 
       if (!res.ok || !(data && data.success)) {
@@ -336,8 +338,8 @@
       });
     }
 
-    // 4. Remove buyer panel se estiver aberto
-    var buyerPanel = global.document.querySelector('[data-listing-id="' + listingId + '"] .mk-buyer-panel');
+    // 4. Remove buyer panel se estiver aberto (now attached to body, not the card)
+    var buyerPanel = global.document.querySelector('[data-panel-listing="' + listingId + '"]');
     if (buyerPanel) buyerPanel.remove();
 
     // 5. Atualiza badge de unread (inbox)
