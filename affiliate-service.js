@@ -23,8 +23,10 @@
   }
 
   function _isAdmin() {
-    const u = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    return u && u.role === 'admin';
+    // Fase 2 Passo 3.2: delega para Session.isAdmin() — fonte única de verdade.
+    return typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+      ? Session.isAdmin()
+      : false;
   }
 
   function _headers(extra) {

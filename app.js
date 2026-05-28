@@ -326,7 +326,17 @@ async function sendToWhatsApp() {
 
     // Campos extras para itens de captura (Fase 5.3 — unificado)
     if (item._capturaId) {
+      // Gera item_ref único para este pokémon usando o índice no array de capturas
+      // Este item_ref é gravado no JSONB e usado depois por startCaptureItem/completeCaptureItem
+      const captIdx = keys.filter(k2 => parseInt(k2,10) < parseInt(k,10) && items[parseInt(k2,10)] && items[parseInt(k2,10)]._capturaId).length;
+      const itemRefForBanco = item._capturaId.replace('ccp_','').slice(0,8)
+        ? ('ORD_PK_' + (captIdx + 1))
+        : ('ORD_PK_' + (captIdx + 1));
+
       Object.assign(base, {
+        // item_ref escrito no banco — permite startCaptureItem/completeCaptureItem encontrar o item
+        item_ref:    itemRefForBanco,
+        id:          itemRefForBanco, // alias — compatível com lookup legado
         type:        'capture',
         pokemon:     item.pokemon || (item._pokeData && item._pokeData.name) || '',
         ball:        item.ball_name || (item._ball && item._ball.name) || '',

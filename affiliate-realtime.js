@@ -59,6 +59,14 @@
 
     const key = `${table}:${tipo}:${record.id}:${record.updated_at || record.created_at}`;
     if (_dedup(key)) return;
+    // Passo 5C.1 — monitor OPCIONAL: instrumentação não bloqueia processamento
+    var _parWs = null;
+    if (window.PA && PA.monitor) {
+      _parWs = PA.monitor._realtimeParallel = PA.monitor._realtimeParallel ||
+        { ws: 0, custom: 0, matches: 0, seen: {} };
+    }
+    if (_parWs) _parWs.ws++;
+    if (_parWs) _parWs.seen[key] = Date.now();
 
     if (table === 'affiliate_services') {
       _emit('affiliate:service_changed', tipo, record);
@@ -186,6 +194,55 @@
   }
 
   function isActive() { return _active; }
+
+  // ── Passo 5C — Listener paralelo: CustomEvent 'affiliate:changed' ──────────
+  // Escuta o canal centralizado do realtime-manager EM PARALELO ao WS próprio.
+  // NÃO substitui o WS próprio. NÃO altera start()/stop()/subscribe().
+  //
+  // NOTA: o WS próprio escuta affiliate_services, affiliate_notifications,
+  // affiliate_wallets. O realtime-manager emite affiliate:changed para
+  // affiliate_orders — tabela diferente. Matches iniciais serão ~0 (esperado).
+  // A cobertura dual-path para affiliate_orders é o objetivo.
+  ;(function _attachAffiliateParallelListener() {
+    global.addEventListener('affiliate:changed', function(e) {
+      // Passo 5C.1 — monitor OPCIONAL: processamento principal sempre executa
+      var _par = null;
+      if (global.PA && PA.monitor) {
+        _par = PA.monitor._realtimeParallel = PA.monitor._realtimeParallel ||
+          { ws: 0, custom: 0, matches: 0, seen: {} };
+      }
+      if (_par) _par.custom++;
+
+      const detail = (e && e.detail) || {};
+      const record = detail.record || {};
+      const tipo   = detail.event  || 'UPDATE';
+      const table  = 'affiliate_orders';
+
+      if (!record.id) return;
+
+      // Deduplicação: mesma chave usada por _dedup() no WS próprio — sempre executa
+      const key = `${table}:${tipo}:${record.id}:${record.updated_at || record.created_at || ''}`;
+
+      // Detecta match (mesmo evento já veio pelo WS próprio)
+      if (_par && _par.seen[key]) {
+        _par.matches++;
+        console.log('[AffiliateRT/parallel] match id:', record.id,
+          '| delta:', Date.now() - _par.seen[key], 'ms');
+      }
+
+      // Deduplicação via _dedup() — reutiliza o Set _seen existente
+      if (_dedup(key)) {
+        console.log('[AffiliateRT/parallel] já processado — descartando CustomEvent id:', record.id);
+        return;
+      }
+
+      // Emite CustomEvent específico de affiliate_orders para quem escuta
+      // (sem afetar os eventos de affiliate_services/notifications/wallets)
+      _emit('affiliate:order_changed', tipo, record);
+      console.log('[AffiliateRT/parallel] CustomEvent affiliate:order_changed emitido id:', record.id);
+    });
+    console.log('[AffiliateRealtime] ✅ Listener paralelo affiliate:changed registrado (Passo 5C.1).');
+  })();
 
   global.AffiliateRealtime = { start, stop, isActive };
 
