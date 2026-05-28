@@ -1262,6 +1262,7 @@
 <script src="app.js"></script>
 <script>
 // ── Aplica TABS_CONFIG: oculta abas desabilitadas ────────────────────────
+// ── Aplica FeatureFlags: bloqueia abas visualmente (sem ocultar) ─────────
 (function() {
   if (typeof TABS_CONFIG === 'undefined') return;
 
@@ -1269,12 +1270,11 @@
 
   Object.keys(TABS_CONFIG).forEach(function(tab) {
     if (TABS_CONFIG[tab] === false) {
-      // Oculta o botão da aba
+      // TABS_CONFIG=false → aba OCULTADA (não existe)
       document.querySelectorAll('.tab-btn').forEach(function(btn) {
         var oc = btn.getAttribute('onclick') || '';
         if (oc.indexOf("'" + tab + "'") !== -1) btn.style.display = 'none';
       });
-      // Oculta o conteúdo da aba
       var content = document.getElementById('tab-' + tab);
       if (content) content.style.display = 'none';
     } else {
@@ -1282,18 +1282,38 @@
     }
   });
 
-  // Ativa a primeira aba habilitada
+  // Ativa a primeira aba habilitada pelo TABS_CONFIG
+  // (FeatureFlags podem bloquear mas não ocultar — aba ainda conta como "enabled" aqui)
   if (firstEnabled) {
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
     document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
 
+    // Encontra primeira aba que está visível E habilitada pelo FeatureFlag
     var firstBtn = null;
+    var firstTab = null;
     document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
+      if (firstBtn) return;
+      if (btn.style.display === 'none') return;
+      var oc = btn.getAttribute('onclick') || '';
+      // Extrai nome da aba do onclick
+      var m = oc.match(/switchTab\('([^']+)'/);
+      var tabName = m ? m[1] : null;
+      // Se feature flag desabilitou, pula para próxima
+      if (tabName && typeof isFeatureEnabled === 'function' && !isFeatureEnabled(tabName)) return;
+      firstBtn = btn;
+      firstTab = tabName || firstEnabled;
     });
-    if (firstBtn) firstBtn.classList.add('active');
 
-    var firstContent = document.getElementById('tab-' + firstEnabled);
+    // Fallback: se todas estão bloqueadas por flags, usa a primeira visível mesmo assim
+    if (!firstBtn) {
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
+      });
+      firstTab = firstEnabled;
+    }
+
+    if (firstBtn) firstBtn.classList.add('active');
+    var firstContent = document.getElementById('tab-' + firstTab);
     if (firstContent) firstContent.classList.add('active');
   }
 })();

@@ -10,11 +10,8 @@
   'use strict';
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-  // Fase 2 Passo 3.9: padrão único — Session.isAdmin().
   function isAdmin() {
-    return typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
-      ? Session.isAdmin()
-      : false;
+    return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
   }
 
   // Aguarda Session.ready() e retorna o JWT real
@@ -50,24 +47,14 @@
     });
   }
 
-  // GETs autenticados — usa JWT do usuário logado (Fase 2 Passo 4).
-  // Antes usava anon key; agora exige sessão ativa para respeitar RLS admin.
+  // Para GETs que não precisam de auth (usa anon key)
   function sbGet(path) {
-    return getJwtAsync().then(function(jwt) {
-      if (!jwt) {
-        console.error('[admin-panel] sbGet: JWT indisponível — operação abortada.');
-        throw new Error('Sessão expirada. Faça login novamente.');
+    return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
+      headers: {
+        'apikey':        global.SUPABASE_KEY,
+        'Authorization': 'Bearer ' + global.SUPABASE_KEY,
       }
-      return fetch(global.SUPABASE_URL + '/rest/v1/' + path, {
-        headers: {
-          'apikey':        global.SUPABASE_KEY,
-          'Authorization': 'Bearer ' + jwt,
-        },
-      });
-    }).then(function(r) {
-      if (!r.ok) return r.text().then(function(t) { throw new Error(t.slice(0, 300)); });
-      return r.json();
-    });
+    }).then(function(r) { return r.json(); });
   }
 
   // ── Modal base ───────────────────────────────────────────────────────────
@@ -278,11 +265,8 @@
         .then(function() { showToast('Item desabilitado.'); close(); reloadItems(); reloadDisabledItems(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     };
-    document.getElementById('btn-harddelete-item').onclick = async function() {
-      var _delOk = typeof confirmAction === 'function'
-        ? await confirmAction('Excluir item', 'Excluir "' + item.name + '" do banco permanentemente? Esta ação não pode ser desfeita.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
-        : confirm('Tem certeza? Isso vai excluir "' + item.name + '" do banco de dados permanentemente.');
-      if (!_delOk) return;
+    document.getElementById('btn-harddelete-item').onclick = function() {
+      if (!confirm('Tem certeza? Isso vai excluir "'+item.name+'" do banco de dados permanentemente.')) return;
       sbFetch('DELETE', 'catalog_items?id=eq.' + item.id, null)
         .then(function() { showToast('Item excluído permanentemente.'); close(); reloadItems(); reloadDisabledItems(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
@@ -777,11 +761,8 @@
         .then(function() { showToast('Pokémon desabilitado.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     };
-    document.getElementById('btn-harddelete-poke').onclick = async function() {
-      var _delOk = typeof confirmAction === 'function'
-        ? await confirmAction('Excluir pokémon', 'Excluir "' + poke.name + '" do banco permanentemente? Esta ação não pode ser desfeita.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
-        : confirm('Tem certeza? Isso vai excluir "' + poke.name + '" do banco de dados permanentemente.');
-      if (!_delOk) return;
+    document.getElementById('btn-harddelete-poke').onclick = function() {
+      if (!confirm('Tem certeza? Isso vai excluir "'+poke.name+'" do banco de dados permanentemente.')) return;
       sbFetch('DELETE', 'catalog_pokemons?id=eq.' + poke.id, null)
         .then(function() { showToast('Pokémon excluído permanentemente.'); close(); reloadPokemons(); reloadDisabledPokemons(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
@@ -1206,11 +1187,8 @@
         .then(function() { showToast('Pacote desabilitado.'); close(); reloadDisabledPackages(); location.reload(); })
         .catch(function(e) { showToast('Erro: ' + e.message, false); });
     };
-    document.getElementById('btn-harddelete-pkg').onclick = async function() {
-      var _delOk = typeof confirmAction === 'function'
-        ? await confirmAction('Excluir pacote', 'Excluir o pacote "' + pkg.name + '" permanentemente? Esta ação não pode ser desfeita.', { type: 'danger', confirmText: 'Excluir', cancelText: 'Cancelar' })
-        : confirm('Tem certeza? Isso vai excluir o pacote "' + pkg.name + '" permanentemente.');
-      if (!_delOk) return;
+    document.getElementById('btn-harddelete-pkg').onclick = function() {
+      if (!confirm('Tem certeza? Isso vai excluir o pacote "'+pkg.name+'" permanentemente.')) return;
       sbGet('catalog_packages?name=eq.' + encodeURIComponent(pkg.name))
         .then(function(rows) {
           if (!rows || !rows[0]) throw new Error('Pacote não encontrado');
@@ -1250,6 +1228,9 @@
   // ── Injeção das barras de admin nas abas ─────────────────────────────────
   function injectAdminBars() {
     if (!isAdmin()) return;
+
+    // ── Feature Flags panel ──
+    _injectFeatureFlagsPanel();
 
     // ── Aba Itens ──
     var itemsGrid = document.getElementById('items-grid');
@@ -1316,6 +1297,92 @@
       }
     }
   }
+
+  // ── Seção Feature Flags — aparece no topo da aba itens para admins ──────
+  function _injectFeatureFlagsPanel() {
+    if (!isAdmin()) return;
+    if (document.getElementById('admin-feature-flags-panel')) return;
+
+    var flags = (typeof FeatureFlags !== 'undefined') ? FeatureFlags.getFlags() : { itens: true, pacotes: true, captura: true };
+
+    var panel = document.createElement('div');
+    panel.id = 'admin-feature-flags-panel';
+    panel.style.cssText = 'margin:12px 0;padding:14px 16px;background:rgba(74,154,255,.05);border:1px dashed rgba(74,154,255,.2);border-radius:10px';
+
+    var labels = { itens: 'Itens', pacotes: 'Pacotes', captura: 'Captura' };
+
+    var html =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
+        '<span style="font-size:.75rem;color:#4a9aff;font-weight:700;text-transform:uppercase;letter-spacing:.06em">⚙️ Feature Flags — Abas</span>' +
+        '<span style="font-size:.7rem;color:#555">Mudanças persistem automaticamente</span>' +
+      '</div>' +
+      '<div id="admin-ff-toggles" style="display:flex;flex-direction:column;gap:10px">';
+
+    ['itens', 'pacotes', 'captura'].forEach(function (tab) {
+      var enabled = flags[tab] !== false;
+      html +=
+        '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">' +
+          '<span style="font-size:.85rem;color:#c0c8ff">' + labels[tab] + '</span>' +
+          '<span style="display:flex;align-items:center;gap:8px">' +
+            '<span id="admin-ff-badge-' + tab + '" style="font-size:.72rem;padding:2px 8px;border-radius:4px;' +
+              (enabled ? 'background:rgba(80,200,80,.12);color:#80e080' : 'background:rgba(180,60,60,.12);color:#e08080') + '">' +
+              (enabled ? 'Habilitado' : 'Desabilitado') +
+            '</span>' +
+            '<div style="position:relative;width:42px;height:22px">' +
+              '<input type="checkbox" id="admin-ff-' + tab + '" ' + (enabled ? 'checked' : '') + ' ' +
+                'data-tab="' + tab + '" ' +
+                'style="opacity:0;width:0;height:0;position:absolute" ' +
+                'onchange="window.__adminToggleFeatureFlag(this)">' +
+              '<label for="admin-ff-' + tab + '" style="' +
+                'position:absolute;top:0;left:0;right:0;bottom:0;' +
+                'border-radius:11px;cursor:pointer;transition:background .25s;' +
+                'background:' + (enabled ? '#3a8a3a' : '#443') + '">' +
+                '<span style="' +
+                  'position:absolute;top:3px;' + (enabled ? 'left:23px' : 'left:3px') + ';' +
+                  'width:16px;height:16px;border-radius:50%;background:#fff;' +
+                  'transition:left .2s;display:block" id="admin-ff-knob-' + tab + '"></span>' +
+              '</label>' +
+            '</div>' +
+          '</span>' +
+        '</label>';
+    });
+
+    html += '</div>';
+    panel.innerHTML = html;
+
+    // Insere antes do items-grid ou no topo do body como fallback
+    var anchor = document.getElementById('items-grid');
+    if (anchor && anchor.parentElement) {
+      anchor.parentElement.insertBefore(panel, anchor);
+    }
+  }
+
+  global.__adminToggleFeatureFlag = function (checkbox) {
+    var tab = checkbox.getAttribute('data-tab');
+    var enabled = checkbox.checked;
+
+    if (typeof FeatureFlags === 'undefined') {
+      showToast('FeatureFlags não disponível.', false);
+      return;
+    }
+
+    FeatureFlags.setFlag(tab, enabled);
+
+    // Atualiza badge e knob inline
+    var badge = document.getElementById('admin-ff-badge-' + tab);
+    var knob  = document.getElementById('admin-ff-knob-' + tab);
+    var track = checkbox.nextElementSibling;
+
+    if (badge) {
+      badge.textContent = enabled ? 'Habilitado' : 'Desabilitado';
+      badge.style.background  = enabled ? 'rgba(80,200,80,.12)' : 'rgba(180,60,60,.12)';
+      badge.style.color       = enabled ? '#80e080' : '#e08080';
+    }
+    if (knob)  knob.style.left  = enabled ? '23px' : '3px';
+    if (track) track.style.background = enabled ? '#3a8a3a' : '#443';
+
+    showToast('Aba ' + tab + (enabled ? ' habilitada.' : ' desabilitada.'), enabled);
+  };
 
   // Botões de editar/remover nos cards — chamados pelos renders
   global.__adminEditItem    = function(idx) { openEditItem(global.items[idx]); };

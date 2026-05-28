@@ -42,6 +42,43 @@
     marketplace: '#marketplace',   // Fase M1
   };
 
+
+  /* ═══════════════════════════════════════════════════════════════
+     FEATURE FLAG HELPERS
+  ═══════════════════════════════════════════════════════════════ */
+
+  /**
+   * Exibe toast "Função temporariamente indisponível." (debounced).
+   */
+  var _featureToastActive = false;
+  function _showFeatureBlockedToast() {
+    if (_featureToastActive) return;
+    _featureToastActive = true;
+    var t = document.createElement('div');
+    t.textContent = 'Função temporariamente indisponível.';
+    t.style.cssText = [
+      'position:fixed',
+      'bottom:24px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:#1e2240',
+      'color:#e0e4ff',
+      'border:1px solid rgba(255,200,80,.35)',
+      'border-radius:8px',
+      'padding:10px 20px',
+      'font-size:.88rem',
+      'z-index:99999',
+      'box-shadow:0 4px 18px rgba(0,0,0,.5)',
+      'pointer-events:none',
+      'transition:opacity .3s',
+    ].join(';');
+    document.body.appendChild(t);
+    setTimeout(function () {
+      t.style.opacity = '0';
+      setTimeout(function () { t.remove(); _featureToastActive = false; }, 320);
+    }, 2200);
+  }
+
   /* ═══════════════════════════════════════════════════════════════
      ESTADO CENTRAL (única fonte de verdade)
   ═══════════════════════════════════════════════════════════════ */
@@ -113,6 +150,13 @@
   function switchTab(tab, btn, opts) {
     opts = opts || {};
 
+    /* ── Feature Flag guard — bloqueia abas desabilitadas ── */
+    if (typeof global.isFeatureEnabled === 'function' && !global.isFeatureEnabled(tab)) {
+      /* Mostra toast de indisponibilidade */
+      _showFeatureBlockedToast();
+      return; /* aborta toda a navegação */
+    }
+
     /* Antes */
     _runHooks(_beforeTabHooks, tab, btn);
 
@@ -131,6 +175,8 @@
     /* Renderizadores — aguarda db-bootstrap terminar antes de renderizar
        abas que dependem de dados do Supabase (captura, pacotes, itens) */
     function _render() {
+      /* Feature Flag: aborta renderização se aba foi desabilitada */
+      if (typeof global.isFeatureEnabled === 'function' && !global.isFeatureEnabled(tab)) return;
       if (tab === 'pacotes'  && typeof renderPackages  === 'function') renderPackages();
       if (tab === 'captura'  && typeof renderCaptura   === 'function') renderCaptura();
       if (tab === 'entregas' && typeof renderEntregas  === 'function') renderEntregas();
@@ -311,6 +357,14 @@
   function applyHash() {
     var h = _parseHash();
     if (!h.main) return;
+
+    /* Feature Flag guard — bloqueia hash-navigation para abas desabilitadas */
+    if (typeof global.isFeatureEnabled === 'function' && !global.isFeatureEnabled(h.main)) {
+      _showFeatureBlockedToast();
+      /* Remove hash inválido da URL sem criar entrada no histórico */
+      history.replaceState({}, '', global.location.pathname);
+      return;
+    }
 
     _state.applying = true;
 
