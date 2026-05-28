@@ -461,11 +461,17 @@
     }
   });
 
+  // Return all open ChatWindow instances for a given listing
+  function getWindowsByListing(listingId) {
+    return Object.values(_windows).filter(function(w){ return w.listingId === listingId; });
+  }
+
   global.MarketplaceChat = {
-    open:               open,
-    close:              close,
-    closeAll:           closeAll,
-    getActiveSessionId: getActiveSessionId,
+    open:                open,
+    close:               close,
+    closeAll:            closeAll,
+    getActiveSessionId:  getActiveSessionId,
+    getWindowsByListing: getWindowsByListing,
     getStats: function() {
       return { openWindows: Object.keys(_windows).length };
     },

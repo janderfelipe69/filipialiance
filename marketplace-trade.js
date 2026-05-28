@@ -67,7 +67,7 @@
         if (top) top.appendChild(existing);
       }
       existing.textContent = count + (count===1?' conversa':' conversas') + (totalUnread > 0 ? ' ('+totalUnread+' novas)' : '');
-      existing.setAttribute('onclick', 'event.stopPropagation();MarketplaceTrade.openBuyerPanel("' + _esc(listingId) + '")');
+      existing.setAttribute('data-open-trades', listingId);
     } else if (existing) {
       existing.remove();
     }
@@ -211,6 +211,25 @@
 
     // Listings: if listing sold → remove card
     _listingHandler = function(event, record) {
+      // Handle DELETE (rpc_delete_listing fired a real DELETE)
+      if (event === 'DELETE' && record.id) {
+        var lEl = global.document.querySelector('[data-listing-id="' + record.id + '"]');
+        if (lEl) {
+          lEl.style.transition = 'opacity .25s';
+          lEl.style.opacity = '0';
+          setTimeout(function(){ lEl.remove(); }, 260);
+        }
+        if (global.PA && global.PA.marketplace) {
+          global.PA.marketplace.listings = (global.PA.marketplace.listings||[])
+            .filter(function(l){ return l.id !== record.id; });
+        }
+        // Close any open chat windows for this listing
+        if (typeof MarketplaceChat !== 'undefined' && MarketplaceChat.getWindowsByListing) {
+          MarketplaceChat.getWindowsByListing(record.id).forEach(function(w){ w.destroy(); });
+        }
+        if (typeof MarketplaceInbox !== 'undefined') MarketplaceInbox.refresh();
+        return;
+      }
       if (event !== 'UPDATE' || record.status !== 'sold') return;
       if (!global.PA || !global.PA.marketplace) return;
       var listings = global.PA.marketplace.listings || [];
@@ -230,6 +249,16 @@
 
     console.log('[subscription create] MarketplaceTrade realtime registered');
   }
+
+  // ── Event delegation for conv badge clicks ──────────────────
+  // One listener on document — never rebinds when cards morph
+  global.document.addEventListener('click', function(e) {
+    var badge = e.target.closest('[data-open-trades]');
+    if (!badge) return;
+    e.stopPropagation();
+    var listingId = badge.getAttribute('data-open-trades');
+    if (listingId) openBuyerPanel(listingId);
+  });
 
   global.document.addEventListener('DOMContentLoaded', function() {
     _initRealtime();

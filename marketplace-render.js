@@ -314,11 +314,16 @@
         var isOwnerMorph = userId && listing.seller_id === userId;
         var isAdminMorph = admin;
 
-        // Remove old action divs
+        // Remove old action divs and conv badge (rebuilt below or re-injected by marketplace.js)
         var oldActions = el.querySelector('.mk-card-actions');
         if (oldActions) oldActions.remove();
         var oldNegotiate = el.querySelector('.mk-card-negotiate');
         if (oldNegotiate) oldNegotiate.remove();
+        // Remove conv badge if no longer owner — marketplace.js re-injects for owners
+        if (!isOwnerMorph) {
+          var oldConvBadge = el.querySelector('.mk-conv-badge');
+          if (oldConvBadge) oldConvBadge.remove();
+        }
 
         // Rebuild negotiate button (buyer only)
         // Admin negotiates as a normal buyer (Bug 3 fix)

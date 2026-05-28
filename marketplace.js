@@ -281,6 +281,13 @@
 
   // ── Boot ─────────────────────────────────────────────────────
   global.document.addEventListener('DOMContentLoaded', function () {
+    // Register timer/abort cleanup with PA.lifecycle
+    if (global.PA && global.PA.lifecycle) {
+      global.PA.lifecycle.registerCleanup('marketplace', function() {
+        if (_state.fetchAbort) { try { _state.fetchAbort.abort(); } catch(_) {} }
+        if (_fetchDebounceTimer) { clearTimeout(_fetchDebounceTimer); _fetchDebounceTimer = null; }
+      });
+    }
     try {
       _registerHookEvents();
       _initRealtime();

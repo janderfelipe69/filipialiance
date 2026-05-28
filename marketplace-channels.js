@@ -103,7 +103,10 @@
     var record = d.record||{};
     if (!record.id) return;
 
-    var dedup = 'ml:' + d.event + ':' + record.id + ':' + (record.updated_at||'');
+    // For DELETE, updated_at is not in the payload — use timestamp-based dedup
+    var dedup = d.event === 'DELETE'
+      ? 'ml:DELETE:' + record.id
+      : 'ml:' + d.event + ':' + record.id + ':' + (record.updated_at||'');
     if (_seenKeys.has(dedup)) return;
     _seenKeys.add(dedup);
 
@@ -115,11 +118,13 @@
   // ── Cleanup on tab switch / unload ───────────────────────────
   if (global.window && typeof global.window.addEventListener === 'function') global.window.addEventListener('beforeunload', cleanup);
   global.document.addEventListener('visibilitychange', function() {
-    if (global.document.visibilityState === 'hidden') {
-      // Only clear message-level handlers, keep session/listing ones
-      Object.keys(_registry).forEach(function(k) {
-        if (k.startsWith('messages:')) unregisterAll(k);
-      });
+    // M5: do NOT clear message handlers on hidden — chat windows accumulate
+    // messages while tab is hidden and show them on refocus.
+    // Session and listing handlers must always remain active.
+    if (global.document.visibilityState === 'visible') {
+      // Tab refocused: clear stale dedup keys so realtime works again
+      // (dedup keys are time-based and safe to clear after a hidden period)
+      if (_seenKeys.size > 100) _seenKeys.clear();
     }
   });
 
