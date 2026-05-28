@@ -75,7 +75,10 @@
   // ══════════════════════════════════════════════════════════
 
   function _isAdmin() {
-    return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+    // Fase 2 Passo 3.4: padrão único — Session.isAdmin().
+    return typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+      ? Session.isAdmin()
+      : false;
   }
 
   function _esc(s) {

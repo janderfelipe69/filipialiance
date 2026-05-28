@@ -1,36 +1,34 @@
 /* ================================================================
-   filter-smart.js
+   filter-smart.js — v2 (Fase 5: sem monkey patches)
    Esconde automaticamente as opções de filtro que não têm itens
    nas abas de ITENS e CAPTURA.
-   Carregue APÓS app.js e dados.js no index.html.
+
+   MUDANÇA FASE 5:
+   - Removidos os monkey patches de window.renderCaptura e window.render.
+   - Agora reage via PA.hooks ('captura:rendered', 'items:rendered').
+   - Se PA.hooks não estiver disponível, usa fallback de compat
+     que mantém comportamento idêntico ao anterior.
+   - Comportamento VISUAL 100% idêntico.
+
+   Carregue APÓS app.js, dados.js, pa-compat.js e js/runtime/hooks.js.
 ================================================================ */
 (function () {
 
   /* ── Utilitário: recalcula e esconde options vazias ──────────── */
-
-  /**
-   * updateSelectOptions(selectId, getValuesFn)
-   * - selectId     : id do <select>
-   * - getValuesFn  : função que retorna um Set<string> com os valores
-   *                  que existem nos dados
-   * Garante que "all" sempre fique visível.
-   * Se o valor selecionado sumiu dos dados, volta para "all".
-   */
   function updateSelectOptions(selectId, getValuesFn) {
-    const sel = document.getElementById(selectId);
+    var sel = document.getElementById(selectId);
     if (!sel) return;
 
-    const existing = getValuesFn();
+    var existing = getValuesFn();
 
     Array.from(sel.options).forEach(function (opt) {
-      const v = opt.value;
-      if (v === 'all') { opt.style.display = ''; return; } // sempre visível
-      const hasData = existing.has(v);
+      var v = opt.value;
+      if (v === 'all') { opt.style.display = ''; return; }
+      var hasData = existing.has(v);
       opt.style.display = hasData ? '' : 'none';
     });
 
-    /* Se o valor atual ficou oculto, volta para "all" */
-    const chosen = sel.options[sel.selectedIndex];
+    var chosen = sel.options[sel.selectedIndex];
     if (chosen && chosen.style.display === 'none') {
       sel.value = 'all';
     }
@@ -38,22 +36,19 @@
 
   /* ── ITENS: calcula values que existem no array `items` ──────── */
   function getItensTags() {
-    const set = new Set();
+    var set = new Set();
     if (typeof items === 'undefined') return set;
 
     items.forEach(function (item) {
-      const tier = (item.tier || '').toLowerCase();
-      const name = (item.name || '').toLowerCase();
+      var tier = (item.tier || '').toLowerCase();
+      var name = (item.name || '').toLowerCase();
 
-      // tiers explícitos
       if (tier) set.add(tier);
 
-      // tags especiais calculadas pelo app.js (getTag logic)
       if (name.includes('shiny'))   set.add('shiny');
       if (name.includes('orb'))     set.add('orb');
       if (name.includes('essence')) set.add('essence');
 
-      // "normal" = sem tier e sem tag especial
       if (!tier &&
           !name.includes('shiny') &&
           !name.includes('orb') &&
@@ -67,11 +62,11 @@
 
   /* ── CAPTURA: calcula tags que existem no array `POKEMONS` ────── */
   function getCapturaTags() {
-    const set = new Set();
+    var set = new Set();
     if (typeof POKEMONS === 'undefined') return set;
 
-    let hasDive = false;
-    let hasNone = false;
+    var hasDive = false;
+    var hasNone = false;
 
     POKEMONS.forEach(function (p) {
       if (p.tag)  set.add(p.tag.toLowerCase());
@@ -85,31 +80,52 @@
     return set;
   }
 
-  /* ── Patch de render(): atualiza o select depois de renderizar ── */
-  function patchRender() {
-    var _origRender = window.render;
-    window.render = function () {
-      if (_origRender) _origRender.apply(this, arguments);
-      updateSelectOptions('filter', getItensTags);
-    };
+  /* ── Atualiza selects (chamada pública — usada por hooks e fallback) ── */
+  function syncCapturaFilter() {
+    updateSelectOptions('captura-filter', getCapturaTags);
   }
 
-  function patchRenderCaptura() {
-    var _origRenderCaptura = window.renderCaptura;
-    window.renderCaptura = function () {
-      if (_origRenderCaptura) _origRenderCaptura.apply(this, arguments);
-      updateSelectOptions('captura-filter', getCapturaTags);
-    };
+  function syncItemsFilter() {
+    updateSelectOptions('filter', getItensTags);
   }
 
   /* ── Init ────────────────────────────────────────────────────── */
   function init() {
-    patchRender();
-    patchRenderCaptura();
-
     /* Aplica imediatamente na primeira carga */
-    updateSelectOptions('filter',         getItensTags);
-    updateSelectOptions('captura-filter', getCapturaTags);
+    syncItemsFilter();
+    syncCapturaFilter();
+
+    /* ── FASE 5: usar PA.hooks se disponível (sem monkey patch) ── */
+    if (window.PA && window.PA.hooks) {
+      window.PA.hooks.on('captura:rendered', 'filter-smart/captura', syncCapturaFilter);
+      window.PA.hooks.on('items:rendered',   'filter-smart/items',   syncItemsFilter);
+
+      if (window.PA_DEBUG) {
+        console.log('[filter-smart v2] Usando PA.hooks — sem monkey patches.');
+      }
+      return;
+    }
+
+    /* ── FALLBACK: se PA.hooks não estiver pronto, usa compat wrapper ──
+       Mantém comportamento original para garantir funcionamento mesmo
+       se hooks.js não foi carregado. Emite warning para diagnóstico. */
+    console.warn('[filter-smart] PA.hooks não disponível — usando fallback com wrappers. ' +
+                 'Carregar js/runtime/hooks.js antes de filter-smart.js para eliminar monkey patches.');
+
+    var _origRenderCaptura = window.renderCaptura;
+    window.renderCaptura = function () {
+      if (_origRenderCaptura) _origRenderCaptura.apply(this, arguments);
+      syncCapturaFilter();
+    };
+
+    /* window.render pode não existir — guard seguro */
+    var _origRender = window.render;
+    if (typeof _origRender === 'function') {
+      window.render = function () {
+        _origRender.apply(this, arguments);
+        syncItemsFilter();
+      };
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -117,5 +133,11 @@
   } else {
     init();
   }
+
+  /* Expõe funções de sync para uso externo (diagnóstico) */
+  window._filterSmartSync = {
+    captura: syncCapturaFilter,
+    items:   syncItemsFilter,
+  };
 
 })();

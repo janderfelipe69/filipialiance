@@ -193,7 +193,9 @@
       // SEGURANÇA: SELECT diferenciado por role.
       // Admin -> inclui colunas financeiras (payment_*, price_brl, obs_financeiro).
       // Cliente -> apenas colunas base. Dados financeiros NUNCA chegam ao cliente.
-      const _userIsAdmin = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+      // Fase 2 Passo 3.6: padrão único — Session.isAdmin().
+      const _userIsAdmin = typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+        ? Session.isAdmin() : false;
       let _selectCols;
       if (typeof SchemaCompat !== 'undefined') {
         if (_userIsAdmin && typeof SchemaCompat.resolveSelectAdmin === 'function') {
@@ -844,7 +846,8 @@
         // Normaliza cada registro: resolve variantes de nomes de coluna e formato de prints
         // SEGURANÇA: sanitiza campos financeiros para clientes antes de armazenar em memória.
         // Mesmo que o backend envie esses campos por erro, eles são removidos aqui no cliente.
-        const _isAdminSession = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+        const _isAdminSession = typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+          ? Session.isAdmin() : false;
         const _FINANCIAL_FIELDS = ['payment_method','payment_value','payment_value_kk','payment_value_dd','obs_financeiro','price_brl'];
         const _sanitizeForClient = function(entry) {
           if (_isAdminSession) return entry; // admin vê tudo
@@ -931,7 +934,8 @@
       });
 
       grid.innerHTML = '';
-      const isAdmin = typeof Session !== 'undefined' && Session.isAdmin();
+      const isAdmin = typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+        ? Session.isAdmin() : false;
 
       data.forEach((entry, idx) => {
         // [PartialRender] Error boundary por card — falha de um não destrói a lista
