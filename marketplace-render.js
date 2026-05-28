@@ -262,6 +262,8 @@
   function _applyFilters(listings, filters) {
     if (!filters) return listings;
     return (listings || []).filter(function(l) {
+      // Exclui listings não-ativos (soft-deleted, cancelados, vendidos)
+      if (l.status && l.status !== 'active') return false;
       if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;
       if (filters.search) {
         var q = filters.search.toLowerCase();

@@ -216,12 +216,18 @@
           }
         } else if (tipo === 'UPDATE') {
           var idx = _state.listings.findIndex(function (l) { return l.id === record.id; });
-          if (idx !== -1) {
+          // Soft-delete: status cancelled/deleted/sold → remover do estado como se fosse DELETE
+          var _isInactive = record.status && record.status !== 'active';
+          if (_isInactive) {
+            _state.listings = _state.listings.filter(function (l) { return l.id !== record.id; });
+            _emitHook('marketplace:listing_deleted', record);
+          } else if (idx !== -1) {
             _state.listings[idx] = Object.assign({}, _state.listings[idx], record);
-          } else if (record.status === 'active') {
+            _emitHook('marketplace:listing_updated', record);
+          } else {
             _state.listings.unshift(record);
+            _emitHook('marketplace:listing_updated', record);
           }
-          _emitHook('marketplace:listing_updated', record);
         } else if (tipo === 'DELETE') {
           _state.listings = _state.listings.filter(function (l) { return l.id !== record.id; });
           _emitHook('marketplace:listing_deleted', record);
