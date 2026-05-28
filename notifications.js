@@ -515,6 +515,16 @@ const NotificationsAPI = (() => {
         const oldest = [..._seenIds].slice(0, 50);
         oldest.forEach(id => _seenIds.delete(id));
       }
+      // Passo 5C.1 — monitor opcional: instrumentação não bloqueia processamento
+      var _parWs = null;
+      if (window.PA && PA.monitor) {
+        _parWs = PA.monitor._realtimeParallel = PA.monitor._realtimeParallel ||
+          { ws: 0, custom: 0, matches: 0, seen: {} };
+      }
+      if (_parWs) _parWs.ws++;
+      // Registra chave para detectar match quando CustomEvent chegar depois
+      const _parKey = 'notif:' + record.id;
+      if (_parWs) _parWs.seen[_parKey] = Date.now();
 
       // [FIX D] Normaliza campos — fallback para múltiplos nomes
       const normalizedRecord = {
@@ -668,6 +678,66 @@ const NotificationsAPI = (() => {
       console.warn('[Notifications] pruneOld erro:', e.message);
     }
   }
+
+  // ── Passo 5C — Listener paralelo: CustomEvent 'notifications:changed' ──────
+  // Escuta o canal centralizado do realtime-manager EM PARALELO ao WS próprio.
+  // NÃO substitui o WS próprio. NÃO altera processamento existente.
+  // Reutiliza: _seenIds (dedup), _onNewCallback (processamento), _currentUserId (isolamento).
+  // Instrumenta: PA.monitor._realtimeParallel para medir cobertura dual-path.
+  ;(function _attachNotificationsParallelListener() {
+    window.addEventListener('notifications:changed', function(e) {
+      // Passo 5C.1 — monitor OPCIONAL: processamento principal sempre executa
+      var _par = null;
+      if (window.PA && PA.monitor) {
+        _par = PA.monitor._realtimeParallel = PA.monitor._realtimeParallel ||
+          { ws: 0, custom: 0, matches: 0, seen: {} };
+      }
+      if (_par) _par.custom++;
+
+      const detail = (e && e.detail) || {};
+      const record = detail.record || {};
+
+      // Segurança de isolamento: só processa eventos do próprio usuário
+      // (o canal do realtime-manager não tem filtro user_id — validação obrigatória aqui)
+      if (!record.id) return;
+      if (!_currentUserId) return; // sem sessão ativa, descartar
+      if (record.user_id && record.user_id !== _currentUserId) return;
+
+      // Detecta match: evento que também chegou pelo WS próprio
+      const _parKey = 'notif:' + record.id;
+      if (_par && _par.seen[_parKey]) {
+        _par.matches++;
+        console.log('[Notifications/parallel] match detectado id:', record.id,
+          '| delta:', Date.now() - _par.seen[_parKey], 'ms');
+        // Evento já processado pelo WS — dedup via _seenIds vai barrar abaixo
+      }
+
+      // Deduplicação: reutiliza _seenIds (Set existente) — sempre executado
+      if (_seenIds.has(record.id)) {
+        console.log('[Notifications/parallel] já processado pelo WS — descartando CustomEvent id:', record.id);
+        return;
+      }
+
+      // Evento chegou pelo CustomEvent antes do WS (ou WS não está ativo)
+      // Processar normalmente pelo mesmo fluxo
+      console.log('[Notifications/parallel] CustomEvent sem match WS — processando id:', record.id);
+      _seenIds.add(record.id);
+      if (_seenIds.size > SEEN_MAX) {
+        const oldest = [..._seenIds].slice(0, 50);
+        oldest.forEach(id => _seenIds.delete(id));
+      }
+
+      // Normaliza campos — mesmo padrão do WS existente
+      const normalizedRecord = {
+        ...record,
+        message: record.message || record.content || record.body || record.text || 'Nova notificação',
+        title:   record.title   || record.subject  || record.heading || 'Notificação',
+      };
+
+      if (typeof _onNewCallback === 'function') _onNewCallback(normalizedRecord);
+    });
+    console.log('[Notifications] ✅ Listener paralelo notifications:changed registrado (Passo 5C.1).');
+  })();
 
   // ── Exporta API Pública ──────────────────────────────────────────────────
   return {

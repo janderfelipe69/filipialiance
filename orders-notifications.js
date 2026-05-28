@@ -42,6 +42,18 @@ const OrdersNotifications = (() => {
 
   const _toastedIds = new Set();
 
+  // ── Escape HTML — previne XSS ao injetar texto do banco via innerHTML ────
+  // Fase 2 Passo 2: adicionado para sanitizar campos 'title' e 'message'
+  // de notificações antes de renderização.
+  function _esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,  '&amp;')
+      .replace(/</g,  '&lt;')
+      .replace(/>/g,  '&gt;')
+      .replace(/"/g,  '&quot;')
+      .replace(/'/g,  '&#39;');
+  }
+
   // ── Tipos de notificação ─────────────────────────────────────────────────
   const TYPE_CFG = {
     pendente:      { icon: '⏳', color: '#ffd166', glow: 'rgba(245,197,66,0.3)',  border: 'rgba(245,197,66,0.25)'  },
@@ -184,8 +196,8 @@ const OrdersNotifications = (() => {
     div.innerHTML = `
       <div class="pa-notif-item-icon" style="color:${cfg.color};box-shadow:0 0 10px ${cfg.glow}">${cfg.icon}</div>
       <div class="pa-notif-item-body">
-        <div class="pa-notif-item-title">${record.title || ''}</div>
-        <div class="pa-notif-item-msg">${record.message || ''}</div>
+        <div class="pa-notif-item-title">${_esc(record.title || '')}</div>
+        <div class="pa-notif-item-msg">${_esc(record.message || '')}</div>
         <div class="pa-notif-item-time">agora mesmo</div>
       </div>
       <span class="pa-notif-item-dot"></span>
@@ -475,6 +487,7 @@ const OrdersNotifications = (() => {
       const dot       = n.read ? '' : '<span class="pa-notif-item-dot"></span>';
 
       // [FIX E] Fallback de campos
+      // Fase 2 Passo 2: _esc() aplicado para prevenir XSS via dados do banco
       const msgText =
         n.message || n.content || n.body || n.text || 'Nova notificação';
       const titleText =
@@ -487,8 +500,8 @@ const OrdersNotifications = (() => {
              onclick="OrdersNotifications._markRead('${n.id}', this)">
           <div class="pa-notif-item-icon" style="color:${cfg.color};box-shadow:0 0 10px ${cfg.glow}">${cfg.icon}</div>
           <div class="pa-notif-item-body">
-            <div class="pa-notif-item-title">${titleText}</div>
-            <div class="pa-notif-item-msg">${msgText}</div>
+            <div class="pa-notif-item-title">${_esc(titleText)}</div>
+            <div class="pa-notif-item-msg">${_esc(msgText)}</div>
             <div class="pa-notif-item-time">${ts}</div>
           </div>
           ${dot}
@@ -539,8 +552,8 @@ const OrdersNotifications = (() => {
     toast.innerHTML = `
       <div class="pa-toast-icon">${cfg.icon}</div>
       <div class="pa-toast-body">
-        <div class="pa-toast-title">${title || ''}</div>
-        <div class="pa-toast-msg">${message || ''}</div>
+        <div class="pa-toast-title">${_esc(title || '')}</div>
+        <div class="pa-toast-msg">${_esc(message || '')}</div>
       </div>
       <button class="pa-toast-close" aria-label="Fechar">
         <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>

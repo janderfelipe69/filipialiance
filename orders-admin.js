@@ -17,6 +17,8 @@
 const OrdersAdmin = (() => {
 
   // ── Verificação de Permissão ─────────────────────────────────────────────
+  // Fase 2 Passo 3.8: isCurrentUserAdmin() delega para Session.isAdmin().
+  // isAdmin(user) mantido para compatibilidade da exportação pública.
 
   function isAdmin(user) {
     if (!user) return false;
@@ -24,8 +26,10 @@ const OrdersAdmin = (() => {
   }
 
   function isCurrentUserAdmin() {
-    const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    return isAdmin(user);
+    // Fonte única de verdade: Session.isAdmin()
+    return typeof Session !== 'undefined' && typeof Session.isAdmin === 'function'
+      ? Session.isAdmin()
+      : false;
   }
 
   // ── Ação Principal: INICIAR SERVIÇO ──────────────────────────────────────
