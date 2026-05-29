@@ -190,6 +190,132 @@
 .wtb-chat-input { flex: 1; }
 .wtb-chat-send  { flex-shrink: 0; }
 
+/* ── Seleção de método de pagamento (etapa 1) ───────────────────── */
+.wtb-pay-step-hint {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
+  margin: 0 0 10px;
+}
+
+.wtb-pay-method-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.wtb-pay-method-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.wtb-pay-method-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.22);
+  color: #fff;
+}
+
+.wtb-pay-method-btn.selected {
+  background: rgba(79,163,247,0.12);
+  border-color: #4fa3f7;
+  color: #4fa3f7;
+}
+
+.wtb-pay-method-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+/* ── Prompt "adicionar outras moedas" (etapa 3) ─────────────────── */
+.wtb-pay-add-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 7px 14px;
+  background: rgba(99,179,237,0.08);
+  border: 1px dashed rgba(99,179,237,0.35);
+  border-radius: 8px;
+  color: #63b3ed;
+  font-size: 0.80rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  width: 100%;
+  justify-content: center;
+}
+
+.wtb-pay-add-more-btn:hover {
+  background: rgba(99,179,237,0.15);
+  border-color: rgba(99,179,237,0.55);
+}
+
+/* ── Moedas secundárias convertidas (etapa 4) ───────────────────── */
+#wtb-pay-step4 {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wtb-pay-secondary-row {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.wtb-pay-secondary-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+}
+
+.wtb-pay-secondary-converted {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.38);
+  font-style: italic;
+}
+
+.wtb-pay-secondary-input-row {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.wtb-pay-secondary-input-row .mk-input {
+  flex: 1;
+}
+
+.wtb-pay-sec-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.30);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color .15s;
+}
+
+.wtb-pay-sec-remove:hover { color: #fc8181; }
+
 /* ── Título da aba com ícone de lupa ────────────────────────────── */
 .wtb-title-icon {
   opacity: 0.7;

@@ -1,5 +1,7 @@
 // ============================================================
 // wtb-create.js — Formulário de criação/cancelamento de Procuras
+// Pagamento em etapas: seleciona método → digita valor →
+// "Aceitar em outras moedas?" → outras aparecem convertidas.
 // ============================================================
 
 ;(function (global) {
@@ -35,8 +37,69 @@
       + '</svg>';
   }
 
+  // ── Conversão de moedas ───────────────────────────────────────
+  // Tenta usar as funções/constantes globais já presentes no site.
+  // Se não estiverem disponíveis, retorna null e o campo fica em branco.
+  function _kkRawToBrl(kkRaw) {
+    if (!kkRaw) return null;
+    var rate = typeof KK_TO_BRL !== 'undefined' ? KK_TO_BRL : null;
+    return rate ? (kkRaw / 1000000) * rate : null;
+  }
+  function _brlToKkRaw(brl) {
+    if (!brl) return null;
+    var rate = typeof KK_TO_BRL !== 'undefined' ? KK_TO_BRL : null;
+    return rate ? Math.round((brl / rate) * 1000000) : null;
+  }
+  function _brlToDd(brl) {
+    if (!brl) return null;
+    if (typeof brlToDd === 'function') return brlToDd(brl);
+    var rate = typeof DD_TO_BRL !== 'undefined' ? DD_TO_BRL : null;
+    return rate ? Math.round(brl / rate) : null;
+  }
+  function _ddToBrl(dd) {
+    if (!dd) return null;
+    var rate = typeof DD_TO_BRL !== 'undefined' ? DD_TO_BRL : null;
+    return rate ? dd * rate : null;
+  }
+
+  // Dado o método primário e o valor raw, retorna valores convertidos
+  // para os outros dois métodos.
+  function _convertOthers(primaryMethod, primaryRaw, kkUnit) {
+    var result = { kk: null, dd: null, brl: null };
+    if (!primaryRaw || primaryRaw <= 0) return result;
+
+    if (primaryMethod === 'kk') {
+      var rawKk = Math.round(primaryRaw * (kkUnit || 1000000));
+      var brl   = _kkRawToBrl(rawKk);
+      result.kk  = rawKk;
+      result.brl = brl ? Math.round(brl * 100) / 100 : null;
+      result.dd  = brl ? _brlToDd(brl) : null;
+    } else if (primaryMethod === 'brl') {
+      var brl2  = primaryRaw;
+      result.brl = Math.round(brl2 * 100) / 100;
+      result.kk  = _brlToKkRaw(brl2);
+      result.dd  = _brlToDd(brl2);
+    } else if (primaryMethod === 'dd') {
+      var brl3  = _ddToBrl(primaryRaw);
+      result.dd  = Math.round(primaryRaw);
+      result.brl = brl3 ? Math.round(brl3 * 100) / 100 : null;
+      result.kk  = brl3 ? _brlToKkRaw(brl3) : null;
+    }
+    return result;
+  }
+
+  // Formata valor KK raw para exibição legível (ex: 38kk, 500k)
+  function _fmtKk(raw) {
+    if (!raw) return '';
+    if (raw >= 1000000000) return (raw / 1000000000).toFixed(raw % 1000000000 === 0 ? 0 : 1) + 'kkk';
+    if (raw >= 1000000)    return (raw / 1000000).toFixed(raw % 1000000 === 0 ? 0 : 1) + 'kk';
+    return (raw / 1000).toFixed(raw % 1000 === 0 ? 0 : 1) + 'k';
+  }
+
+  // ── Estado do formulário ──────────────────────────────────────
   var _form = {};
-  var _modalEl = null;
+  var _pay  = {}; // estado do pagamento (separado para clareza)
+  var _modalEl      = null;
   var _submitLocked = false;
 
   function _resetForm() {
@@ -45,7 +108,6 @@
       pokemon_slug:  '',
       pokemon_types: [],
       stars:         0,
-      boost:         0,
       ball_type:     null,
       pay_kk:        null,
       pay_dd:        null,
@@ -53,30 +115,52 @@
       observations:  '',
       errors:        {},
     };
+    _pay = {
+      primaryMethod:   null,   // 'kk' | 'dd' | 'brl'
+      primaryRawVal:   0,      // número digitado (sem multiplicador)
+      kkUnit:          1000000, // multiplicador para KK
+      showingSecondary: false,
+      secondary:       {},     // { kk, dd, brl } — valores das moedas secundárias
+    };
   }
 
+  // ── Validação ─────────────────────────────────────────────────
   function _validate() {
     var errs = {};
     if (!_form.pokemon_name || !_form.pokemon_name.trim())
       errs.pokemon_name = 'Selecione ou digite o nome do Pokémon.';
     if (_form.stars < 0 || _form.stars > 5)
       errs.stars = 'Stars: 0 a 5.';
-    if (_form.boost < 0 || _form.boost > 70)
-      errs.boost = 'Boost: 0 a +70.';
     if (!_form.pay_kk && !_form.pay_dd && !_form.pay_brl)
-      errs.payment = 'Informe pelo menos um valor de pagamento (KK, DD ou Real).';
-    if (_form.pay_kk !== null && _form.pay_kk <= 0)
-      errs.pay_kk = 'Valor em KK inválido.';
-    if (_form.pay_dd !== null && _form.pay_dd <= 0)
-      errs.pay_dd = 'Valor em DD inválido.';
-    if (_form.pay_brl !== null && _form.pay_brl <= 0)
-      errs.pay_brl = 'Valor em Real inválido.';
+      errs.payment = 'Informe pelo menos um valor de pagamento.';
     if (_form.observations && _form.observations.length > 500)
       errs.observations = 'Máx 500 caracteres.';
     _form.errors = errs;
     return Object.keys(errs).length === 0;
   }
 
+  // ── Sincroniza _form.pay_* com _pay ──────────────────────────
+  function _syncFormPay() {
+    var conv = _convertOthers(_pay.primaryMethod, _pay.primaryRawVal, _pay.kkUnit);
+
+    // Primária
+    _form.pay_kk  = null;
+    _form.pay_dd  = null;
+    _form.pay_brl = null;
+
+    if (_pay.primaryMethod === 'kk')  _form.pay_kk  = conv.kk;
+    if (_pay.primaryMethod === 'dd')  _form.pay_dd  = _pay.primaryRawVal > 0 ? Math.round(_pay.primaryRawVal) : null;
+    if (_pay.primaryMethod === 'brl') _form.pay_brl = _pay.primaryRawVal > 0 ? Math.round(_pay.primaryRawVal * 100) / 100 : null;
+
+    // Secundárias (se estiver mostrando)
+    if (_pay.showingSecondary) {
+      if (_pay.primaryMethod !== 'kk'  && _pay.secondary.kk  != null) _form.pay_kk  = _pay.secondary.kk;
+      if (_pay.primaryMethod !== 'dd'  && _pay.secondary.dd  != null) _form.pay_dd  = _pay.secondary.dd;
+      if (_pay.primaryMethod !== 'brl' && _pay.secondary.brl != null) _form.pay_brl = _pay.secondary.brl;
+    }
+  }
+
+  // ── Build HTML do modal ───────────────────────────────────────
   function _buildHtml() {
     return '<div class="mk-modal-backdrop" id="wtb-create-backdrop">'
       + '<div class="mk-modal" id="wtb-create-modal" role="dialog" aria-modal="true">'
@@ -108,8 +192,8 @@
       + '</div>'
       + '</div>'
 
-      + '<div class="mk-field-pair">'
-      + '<div class="mk-field">'
+      // Stars apenas (sem boost)
+      + '<div class="mk-field" style="margin-top:10px">'
       + '<label class="mk-label">Mínimo de Stars <small>(opcional)</small></label>'
       + '<div class="mk-stars-input" id="wtb-stars-input">'
       + [1,2,3,4,5].map(function(i){
@@ -117,15 +201,7 @@
         }).join('')
       + '</div>'
       + '</div>'
-      + '<div class="mk-field">'
-      + '<label class="mk-label" for="wtb-boost-num">Boost mínimo <small>(opcional)</small></label>'
-      + '<div class="mk-boost-row">'
-      + '<input class="mk-boost-slider" id="wtb-boost-slider" type="range" min="0" max="70" value="0" step="1">'
-      + '<input class="mk-boost-num" id="wtb-boost-num" type="number" min="0" max="70" value="0">'
-      + '</div>'
-      + '</div>'
-      + '</div>'
-      + '</div>' // .mk-section
+      + '</div>' // .mk-section Pokémon
 
       // ── Pokébola (opcional) ───────────────────────────────────
       + '<div class="mk-section">'
@@ -141,52 +217,64 @@
             + '</button>';
         }).join('')
       + '</div>'
-      + '</div>' // .mk-section
+      + '</div>' // .mk-section Pokébola
 
-      // ── Pagamento ─────────────────────────────────────────────
+      // ── Pagamento (fluxo em etapas) ───────────────────────────
       + '<div class="mk-section">'
       + '<div class="mk-section-title"><span class="mk-section-dot"></span>Quanto você vai pagar</div>'
-      + '<div class="wtb-pay-methods">'
 
-      + '<div class="wtb-pay-row">'
-      + '<label class="wtb-pay-label"><input type="checkbox" id="wtb-pay-kk-check" class="wtb-pay-check">'
-      + ' <span class="wtb-pay-coin">◈</span> KK</label>'
-      + '<div class="wtb-pay-input-wrap" id="wtb-pay-kk-wrap" style="display:none">'
-      + '<input class="mk-input mk-price-input" id="wtb-pay-kk-amount" type="number" min="0" step="any" placeholder="Ex: 500">'
-      + '<select class="mk-price-unit" id="wtb-pay-kk-unit">'
+      // Etapa 1 — seleciona o método principal
+      + '<div id="wtb-pay-step1">'
+      + '<p class="wtb-pay-step-hint">Escolha a forma de pagamento principal:</p>'
+      + '<div class="wtb-pay-method-btns">'
+      + '<button type="button" class="wtb-pay-method-btn" data-method="kk">'
+      + '<span class="wtb-pay-method-icon">◈</span><span>KK</span>'
+      + '</button>'
+      + '<button type="button" class="wtb-pay-method-btn" data-method="dd">'
+      + '<span class="wtb-pay-method-icon">💎</span><span>DD</span>'
+      + '</button>'
+      + '<button type="button" class="wtb-pay-method-btn" data-method="brl">'
+      + '<span class="wtb-pay-method-icon">💵</span><span>Real (R$)</span>'
+      + '</button>'
+      + '</div>'
+      + '</div>'
+
+      // Etapa 2 — input do valor principal (oculto até selecionar método)
+      + '<div id="wtb-pay-step2" style="display:none">'
+      + '<div class="mk-field" style="margin-top:10px">'
+      + '<label class="mk-label" id="wtb-pay-primary-label">Valor</label>'
+      + '<div class="mk-price-row">'
+      + '<input class="mk-input mk-price-input" id="wtb-pay-primary-val" type="number" min="0" step="any" placeholder="0">'
+      + '<select class="mk-price-unit" id="wtb-pay-kk-unit" style="display:none">'
       + '<option value="1000">k</option>'
       + '<option value="1000000" selected>kk</option>'
       + '<option value="1000000000">kkk</option>'
       + '</select>'
       + '</div>'
-      + '<span class="mk-field-error" id="wtb-err-pay_kk"></span>'
-      + '</div>'
-
-      + '<div class="wtb-pay-row">'
-      + '<label class="wtb-pay-label"><input type="checkbox" id="wtb-pay-dd-check" class="wtb-pay-check"> 💎 DD</label>'
-      + '<div class="wtb-pay-input-wrap" id="wtb-pay-dd-wrap" style="display:none">'
-      + '<input class="mk-input mk-price-input" id="wtb-pay-dd-amount" type="number" min="0" step="any" placeholder="Ex: 100">'
-      + '</div>'
-      + '<span class="mk-field-error" id="wtb-err-pay_dd"></span>'
-      + '</div>'
-
-      + '<div class="wtb-pay-row">'
-      + '<label class="wtb-pay-label"><input type="checkbox" id="wtb-pay-brl-check" class="wtb-pay-check"> 💵 Real (R$)</label>'
-      + '<div class="wtb-pay-input-wrap" id="wtb-pay-brl-wrap" style="display:none">'
-      + '<input class="mk-input mk-price-input" id="wtb-pay-brl-amount" type="number" min="0" step="0.01" placeholder="Ex: 50.00">'
-      + '</div>'
-      + '<span class="mk-field-error" id="wtb-err-pay_brl"></span>'
-      + '</div>'
-
-      + '</div>'
       + '<span class="mk-field-error" id="wtb-err-payment"></span>'
+      + '</div>'
+      + '</div>'
 
-      + '<div class="mk-field" style="margin-top:14px">'
+      // Etapa 3 — prompt "aceitar em outras moedas?" (oculto até ter valor)
+      + '<div id="wtb-pay-step3" style="display:none">'
+      + '<button type="button" class="wtb-pay-add-more-btn" id="wtb-pay-add-more-btn">'
+      + '+ Aceitar em outras formas de pagamento também?'
+      + '</button>'
+      + '</div>'
+
+      // Etapa 4 — moedas secundárias convertidas (oculto até clicar no prompt)
+      + '<div id="wtb-pay-step4" style="display:none"></div>'
+
+      + '</div>' // .mk-section Pagamento
+
+      // ── Observações ───────────────────────────────────────────
+      + '<div class="mk-section">'
+      + '<div class="mk-field">'
       + '<label class="mk-label" for="wtb-obs">Observações <small>(opcional, máx 500)</small></label>'
       + '<textarea class="mk-textarea" id="wtb-obs" maxlength="500" placeholder="Detalhes sobre o que você procura..."></textarea>'
       + '<span class="mk-field-error" id="wtb-err-observations"></span>'
       + '</div>'
-      + '</div>' // .mk-section
+      + '</div>'
 
       + '<div class="mk-modal-footer">'
       + '<button class="mk-btn mk-btn--ghost" onclick="WTBCreate.close()">Cancelar</button>'
@@ -196,21 +284,101 @@
       + '</div></div></div>'; // modal-body, modal, backdrop
   }
 
-  function _renderModal() {
-    if (!_modalEl) {
-      _modalEl = global.document.createElement('div');
-      global.document.body.appendChild(_modalEl);
-    }
-    _modalEl.style.display = '';
-    _modalEl.innerHTML = _buildHtml();
+  // ── UI de pagamento — etapa 4 (secundárias) ───────────────────
+  function _buildSecondaryHtml(converted) {
+    var primary = _pay.primaryMethod;
+    var methods = [
+      { key: 'kk',  icon: '◈',  label: 'KK',       color: '#fbbf24', fmt: function(v){ return v ? _fmtKk(v) : null; } },
+      { key: 'dd',  icon: '💎', label: 'DD',        color: '#a78bfa', fmt: function(v){ return v ? Math.round(v).toLocaleString('pt-BR') + ' DD' : null; } },
+      { key: 'brl', icon: '💵', label: 'Real (R$)', color: '#34d399', fmt: function(v){ return v ? 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2}) : null; } },
+    ];
+
+    return methods.filter(function(m) { return m.key !== primary; }).map(function(m) {
+      var val   = converted[m.key];
+      var fmtd  = m.fmt(val);
+      return '<div class="wtb-pay-secondary-row" data-sec-method="' + m.key + '">'
+        + '<div class="wtb-pay-secondary-label">'
+        + '<span class="wtb-pay-method-icon">' + m.icon + '</span>'
+        + '<span style="color:' + m.color + ';font-weight:600">' + m.label + '</span>'
+        + (fmtd ? '<span class="wtb-pay-secondary-converted">' + _esc(fmtd) + '</span>' : '')
+        + '</div>'
+        + '<div class="wtb-pay-secondary-input-row">'
+        + '<input class="mk-input" type="number" min="0" step="any"'
+        + ' id="wtb-pay-sec-' + m.key + '"'
+        + ' value="' + _esc(String(val != null ? (m.key === 'kk' ? val / 1000000 : val) : '')) + '"'
+        + ' placeholder="' + (fmtd ? 'Valor convertido' : 'Deixe em branco para não aceitar') + '">'
+        + (m.key === 'kk'
+            ? '<select class="mk-price-unit" id="wtb-pay-sec-kk-unit">'
+              + '<option value="1000">k</option>'
+              + '<option value="1000000" selected>kk</option>'
+              + '<option value="1000000000">kkk</option>'
+              + '</select>'
+            : '')
+        + '<button type="button" class="wtb-pay-sec-remove" data-sec-method="' + m.key + '" title="Remover esta moeda">✕</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
   }
 
+  function _updateSecondarySection() {
+    var step4 = global.document.getElementById('wtb-pay-step4');
+    if (!step4) return;
+    var conv = _convertOthers(_pay.primaryMethod, _pay.primaryRawVal, _pay.kkUnit);
+
+    // Inicializa secondary com valores convertidos (se ainda não definidos pelo usuário)
+    var primary = _pay.primaryMethod;
+    ['kk','dd','brl'].forEach(function(k) {
+      if (k === primary) return;
+      if (_pay.secondary[k] === undefined) _pay.secondary[k] = conv[k];
+    });
+
+    step4.innerHTML = _buildSecondaryHtml(conv);
+    _bindSecondaryEvents();
+  }
+
+  function _bindSecondaryEvents() {
+    // Remove botões ✕
+    Array.prototype.forEach.call(
+      global.document.querySelectorAll('.wtb-pay-sec-remove'),
+      function(btn) {
+        btn.addEventListener('click', function() {
+          var method = btn.getAttribute('data-sec-method');
+          _pay.secondary[method] = null;
+          var row = btn.closest('[data-sec-method]');
+          if (row) {
+            var inp = row.querySelector('input[type="number"]');
+            if (inp) inp.value = '';
+          }
+          _syncFormPay();
+        });
+      }
+    );
+
+    // Inputs editáveis das secundárias
+    ['kk','dd','brl'].forEach(function(method) {
+      if (method === _pay.primaryMethod) return;
+      var inp  = global.document.getElementById('wtb-pay-sec-' + method);
+      var unit = method === 'kk' ? global.document.getElementById('wtb-pay-sec-kk-unit') : null;
+      if (!inp) return;
+
+      function _recalcSec() {
+        var v = parseFloat(inp.value) || 0;
+        var u = unit ? (parseInt(unit.value, 10) || 1000000) : 1;
+        _pay.secondary[method] = v > 0 ? Math.round(v * u) : null;
+        _syncFormPay();
+      }
+      inp.addEventListener('input', _recalcSec);
+      if (unit) unit.addEventListener('change', _recalcSec);
+    });
+  }
+
+  // ── Bind todos os eventos ─────────────────────────────────────
   function _bindEvents() {
     // Pokémon autocomplete
     var pokeInput = global.document.getElementById('wtb-poke-input');
     var pokeDrop  = global.document.getElementById('wtb-poke-dropdown');
     if (pokeInput && pokeDrop && typeof PokemonSelector !== 'undefined') {
-      PokemonSelector.mount(pokeInput, pokeDrop, function (result) {
+      PokemonSelector.mount(pokeInput, pokeDrop, function(result) {
         _form.pokemon_name  = result.name;
         _form.pokemon_slug  = result.slug;
         _form.pokemon_types = result.types || [];
@@ -218,11 +386,11 @@
       });
     }
 
-    // Stars (clique = seleciona, mesmo valor = deseleciona)
+    // Stars
     Array.prototype.forEach.call(
       global.document.querySelectorAll('#wtb-stars-input .mk-star-btn'),
-      function (btn) {
-        btn.addEventListener('click', function () {
+      function(btn) {
+        btn.addEventListener('click', function() {
           var val = parseInt(btn.getAttribute('data-val'), 10);
           _form.stars = (_form.stars === val) ? 0 : val;
           _updateStarsUI();
@@ -230,23 +398,11 @@
       }
     );
 
-    // Boost — slider + number input sincronizados
-    var boostSlider = global.document.getElementById('wtb-boost-slider');
-    var boostNum    = global.document.getElementById('wtb-boost-num');
-    function _syncBoost(val) {
-      var v = Math.min(70, Math.max(0, parseInt(val, 10) || 0));
-      _form.boost = v;
-      if (boostSlider) { boostSlider.value = v; boostSlider.style.accentColor = v > 0 ? '#ffd166' : ''; }
-      if (boostNum)    { boostNum.value = v; boostNum.style.color = v >= 25 ? '#ffd166' : ''; }
-    }
-    if (boostSlider) boostSlider.addEventListener('input', function () { _syncBoost(boostSlider.value); });
-    if (boostNum)    boostNum.addEventListener('input',   function () { _syncBoost(boostNum.value); });
-
-    // Pokébola — clique no mesmo deseleciona (bola é opcional)
+    // Pokébola (opcional — clique no mesmo deseleciona)
     Array.prototype.forEach.call(
       global.document.querySelectorAll('#wtb-ball-select .mk-ball-opt'),
-      function (btn) {
-        btn.addEventListener('click', function () {
+      function(btn) {
+        btn.addEventListener('click', function() {
           var ball = btn.getAttribute('data-ball');
           _form.ball_type = (_form.ball_type === ball) ? null : ball;
           _updateBallUI();
@@ -254,48 +410,97 @@
       }
     );
 
-    // Pagamento — checkboxes mostram/escondem inputs
-    function _bindPayCheck(checkId, wrapId, amountId, unitId, key, multiplier) {
-      var check  = global.document.getElementById(checkId);
-      var wrap   = global.document.getElementById(wrapId);
-      var amount = global.document.getElementById(amountId);
-      var unit   = unitId ? global.document.getElementById(unitId) : null;
-      if (!check || !wrap) return;
+    // ── Pagamento — etapa 1: seleciona método ────────────────────
+    Array.prototype.forEach.call(
+      global.document.querySelectorAll('.wtb-pay-method-btn'),
+      function(btn) {
+        btn.addEventListener('click', function() {
+          var method = btn.getAttribute('data-method');
+          _pay.primaryMethod   = method;
+          _pay.primaryRawVal   = 0;
+          _pay.secondary       = {};
+          _pay.showingSecondary = false;
+          _syncFormPay();
 
-      function _recalc() {
-        if (!check.checked || !amount) { _form[key] = null; return; }
-        var v = parseFloat(amount.value) || 0;
-        var u = unit ? (parseInt(unit.value, 10) || 1000000) : (multiplier || 1);
-        _form[key] = v > 0 ? Math.round(v * u) : null;
+          // Marca o botão selecionado
+          Array.prototype.forEach.call(
+            global.document.querySelectorAll('.wtb-pay-method-btn'),
+            function(b) { b.classList.toggle('selected', b === btn); }
+          );
+
+          // Mostra etapa 2 e configura label/unit
+          var step2 = global.document.getElementById('wtb-pay-step2');
+          var label = global.document.getElementById('wtb-pay-primary-label');
+          var unit  = global.document.getElementById('wtb-pay-kk-unit');
+          var inp   = global.document.getElementById('wtb-pay-primary-val');
+          if (step2) step2.style.display = '';
+          if (label) label.textContent = method === 'kk' ? 'Valor em KK' : method === 'dd' ? 'Valor em DD' : 'Valor em Real (R$)';
+          if (unit)  unit.style.display = method === 'kk' ? '' : 'none';
+          if (inp)   { inp.value = ''; inp.focus(); }
+
+          // Esconde etapas 3 e 4
+          var step3 = global.document.getElementById('wtb-pay-step3');
+          var step4 = global.document.getElementById('wtb-pay-step4');
+          if (step3) step3.style.display = 'none';
+          if (step4) { step4.style.display = 'none'; step4.innerHTML = ''; }
+        });
       }
+    );
 
-      check.addEventListener('change', function () {
-        wrap.style.display = check.checked ? '' : 'none';
-        if (!check.checked && amount) amount.value = '';
-        _recalc();
-      });
-      if (amount) amount.addEventListener('input', _recalc);
-      if (unit)   unit.addEventListener('change', _recalc);
+    // ── Pagamento — etapa 2: digita o valor ──────────────────────
+    var primaryInp = global.document.getElementById('wtb-pay-primary-val');
+    var kkUnit     = global.document.getElementById('wtb-pay-kk-unit');
+
+    function _onPrimaryChange() {
+      var v = parseFloat(primaryInp ? primaryInp.value : 0) || 0;
+      var u = kkUnit ? (parseInt(kkUnit.value, 10) || 1000000) : 1;
+      _pay.primaryRawVal = v;
+      _pay.kkUnit        = u;
+      _pay.secondary     = {}; // reseta secundárias ao mudar valor principal
+      _pay.showingSecondary = false;
+      _syncFormPay();
+
+      var step3 = global.document.getElementById('wtb-pay-step3');
+      var step4 = global.document.getElementById('wtb-pay-step4');
+      if (step3) step3.style.display = v > 0 ? '' : 'none';
+      if (step4) { step4.style.display = 'none'; step4.innerHTML = ''; }
     }
 
-    _bindPayCheck('wtb-pay-kk-check',  'wtb-pay-kk-wrap',  'wtb-pay-kk-amount',  'wtb-pay-kk-unit',  'pay_kk',  null);
-    _bindPayCheck('wtb-pay-dd-check',  'wtb-pay-dd-wrap',  'wtb-pay-dd-amount',  null,                'pay_dd',  1);
-    _bindPayCheck('wtb-pay-brl-check', 'wtb-pay-brl-wrap', 'wtb-pay-brl-amount', null,                'pay_brl', 1);
+    if (primaryInp) primaryInp.addEventListener('input',  _onPrimaryChange);
+    if (kkUnit)     kkUnit.addEventListener('change', _onPrimaryChange);
+
+    // ── Pagamento — etapa 3: prompt "adicionar outras" ────────────
+    var addMoreBtn = global.document.getElementById('wtb-pay-add-more-btn');
+    if (addMoreBtn) {
+      addMoreBtn.addEventListener('click', function() {
+        _pay.showingSecondary = true;
+        var step4 = global.document.getElementById('wtb-pay-step4');
+        if (step4) {
+          step4.style.display = '';
+          _updateSecondarySection();
+        }
+        // Esconde o botão de prompt
+        var step3 = global.document.getElementById('wtb-pay-step3');
+        if (step3) step3.style.display = 'none';
+        _syncFormPay();
+      });
+    }
 
     // Observações
     var obsEl = global.document.getElementById('wtb-obs');
-    if (obsEl) obsEl.addEventListener('input', function () { _form.observations = obsEl.value; });
+    if (obsEl) obsEl.addEventListener('input', function() { _form.observations = obsEl.value; });
   }
 
+  // ── Preview do Pokémon ────────────────────────────────────────
   function _updatePokePreview(result) {
     var wrap  = global.document.getElementById('wtb-poke-preview-wrap');
     var img   = global.document.getElementById('wtb-poke-sprite');
     var name  = global.document.getElementById('wtb-poke-name');
     var types = global.document.getElementById('wtb-poke-types');
     if (!wrap) return;
-    if (img) { img.src = result.sprite || ''; img.style.display = result.sprite ? '' : 'none'; }
-    if (name) name.textContent = result.name || '';
-    if (types) types.innerHTML = (result.types || []).map(function (t) {
+    if (img)   { img.src = result.sprite || ''; img.style.display = result.sprite ? '' : 'none'; }
+    if (name)  name.textContent = result.name || '';
+    if (types) types.innerHTML  = (result.types || []).map(function(t) {
       return '<span class="mk-type-badge mk-type--' + t.toLowerCase() + '">' + t + '</span>';
     }).join('');
     wrap.style.display = '';
@@ -304,7 +509,7 @@
   function _updateStarsUI() {
     Array.prototype.forEach.call(
       global.document.querySelectorAll('#wtb-stars-input .mk-star-btn'),
-      function (btn) {
+      function(btn) {
         btn.classList.toggle('active', parseInt(btn.getAttribute('data-val'), 10) <= _form.stars);
       }
     );
@@ -313,14 +518,14 @@
   function _updateBallUI() {
     Array.prototype.forEach.call(
       global.document.querySelectorAll('#wtb-ball-select .mk-ball-opt'),
-      function (btn) {
+      function(btn) {
         btn.classList.toggle('selected', btn.getAttribute('data-ball') === _form.ball_type);
       }
     );
   }
 
   function _renderErrors(errs) {
-    Object.keys(errs || {}).forEach(function (k) {
+    Object.keys(errs || {}).forEach(function(k) {
       var el = global.document.getElementById('wtb-err-' + k);
       if (el) el.textContent = errs[k];
     });
@@ -334,6 +539,7 @@
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Publicando...'; }
 
     try {
+      _syncFormPay();
       if (!_validate()) { _renderErrors(_form.errors); _toast('Corrija os erros antes de publicar.', 'error'); return; }
 
       var user = _user();
@@ -345,7 +551,7 @@
         pokemon_slug:  _toSlug(_form.pokemon_name),
         pokemon_types: _form.pokemon_types || [],
         stars:         _form.stars  || 0,
-        boost:         _form.boost  || 0,
+        boost:         0,
         ball_type:     _form.ball_type || null,
         pay_kk:        _form.pay_kk   || null,
         pay_dd:        _form.pay_dd   || null,
@@ -355,22 +561,16 @@
       };
 
       var res = await fetch(SB_URL + '/rest/v1/wtb_listings', {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'apikey':        SB_KEY,
-          'Authorization': 'Bearer ' + _jwt(),
-          'Prefer':        'return=representation',
-        },
-        body: JSON.stringify(payload),
+        method:  'POST',
+        headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+_jwt(),'Prefer':'return=representation' },
+        body:    JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(await res.text());
-      var data = await res.json().catch(function () { return {}; });
+      var data = await res.json().catch(function() { return {}; });
       var newListing = Array.isArray(data) ? data[0] : data;
 
-      // Optimistic UI
       if (newListing && global.WTB) {
-        var already = (global.WTB.state.listings || []).some(function (l) { return l.id === newListing.id; });
+        var already = (global.WTB.state.listings || []).some(function(l) { return l.id === newListing.id; });
         if (!already) {
           global.WTB.state.listings = [newListing].concat(global.WTB.state.listings || []);
           global.WTB.render();
@@ -379,7 +579,7 @@
 
       _toast('✅ Procura publicada com sucesso!', 'success');
       close();
-    } catch (err) {
+    } catch(err) {
       console.warn('[WTBCreate] publish error:', err.message);
       _toast('Erro ao publicar. Tente novamente.', 'error');
     } finally {
@@ -400,7 +600,6 @@
     try {
       var jwt = _jwt();
       if (!jwt) { _toast('Faça login.', 'error'); return; }
-
       var res = await fetch(SB_URL + '/rest/v1/wtb_listings?id=eq.' + listingId, {
         method:  'PATCH',
         headers: { 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt,'Prefer':'return=minimal' },
@@ -408,29 +607,25 @@
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // Remove do state local
       if (global.WTB) {
-        global.WTB.state.listings = (global.WTB.state.listings || []).filter(function (l) { return l.id !== listingId; });
+        global.WTB.state.listings = (global.WTB.state.listings || []).filter(function(l) { return l.id !== listingId; });
         global.WTB.render();
       }
-
-      // Anima remoção do card
       var cardEl = global.document.querySelector('[data-wtb-id="' + listingId + '"]');
       if (cardEl) {
         cardEl.style.transition = 'opacity .25s, transform .25s';
-        cardEl.style.opacity = '0';
-        cardEl.style.transform = 'scale(0.95)';
-        setTimeout(function () { if (cardEl.parentNode) cardEl.remove(); }, 260);
+        cardEl.style.opacity    = '0';
+        cardEl.style.transform  = 'scale(0.95)';
+        setTimeout(function() { if (cardEl.parentNode) cardEl.remove(); }, 260);
       }
-
       _toast('Procura removida.', 'info');
-    } catch (err) {
+    } catch(err) {
       console.warn('[WTBCreate] cancel error:', err.message);
       _toast('Erro ao remover. Tente novamente.', 'error');
     }
   }
 
-  // ── Abrir / Fechar modal ──────────────────────────────────────
+  // ── Abrir / Fechar ────────────────────────────────────────────
   function open() {
     var user = _user();
     if (!user) {
@@ -439,7 +634,9 @@
       return;
     }
     _resetForm();
-    _renderModal();
+    if (!_modalEl) { _modalEl = global.document.createElement('div'); global.document.body.appendChild(_modalEl); }
+    _modalEl.style.display = '';
+    _modalEl.innerHTML = _buildHtml();
     _bindEvents();
   }
 
