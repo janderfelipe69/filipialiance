@@ -155,7 +155,11 @@
   // ── Start negotiation ─────────────────────────────────────────
   async function startNegotiation(listingId) {
     var user = _user();
-    if (!user) { _toast('Faça login para negociar.', 'info'); return; }
+    if (!user) {
+      _toast('Faça login para negociar. Não tem conta? Crie uma!', 'info');
+      if (typeof AuthModal !== 'undefined' && AuthModal.open) AuthModal.open('login');
+      return;
+    }
     if (_pendingLocks[listingId]) return;
     _pendingLocks[listingId] = true;
 

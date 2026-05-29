@@ -1007,7 +1007,11 @@
   // ── open (create) ─────────────────────────────────────────────
   function open() {
     var user = _user();
-    if (!user) { _toast('Faça login para anunciar.', 'info'); return; }
+    if (!user) {
+      _toast('Faça login para anunciar. Não tem conta? Crie uma!', 'info');
+      if (typeof AuthModal !== 'undefined' && AuthModal.open) AuthModal.open('login');
+      return;
+    }
     _mode   = 'create';
     _editId = null;
     _resetForm();
