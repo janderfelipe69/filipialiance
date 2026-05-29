@@ -330,7 +330,8 @@ var BallsSelector = (function () {
   }
 
   function handleOverlayClick(e) {
-    if (e.target.id === 'balls-overlay') close();
+    if (typeof overlayDismiss === 'function') overlayDismiss(e, close);
+    else if (e.target.id === 'balls-overlay') close();
   }
 
   function _onKeyDown(e) {

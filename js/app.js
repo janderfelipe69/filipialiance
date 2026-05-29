@@ -501,9 +501,13 @@ function closeCart() {
   document.getElementById('cart-overlay').classList.remove('open');
 }
 
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('cart-overlay')) closeCart();
+// Utilitário compartilhado: fecha o overlay apenas quando o clique é no fundo,
+// não no modal interno (event.target === event.currentTarget).
+function overlayDismiss(event, closeFn) {
+  if (event.target === event.currentTarget) closeFn();
 }
+
+function handleOverlayClick(e)         { overlayDismiss(e, closeCart); }
 
 function renderCart() {
   const list = document.getElementById('cart-list');
@@ -2308,9 +2312,7 @@ function closePkgModal() {
   currentPkgState = [];
 }
 
-function handlePkgOverlayClick(e) {
-  if (e.target === document.getElementById('pkg-overlay')) closePkgModal();
-}
+function handlePkgOverlayClick(e)      { overlayDismiss(e, closePkgModal); }
 
 function addPackageToCart() {
   if (currentPkg === null) return;
@@ -2883,9 +2885,7 @@ function closeCapturaModal() {
   selectedBall = null;
 }
 
-function handleCapturaOverlayClick(e) {
-  if (e.target === document.getElementById('captura-overlay')) closeCapturaModal();
-}
+function handleCapturaOverlayClick(e)  { overlayDismiss(e, closeCapturaModal); }
 
 // renderItems() é chamado por items.render.js (initItemsModule)
 
