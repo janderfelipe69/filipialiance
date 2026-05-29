@@ -37,6 +37,47 @@
     other:   { label:'Outros',  icon:'📦', color:'#94a3b8', bg:'rgba(148,163,184,0.10)' },
   };
 
+  // ── Banner (imagem) do pacote — mesmas imagens do Pacotes tab ──
+  // Reutiliza getPkgIcon() de packages.logic.js se disponível,
+  // senão retorna o HTML da imagem diretamente com os mesmos URLs.
+  function _getPkgIconHtml(name) {
+    // Se packages.logic.js já carregou, usa diretamente
+    if (typeof getPkgIcon === 'function') return getPkgIcon(name);
+    // Fallback — mesmos URLs hardcoded de packages.logic.js
+    var n = (name || '').toLowerCase();
+    function img(url) { return '<img src="'+url+'" alt="'+_esc(name)+'">'; }
+    if (n.includes('viridian'))  return img('https://i.imgur.com/AvX9Hbj.png');
+    if (n.includes('cinnabar'))  return img('https://i.imgur.com/RsJe7OO.png');
+    if (n.includes('pewter'))    return img('https://i.imgur.com/ViA3uQO.png');
+    if (n.includes('cerulean'))  return img('https://i.imgur.com/uCRmZvq.png');
+    if (n.includes('vermilion')) return img('https://i.imgur.com/GEfwZ4B.png');
+    if (n.includes('celadon'))   return img('https://i.imgur.com/ocPJIHg.png');
+    if (n.includes('fuchsia'))   return img('https://i.imgur.com/i8U2tWd.png');
+    if (n.includes('saffron'))   return img('https://i.imgur.com/dzVfRLq.png');
+    if (n.includes('speed'))     return img('https://i.imgur.com/ODTCGEc.gif');
+    if (n.includes('hp'))        return img('https://i.imgur.com/QhZ8LL5.gif');
+    if (n.includes('water'))     return img('https://i.imgur.com/zpRe43i.png');
+    if (n.includes('steel'))     return img('https://i.imgur.com/GleRjiM.png');
+    if (n.includes('rock'))      return img('https://i.imgur.com/GvD1Mtq.png');
+    if (n.includes('psychic'))   return img('https://i.imgur.com/ASiZi1K.png');
+    if (n.includes('poison'))    return img('https://i.imgur.com/xfX0ReE.png');
+    if (n.includes('normal'))    return img('https://i.imgur.com/w2ChsIe.png');
+    if (n.includes('ice'))       return img('https://i.imgur.com/ssFz0sA.png');
+    if (n.includes('ground'))    return img('https://i.imgur.com/JPcD2l3.png');
+    if (n.includes('fire'))      return img('https://i.imgur.com/O8TONGE.png');
+    if (n.includes('grass'))     return img('https://i.imgur.com/YjKxtoE.png');
+    if (n.includes('electric'))  return img('https://i.imgur.com/Yv2WEYc.png');
+    if (n.includes('dark'))      return img('https://i.imgur.com/7Luj4az.png');
+    if (n.includes('dragon'))    return img('https://i.imgur.com/o7JWbaN.png');
+    if (n.includes('ghost'))     return img('https://i.imgur.com/HuybbPn.png');
+    if (n.includes('fairy'))     return img('https://i.imgur.com/j3HaXTh.png');
+    if (n.includes('flying'))    return img('https://i.imgur.com/npGjQae.png');
+    if (n.includes('bug'))       return img('https://i.imgur.com/V4IXR51.png');
+    if (n.includes('fighting')||n.includes('figthing')) return img('https://i.imgur.com/OKsJXh7.png');
+    if (n.includes('sand'))      return img('https://i.imgur.com/JPcD2l3.png');
+    return img('https://i.imgur.com/zpRe43i.png');
+  }
+
   // ── Tipo Pokémon por nome de pacote ───────────────────────────
   // Usado para mostrar o ícone/cor correto em cada card de pacote.
   var TYPE_META = {
@@ -445,9 +486,10 @@
           var items=(p.catalog_package_slots||[]).reduce(function(acc,s){return acc+(s.catalog_package_slot_items||[]).filter(function(i){return i.is_default;}).length;},0);
           var typeKey = _pkgTypeKey(p.name);
           var tMeta  = TYPE_META[typeKey] || TYPE_META.normal;
+          var iconHtml = _getPkgIconHtml(p.name);
           return '<button class="wtb-pkg-card" data-pkg-id="'+_esc(p.id)+'"'
             +' style="--pkgc:'+tMeta.color+';--pkgbg:'+tMeta.bg+'">'
-            +'<span class="wtb-pkg-card-type-badge mk-type-badge mk-type--'+_esc(typeKey)+'">'+_esc(tMeta.label)+'</span>'
+            +'<div class="wtb-pkg-card-icon-frame" style="--pkgc:'+tMeta.color+'">'+iconHtml+'</div>'
             +'<span class="wtb-pkg-card-name">'+_esc(p.name)+'</span>'
             +'<span class="wtb-pkg-card-info">'+slots+' slots · '+items+' itens</span>'
             +'</button>';
@@ -516,8 +558,11 @@
       +'<div class="mk-modal-header">'
       +'<button class="wtb-back-btn" onclick="WTBCreate._talentBack()">←</button>'
       +'<div class="wtb-cst-modal-title-wrap">'
-      +'<span class="mk-type-badge mk-type--'+_esc(typeKey)+'" style="font-size:.68rem;padding:3px 10px">'+_esc(tMeta.label)+'</span>'
-      +'<span class="mk-modal-title" style="font-size:.95rem">'+_esc(pkg.name)+'</span>'
+      +'<div class="wtb-cst-header-icon" style="--pkgc:'+tMeta.color+'">'+_getPkgIconHtml(pkg.name)+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:2px;min-width:0">'
+      +'<span class="mk-type-badge mk-type--'+_esc(typeKey)+'" style="font-size:.60rem;padding:2px 8px;width:fit-content">'+_esc(tMeta.label)+'</span>'
+      +'<span class="mk-modal-title" style="font-size:.90rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_esc(pkg.name)+'</span>'
+      +'</div>'
       +'</div>'
       +'<button class="mk-modal-close" onclick="WTBCreate.close()">✕</button>'
       +'</div>'
