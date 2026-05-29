@@ -701,21 +701,31 @@
 }
 .mk-star-btn.active, .mk-star-btn:hover { color: var(--mk-gold); transform: scale(1.15); }
 
-/* Boost slider */
-.mk-boost-row { display: flex; align-items: center; gap: 12px; }
+/* Boost slider + number input */
+.mk-boost-row { display: flex; align-items: center; gap: 10px; }
 .mk-boost-slider {
   flex: 1;
   accent-color: var(--mk-gold);
   height: 4px;
 }
-.mk-boost-val {
+.mk-boost-num {
+  width: 56px;
+  padding: 5px 8px;
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   color: var(--mk-gold);
-  min-width: 32px;
-  text-align: right;
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: var(--mk-r-sm);
+  text-align: center;
+  outline: none;
+  transition: border-color .15s;
+  -moz-appearance: textfield;
 }
+.mk-boost-num::-webkit-inner-spin-button,
+.mk-boost-num::-webkit-outer-spin-button { -webkit-appearance: none; }
+.mk-boost-num:focus { border-color: var(--mk-gold); }
 
 /* Pokemon preview in modal */
 .mk-poke-preview {
@@ -876,10 +886,35 @@
   min-height: 14px;
 }
 .mk-field-hint {
-  font-size: 10px;
-  color: var(--mk-blue);
-  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 20px;
 }
+.mk-price-kk {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mk-gold);
+}
+.mk-price-brl {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--mk-text);
+}
+.mk-price-dd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #a78bfa;
+}
+.mk-price-sep {
+  font-size: 10px;
+  color: var(--mk-muted);
+  opacity: .5;
+}
+/* Price input wider */
+.mk-price-input { font-family: var(--font-mono); letter-spacing: .02em; }
 
 /* Time on card footer */
 .mk-card-time {

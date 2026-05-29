@@ -450,6 +450,20 @@
     });
   }
 
+  // ── Price hint — kk + R$ + DD ─────────────────────────────────
+  function _formatPriceHint(raw) {
+    if (!raw || raw <= 0 || typeof formatKK !== 'function') return '';
+    var fmt  = formatKK(raw);
+    if (!fmt) return '';
+    var ddNum = typeof brlToDd === 'function'
+      ? brlToDd(raw / 1000000 * (typeof KK_TO_BRL !== 'undefined' ? KK_TO_BRL : 0))
+      : 0;
+    return '<span class="mk-price-kk">' + fmt.label + '</span>'
+      + '<span class="mk-price-sep">·</span>'
+      + '<span class="mk-price-brl">' + fmt.brl + '</span>'
+      + (ddNum > 0 ? '<span class="mk-price-sep">·</span><span class="mk-price-dd">' + ddNum.toLocaleString('pt-BR') + ' DD</span>' : '');
+  }
+
   // ── Build modal HTML ──────────────────────────────────────────
   function _buildHtml(title, submitLabel) {
     var STATS_ROWS = [
@@ -509,7 +523,7 @@
       + '  <label class="mk-label" for="mk-boost-slider">Boost</label>'
       + '  <div class="mk-boost-row">'
       + '    <input class="mk-boost-slider" id="mk-boost-slider" type="range" min="0" max="70" value="0" step="1">'
-      + '    <span class="mk-boost-val" id="mk-boost-val">+0</span>'
+      + '    <input class="mk-boost-num" id="mk-boost-num" type="number" min="0" max="70" value="0">'
       + '  </div>'
       + '  <span class="mk-field-error" id="mk-err-boost"></span>'
       + '</div>'
@@ -553,7 +567,7 @@
             + '<span class="mk-train-input-label">' + _esc(s.label) + '</span>'
             + '<input type="range" class="mk-train-range" id="mk-trange-' + s.key + '" min="0" max="100" value="0" data-stat="' + s.key + '">'
             + '<input type="number" class="mk-train-num" id="mk-tnum-' + s.key + '" min="0" max="100" value="0" data-stat="' + s.key + '">'
-            + '<span class="mk-train-pct-label" id="mk-tpct-' + s.key + '">0%</span>'
+            + '<span class="mk-train-pct-label" id="mk-tpct-' + s.key + '">Lv 0</span>'
             + '</div>';
         }).join('')
       + '  </div>'
@@ -561,8 +575,8 @@
 
       // Preço
       + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-price">Preço (KK raw)</label>'
-      + '  <input class="mk-input" id="mk-price" type="number" min="1" placeholder="Ex: 500000000 = 500kk">'
+      + '  <label class="mk-label" for="mk-price">Preço</label>'
+      + '  <input class="mk-input mk-price-input" id="mk-price" type="number" min="1" placeholder="Ex: 500000000 → 500kk">'
       + '  <span class="mk-field-hint" id="mk-price-preview"></span>'
       + '  <span class="mk-field-error" id="mk-err-price_kk"></span>'
       + '</div>'
@@ -627,15 +641,17 @@
       }
     );
 
-    // Boost
+    // Boost — slider + number input sync bidirecional
     var boostSlider = global.document.getElementById('mk-boost-slider');
-    var boostVal    = global.document.getElementById('mk-boost-val');
-    if (boostSlider) {
-      boostSlider.addEventListener('input', function () {
-        _form.boost = parseInt(boostSlider.value, 10);
-        if (boostVal) boostVal.textContent = '+' + _form.boost;
-      });
+    var boostNum    = global.document.getElementById('mk-boost-num');
+    function _syncBoost(val) {
+      var v = Math.min(70, Math.max(0, parseInt(val, 10) || 0));
+      _form.boost = v;
+      if (boostSlider) boostSlider.value = v;
+      if (boostNum)    boostNum.value    = v;
     }
+    if (boostSlider) boostSlider.addEventListener('input', function () { _syncBoost(boostSlider.value); });
+    if (boostNum)    boostNum.addEventListener('input',   function () { _syncBoost(boostNum.value); });
 
     // Training — slider/input sync bidirecional
     var STATS = ['attack','defense','hp','precision','evasion','critical_damage','critical_chance','critical_resistance'];
@@ -648,23 +664,20 @@
         _form.training[s] = v;
         if (range) range.value = v;
         if (num)   num.value   = v;
-        if (pct)   pct.textContent = v + '%';
+        if (pct)   pct.textContent = 'Lv ' + v;
       }
       if (range) range.addEventListener('input', function () { _sync(range.value); });
       if (num)   num.addEventListener('input',  function () { _sync(num.value);   });
     });
 
-    // Price preview
+    // Price preview — kk + R$ + DD
     var priceInput   = global.document.getElementById('mk-price');
     var pricePreview = global.document.getElementById('mk-price-preview');
     if (priceInput) {
       priceInput.addEventListener('input', function () {
         var v = Number(priceInput.value);
         _form.price_kk = v;
-        if (pricePreview && typeof formatKK === 'function') {
-          var fmt = formatKK(v);
-          pricePreview.textContent = fmt ? fmt.label + ' (' + fmt.brl + ')' : '';
-        }
+        if (pricePreview) pricePreview.innerHTML = _formatPriceHint(v);
       });
     }
 
@@ -781,20 +794,17 @@
   function _prefillForm() {
     var pokeInput   = global.document.getElementById('mk-poke-input');
     var boostSlider = global.document.getElementById('mk-boost-slider');
-    var boostVal    = global.document.getElementById('mk-boost-val');
+    var boostNum    = global.document.getElementById('mk-boost-num');
     var priceInput  = global.document.getElementById('mk-price');
     var obsEl       = global.document.getElementById('mk-obs');
 
-    if (pokeInput) pokeInput.value = _form.pokemon_name;
-    if (boostSlider) { boostSlider.value = _form.boost; }
-    if (boostVal) boostVal.textContent = '+' + _form.boost;
+    if (pokeInput)   pokeInput.value   = _form.pokemon_name;
+    if (boostSlider) boostSlider.value = _form.boost;
+    if (boostNum)    boostNum.value    = _form.boost;
     if (priceInput) {
       priceInput.value = _form.price_kk || '';
       var pricePreview = global.document.getElementById('mk-price-preview');
-      if (pricePreview && typeof formatKK === 'function') {
-        var fmt = formatKK(Number(_form.price_kk));
-        pricePreview.textContent = fmt ? fmt.label + ' (' + fmt.brl + ')' : '';
-      }
+      if (pricePreview) pricePreview.innerHTML = _formatPriceHint(Number(_form.price_kk));
     }
     if (obsEl) obsEl.value = _form.observations || '';
 
@@ -809,7 +819,7 @@
       var pct   = global.document.getElementById('mk-tpct-' + s);
       if (range) range.value = v;
       if (num)   num.value   = v;
-      if (pct)   pct.textContent = v + '%';
+      if (pct)   pct.textContent = 'Lv ' + v;
     });
 
     // Sprite preview
