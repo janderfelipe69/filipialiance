@@ -1298,90 +1298,139 @@
     }
   }
 
-  // ── Seção Feature Flags — aparece no topo da aba itens para admins ──────
+  // ── Feature Flags — botão flutuante fixo (sempre visível para admin) ────
   function _injectFeatureFlagsPanel() {
     if (!isAdmin()) return;
-    if (document.getElementById('admin-feature-flags-panel')) return;
+    if (document.getElementById('admin-ff-fab')) return;
 
-    var flags = (typeof FeatureFlags !== 'undefined') ? FeatureFlags.getFlags() : { itens: true, pacotes: true, captura: true };
+    // ── CSS ──────────────────────────────────────────────────────────────
+    var css = document.createElement('style');
+    css.id = 'admin-ff-fab-css';
+    css.textContent = [
+      '#admin-ff-fab{',
+        'position:fixed;bottom:24px;right:24px;z-index:99990;',
+        'width:46px;height:46px;border-radius:50%;',
+        'background:linear-gradient(135deg,#1a3a6a,#0d2040);',
+        'border:1.5px solid rgba(74,154,255,.45);',
+        'color:#7eb3ff;font-size:1.15rem;cursor:pointer;',
+        'box-shadow:0 4px 18px rgba(0,0,0,.55);',
+        'display:flex;align-items:center;justify-content:center;',
+        'transition:transform .18s,box-shadow .18s;',
+      '}',
+      '#admin-ff-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(74,154,255,.3)}',
+      '#admin-ff-drawer{',
+        'position:fixed;bottom:80px;right:24px;z-index:99991;',
+        'width:280px;',
+        'background:#0d1120;border:1px solid rgba(74,154,255,.25);',
+        'border-radius:12px;padding:16px;',
+        'box-shadow:0 8px 32px rgba(0,0,0,.7);',
+        'display:none;flex-direction:column;gap:10px;',
+      '}',
+      '#admin-ff-drawer.open{display:flex}',
+      '.admin-ff-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}',
+      '.admin-ff-title{font-size:.72rem;color:#4a9aff;font-weight:700;text-transform:uppercase;letter-spacing:.07em}',
+      '.admin-ff-row{',
+        'display:flex;align-items:center;justify-content:space-between;',
+        'padding:9px 11px;border-radius:8px;',
+        'background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);',
+      '}',
+      '.admin-ff-name{font-size:.85rem;color:#c0c8ff}',
+      '.admin-ff-controls{display:flex;align-items:center;gap:8px}',
+      '.admin-ff-badge{font-size:.68rem;padding:2px 7px;border-radius:4px}',
+      '.admin-ff-badge.on{background:rgba(80,200,80,.12);color:#80e080}',
+      '.admin-ff-badge.off{background:rgba(180,60,60,.12);color:#e08080}',
+      '.admin-ff-track{position:relative;width:40px;height:22px;border-radius:11px;cursor:pointer;transition:background .22s}',
+      '.admin-ff-track.on{background:#2e7d32}',
+      '.admin-ff-track.off{background:#443}',
+      '.admin-ff-knob{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .18s}',
+      '.admin-ff-track.on .admin-ff-knob{left:21px}',
+      '.admin-ff-track.off .admin-ff-knob{left:3px}',
+    ].join('');
+    document.head.appendChild(css);
 
-    var panel = document.createElement('div');
-    panel.id = 'admin-feature-flags-panel';
-    panel.style.cssText = 'margin:12px 0;padding:14px 16px;background:rgba(74,154,255,.05);border:1px dashed rgba(74,154,255,.2);border-radius:10px';
+    // ── FAB button ────────────────────────────────────────────────────────
+    var fab = document.createElement('button');
+    fab.id = 'admin-ff-fab';
+    fab.title = 'Feature Flags — Controle de Abas';
+    fab.innerHTML = '⚙️';
+    fab.onclick = function () {
+      var d = document.getElementById('admin-ff-drawer');
+      if (d) d.classList.toggle('open');
+    };
+    document.body.appendChild(fab);
+
+    // ── Drawer ────────────────────────────────────────────────────────────
+    var drawer = document.createElement('div');
+    drawer.id = 'admin-ff-drawer';
+
+    var flags = (typeof FeatureFlags !== 'undefined')
+      ? FeatureFlags.getFlags()
+      : { itens: true, pacotes: true, captura: true };
 
     var labels = { itens: 'Itens', pacotes: 'Pacotes', captura: 'Captura' };
 
-    var html =
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
-        '<span style="font-size:.75rem;color:#4a9aff;font-weight:700;text-transform:uppercase;letter-spacing:.06em">⚙️ Feature Flags — Abas</span>' +
-        '<span style="font-size:.7rem;color:#555">Mudanças persistem automaticamente</span>' +
-      '</div>' +
-      '<div id="admin-ff-toggles" style="display:flex;flex-direction:column;gap:10px">';
+    var header =
+      '<div class="admin-ff-header">' +
+        '<span class="admin-ff-title">⚙️ Controle de Abas</span>' +
+        '<span style="font-size:.65rem;color:#555">admin only</span>' +
+      '</div>';
+
+    drawer.innerHTML = header;
 
     ['itens', 'pacotes', 'captura'].forEach(function (tab) {
-      var enabled = flags[tab] !== false;
-      html +=
-        '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">' +
-          '<span style="font-size:.85rem;color:#c0c8ff">' + labels[tab] + '</span>' +
-          '<span style="display:flex;align-items:center;gap:8px">' +
-            '<span id="admin-ff-badge-' + tab + '" style="font-size:.72rem;padding:2px 8px;border-radius:4px;' +
-              (enabled ? 'background:rgba(80,200,80,.12);color:#80e080' : 'background:rgba(180,60,60,.12);color:#e08080') + '">' +
-              (enabled ? 'Habilitado' : 'Desabilitado') +
-            '</span>' +
-            '<div style="position:relative;width:42px;height:22px">' +
-              '<input type="checkbox" id="admin-ff-' + tab + '" ' + (enabled ? 'checked' : '') + ' ' +
-                'data-tab="' + tab + '" ' +
-                'style="opacity:0;width:0;height:0;position:absolute" ' +
-                'onchange="window.__adminToggleFeatureFlag(this)">' +
-              '<label for="admin-ff-' + tab + '" style="' +
-                'position:absolute;top:0;left:0;right:0;bottom:0;' +
-                'border-radius:11px;cursor:pointer;transition:background .25s;' +
-                'background:' + (enabled ? '#3a8a3a' : '#443') + '">' +
-                '<span style="' +
-                  'position:absolute;top:3px;' + (enabled ? 'left:23px' : 'left:3px') + ';' +
-                  'width:16px;height:16px;border-radius:50%;background:#fff;' +
-                  'transition:left .2s;display:block" id="admin-ff-knob-' + tab + '"></span>' +
-              '</label>' +
-            '</div>' +
-          '</span>' +
-        '</label>';
+      var on = flags[tab] !== false;
+      var row = document.createElement('div');
+      row.className = 'admin-ff-row';
+      row.innerHTML =
+        '<span class="admin-ff-name">' + labels[tab] + '</span>' +
+        '<span class="admin-ff-controls">' +
+          '<span id="admin-ff-badge-' + tab + '" class="admin-ff-badge ' + (on ? 'on' : 'off') + '">' + (on ? 'Ativo' : 'Bloqueado') + '</span>' +
+          '<div id="admin-ff-track-' + tab + '" class="admin-ff-track ' + (on ? 'on' : 'off') + '" onclick="window.__adminToggleFeatureFlag('' + tab + '')">' +
+            '<span class="admin-ff-knob"></span>' +
+          '</div>' +
+        '</span>';
+      drawer.appendChild(row);
     });
 
-    html += '</div>';
-    panel.innerHTML = html;
+    document.body.appendChild(drawer);
 
-    // Insere antes do items-grid ou no topo do body como fallback
-    var anchor = document.getElementById('items-grid');
-    if (anchor && anchor.parentElement) {
-      anchor.parentElement.insertBefore(panel, anchor);
-    }
+    // Fecha drawer ao clicar fora
+    document.addEventListener('click', function (e) {
+      var d = document.getElementById('admin-ff-drawer');
+      var f = document.getElementById('admin-ff-fab');
+      if (d && f && !d.contains(e.target) && !f.contains(e.target)) {
+        d.classList.remove('open');
+      }
+    });
   }
 
-  global.__adminToggleFeatureFlag = function (checkbox) {
-    var tab = checkbox.getAttribute('data-tab');
-    var enabled = checkbox.checked;
-
+  global.__adminToggleFeatureFlag = function (tab) {
     if (typeof FeatureFlags === 'undefined') {
       showToast('FeatureFlags não disponível.', false);
       return;
     }
 
+    // Lê estado atual e inverte
+    var flags   = FeatureFlags.getFlags();
+    var enabled = !(flags[tab] !== false); // inverte
+
     FeatureFlags.setFlag(tab, enabled);
 
-    // Atualiza badge e knob inline
+    // Atualiza badge
     var badge = document.getElementById('admin-ff-badge-' + tab);
-    var knob  = document.getElementById('admin-ff-knob-' + tab);
-    var track = checkbox.nextElementSibling;
-
     if (badge) {
-      badge.textContent = enabled ? 'Habilitado' : 'Desabilitado';
-      badge.style.background  = enabled ? 'rgba(80,200,80,.12)' : 'rgba(180,60,60,.12)';
-      badge.style.color       = enabled ? '#80e080' : '#e08080';
+      badge.textContent = enabled ? 'Ativo' : 'Bloqueado';
+      badge.className   = 'admin-ff-badge ' + (enabled ? 'on' : 'off');
     }
-    if (knob)  knob.style.left  = enabled ? '23px' : '3px';
-    if (track) track.style.background = enabled ? '#3a8a3a' : '#443';
 
-    showToast('Aba ' + tab + (enabled ? ' habilitada.' : ' desabilitada.'), enabled);
+    // Atualiza track (toggle visual)
+    var track = document.getElementById('admin-ff-track-' + tab);
+    if (track) {
+      track.className = 'admin-ff-track ' + (enabled ? 'on' : 'off');
+    }
+
+    var labels = { itens: 'Itens', pacotes: 'Pacotes', captura: 'Captura' };
+    showToast('Aba ' + (labels[tab] || tab) + (enabled ? ' habilitada ✓' : ' bloqueada ✕'), enabled);
   };
 
   // Botões de editar/remover nos cards — chamados pelos renders
