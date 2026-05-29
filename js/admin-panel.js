@@ -1408,6 +1408,27 @@
     });
   }
 
+  // Atualiza badge + track de uma linha do painel de feature flags
+  function _applyFFRowUI(tab, enabled) {
+    var badge = document.getElementById('admin-ff-badge-' + tab);
+    if (badge) {
+      badge.textContent = enabled ? 'Ativo' : 'Bloqueado';
+      badge.className   = 'admin-ff-badge ' + (enabled ? 'on' : 'off');
+    }
+    var track = document.getElementById('admin-ff-track-' + tab);
+    if (track) {
+      track.className = 'admin-ff-track ' + (enabled ? 'on' : 'off');
+    }
+  }
+
+  // Mantém o painel ⚙️ sincronizado quando as flags mudam de qualquer origem
+  // (ex.: sincronização com o servidor ou outro admin alterando em paralelo).
+  document.addEventListener('featureFlagChanged', function (e) {
+    if (e && e.detail && e.detail.tab) {
+      _applyFFRowUI(e.detail.tab, e.detail.enabled !== false);
+    }
+  });
+
   global.__adminToggleFeatureFlag = function (tab) {
     if (typeof FeatureFlags === 'undefined') {
       showToast('FeatureFlags não disponível.', false);
@@ -1417,24 +1438,23 @@
     // Lê estado atual e inverte
     var flags   = FeatureFlags.getFlags();
     var enabled = !(flags[tab] !== false); // inverte
+    var labels  = { itens: 'Itens', pacotes: 'Pacotes', captura: 'Captura' };
+    var nome    = labels[tab] || tab;
 
-    FeatureFlags.setFlag(tab, enabled);
+    // Atualiza UI otimisticamente
+    _applyFFRowUI(tab, enabled);
 
-    // Atualiza badge
-    var badge = document.getElementById('admin-ff-badge-' + tab);
-    if (badge) {
-      badge.textContent = enabled ? 'Ativo' : 'Bloqueado';
-      badge.className   = 'admin-ff-badge ' + (enabled ? 'on' : 'off');
-    }
-
-    // Atualiza track (toggle visual)
-    var track = document.getElementById('admin-ff-track-' + tab);
-    if (track) {
-      track.className = 'admin-ff-track ' + (enabled ? 'on' : 'off');
-    }
-
-    var labels = { itens: 'Itens', pacotes: 'Pacotes', captura: 'Captura' };
-    showToast('Aba ' + (labels[tab] || tab) + (enabled ? ' habilitada ✓' : ' bloqueada ✕'), enabled);
+    // setFlag grava localmente E no servidor → retorna Promise
+    FeatureFlags.setFlag(tab, enabled)
+      .then(function () {
+        showToast('Aba ' + nome + (enabled ? ' habilitada para todos ✓' : ' bloqueada para todos ✕'), enabled);
+      })
+      .catch(function (err) {
+        // Falhou no servidor → reverte estado local e UI
+        FeatureFlags.setFlag(tab, !enabled, { localOnly: true });
+        _applyFFRowUI(tab, !enabled);
+        showToast('Falha ao salvar no servidor: ' + (err && err.message ? err.message : 'erro') + ' — alteração revertida.', false);
+      });
   };
 
   // Botões de editar/remover nos cards — chamados pelos renders

@@ -81,8 +81,9 @@ const TABS_CONFIG = {
    * @param {string}  tab
    * @param {boolean} enabled
    */
-  function setFeatureFlag(tab, enabled) {
-    if (!(tab in _defaults)) return; // só gerencia abas conhecidas
+  function setFeatureFlag(tab, enabled, opts) {
+    opts = opts || {};
+    if (!(tab in _defaults)) return Promise.resolve(); // só gerencia abas conhecidas
     _flags[tab] = !!enabled;
     _save(_flags);
     _applyVisual(tab, !!enabled);
@@ -90,6 +91,10 @@ const TABS_CONFIG = {
     document.dispatchEvent(new CustomEvent('featureFlagChanged', {
       detail: { tab: tab, enabled: !!enabled }
     }));
+    // opts.localOnly = só estado local (usado para reverter quando o server falha)
+    if (opts.localOnly) return Promise.resolve();
+    // Propaga para o SERVIDOR → passa a valer para TODOS os visitantes (até anônimos)
+    return _saveToServer(_flags);
   }
 
   /**
@@ -133,6 +138,96 @@ const TABS_CONFIG = {
     });
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SINCRONIZAÇÃO COM O SERVIDOR (Supabase)
+  //
+  //  As flags são GLOBAIS: o admin altera e TODOS os visitantes (inclusive
+  //  anônimos) passam a ver o mesmo estado no próximo carregamento da página.
+  //  O localStorage funciona apenas como cache para render instantâneo.
+  //
+  //  Tabela: public.app_settings (key text PK, value jsonb)
+  //  Linha:  key = 'feature_flags', value = { itens, pacotes, captura }
+  // ══════════════════════════════════════════════════════════════════════════
+
+  var REMOTE_KEY = 'feature_flags';
+
+  function _sbHeaders(auth) {
+    return {
+      'Content-Type':  'application/json',
+      'apikey':        global.SUPABASE_KEY,
+      'Authorization': 'Bearer ' + (auth || global.SUPABASE_KEY),
+    };
+  }
+
+  /** Lê as flags do servidor (anon) e aplica localmente. */
+  function _loadFromServer() {
+    if (!global.SUPABASE_URL || !global.SUPABASE_KEY) return Promise.resolve();
+    var url = global.SUPABASE_URL +
+      '/rest/v1/app_settings?key=eq.' + REMOTE_KEY + '&select=value';
+    return fetch(url, { headers: _sbHeaders() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        if (!Array.isArray(rows) || !rows.length || !rows[0].value) return;
+        var v = rows[0].value;
+        var changed = [];
+        Object.keys(_defaults).forEach(function (k) {
+          if (typeof v[k] === 'boolean') {
+            if (_flags[k] !== v[k]) changed.push(k);
+            _flags[k] = v[k];
+          }
+        });
+        _save(_flags);          // atualiza cache local
+        _applyAllVisuals();     // aplica cinza/badge nos botões
+        // Re-avalia a navegação para cada flag que mudou
+        changed.forEach(function (k) {
+          document.dispatchEvent(new CustomEvent('featureFlagChanged', {
+            detail: { tab: k, enabled: _flags[k] }
+          }));
+        });
+        _enforceActiveTab();    // expulsa quem está numa aba recém-bloqueada
+      })
+      .catch(function () { /* offline → mantém o cache local */ });
+  }
+
+  /** Grava as flags no servidor (somente admin — exige JWT). */
+  function _saveToServer(flags) {
+    var jwt = (global.Session && typeof global.Session.getAccessToken === 'function')
+      ? global.Session.getAccessToken() : null;
+    if (!jwt) return Promise.reject(new Error('Sessão de admin não encontrada. Recarregue e tente de novo.'));
+    if (!global.SUPABASE_URL) return Promise.reject(new Error('Supabase indisponível.'));
+    // Upsert pela PK (key) — cria a linha se não existir, senão atualiza
+    var url = global.SUPABASE_URL + '/rest/v1/app_settings?on_conflict=key';
+    return fetch(url, {
+      method:  'POST',
+      headers: Object.assign(_sbHeaders(jwt), {
+        'Prefer': 'resolution=merge-duplicates,return=representation',
+      }),
+      body: JSON.stringify({ key: REMOTE_KEY, value: flags }),
+    }).then(function (r) {
+      if (!r.ok) return r.text().then(function (t) { throw new Error(t.slice(0, 200)); });
+      return r.json();
+    });
+  }
+
+  /** Se a aba ativa estiver bloqueada, manda o usuário para a primeira liberada. */
+  function _enforceActiveTab() {
+    var active = document.querySelector('.tab-content.active');
+    if (!active) return;
+    var id  = active.id || '';                       // ex.: 'tab-itens'
+    var tab = id.indexOf('tab-') === 0 ? id.slice(4) : '';
+    if (!tab || isFeatureEnabled(tab)) return;       // aba atual está ok
+    var btns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      var oc = btns[i].getAttribute('onclick') || '';
+      var m  = oc.match(/switchTab\(['"]([^'"]+)['"]/);
+      var t  = m ? m[1] : (btns[i].getAttribute('data-tab') || '');
+      if (t && isFeatureEnabled(t)) {
+        if (typeof global.switchTab === 'function') global.switchTab(t, btns[i]);
+        return;
+      }
+    }
+  }
+
   // Injeta CSS de bloqueio visual
   (function _injectCSS() {
     if (document.getElementById('pa-feature-flags-css')) return;
@@ -166,20 +261,25 @@ const TABS_CONFIG = {
     target.appendChild(style);
   }());
 
-  // Aplica visuais quando o DOM estiver pronto
+  // Aplica visuais (cache local) e busca o estado real do servidor quando o DOM estiver pronto
+  function _initFlags() {
+    _applyAllVisuals();   // render instantâneo com o cache local
+    _loadFromServer();    // sincroniza com a fonte de verdade (servidor)
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _applyAllVisuals);
+    document.addEventListener('DOMContentLoaded', _initFlags);
   } else {
-    _applyAllVisuals();
+    _initFlags();
   }
 
   // ── API pública ───────────────────────────────────────────────────────
 
   global.FeatureFlags = {
-    isEnabled:  isFeatureEnabled,
-    setFlag:    setFeatureFlag,
-    getFlags:   getFlags,
-    applyAll:   _applyAllVisuals,
+    isEnabled:        isFeatureEnabled,
+    setFlag:          setFeatureFlag,
+    getFlags:         getFlags,
+    applyAll:         _applyAllVisuals,
+    reloadFromServer: _loadFromServer,
   };
 
   // Atalho global — usado por toda navegação
