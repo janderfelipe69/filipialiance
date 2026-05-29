@@ -3,520 +3,315 @@
    Reutiliza variáveis e componentes base de marketplace.css.
    ================================================================ */
 
-/* ── Badge "Procurando" no card ────────────────────────────────── */
+/* ── Badge "Procurando / Talento" ───────────────────────────────── */
 .wtb-card { position: relative; }
 
 .wtb-card-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: rgba(99,179,237,0.13);
+  top: 10px; right: 10px;
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  background: rgba(99,179,237,.13);
   color: #63b3ed;
-  border: 1px solid rgba(99,179,237,0.28);
-  border-radius: 4px;
-  padding: 2px 7px;
-  pointer-events: none;
-  white-space: nowrap;
+  border: 1px solid rgba(99,179,237,.28);
+  border-radius: 4px; padding: 2px 7px;
+  pointer-events: none; white-space: nowrap;
+}
+.wtb-card-badge--talent {
+  background: rgba(167,139,250,.13);
+  color: var(--tc, #a78bfa);
+  border-color: rgba(167,139,250,.28);
 }
 
-/* ── Bola preferida no card ─────────────────────────────────────── */
+/* ── Pokémon card helpers ───────────────────────────────────────── */
 .wtb-ball-row { margin: 4px 0 6px; }
+.wtb-ball-any { font-size: .74rem; color: rgba(255,255,255,.32); font-style: italic; }
+.wtb-obs { font-size: .72rem; color: rgba(255,255,255,.48); line-height: 1.45; margin-top: 5px; white-space: pre-wrap; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-.wtb-ball-any {
-  font-size: 0.74rem;
-  color: rgba(255,255,255,0.32);
+/* ── Payment chips ──────────────────────────────────────────────── */
+.wtb-payment { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.wtb-pay-chip { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 600; border-radius: 6px; padding: 3px 9px; border: 1px solid transparent; }
+.wtb-pay-kk  { color:#fbbf24; border-color:rgba(251,191,36,.32); background:rgba(251,191,36,.09); }
+.wtb-pay-dd  { color:#a78bfa; border-color:rgba(167,139,250,.32); background:rgba(167,139,250,.09); }
+.wtb-pay-brl { color:#34d399; border-color:rgba(52,211,153,.32);  background:rgba(52,211,153,.09); }
+
+/* ================================================================
+   TALENT CARD — slots e itens
+   ================================================================ */
+.wtb-talent-card { border-color: rgba(167,139,250,.20); }
+
+.wtb-talent-card-header {
+  padding: 36px 14px 4px; /* espaço do badge */
+  display: flex; flex-direction: column; gap: 3px;
+}
+.wtb-talent-card-pkg-name {
+  font-size: .92rem; font-weight: 700; color: #fff;
+  line-height: 1.2;
+}
+.wtb-talent-card-have-summary {
+  font-size: .68rem; color: rgba(255,255,255,.35);
   font-style: italic;
 }
 
-/* ── Observações no card ────────────────────────────────────────── */
-.wtb-obs {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.48);
-  line-height: 1.45;
-  margin-top: 5px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Slots compactos no card */
+.wtb-ts-slots {
+  display: flex; flex-direction: column; gap: 0;
+  margin: 6px 0 4px;
+  border-top: 1px solid rgba(255,255,255,.06);
 }
-
-/* ── Chips de pagamento no card ─────────────────────────────────── */
-.wtb-payment {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
+.wtb-ts-slot {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px;
+  padding: 5px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: .72rem;
 }
+.wtb-ts-slot--done { opacity: .5; }
 
-.wtb-pay-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  border-radius: 6px;
-  padding: 3px 9px;
-  border: 1px solid transparent;
+.wtb-ts-slot-num {
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--tc, #a78bfa);
+  flex-shrink: 0; min-width: 42px;
 }
+.wtb-ts-items { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
 
-.wtb-pay-kk  { color:#fbbf24; border-color:rgba(251,191,36,0.32); background:rgba(251,191,36,0.09); }
-.wtb-pay-dd  { color:#a78bfa; border-color:rgba(167,139,250,0.32); background:rgba(167,139,250,0.09); }
-.wtb-pay-brl { color:#34d399; border-color:rgba(52,211,153,0.32);  background:rgba(52,211,153,0.09); }
-
-/* ── Formulário de pagamento (create modal) ─────────────────────── */
-.wtb-pay-methods {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.wtb-ts-item {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 4px; padding: 1px 6px;
+  color: rgba(255,255,255,.78); white-space: nowrap;
 }
-
-.wtb-pay-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.wtb-ts-item-qty {
+  font-weight: 700; color: var(--tc, #a78bfa);
+  font-size: .68rem;
 }
+.wtb-ts-done { font-size: .68rem; color: rgba(52,211,153,.7); font-weight: 600; }
+.wtb-ts-have-note { font-size: .65rem; color: rgba(255,255,255,.28); font-style: italic; align-self: center; }
 
-.wtb-pay-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: rgba(255,255,255,0.72);
-  cursor: pointer;
-  user-select: none;
-}
+.wtb-obs--talent { padding: 0 14px 8px; margin-top: 0; }
 
-.wtb-pay-check {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #4fa3f7;
-  flex-shrink: 0;
-}
-
-.wtb-pay-coin { color: #fbbf24; font-weight: 700; }
-
-.wtb-pay-input-wrap {
-  display: flex;
-  gap: 8px;
-  padding-left: 24px;
-}
-
-/* ── Chat modal ─────────────────────────────────────────────────── */
-.wtb-chat-modal {
-  max-width: 460px;
-  width: 100%;
-  height: auto;
-}
-
-.wtb-chat-body {
-  display: flex;
-  flex-direction: column;
-  height: 380px;
-  max-height: 52vh;
-}
-
-.wtb-chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
-}
-
-.wtb-chat-empty {
-  text-align: center;
-  color: rgba(255,255,255,0.32);
-  font-size: 0.82rem;
-  margin: auto;
-  padding: 24px 16px;
-}
-
-.wtb-chat-msg {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  max-width: 82%;
-}
-
-.wtb-chat-msg--mine {
-  align-self: flex-end;
-  align-items: flex-end;
-}
-
-.wtb-chat-bubble {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px 12px 12px 3px;
-  padding: 8px 12px;
-  font-size: 0.84rem;
-  color: rgba(255,255,255,0.82);
-  line-height: 1.45;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-
-.wtb-chat-msg--mine .wtb-chat-bubble {
-  background: rgba(79,163,247,0.17);
-  border-color: rgba(79,163,247,0.28);
-  color: #e8f4ff;
-  border-radius: 12px 12px 3px 12px;
-}
-
-.wtb-chat-time {
-  font-size: 0.63rem;
-  color: rgba(255,255,255,0.28);
-  padding: 0 4px;
-}
-
-.wtb-chat-footer {
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px 14px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  flex-shrink: 0;
-}
-
-.wtb-chat-input { flex: 1; }
-.wtb-chat-send  { flex-shrink: 0; }
-
-/* ── Chooser de tipo (Pokémon vs Talento) ───────────────────────── */
-.wtb-chooser-hint {
-  font-size: 0.88rem;
-  color: rgba(255,255,255,0.55);
-  text-align: center;
-  margin: 0 0 18px;
-}
-
-.wtb-type-chooser {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding-bottom: 8px;
-}
+/* ================================================================
+   CHOOSER — Pokémon vs Talento
+   ================================================================ */
+.wtb-chooser-hint { font-size: .88rem; color: rgba(255,255,255,.55); text-align: center; margin: 0 0 18px; }
+.wtb-type-chooser { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 8px; }
 
 .wtb-type-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 24px 16px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 14px;
-  cursor: pointer;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px; cursor: pointer;
   transition: border-color .18s, background .18s, transform .15s;
   text-align: center;
 }
-
-.wtb-type-card:hover {
-  background: rgba(255,255,255,0.07);
-  border-color: rgba(255,255,255,0.22);
-  transform: translateY(-2px);
-}
-
+.wtb-type-card:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.22); transform: translateY(-2px); }
 .wtb-type-card-icon  { font-size: 2.2rem; line-height: 1; }
 .wtb-type-card-title { font-size: 1rem; font-weight: 700; color: #fff; }
-.wtb-type-card-desc  { font-size: 0.74rem; color: rgba(255,255,255,0.45); line-height: 1.4; }
+.wtb-type-card-desc  { font-size: .74rem; color: rgba(255,255,255,.45); line-height: 1.4; }
 
-/* ── Botão Voltar no modal ───────────────────────────────────────── */
-.wtb-back-btn {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.50);
-  font-size: 1.1rem;
-  cursor: pointer;
-  padding: 2px 8px 2px 0;
-  margin-right: 4px;
-  transition: color .15s;
-  flex-shrink: 0;
-}
-.wtb-back-btn:hover { color: #fff; }
+/* ── Back button ────────────────────────────────────────────────── */
+.wtb-back-btn { background:none; border:none; color:rgba(255,255,255,.50); font-size:1.1rem; cursor:pointer; padding:2px 8px 2px 0; margin-right:4px; transition:color .15s; flex-shrink:0; }
+.wtb-back-btn:hover { color:#fff; }
 
-/* ── Tipo de talento — chips de seleção (no form) ───────────────── */
-.wtb-talent-type-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 2px;
+/* ================================================================
+   PACKAGE BROWSER — lista de pacotes
+   ================================================================ */
+.wtb-pkg-modal { max-height: 85vh; }
+.wtb-pkg-search { margin-bottom: 14px; }
+
+.wtb-pkg-loading { text-align: center; color: rgba(255,255,255,.35); padding: 32px 16px; font-size: .85rem; }
+
+.wtb-pkg-group { margin-bottom: 16px; }
+.wtb-pkg-group-hdr {
+  font-size: .70rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  margin-bottom: 8px; padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
 }
 
-.wtb-talent-type-chip {
-  padding: 7px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.60);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color .15s, background .15s, color .15s;
-}
-.wtb-talent-type-chip:hover {
-  border-color: var(--tc, rgba(255,255,255,0.3));
-  color: #fff;
-}
-.wtb-talent-type-chip.selected {
-  border-color: var(--tc, #4fa3f7);
-  background: color-mix(in srgb, var(--tc, #4fa3f7) 15%, transparent);
-  color: var(--tc, #4fa3f7);
-}
-
-/* ── Slots (toggle de completude) ───────────────────────────────── */
-.wtb-full-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: rgba(255,255,255,0.70);
-  user-select: none;
-  margin-top: 6px;
-}
-
-.wtb-full-toggle input { display: none; }
-
-.wtb-full-toggle-track {
-  width: 36px;
-  height: 20px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 10px;
-  position: relative;
-  transition: background .2s;
-  flex-shrink: 0;
-}
-.wtb-full-toggle input:checked + .wtb-full-toggle-track { background: #4fa3f7; }
-
-.wtb-full-toggle-thumb {
-  position: absolute;
-  top: 2px; left: 2px;
-  width: 16px; height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform .2s;
-}
-.wtb-full-toggle input:checked ~ .wtb-full-toggle-track .wtb-full-toggle-thumb,
-.wtb-full-toggle input:checked + .wtb-full-toggle-track .wtb-full-toggle-thumb {
-  transform: translateX(16px);
-}
-
-/* ── Card de Talento ────────────────────────────────────────────── */
-.wtb-talent-card {
-  border-color: rgba(var(--tc-raw, 167,139,250), 0.20);
-}
-
-.wtb-card-badge--talent {
-  background: rgba(167,139,250,0.13);
-  color: #a78bfa;
-  border-color: rgba(167,139,250,0.28);
-}
-
-.wtb-talent-header {
-  padding: 14px 14px 8px;
-  display: flex;
-  align-items: center;
+.wtb-pkg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
 }
 
-.wtb-talent-type-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.80rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border: 1px solid;
-  border-radius: 6px;
-  padding: 4px 10px;
+.wtb-pkg-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; cursor: pointer;
+  transition: border-color .15s, background .15s, transform .12s;
+  text-align: center;
+}
+.wtb-pkg-card:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.20); transform: translateY(-1px); }
+.wtb-pkg-card-icon  { font-size: 1.4rem; line-height: 1; }
+.wtb-pkg-card-name  { font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.85); line-height: 1.2; }
+.wtb-pkg-card-info  { font-size: .65rem; color: rgba(255,255,255,.30); }
+
+/* ================================================================
+   CUSTOMIZADOR DE ITENS
+   ================================================================ */
+.wtb-cst-modal { max-height: 90vh; }
+
+.wtb-cst-modal-title-wrap { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.wtb-cst-type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .60rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  border: 1px solid; border-radius: 4px; padding: 1px 6px;
+  width: fit-content;
 }
 
-.wtb-talent-poke-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px 8px;
-  flex-wrap: wrap;
+.wtb-cst-summary-bar {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .74rem; color: rgba(255,255,255,.50);
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 8px; padding: 7px 12px; margin-bottom: 14px;
 }
-.wtb-talent-poke-label {
-  font-size: 0.70rem;
-  color: rgba(255,255,255,0.38);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.wtb-cst-summary-dot { color: rgba(255,255,255,.20); }
+.wtb-cst-summary-hint { color: rgba(255,255,255,.30); font-style: italic; margin-left: auto; font-size: .68rem; }
+
+/* Slots */
+.wtb-cst-slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+
+.wtb-cst-slot {
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px; overflow: hidden;
 }
-.wtb-talent-any-poke {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.32);
-  font-style: italic;
+.wtb-cst-slot-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px;
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.wtb-cst-slot-num { font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.wtb-cst-slot-count { font-size: .65rem; color: rgba(255,255,255,.30); }
+
+.wtb-cst-items { display: flex; flex-direction: column; }
+
+.wtb-cst-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .15s;
+}
+.wtb-cst-item:last-child { border-bottom: none; }
+.wtb-cst-item:hover { background: rgba(255,255,255,.02); }
+
+.wtb-cst-item-name {
+  flex: 1; font-size: .80rem; color: rgba(255,255,255,.80);
+  transition: color .15s, text-decoration .15s;
+  text-transform: capitalize;
 }
 
-.wtb-talent-slots-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 14px 10px;
+/* Qty controls */
+.wtb-cst-qty-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+
+.wtb-cst-qty-btn {
+  width: 24px; height: 24px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 5px; color: rgba(255,255,255,.70);
+  font-size: .85rem; cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s;
 }
-.wtb-talent-slots-icon { font-size: 0.9rem; }
-.wtb-talent-slots-label {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.55);
-  font-weight: 500;
+.wtb-cst-qty-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+
+.wtb-cst-qty-display { display: flex; align-items: center; gap: 2px; }
+
+.wtb-cst-qty-inp {
+  width: 44px; text-align: center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 5px; color: #fff;
+  font-size: .82rem; padding: 3px 4px;
+  -moz-appearance: textfield;
+}
+.wtb-cst-qty-inp::-webkit-inner-spin-button,
+.wtb-cst-qty-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.wtb-cst-qty-sep { color: rgba(255,255,255,.20); font-size: .75rem; }
+.wtb-cst-qty-max { color: rgba(255,255,255,.30); font-size: .72rem; }
+
+/* "Já tenho" tag — oculto por padrão */
+.wtb-cst-have-tag {
+  display: none;
+  font-size: .65rem; font-weight: 700;
+  color: #34d399;
+  background: rgba(52,211,153,.10);
+  border: 1px solid rgba(52,211,153,.25);
+  border-radius: 4px; padding: 2px 7px;
+  white-space: nowrap; flex-shrink: 0;
 }
 
-/* ── Seleção de método de pagamento (etapa 1) ───────────────────── */
-.wtb-pay-step-hint {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.45);
-  margin: 0 0 10px;
+/* Estado: qty = 0 */
+.wtb-cst-item--have .wtb-cst-item-name {
+  color: rgba(255,255,255,.25);
+  text-decoration: line-through;
 }
+.wtb-cst-item--have .wtb-cst-have-tag { display: inline-flex; }
+.wtb-cst-item--have .wtb-cst-qty-display { opacity: .35; }
 
-.wtb-pay-method-btns {
-  display: flex;
-  gap: 8px;
-}
+/* ================================================================
+   PAYMENT STEPS (shared)
+   ================================================================ */
+.wtb-pay-step-hint { font-size: .78rem; color: rgba(255,255,255,.45); margin: 0 0 10px; }
 
+.wtb-pay-method-btns { display: flex; gap: 8px; }
 .wtb-pay-method-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
   padding: 12px 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 10px;
-  color: rgba(255,255,255,0.65);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 10px; color: rgba(255,255,255,.65);
+  font-size: .82rem; font-weight: 600; cursor: pointer;
   transition: border-color .15s, background .15s, color .15s;
 }
+.wtb-pay-method-btn:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); color: #fff; }
+.wtb-pay-method-btn.selected { background: rgba(79,163,247,.12); border-color: #4fa3f7; color: #4fa3f7; }
+.wtb-pay-method-icon { font-size: 1.3rem; line-height: 1; }
 
-.wtb-pay-method-btn:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.22);
-  color: #fff;
-}
-
-.wtb-pay-method-btn.selected {
-  background: rgba(79,163,247,0.12);
-  border-color: #4fa3f7;
-  color: #4fa3f7;
-}
-
-.wtb-pay-method-icon {
-  font-size: 1.3rem;
-  line-height: 1;
-}
-
-/* ── Prompt "adicionar outras moedas" (etapa 3) ─────────────────── */
 .wtb-pay-add-more-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 100%; margin-top: 10px;
   padding: 7px 14px;
-  background: rgba(99,179,237,0.08);
-  border: 1px dashed rgba(99,179,237,0.35);
-  border-radius: 8px;
-  color: #63b3ed;
-  font-size: 0.80rem;
-  font-weight: 500;
-  cursor: pointer;
+  background: rgba(99,179,237,.08);
+  border: 1px dashed rgba(99,179,237,.35);
+  border-radius: 8px; color: #63b3ed;
+  font-size: .80rem; font-weight: 500; cursor: pointer;
   transition: background .15s, border-color .15s;
-  width: 100%;
-  justify-content: center;
 }
+.wtb-pay-add-more-btn:hover { background: rgba(99,179,237,.15); border-color: rgba(99,179,237,.55); }
 
-.wtb-pay-add-more-btn:hover {
-  background: rgba(99,179,237,0.15);
-  border-color: rgba(99,179,237,0.55);
-}
-
-/* ── Moedas secundárias convertidas (etapa 4) ───────────────────── */
-#wtb-pay-step4 {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+/* Secondary payment */
+#wtb-pay-step4 { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
 
 .wtb-pay-secondary-row {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 7px;
 }
+.wtb-pay-secondary-label { display: flex; align-items: center; gap: 7px; font-size: .82rem; }
+.wtb-pay-secondary-converted { margin-left: auto; font-size: .75rem; color: rgba(255,255,255,.38); font-style: italic; }
+.wtb-pay-secondary-input-row { display: flex; gap: 7px; align-items: center; }
+.wtb-pay-secondary-input-row .mk-input { flex: 1; }
 
-.wtb-pay-secondary-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.82rem;
-}
+.wtb-pay-sec-remove { flex-shrink:0; background:none; border:none; color:rgba(255,255,255,.30); font-size:.85rem; cursor:pointer; padding:4px 6px; border-radius:4px; transition:color .15s; }
+.wtb-pay-sec-remove:hover { color:#fc8181; }
 
-.wtb-pay-secondary-converted {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.38);
-  font-style: italic;
-}
-
-.wtb-pay-secondary-input-row {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-}
-
-.wtb-pay-secondary-input-row .mk-input {
-  flex: 1;
-}
-
-.wtb-pay-sec-remove {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.30);
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  transition: color .15s;
-}
-
-.wtb-pay-sec-remove:hover { color: #fc8181; }
-
-/* ── Título da aba com ícone de lupa ────────────────────────────── */
-.wtb-title-icon {
-  opacity: 0.7;
-}
-
-/* ── Subtítulo explicativo ──────────────────────────────────────── */
+/* ================================================================
+   HINT BANNER (topo da aba)
+   ================================================================ */
 .wtb-hint-banner {
-  background: rgba(99,179,237,0.07);
-  border: 1px solid rgba(99,179,237,0.18);
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.55);
-  margin-bottom: 8px;
-  line-height: 1.5;
+  background: rgba(99,179,237,.07);
+  border: 1px solid rgba(99,179,237,.18);
+  border-radius: 8px; padding: 8px 14px;
+  font-size: .78rem; color: rgba(255,255,255,.55);
+  margin-bottom: 8px; line-height: 1.5;
 }
-
-.wtb-hint-banner strong {
-  color: #63b3ed;
-  font-weight: 600;
-}
+.wtb-hint-banner strong { color: #63b3ed; font-weight: 600; }
