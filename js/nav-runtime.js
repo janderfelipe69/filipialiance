@@ -177,10 +177,11 @@
     function _render() {
       /* Feature Flag: aborta renderização se aba foi desabilitada */
       if (typeof global.isFeatureEnabled === 'function' && !global.isFeatureEnabled(tab)) return;
-      if (tab === 'pacotes'  && typeof renderPackages  === 'function') renderPackages();
-      if (tab === 'captura'  && typeof renderCaptura   === 'function') renderCaptura();
-      if (tab === 'entregas' && typeof renderEntregas  === 'function') renderEntregas();
-      if (tab === 'wiki'     && typeof renderWiki      === 'function') renderWiki();
+      if (tab === 'pacotes'     && typeof renderPackages  === 'function') renderPackages();
+      if (tab === 'captura'     && typeof renderCaptura   === 'function') renderCaptura();
+      if (tab === 'entregas'    && typeof renderEntregas  === 'function') renderEntregas();
+      if (tab === 'wiki'        && typeof renderWiki      === 'function') renderWiki();
+      if (tab === 'marketplace' && global.PA && global.PA.marketplace) global.PA.marketplace.onTabActivated();
     }
     if (window.__dbReady) {
       _render();

@@ -27,9 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() {
       var tab = btn.dataset.tab;
       switchTab(tab, btn);
-      if (tab === 'marketplace' && window.PA && window.PA.marketplace) {
-        window.PA.marketplace.onTabActivated();
-      }
     });
   });
 
