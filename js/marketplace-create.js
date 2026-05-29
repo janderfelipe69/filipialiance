@@ -31,6 +31,24 @@
       .replace(/['\u2019]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
   }
 
+  // \u2500\u2500 Pok\u00e9bolas (etiqueta visual, obrigat\u00f3ria no an\u00fancio) \u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  var BALL_META = {
+    ultra:    { label: 'Ultra Ball',    color: '#f5c518', border: '#f5c518', glow: 'rgba(245,197,24,0.40)',  accent: '#111'    },
+    premier:  { label: 'Premier Ball',  color: '#e8e8e8', border: '#cfd3dc', glow: 'rgba(232,232,232,0.30)', accent: '#666'    },
+    alliance: { label: 'Alliance Ball', color: '#b67fff', border: '#7c6aff', glow: 'rgba(124,106,255,0.45)', accent: '#ff4fa0' },
+  };
+  var BALL_ORDER = ['ultra', 'premier', 'alliance'];
+
+  function _ballIconSvg(color, accent) {
+    return '<svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<circle cx="20" cy="20" r="17" fill="#15161f" stroke="' + color + '" stroke-width="2"/>'
+      + '<path d="M3 20 Q20 13 37 20" stroke="' + color + '" stroke-width="2.5" fill="none"/>'
+      + '<path d="M3 20 Q20 27 37 20" stroke="' + accent + '" stroke-width="2.5" fill="none"/>'
+      + '<circle cx="20" cy="20" r="4.5" fill="#15161f" stroke="' + color + '" stroke-width="2"/>'
+      + '<circle cx="20" cy="20" r="2" fill="' + color + '"/>'
+      + '</svg>';
+  }
+
   // ── Estado do formulário ─────────────────────────────────────
   var _form = {};
   var _modalEl = null;
@@ -50,6 +68,7 @@
       held_y_id:     null,
       training:      {},
       price_kk:      0,
+      ball_type:     '',
       observations:  '',
       loading:       false,
       errors:        {},
@@ -88,6 +107,11 @@
       errs.price_kk = 'Informe um preço válido (maior que zero).';
     } else if (_form.price_kk > 999999999999) {
       errs.price_kk = 'Preço muito alto.';
+    }
+
+    // Pokébola (obrigatória)
+    if (!_form.ball_type || !BALL_META[_form.ball_type]) {
+      errs.ball_type = 'Selecione a pokébola em que o Pokémon está.';
     }
 
     // Helds: validados via catálogo (se selecionados)
@@ -220,6 +244,7 @@
         held_y_id:     _form.held_y_id || null,
         training:      _buildTrainingPayload(),
         price_kk:      Math.floor(Number(_form.price_kk)),
+        ball_type:     _form.ball_type || null,
         observations:  (_form.observations || '').trim().slice(0, 500) || null,
         status:        'active',
       };
@@ -367,6 +392,7 @@
     _form.held_x_id     = listing.held_x_id || null;
     _form.held_y_id     = listing.held_y_id || null;
     _form.price_kk      = listing.price_kk  || 0;
+    _form.ball_type     = listing.ball_type || '';
     _form.observations  = listing.observations || '';
 
     // Training: flatten pct
@@ -403,6 +429,7 @@
         held_x_id:     _form.held_x_id || null,
         held_y_id:     _form.held_y_id || null,
         training:      _buildTrainingPayload(),
+        ball_type:     _form.ball_type || null,
         observations:  (_form.observations || '').trim().slice(0, 500) || null,
         stars:         _form.stars,
         boost:         _form.boost,
@@ -535,6 +562,23 @@
       + '    </div>'
       + '  </div>'
       + '</div>' // .mk-section Pokémon
+
+      // ══ Seção: Pokébola (etiqueta visual, obrigatória) ══════════
+      + '<div class="mk-section">'
+      + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Pokébola <small class="mk-section-hint">em qual bola o Pokémon está</small></div>'
+      + '  <div class="mk-ball-select" id="mk-ball-select">'
+      + BALL_ORDER.map(function (t) {
+          var m = BALL_META[t];
+          return '<button type="button" class="mk-ball-opt" data-ball="' + t + '"'
+            + ' style="--ball:' + m.border + ';--ball-glow:' + m.glow + ';--ball-color:' + m.color + '">'
+            + '<span class="mk-ball-opt-ico">' + _ballIconSvg(m.color, m.accent) + '</span>'
+            + '<span class="mk-ball-opt-label">' + _esc(m.label) + '</span>'
+            + '<span class="mk-ball-opt-check">✓</span>'
+            + '</button>';
+        }).join('')
+      + '  </div>'
+      + '  <span class="mk-field-error" id="mk-err-ball_type"></span>'
+      + '</div>' // .mk-section Pokébola
 
       // ══ Seção: Equipamento (Helds) ══════════════════════════════
       + '<div class="mk-section">'
@@ -733,6 +777,28 @@
     // Observations
     var obsEl = global.document.getElementById('mk-obs');
     if (obsEl) obsEl.addEventListener('input', function () { _form.observations = obsEl.value; });
+
+    // Pokébola — seleção única
+    Array.prototype.forEach.call(
+      global.document.querySelectorAll('.mk-ball-opt'),
+      function (btn) {
+        btn.addEventListener('click', function () {
+          _form.ball_type = btn.getAttribute('data-ball') || '';
+          _updateBallUI();
+          var err = global.document.getElementById('mk-err-ball_type');
+          if (err) err.textContent = '';
+        });
+      }
+    );
+  }
+
+  function _updateBallUI() {
+    Array.prototype.forEach.call(
+      global.document.querySelectorAll('.mk-ball-opt'),
+      function (btn) {
+        btn.classList.toggle('selected', btn.getAttribute('data-ball') === _form.ball_type);
+      }
+    );
   }
 
   // ── Populate held visual pickers ──────────────────────────────
@@ -871,6 +937,7 @@
     if (obsEl) obsEl.value = _form.observations || '';
 
     _updateStarsUI();
+    _updateBallUI();
 
     // Training steppers
     var STATS = ['attack','defense','hp','precision','evasion','critical_damage','critical_chance','critical_resistance'];

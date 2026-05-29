@@ -893,6 +893,21 @@ window.renderTierList = function() {
   _tlBuild();
 };
 
+/* ── Exposição global do tier (consumido por marketplace-render.js e
+   marketplace-create.js). Antes, TIER_DATA/TIER_CONFIG ficavam presos
+   nesta IIFE → o badge de tier nunca aparecia nos cards do marketplace. ── */
+try {
+  window.PA_TIER_DATA   = TIER_DATA;
+  window.PA_TIER_CONFIG = TIER_CONFIG;
+  window.getTierByName  = function (name) {
+    if (!name) return null;
+    var q = String(name).trim().toLowerCase();
+    for (var i = 0; i < TIER_DATA.length; i++) {
+      if (String(TIER_DATA[i][0]).trim().toLowerCase() === q) return TIER_DATA[i][1];
+    }
+    return null;
+  };
+} catch (_) {}
 
 })();
 

@@ -344,3 +344,8 @@ function _mkFilter(btn, type) {
 function _mkSearch(q) {
   if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('search', q);
 }
+function _mkBallFilter(btn, ball) {
+  document.querySelectorAll('.mk-ball-chip').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('ball', ball);
+}

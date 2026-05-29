@@ -188,6 +188,10 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() { _mkFilter(btn, btn.dataset.filter); });
   });
 
+  document.querySelectorAll('.mk-ball-chip[data-ball-filter]').forEach(function(btn) {
+    btn.addEventListener('click', function() { _mkBallFilter(btn, btn.dataset.ballFilter); });
+  });
+
   var mkSearch = document.getElementById('mk-search');
   if (mkSearch) mkSearch.addEventListener('input', function() { _mkSearch(this.value); });
 

@@ -1872,3 +1872,130 @@
     top: auto !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   POKÉBOLA — etiqueta visual (qual bola o Pokémon está)
+   Usada no card, no formulário de anúncio e nos filtros.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Pill da bola no card ──────────────────────────────────────── */
+.mk-card-ball-row {
+  padding: 0 12px;
+  margin-top: 2px;
+}
+.mk-ball-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 3px 9px 3px 6px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.mk-ball-pill .mk-ball-ico { flex-shrink: 0; display: block; }
+
+/* ── Acento de cor no card conforme a bola ─────────────────────── */
+.mk-card--has-ball::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--mk-ball, var(--mk-gold));
+  z-index: 2;
+  opacity: .9;
+}
+.mk-card--has-ball { border-color: color-mix(in srgb, var(--mk-ball) 40%, var(--mk-border)); }
+.mk-card--has-ball:hover {
+  border-color: var(--mk-ball, rgba(240,184,41,0.3));
+  box-shadow: 0 4px 24px var(--mk-ball-glow, rgba(240,184,41,0.08)),
+              0 0 0 1px var(--mk-ball-glow, rgba(240,184,41,0.1));
+}
+
+/* ── Seletor de bola no formulário ─────────────────────────────── */
+.mk-ball-select {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.mk-ball-opt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: var(--mk-r-sm, 8px);
+  border: 1.5px solid var(--mk-border-lit);
+  background: var(--mk-surface);
+  color: var(--mk-muted);
+  cursor: pointer;
+  transition: all .18s;
+}
+.mk-ball-opt:hover {
+  border-color: var(--ball);
+  color: var(--ball-color, var(--ball));
+}
+.mk-ball-opt.selected {
+  border-color: var(--ball);
+  color: var(--ball-color, var(--ball));
+  background: color-mix(in srgb, var(--ball) 9%, transparent);
+  box-shadow: 0 0 0 1px var(--ball), 0 0 18px var(--ball-glow);
+}
+.mk-ball-opt-ico { display: block; line-height: 0; }
+.mk-ball-opt-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.mk-ball-opt-check {
+  position: absolute;
+  top: 6px; right: 7px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ball);
+  color: #111;
+  opacity: 0;
+  transform: scale(.6);
+  transition: all .18s;
+}
+.mk-ball-opt.selected .mk-ball-opt-check { opacity: 1; transform: scale(1); }
+
+/* ── Linha de filtros de bola ──────────────────────────────────── */
+.mk-filters--balls {
+  margin-top: -4px;
+  align-items: center;
+}
+.mk-ball-filters-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--mk-muted);
+}
+.mk-ball-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--mk-border-lit);
+  background: var(--mk-surface);
+  color: var(--mk-muted);
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .04em;
+}
+.mk-ball-chip:hover,
+.mk-ball-chip.active {
+  border-color: var(--ball, var(--mk-gold));
+  color: var(--ball, var(--mk-gold));
+  background: color-mix(in srgb, var(--ball, var(--mk-gold)) 12%, transparent);
+}
+

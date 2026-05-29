@@ -47,20 +47,56 @@
   };
 
   function _getTier(name) {
-    if (!name || typeof TIER_DATA === 'undefined') return null;
-    for (var i = 0; i < TIER_DATA.length; i++) {
-      if (TIER_DATA[i][0] === name) return TIER_DATA[i][1];
+    // Usa o lookup global exposto por tierlist.js (case-insensitive).
+    if (global.getTierByName) return global.getTierByName(name);
+    var data = global.PA_TIER_DATA || (typeof TIER_DATA !== 'undefined' ? TIER_DATA : null);
+    if (!name || !data) return null;
+    var q = String(name).trim().toLowerCase();
+    for (var i = 0; i < data.length; i++) {
+      if (String(data[i][0]).trim().toLowerCase() === q) return data[i][1];
     }
     return null;
   }
 
+  function _tierCfg(tier) {
+    var cfg = global.PA_TIER_CONFIG || (typeof TIER_CONFIG !== 'undefined' ? TIER_CONFIG : null);
+    return (tier && cfg) ? cfg[tier] : null;
+  }
+
   function _tierBadgeHtml(tier) {
-    if (!tier || typeof TIER_CONFIG === 'undefined') return '';
-    var cfg = TIER_CONFIG[tier];
+    var cfg = _tierCfg(tier);
     if (!cfg) return '';
     return '<span class="mk-tier-badge" style="color:' + cfg.color
       + ';border-color:' + cfg.color + '55;background:' + cfg.color + '14">'
       + _esc(cfg.label) + '</span>';
+  }
+
+  // ── Pokébola (etiqueta visual — qual bola o Pokémon está) ──────
+  var BALL_META = {
+    ultra:    { label: 'Ultra Ball',    color: '#f5c518', border: '#f5c518', glow: 'rgba(245,197,24,0.40)' },
+    premier:  { label: 'Premier Ball',  color: '#e8e8e8', border: '#cfd3dc', glow: 'rgba(232,232,232,0.30)' },
+    alliance: { label: 'Alliance Ball', color: '#b67fff', border: '#7c6aff', glow: 'rgba(124,106,255,0.45)' },
+  };
+
+  // Ícone compacto de pokébola, colorido pela cor da bola.
+  function _ballIcon(color, accent) {
+    accent = accent || '#111';
+    return '<svg class="mk-ball-ico" width="15" height="15" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<circle cx="20" cy="20" r="17" fill="#15161f" stroke="' + color + '" stroke-width="2"/>'
+      + '<path d="M3 20 Q20 13 37 20" stroke="' + color + '" stroke-width="2.5" fill="none"/>'
+      + '<path d="M3 20 Q20 27 37 20" stroke="' + accent + '" stroke-width="2.5" fill="none"/>'
+      + '<circle cx="20" cy="20" r="4.5" fill="#15161f" stroke="' + color + '" stroke-width="2"/>'
+      + '<circle cx="20" cy="20" r="2" fill="' + color + '"/>'
+      + '</svg>';
+  }
+
+  function _ballPillHtml(ballType) {
+    var m = BALL_META[ballType];
+    if (!m) return '';
+    var accent = ballType === 'alliance' ? '#ff4fa0' : (ballType === 'premier' ? '#666' : '#111');
+    return '<span class="mk-ball-pill" style="color:' + m.color + ';border-color:' + m.border
+      + '66;background:' + m.color + '14">' + _ballIcon(m.color, accent)
+      + '<span>' + _esc(m.label) + '</span></span>';
   }
 
   // ── Resolve held (join object or catalog fallback by id) ──────
@@ -217,6 +253,8 @@
     var heldY = _resolveHeld(listing.helds_y, listing.held_y_id);
     var status = listing.status || 'active';
     var tier   = _getTier(listing.pokemon_name);
+    var ballType = listing.ball_type || '';
+    var ballMeta = BALL_META[ballType] || null;
     var ddNum  = 0;
     if (priceLabel && typeof brlToDd === 'function' && typeof KK_TO_BRL !== 'undefined' && KK_TO_BRL) {
       ddNum = brlToDd(listing.price_kk / 1000000 * KK_TO_BRL);
@@ -261,6 +299,7 @@
             held_y_id: listing.held_y_id,
             training: listing.training,
             price_kk: listing.price_kk,
+            ball_type: listing.ball_type,
             observations: listing.observations,
           })) + ')">✏️ Editar</button>'
         + '<button class="mk-btn mk-btn--danger-ghost mk-btn--sm" '
@@ -271,9 +310,11 @@
     // Status badge label
     var statusLabel = status === 'sold' ? 'Vendido' : status === 'cancelled' || status === 'deleted' ? 'Cancelado' : 'À venda';
 
-    return '<div class="mk-card mk-card--' + _esc(status) + '"'
+    return '<div class="mk-card mk-card--' + _esc(status) + (ballMeta ? ' mk-card--has-ball' : '') + '"'
       + ' data-listing-id="' + _esc(listing.id) + '"'
       + ' data-status="' + _esc(status) + '"'
+      + (ballMeta ? ' data-ball="' + _esc(ballType) + '"' : '')
+      + (ballMeta ? ' style="--mk-ball:' + ballMeta.border + ';--mk-ball-glow:' + ballMeta.glow + '"' : '')
       + ' data-updated="' + _esc(listing.updated_at || '') + '"'
       + ' data-seller="' + _esc(listing.seller_id || '') + '">'
 
@@ -291,6 +332,7 @@
       + '<span class="mk-card-name">' + _esc(listing.pokemon_name || listing.listing_type) + '</span>'
       + _tierBadgeHtml(tier)
       + '</div>'
+      + (ballMeta ? '<div class="mk-card-ball-row">' + _ballPillHtml(ballType) + '</div>' : '')
       + '<div class="mk-helds">' + _heldChip(heldX, 'X') + _heldChip(heldY, 'Y') + '</div>'
       + _trainingHtml(listing.training)
       + '</div>'
@@ -330,6 +372,7 @@
       // Exclui listings não-ativos (soft-deleted, cancelados, vendidos)
       if (l.status && l.status !== 'active') return false;
       if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;
+      if (filters.ball && filters.ball !== 'all' && l.ball_type !== filters.ball) return false;
       if (filters.search) {
         var q = filters.search.toLowerCase();
         if (!(l.pokemon_name || '').toLowerCase().includes(q)) return false;
@@ -447,7 +490,7 @@
                 stars: listing.stars, boost: listing.boost,
                 held_x_id: listing.held_x_id, held_y_id: listing.held_y_id,
                 training: listing.training, price_kk: listing.price_kk,
-                observations: listing.observations,
+                ball_type: listing.ball_type, observations: listing.observations,
               }) + ')');
 
           var cancelBtn = global.document.createElement('button');
