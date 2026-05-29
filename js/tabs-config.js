@@ -191,8 +191,10 @@ const TABS_CONFIG = {
 
   /** Grava as flags no servidor (somente admin — exige JWT). */
   function _saveToServer(flags) {
-    var jwt = (global.Session && typeof global.Session.getAccessToken === 'function')
-      ? global.Session.getAccessToken() : null;
+    // Session é um `const` global no session.js — acessível por identificador
+    // direto (não existe window.Session), igual ao uso no admin-panel.js.
+    var jwt = (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function')
+      ? Session.getAccessToken() : null;
     if (!jwt) return Promise.reject(new Error('Sessão de admin não encontrada. Recarregue e tente de novo.'));
     if (!global.SUPABASE_URL) return Promise.reject(new Error('Supabase indisponível.'));
     // Upsert pela PK (key) — cria a linha se não existir, senão atualiza
