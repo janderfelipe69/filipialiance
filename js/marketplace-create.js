@@ -503,6 +503,7 @@
       + '    <div class="mk-poke-preview-info">'
       + '      <span class="mk-poke-preview-name" id="mk-poke-name"></span>'
       + '      <div class="mk-types" id="mk-poke-types"></div>'
+      + '      <div class="mk-poke-tier-row" id="mk-poke-tier"></div>'
       + '    </div>'
       + '  </div>'
       + '</div>'
@@ -641,14 +642,23 @@
       }
     );
 
-    // Boost — slider + number input sync bidirecional
+    // Boost — slider + number input sync bidirecional + cor progressiva
     var boostSlider = global.document.getElementById('mk-boost-slider');
     var boostNum    = global.document.getElementById('mk-boost-num');
     function _syncBoost(val) {
       var v = Math.min(70, Math.max(0, parseInt(val, 10) || 0));
       _form.boost = v;
-      if (boostSlider) boostSlider.value = v;
-      if (boostNum)    boostNum.value    = v;
+      if (boostSlider) {
+        boostSlider.value = v;
+        var pct = Math.round(v / 70 * 100);
+        var hue = 45 + Math.round(pct * 0.15); // 45° (gold) → 60° (yellow)
+        var sat = 80 + Math.round(pct * 0.2);
+        boostSlider.style.accentColor = 'hsl(' + hue + ',' + sat + '%,55%)';
+      }
+      if (boostNum) {
+        boostNum.value = v;
+        boostNum.style.color = v >= 50 ? '#ffd166' : v >= 25 ? '#ffaa44' : '';
+      }
     }
     if (boostSlider) boostSlider.addEventListener('input', function () { _syncBoost(boostSlider.value); });
     if (boostNum)    boostNum.addEventListener('input',   function () { _syncBoost(boostNum.value); });
@@ -844,6 +854,25 @@
     if (types) types.innerHTML  = (result.types || []).map(function(t){
       return '<span class="mk-type-badge mk-type--' + _esc(t.toLowerCase()) + '">' + _esc(t) + '</span>';
     }).join('');
+
+    // Tier badge + star bonus hint
+    var tierEl = global.document.getElementById('mk-poke-tier');
+    if (tierEl && result.name && typeof TIER_DATA !== 'undefined' && typeof TIER_CONFIG !== 'undefined') {
+      var tier = null;
+      for (var i = 0; i < TIER_DATA.length; i++) {
+        if (TIER_DATA[i][0] === result.name) { tier = TIER_DATA[i][1]; break; }
+      }
+      var STAR_BONUS_MAP = { 'T7':1,'T6':1,'T5':1,'T4':2,'T3':2,'T2':4,'T1':6,'Super Rare':8,'Ultra Rare':10,'Legendary':15,'Mythic':20 };
+      if (tier && TIER_CONFIG[tier]) {
+        var cfg = TIER_CONFIG[tier];
+        var bonus = STAR_BONUS_MAP[tier] || 0;
+        tierEl.innerHTML = '<span class="mk-tier-badge" style="color:' + cfg.color + ';border-color:' + cfg.color + '55;background:' + cfg.color + '14">' + _esc(cfg.label) + '</span>'
+          + (bonus ? '<span class="mk-poke-tier-hint">+' + bonus + '% ATK por ★</span>' : '');
+      } else {
+        tierEl.innerHTML = '';
+      }
+    }
+
     wrap.style.display = '';
   }
 

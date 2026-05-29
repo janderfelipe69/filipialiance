@@ -39,6 +39,30 @@
     };
   }
 
+  // ── Tier lookup ───────────────────────────────────────────────
+  var _STAR_BONUS = {
+    'T7': 1, 'T6': 1, 'T5': 1, 'T4': 2,
+    'T3': 2, 'T2': 4, 'T1': 6,
+    'Super Rare': 8, 'Ultra Rare': 10, 'Legendary': 15, 'Mythic': 20,
+  };
+
+  function _getTier(name) {
+    if (!name || typeof TIER_DATA === 'undefined') return null;
+    for (var i = 0; i < TIER_DATA.length; i++) {
+      if (TIER_DATA[i][0] === name) return TIER_DATA[i][1];
+    }
+    return null;
+  }
+
+  function _tierBadgeHtml(tier) {
+    if (!tier || typeof TIER_CONFIG === 'undefined') return '';
+    var cfg = TIER_CONFIG[tier];
+    if (!cfg) return '';
+    return '<span class="mk-tier-badge" style="color:' + cfg.color
+      + ';border-color:' + cfg.color + '55;background:' + cfg.color + '14">'
+      + _esc(cfg.label) + '</span>';
+  }
+
   // ── Boost class ───────────────────────────────────────────────
   function _boostClass(boost) {
     if (!boost) return 'mk-card-boost--low';
@@ -47,12 +71,14 @@
     return 'mk-card-boost--max';
   }
 
-  // ── Stars HTML ─────────────────────────────────────────────────
-  function _starsHtml(stars) {
+  // ── Stars HTML (with ATK bonus) ───────────────────────────────
+  function _starsHtml(stars, tier) {
     var out = '';
     for (var i = 1; i <= 5; i++)
       out += '<span class="mk-star' + (i <= (stars || 0) ? ' mk-star--lit' : '') + '">★</span>';
-    return '<div class="mk-stars">' + out + '</div>';
+    var bonus = (stars && tier && _STAR_BONUS[tier]) ? stars * _STAR_BONUS[tier] : 0;
+    var bonusHtml = bonus ? '<span class="mk-stars-bonus">+' + bonus + '% ATK</span>' : '';
+    return '<div class="mk-stars">' + out + bonusHtml + '</div>';
   }
 
   // ── Types badges ──────────────────────────────────────────────
@@ -124,14 +150,21 @@
   function _trainingHtml(training) {
     if (!training || typeof training !== 'object') return '';
     var rows = TRAIN_STATS
-      .filter(function(s){ var v=training[s.key]; return v && (v.pct > 0 || v.level > 0); })
-      .map(function(s){
-        var v = training[s.key] || {};
-        var pct = Math.min(100, Math.max(0, Number(v.pct) || 0));
+      .filter(function(s) {
+        var v = training[s.key];
+        if (!v && v !== 0) return false;
+        var lv = typeof v === 'object' ? (Number(v.pct) || Number(v.level) || 0) : Number(v) || 0;
+        return lv > 0;
+      })
+      .map(function(s) {
+        var v = training[s.key];
+        var lv = Math.min(100, Math.max(0,
+          typeof v === 'object' ? (Number(v.pct) || Number(v.level) || 0) : Number(v) || 0
+        ));
         return '<div class="mk-train-row">'
           + '<span class="mk-train-label">' + _esc(s.label) + '</span>'
-          + '<div class="mk-train-bar"><div class="mk-train-fill" style="width:' + pct + '%"></div></div>'
-          + '<span class="mk-train-pct">' + pct + '%</span>'
+          + '<div class="mk-train-bar"><div class="mk-train-fill" style="width:' + lv + '%"></div></div>'
+          + '<span class="mk-train-pct">Lv ' + lv + '</span>'
           + '</div>';
       });
     return rows.length ? '<div class="mk-training-mini">' + rows.join('') + '</div>' : '';
@@ -161,13 +194,18 @@
         isAdmin: isAdmin,
       });
     }
-    var sprites  = _spriteUrl(listing.pokemon_name);
-    var boostCls = _boostClass(listing.boost);
+    var sprites    = _spriteUrl(listing.pokemon_name);
+    var boostCls   = _boostClass(listing.boost);
     var priceLabel = (typeof formatKK === 'function' && listing.price_kk)
       ? formatKK(listing.price_kk) : null;
-    var heldX = listing.helds_x || null;
-    var heldY = listing.helds_y || null;
+    var heldX  = listing.helds_x || null;
+    var heldY  = listing.helds_y || null;
     var status = listing.status || 'active';
+    var tier   = _getTier(listing.pokemon_name);
+    var ddNum  = 0;
+    if (priceLabel && typeof brlToDd === 'function' && typeof KK_TO_BRL !== 'undefined' && KK_TO_BRL) {
+      ddNum = brlToDd(listing.price_kk / 1000000 * KK_TO_BRL);
+    }
 
     var spriteHtml = sprites
       ? '<img class="mk-sprite" loading="lazy"'
@@ -227,13 +265,16 @@
       + '<div class="mk-card-top">'
       + (listing.boost ? '<span class="mk-card-boost ' + boostCls + '">+' + _esc(String(listing.boost)) + '</span>' : '')
       + '<div class="mk-sprite-wrap">' + spriteHtml + '</div>'
-      + _starsHtml(listing.stars)
+      + _starsHtml(listing.stars, tier)
       + _typesHtml(listing.pokemon_types)
       + '</div>'
 
-      // Body: name + helds + training
+      // Body: name + tier + helds + training
       + '<div class="mk-card-body">'
-      + '<div class="mk-card-name">' + _esc(listing.pokemon_name || listing.listing_type) + '</div>'
+      + '<div class="mk-card-name-row">'
+      + '<span class="mk-card-name">' + _esc(listing.pokemon_name || listing.listing_type) + '</span>'
+      + _tierBadgeHtml(tier)
+      + '</div>'
       + '<div class="mk-helds">' + _heldChip(heldX, 'X') + _heldChip(heldY, 'Y') + '</div>'
       + _trainingHtml(listing.training)
       + '</div>'
@@ -243,6 +284,7 @@
       + '<div class="mk-price">'
       + '<span class="mk-price-kk">' + (priceLabel ? _esc(priceLabel.label) : '—') + '</span>'
       + (priceLabel ? '<span class="mk-price-brl">' + _esc(priceLabel.brl) + '</span>' : '')
+      + (ddNum > 0 ? '<span class="mk-price-dd">' + ddNum.toLocaleString('pt-BR') + ' DD</span>' : '')
       + '</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
       + '<span class="mk-status-badge mk-status--' + _esc(status) + '">' + statusLabel + '</span>'

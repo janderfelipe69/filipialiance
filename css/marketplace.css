@@ -305,6 +305,12 @@
   flex: 1;
 }
 
+.mk-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .mk-card-name {
   font-family: var(--font-title);
   font-size: 13px;
@@ -314,6 +320,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 /* Helds mini */
@@ -391,6 +399,7 @@
 .mk-price {
   display: flex;
   flex-direction: column;
+  gap: 1px;
 }
 .mk-price-kk {
   font-family: var(--font-mono);
@@ -402,6 +411,11 @@
 .mk-price-brl {
   font-size: 10px;
   color: var(--mk-muted);
+}
+.mk-price-dd {
+  font-size: 10px;
+  color: #a78bfa;
+  font-family: var(--font-mono);
 }
 
 .mk-status-badge {
@@ -744,6 +758,12 @@
   image-rendering: pixelated;
 }
 .mk-poke-preview-info { display: flex; flex-direction: column; gap: 5px; }
+.mk-poke-tier-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.mk-poke-tier-hint {
+  font-size: 10px;
+  color: var(--mk-muted);
+  font-family: var(--font-mono);
+}
 .mk-poke-preview-name {
   font-family: var(--font-title);
   font-size: 13px;
@@ -892,18 +912,18 @@
   flex-wrap: wrap;
   min-height: 20px;
 }
-.mk-price-kk {
+.mk-field-hint .mk-price-kk {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
   color: var(--mk-gold);
 }
-.mk-price-brl {
+.mk-field-hint .mk-price-brl {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--mk-text);
 }
-.mk-price-dd {
+.mk-field-hint .mk-price-dd {
   font-family: var(--font-mono);
   font-size: 12px;
   color: #a78bfa;
@@ -915,6 +935,30 @@
 }
 /* Price input wider */
 .mk-price-input { font-family: var(--font-mono); letter-spacing: .02em; }
+
+/* ── Tier badge on card ───────────────────────────────────────── */
+.mk-tier-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+/* ── Star bonus label ────────────────────────────────────────── */
+.mk-stars-bonus {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--mk-gold);
+  opacity: .75;
+  letter-spacing: .02em;
+  margin-left: 3px;
+  align-self: center;
+}
 
 /* Time on card footer */
 .mk-card-time {
