@@ -516,15 +516,31 @@
 
       // Held X
       + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-held-x">Held X</label>'
-      + '  <select class="mk-select" id="mk-held-x"><option value="">— Carregando... —</option></select>'
+      + '  <label class="mk-label">Held X</label>'
+      + '  <div class="mk-held-picker" id="mk-held-picker-x">'
+      + '    <button type="button" class="mk-held-trigger" id="mk-held-trigger-x">'
+      + '      <span class="mk-held-trigger-slot mk-held-trigger-slot--x">X</span>'
+      + '      <img class="mk-held-trigger-img" id="mk-held-timg-x" src="" alt="" style="display:none">'
+      + '      <span class="mk-held-trigger-name" id="mk-held-tname-x">— Nenhum —</span>'
+      + '      <span class="mk-held-trigger-arrow" id="mk-held-tarrow-x">▾</span>'
+      + '    </button>'
+      + '    <div class="mk-held-grid-wrap" id="mk-held-grid-x" style="display:none"></div>'
+      + '  </div>'
       + '  <span class="mk-field-error" id="mk-err-held_x"></span>'
       + '</div>'
 
       // Held Y
       + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-held-y">Held Y</label>'
-      + '  <select class="mk-select" id="mk-held-y"><option value="">— Carregando... —</option></select>'
+      + '  <label class="mk-label">Held Y</label>'
+      + '  <div class="mk-held-picker" id="mk-held-picker-y">'
+      + '    <button type="button" class="mk-held-trigger" id="mk-held-trigger-y">'
+      + '      <span class="mk-held-trigger-slot mk-held-trigger-slot--y">Y</span>'
+      + '      <img class="mk-held-trigger-img" id="mk-held-timg-y" src="" alt="" style="display:none">'
+      + '      <span class="mk-held-trigger-name" id="mk-held-tname-y">— Nenhum —</span>'
+      + '      <span class="mk-held-trigger-arrow" id="mk-held-tarrow-y">▾</span>'
+      + '    </button>'
+      + '    <div class="mk-held-grid-wrap" id="mk-held-grid-y" style="display:none"></div>'
+      + '  </div>'
       + '  <span class="mk-field-error" id="mk-err-held_y"></span>'
       + '</div>'
 
@@ -657,34 +673,108 @@
     if (obsEl) obsEl.addEventListener('input', function () { _form.observations = obsEl.value; });
   }
 
-  // ── Populate held selects ─────────────────────────────────────
+  // ── Populate held visual pickers ──────────────────────────────
   function _populateHelds() {
-    function _fill(selectId, category, currentId) {
-      var sel = global.document.getElementById(selectId);
-      if (!sel) return;
-      function _render(helds) {
-        var opts = '<option value="">— Nenhum —</option>';
+    function _buildPicker(gridId, triggerId, timgId, tnameId, tarrowId, pickerId, category) {
+      var grid    = global.document.getElementById(gridId);
+      var trigger = global.document.getElementById(triggerId);
+      var timg    = global.document.getElementById(timgId);
+      var tname   = global.document.getElementById(tnameId);
+      var tarrow  = global.document.getElementById(tarrowId);
+      if (!grid || !trigger) return;
+
+      var formKey = category === 'X' ? 'held_x_id' : 'held_y_id';
+      var isOpen  = false;
+
+      function _updateTrigger(held) {
+        if (held && held.sprite_url) {
+          timg.src          = held.sprite_url;
+          timg.style.display = '';
+        } else {
+          timg.src          = '';
+          timg.style.display = 'none';
+        }
+        tname.textContent = held ? held.name : '— Nenhum —';
+      }
+
+      function _toggleGrid(forceState) {
+        isOpen = (forceState !== undefined) ? forceState : !isOpen;
+        grid.style.display = isOpen ? '' : 'none';
+        tarrow.style.transform = isOpen ? 'rotate(180deg)' : '';
+        trigger.classList.toggle('open', isOpen);
+      }
+
+      function _renderGrid(helds) {
+        var currentId = _form[formKey];
+
+        var html = '<button type="button" class="mk-held-item mk-held-item--none'
+          + (!currentId ? ' selected' : '') + '" data-id="">'
+          + '<span class="mk-held-item-none-icon">✕</span>'
+          + '<span class="mk-held-item-label">Nenhum</span>'
+          + '</button>';
+
         helds.forEach(function (h) {
-          opts += '<option value="' + _esc(h.id) + '"' + (h.id === currentId ? ' selected' : '') + '>'
-            + _esc(h.name)
-            + (h.rarity ? ' [' + _esc(h.rarity) + ']' : '')
-            + '</option>';
+          html += '<button type="button" class="mk-held-item'
+            + (h.id === currentId ? ' selected' : '') + '" data-id="' + _esc(h.id) + '">'
+            + (h.sprite_url
+                ? '<img class="mk-held-item-img" src="' + _esc(h.sprite_url) + '" alt="' + _esc(h.name) + '">'
+                : '<span class="mk-held-item-no-img">?</span>')
+            + '<span class="mk-held-item-label">' + _esc(h.name) + '</span>'
+            + '</button>';
         });
-        sel.innerHTML = opts;
-        sel.addEventListener('change', function () {
-          _form[category === 'X' ? 'held_x_id' : 'held_y_id'] = sel.value || null;
+
+        grid.innerHTML = html;
+
+        // Restore trigger for preselected item
+        if (currentId) {
+          for (var i = 0; i < helds.length; i++) {
+            if (helds[i].id === currentId) { _updateTrigger(helds[i]); break; }
+          }
+        }
+
+        // Item click → select & close
+        Array.prototype.forEach.call(grid.querySelectorAll('.mk-held-item'), function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-id') || null;
+            _form[formKey] = id;
+
+            Array.prototype.forEach.call(grid.querySelectorAll('.mk-held-item'), function (b) {
+              b.classList.toggle('selected', b.getAttribute('data-id') === (id || ''));
+            });
+
+            if (id) {
+              var found = null;
+              for (var j = 0; j < helds.length; j++) { if (helds[j].id === id) { found = helds[j]; break; } }
+              _updateTrigger(found);
+            } else {
+              _updateTrigger(null);
+            }
+            _toggleGrid(false);
+          });
         });
       }
+
+      // Toggle picker on trigger click
+      trigger.addEventListener('click', function () { _toggleGrid(); });
+
+      // Close when clicking outside the picker
+      global.document.addEventListener('click', function (e) {
+        var picker = global.document.getElementById(pickerId);
+        if (picker && !picker.contains(e.target)) _toggleGrid(false);
+      });
+
+      // Load catalog and build grid
       if (typeof HeldsCatalog !== 'undefined') {
         if (HeldsCatalog.isLoaded()) {
-          _render(HeldsCatalog.getByCategory(category));
+          _renderGrid(HeldsCatalog.getByCategory(category));
         } else {
-          HeldsCatalog.load().then(function () { _render(HeldsCatalog.getByCategory(category)); });
+          HeldsCatalog.load().then(function () { _renderGrid(HeldsCatalog.getByCategory(category)); });
         }
       }
     }
-    _fill('mk-held-x', 'X', _form.held_x_id);
-    _fill('mk-held-y', 'Y', _form.held_y_id);
+
+    _buildPicker('mk-held-grid-x', 'mk-held-trigger-x', 'mk-held-timg-x', 'mk-held-tname-x', 'mk-held-tarrow-x', 'mk-held-picker-x', 'X');
+    _buildPicker('mk-held-grid-y', 'mk-held-trigger-y', 'mk-held-timg-y', 'mk-held-tname-y', 'mk-held-tarrow-y', 'mk-held-picker-y', 'Y');
   }
 
   // ── Prefill form values into DOM (edit mode) ──────────────────
