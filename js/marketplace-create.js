@@ -680,9 +680,8 @@
 
   // ── Bind all events ───────────────────────────────────────────
   function _bindEvents() {
-    // Backdrop close
-    var backdrop = global.document.getElementById('mk-create-backdrop');
-    if (backdrop) backdrop.addEventListener('click', function(e){ if (e.target === backdrop) close(); });
+    // Backdrop: NÃO fecha ao clicar fora (evita fechar sem querer durante a
+    // edição). Fechamento só pelo botão X ou pelo botão Cancelar. (a pedido)
 
     // Pokémon autocomplete
     var pokeInput = global.document.getElementById('mk-poke-input');
