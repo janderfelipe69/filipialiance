@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>F I L I P I • PokeAlliance Shop [v4]</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="packages.css" />
-  <link rel="stylesheet" href="packages.animations.css" />
-  <link rel="stylesheet" href="items.css" />
-  <link rel="stylesheet" href="items.animations.css" />
-  <link rel="stylesheet" href="mobile-patch.css" />
-  <link rel="stylesheet" href="auth.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/packages.css" />
+  <link rel="stylesheet" href="css/packages.animations.css" />
+  <link rel="stylesheet" href="css/items.css" />
+  <link rel="stylesheet" href="css/items.animations.css" />
+  <link rel="stylesheet" href="css/mobile-patch.css" />
+  <link rel="stylesheet" href="css/auth.css" />
   <!-- Kanban e mobile — movidos para o head (Fase 4) para eliminar FOUC -->
-  <link rel="stylesheet" href="orders-kanban.css" />
-  <link rel="stylesheet" href="mobile.css" />
-  <link rel="stylesheet" href="responsive-fix.css" />
-  <link rel="stylesheet" href="captura-toolbar.css" />
+  <link rel="stylesheet" href="css/orders-kanban.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/responsive-fix.css" />
+  <link rel="stylesheet" href="css/captura-toolbar.css" />
 </head>
 <body>
 
@@ -1251,15 +1251,15 @@
 </div>
 
 <!-- Marketplace M1 -->
-<link rel="stylesheet" href="marketplace.css">
+<link rel="stylesheet" href="css/marketplace.css">
 
-<script src="supabase-client.js"></script>
-<script src="db-bootstrap.js"></script>
-<script src="tabs-config.js"></script>
-<script src="dados.js"></script>
-<script src="respawn_patch_modal.js"></script>
-<script src="price-layer.js"></script>
-<script src="app.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/db-bootstrap.js"></script>
+<script src="js/tabs-config.js"></script>
+<script src="js/dados.js"></script>
+<script src="js/respawn_patch_modal.js"></script>
+<script src="js/price-layer.js"></script>
+<script src="js/app.js"></script>
 <script>
 // ── Aplica TABS_CONFIG: oculta abas desabilitadas ────────────────────────
 // ── Aplica FeatureFlags: bloqueia abas visualmente (sem ocultar) ─────────
@@ -2138,59 +2138,59 @@
 <!-- DEVE vir após app.js e antes de session.js.                          -->
 <!-- NÃO altera comportamento. Apenas observa, registra e protege.       -->
 <!-- Ativar painel de debug: window.PA_DEBUG=true  ou  Ctrl+Shift+P      -->
-<script src="pa-compat.js"></script>
+<script src="js/pa-compat.js"></script>
 <!-- ── Runtime infrastructure (Fase 5) ── -->
-<script src="render-registry.js"></script>
-<script src="hooks.js"></script>
+<script src="js/render-registry.js"></script>
+<script src="js/hooks.js"></script>
 <!-- ── State consistency layer (Fase 5.1) ── -->
-<script src="pa-state.js"></script>
+<script src="js/pa-state.js"></script>
 <!-- ── Transactional render pipeline + temporal engine (Fase 5.2) ── -->
-<script src="pa-render-pipeline.js"></script>
+<script src="js/pa-render-pipeline.js"></script>
 <!-- ── Render health: ownership, heartbeat, stale detection (Fase 5.2.2) ── -->
-<script src="pa-render-health.js"></script>
+<script src="js/pa-render-health.js"></script>
 <!-- ── Hardening: lazy render, virtual SLA, formatters, skeleton (Fase 5.2.3) ── -->
-<script src="pa-hardening.js"></script>
+<script src="js/pa-hardening.js"></script>
 <!-- ── Lifecycle: cleanup, timers, listeners, reconnect recovery (M3.2) ── -->
-<script src="pa-lifecycle.js"></script>
+<script src="js/pa-lifecycle.js"></script>
 <!-- ── Partial delivery system (Fase 5.3.1) ── -->
-<script src="capture-items.js"></script>
+<script src="js/capture-items.js"></script>
 
 <!-- ── Sistema de Autenticação PokeAlliance (Supabase) ──────────────── -->
 <!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
 <!-- user-storage.js foi REMOVIDO — dados agora vêm do banco Supabase    -->
-<script src="session.js"></script>
-<script src="schema-compat.js"></script> 
-<script src="auth.js"></script>
-<script src="login.js"></script>
+<script src="js/session.js"></script>
+<script src="js/schema-compat.js"></script> 
+<script src="js/auth.js"></script>
+<script src="js/login.js"></script>
 <!-- ── Feature flag kanban: ativo, mas orders-ui.js restringe a admins ── -->
 <script>window.PA_KANBAN_ENABLED = true;</script>
 
-<script src="toast.js"></script>
-<script src="confirm-modal.js"></script>
-<script src="filipi-ui.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/confirm-modal.js"></script>
+<script src="js/filipi-ui.js"></script>
 
 <!-- ── Sistema de Pedidos v2 ── -->
-<script src="orders-storage.js"></script>
-<script src="orders-progress.js"></script>
-<script src="notifications.js"></script>
-<script src="notifications-ui.js"></script> 
-<script src="orders-notifications.js"></script>
-<script src="queue-privacy.js"></script>
-<script src="orders-admin.js"></script>
-<script src="delivery-system.js"></script>
-<script src="delivery-financial.js"></script>
+<script src="js/orders-storage.js"></script>
+<script src="js/orders-progress.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/notifications-ui.js"></script> 
+<script src="js/orders-notifications.js"></script>
+<script src="js/queue-privacy.js"></script>
+<script src="js/orders-admin.js"></script>
+<script src="js/delivery-system.js"></script>
+<script src="js/delivery-financial.js"></script>
 
 <!-- ── Kanban (novos arquivos) ── -->
-<script src="orders-kanban.js"></script>
+<script src="js/orders-kanban.js"></script>
 
 <!-- ── UI de pedidos ── -->
 
-<script src="orders-ui.js"></script>
-<script src="orders-integration-patch.js"></script>
-<script src="pedidos.js"></script>
-<script src="realtime-manager.js"></script>
-<script src="pedidos-realtime.js"></script>
-<script src="sla-realtime-ui.js"></script>
+<script src="js/orders-ui.js"></script>
+<script src="js/orders-integration-patch.js"></script>
+<script src="js/pedidos.js"></script>
+<script src="js/realtime-manager.js"></script>
+<script src="js/pedidos-realtime.js"></script>
+<script src="js/sla-realtime-ui.js"></script>
 <script>
   // Inicializa a sessão assim que o DOM estiver pronto.
   // Session.init() recupera sessão persistida e atualiza o header automaticamente.
@@ -2252,28 +2252,28 @@
   });
 </script>
 
-<script src="mobile-ux.js"></script>
-<script src="item-card-popup.js"></script>
-<script src="wiki-cards-upgrade.js"></script>
-<script src="quest-modal.js"></script>
+<script src="js/mobile-ux.js"></script>
+<script src="js/item-card-popup.js"></script>
+<script src="js/wiki-cards-upgrade.js"></script>
+<script src="js/quest-modal.js"></script>
 
 <!-- Renderizadores de módulos (ordem não importa entre si) -->
-<script src="tierlist.js"></script>
-<script src="tierlist-types.js"></script>
-<script src="tierlist-popup.js"></script>
-<script src="filter-smart.js"></script>
-<script src="wiki-boost.js"></script>
-<script src="wiki-star-ascension.js"></script>
-<script src="wiki-up150.js"></script>
-<script src="wiki-minimap.js"></script>
-<script src="wiki-medals.js"></script>
-<script src="wiki-medals-buffs.js"></script>
+<script src="js/tierlist.js"></script>
+<script src="js/tierlist-types.js"></script>
+<script src="js/tierlist-popup.js"></script>
+<script src="js/filter-smart.js"></script>
+<script src="js/wiki-boost.js"></script>
+<script src="js/wiki-star-ascension.js"></script>
+<script src="js/wiki-up150.js"></script>
+<script src="js/wiki-minimap.js"></script>
+<script src="js/wiki-medals.js"></script>
+<script src="js/wiki-medals-buffs.js"></script>
 
 <!-- Runtime de navegação — deve vir APÓS todos os renderizadores -->
-<script src="wiki-nav.js"></script>
-<script src="wiki-tasks.js"></script>
-<script src="wiki-modules-ext.js"></script>
-<script src="nav-runtime.js"></script>
+<script src="js/wiki-nav.js"></script>
+<script src="js/wiki-tasks.js"></script>
+<script src="js/wiki-modules-ext.js"></script>
+<script src="js/nav-runtime.js"></script>
 
 <script>
   // ── Service Worker ────────────────────────────────────────────────────────
@@ -2358,22 +2358,22 @@ function enviarPedido() {
   }
 }
 </script>
-<script src="balls-selector.js"></script>
-<script src="captura-redesign.js"></script>
-<script src="packages.logic.js"></script>
-<script src="packages.render.js"></script>
-<script src="items.logic.js"></script>
-<script src="items.render.js"></script>
+<script src="js/balls-selector.js"></script>
+<script src="js/captura-redesign.js"></script>
+<script src="js/packages.logic.js"></script>
+<script src="js/packages.render.js"></script>
+<script src="js/items.logic.js"></script>
+<script src="js/items.render.js"></script>
 <!-- ── Controllers de Fase 5 (ownership explícito de DOM) ── -->
-<script src="captura-controller.js"></script>
-<script src="items-controller.js"></script>
-<script src="admin-panel.js"></script>
+<script src="js/captura-controller.js"></script>
+<script src="js/items-controller.js"></script>
+<script src="js/admin-panel.js"></script>
 
 <!-- ── Sistema de Afiliados (arquivos novos) ── -->
-<script src="affiliate-service.js"></script>
-<script src="affiliate-realtime.js"></script>
-<script src="affiliate-dashboard.js"></script>
-<script src="affiliate-admin-panel.js"></script>
+<script src="js/affiliate-service.js"></script>
+<script src="js/affiliate-realtime.js"></script>
+<script src="js/affiliate-dashboard.js"></script>
+<script src="js/affiliate-admin-panel.js"></script>
 <script>
 // Controla visibilidade da aba Afiliado conforme o role do usuário
 document.addEventListener('DOMContentLoaded', function() {
@@ -2454,16 +2454,16 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 </div><!-- /tab-marketplace -->
 <!-- Marketplace M1 scripts -->
-<script src="marketplace-channels.js"></script>
-<script src="marketplace.js"></script>
-<script src="marketplace-render.js"></script>
-<script src="helds-catalog.js"></script>
-<script src="pokemon-selector.js"></script>
-<script src="marketplace-create.js"></script>
+<script src="js/marketplace-channels.js"></script>
+<script src="js/marketplace.js"></script>
+<script src="js/marketplace-render.js"></script>
+<script src="js/helds-catalog.js"></script>
+<script src="js/pokemon-selector.js"></script>
+<script src="js/marketplace-create.js"></script>
 <!-- Marketplace M3 -->
-<script src="marketplace-trade.js"></script>
-<script src="marketplace-chat.js"></script>
-<script src="marketplace-inbox.js"></script>
+<script src="js/marketplace-trade.js"></script>
+<script src="js/marketplace-chat.js"></script>
+<script src="js/marketplace-inbox.js"></script>
 <!-- Marketplace filter helpers (inline) -->
 <script>
 function _mkFilter(btn, type) {

@@ -1,9 +1,9 @@
 /**
  * sw.js — PokeAlliance Shop · Service Worker
  *
- * 🔑 Cache-bust automático via CI:
- *    - O deploy.yml substitui __BUILD_TIME__ pelo timestamp do build
- *    - Não é necessário mudar VERSAO manualmente nunca mais
+ * 🔑 Cache-bust automático:
+ *    - VERSAO usa Date.now() a cada deploy → cache novo a cada build
+ *    - Deploy é feito automaticamente pela Vercel a cada push
  *
  * 🔑 Anti-deadlock:
  *    - sw.js NUNCA é cacheado por este SW
@@ -15,21 +15,21 @@ const VERSAO = 'v5.3-' + Date.now();
 const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 const ARQUIVOS = [
-  './style.css',
-  './mobile-patch.css',
-  './dados.js',
-  './app.js',
-  './mobile-ux.js',
-  './url-hash.js',
-  './respawn_patch_modal.js',
-  './wildscape_path_patch.js',
-  './item-card-popup.js',
-  './wiki-nav.js',
-  './wiki-cards-upgrade.js',
-  './quest-modal.js',
-  './filter-smart.js',
-  './tierlist.js',
-  './tierlist-types.js',
+  './css/style.css',
+  './css/mobile-patch.css',
+  './js/dados.js',
+  './js/app.js',
+  './js/mobile-ux.js',
+  './js/url-hash.js',
+  './js/respawn_patch_modal.js',
+  './js/wildscape_path_patch.js',
+  './js/item-card-popup.js',
+  './js/wiki-nav.js',
+  './js/wiki-cards-upgrade.js',
+  './js/quest-modal.js',
+  './js/filter-smart.js',
+  './js/tierlist.js',
+  './js/tierlist-types.js',
 ];
 
 // ── Instalação: skipWaiting imediato + cacheia assets ─────────────────────
