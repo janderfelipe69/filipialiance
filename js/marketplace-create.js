@@ -223,11 +223,15 @@
       var user = _user();
       if (!user) { _toast('Faça login para anunciar.', 'error'); return; }
 
-      // 3. Limite de 5 anúncios (frontend — banco também bloqueia)
-      var count = await _checkLimit();
-      if (count >= 5) {
-        _toast('Você já tem 5 anúncios ativos. Cancele um antes de criar outro.', 'error');
-        return;
+      // 3. Limite de 5 anúncios (admins têm anúncios ilimitados — o banco
+      //    também isenta admins no trigger check_listing_limit).
+      var _isAdmin = typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
+      if (!_isAdmin) {
+        var count = await _checkLimit();
+        if (count >= 5) {
+          _toast('Você já tem 5 anúncios ativos. Cancele um antes de criar outro.', 'error');
+          return;
+        }
       }
 
       // 4. Monta payload (sem campos que o banco não aceita, sem image_url)
