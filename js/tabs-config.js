@@ -291,3 +291,53 @@ const TABS_CONFIG = {
   global.isFeatureEnabled = isFeatureEnabled;
 
 }(window));
+
+// ── Aplica TABS_CONFIG e ativa a primeira aba habilitada ──────────────────
+// Executado inline após o DOM estar disponível (script carregado no final do body).
+(function() {
+  if (typeof TABS_CONFIG === 'undefined') return;
+
+  var firstEnabled = null;
+
+  Object.keys(TABS_CONFIG).forEach(function(tab) {
+    if (TABS_CONFIG[tab] === false) {
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        var oc = btn.getAttribute('onclick') || '';
+        if (oc.indexOf("'" + tab + "'") !== -1) btn.style.display = 'none';
+      });
+      var content = document.getElementById('tab-' + tab);
+      if (content) content.style.display = 'none';
+    } else {
+      if (!firstEnabled) firstEnabled = tab;
+    }
+  });
+
+  if (firstEnabled) {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+
+    var firstBtn = null;
+    var firstTab = null;
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      if (firstBtn) return;
+      if (btn.style.display === 'none') return;
+      var oc = btn.getAttribute('onclick') || '';
+      var m = oc.match(/switchTab\('([^']+)'/);
+      var tabName = m ? m[1] : null;
+      if (tabName && typeof isFeatureEnabled === 'function' && !isFeatureEnabled(tabName)) return;
+      firstBtn = btn;
+      firstTab = tabName || firstEnabled;
+    });
+
+    if (!firstBtn) {
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
+      });
+      firstTab = firstEnabled;
+    }
+
+    if (firstBtn) firstBtn.classList.add('active');
+    var firstContent = document.getElementById('tab-' + firstTab);
+    if (firstContent) firstContent.classList.add('active');
+  }
+})();

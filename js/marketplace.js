@@ -334,3 +334,13 @@
   });
 
 }(window));
+
+// ── Helpers de filtro do marketplace ─────────────────────────────────────
+function _mkFilter(btn, type) {
+  document.querySelectorAll('.mk-filter-chip').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('type', type);
+}
+function _mkSearch(q) {
+  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('search', q);
+}

@@ -1260,64 +1260,6 @@
 <script src="js/respawn_patch_modal.js"></script>
 <script src="js/price-layer.js"></script>
 <script src="js/app.js"></script>
-<script>
-// ── Aplica TABS_CONFIG: oculta abas desabilitadas ────────────────────────
-// ── Aplica FeatureFlags: bloqueia abas visualmente (sem ocultar) ─────────
-(function() {
-  if (typeof TABS_CONFIG === 'undefined') return;
-
-  var firstEnabled = null;
-
-  Object.keys(TABS_CONFIG).forEach(function(tab) {
-    if (TABS_CONFIG[tab] === false) {
-      // TABS_CONFIG=false → aba OCULTADA (não existe)
-      document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        var oc = btn.getAttribute('onclick') || '';
-        if (oc.indexOf("'" + tab + "'") !== -1) btn.style.display = 'none';
-      });
-      var content = document.getElementById('tab-' + tab);
-      if (content) content.style.display = 'none';
-    } else {
-      if (!firstEnabled) firstEnabled = tab;
-    }
-  });
-
-  // Ativa a primeira aba habilitada pelo TABS_CONFIG
-  // (FeatureFlags podem bloquear mas não ocultar — aba ainda conta como "enabled" aqui)
-  if (firstEnabled) {
-    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
-
-    // Encontra primeira aba que está visível E habilitada pelo FeatureFlag
-    var firstBtn = null;
-    var firstTab = null;
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      if (firstBtn) return;
-      if (btn.style.display === 'none') return;
-      var oc = btn.getAttribute('onclick') || '';
-      // Extrai nome da aba do onclick
-      var m = oc.match(/switchTab\('([^']+)'/);
-      var tabName = m ? m[1] : null;
-      // Se feature flag desabilitou, pula para próxima
-      if (tabName && typeof isFeatureEnabled === 'function' && !isFeatureEnabled(tabName)) return;
-      firstBtn = btn;
-      firstTab = tabName || firstEnabled;
-    });
-
-    // Fallback: se todas estão bloqueadas por flags, usa a primeira visível mesmo assim
-    if (!firstBtn) {
-      document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
-      });
-      firstTab = firstEnabled;
-    }
-
-    if (firstBtn) firstBtn.classList.add('active');
-    var firstContent = document.getElementById('tab-' + firstTab);
-    if (firstContent) firstContent.classList.add('active');
-  }
-})();
-</script>
 
 
 
@@ -2191,66 +2133,6 @@
 <script src="js/realtime-manager.js"></script>
 <script src="js/pedidos-realtime.js"></script>
 <script src="js/sla-realtime-ui.js"></script>
-<script>
-  // Inicializa a sessão assim que o DOM estiver pronto.
-  // Session.init() recupera sessão persistida e atualiza o header automaticamente.
-  // É async — o .catch() garante que erros críticos não fiquem silenciosos.
-  // Módulos que dependem do JWT podem aguardar com: await Session.ready()
-  document.addEventListener("DOMContentLoaded", function() {
-    Session.init().catch(function(err) {
-      console.error('[App] Erro crítico na inicialização da sessão:', err);
-    });
-  });
-
-  // ── DIAGNÓSTICO AUTOMÁTICO ──────────────────────────────────────────────
-  // Roda após login e mostra no console o estado completo do sistema.
-  // Remover quando o sistema estiver estável.
-  // ────────────────────────────────────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", function() {
-    if (typeof Session === 'undefined') return;
-    Session.onAuthChange(function(event, user) {
-      if (event !== 'login' || !user) return;
-      setTimeout(async function() {
-        var jwt = Session.getAccessToken();
-        var SB_URL = window.SUPABASE_URL;
-        var SB_KEY = window.SUPABASE_KEY;
-        console.group('🔍 [DIAG] Sistema pós-login — ' + (user.nickname || user.email));
-        console.log('role:', user.role, '| id:', user.id, '| SESSION_READY:', window.SESSION_READY);
-        console.log('PA_KANBAN_ENABLED:', window.PA_KANBAN_ENABLED);
-        console.log('JWT:', jwt ? '✅ presente' : '❌ AUSENTE');
-        // Testa RLS da tabela pedidos
-        try {
-          var r = await fetch(SB_URL + '/rest/v1/pedidos?limit=5&select=id,status_v3,user_id', {
-            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt }
-          });
-          var d = await r.json();
-          console.log('pedidos RLS → HTTP', r.status, '| retornou:', Array.isArray(d) ? d.length + ' registros' : d);
-          if (Array.isArray(d) && d.length === 0) {
-            console.warn('⚠️ RLS retornou [] — verifique public.users e policies da tabela pedidos');
-          }
-        } catch(e) { console.error('pedidos fetch erro:', e.message); }
-        // Testa se usuário existe em public.users
-        try {
-          var ru = await fetch(SB_URL + '/rest/v1/users?id=eq.' + user.id + '&select=id,role,nickname', {
-            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt }
-          });
-          var du = await ru.json();
-          if (Array.isArray(du) && du.length === 0) {
-            console.error('❌ USUÁRIO NÃO EXISTE EM public.users — execute fix-rls-and-users.sql no Supabase');
-          } else {
-            console.log('public.users → OK:', du[0]);
-          }
-        } catch(e) { console.error('users fetch erro:', e.message); }
-        // Estado do storage
-        if (typeof OrdersStorage !== 'undefined') {
-          var orders = OrdersStorage.getAllOrders();
-          console.log('OrdersStorage:', orders.length, 'pedidos em cache');
-        }
-        console.groupEnd();
-      }, 500);
-    });
-  });
-</script>
 
 <script src="js/mobile-ux.js"></script>
 <script src="js/item-card-popup.js"></script>
@@ -2275,45 +2157,7 @@
 <script src="js/wiki-modules-ext.js"></script>
 <script src="js/nav-runtime.js"></script>
 
-<script>
-  // ── Service Worker ────────────────────────────────────────────────────────
-  if ('serviceWorker' in navigator) {
-    var _swRefreshed = false;
-
-    // Sempre que um novo SW assumir o controle, recarrega a página 1x
-    navigator.serviceWorker.addEventListener('controllerchange', function() {
-      if (!_swRefreshed) {
-        _swRefreshed = true;
-        window.location.reload();
-      }
-    });
-
-window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js', {
-        updateViaCache: 'none'
-      }).then(function(reg) {
-        reg.update();
-
-        // MOBILE FIX: SW novo pode já estar em waiting de uma visita anterior
-        if (reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', function() {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
-            }
-          });
-        });
-      }).catch(function(err) {
-        console.warn('[SW] Registro falhou:', err);
-      });
-    });
-  }
-</script>
+<script src="js/sw-register.js"></script>
 
 
 <style>
@@ -2341,23 +2185,6 @@ window.addEventListener('load', function() {
 .send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
 .send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 </style>
-<script>
-function enviarPedido() {
-  var btn = document.getElementById('send-order-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-  if (typeof sendToWhatsApp === 'function') {
-    Promise.resolve(sendToWhatsApp()).finally(function() {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Pedido';
-      }
-    });
-  } else {
-    if (typeof showToast === 'function') showToast('Erro: pedidos.js não carregado', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Enviar Pedido'; }
-  }
-}
-</script>
 <script src="js/balls-selector.js"></script>
 <script src="js/captura-redesign.js"></script>
 <script src="js/packages.logic.js"></script>
@@ -2374,51 +2201,6 @@ function enviarPedido() {
 <script src="js/affiliate-realtime.js"></script>
 <script src="js/affiliate-dashboard.js"></script>
 <script src="js/affiliate-admin-panel.js"></script>
-<script>
-// Controla visibilidade da aba Afiliado conforme o role do usuário
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof Session === 'undefined') return;
-
-  function _applyAffiliateVisibility(user) {
-    var isAffiliate = user && user.role === 'affiliate';
-    var tabBtn  = document.getElementById('tab-btn-afiliado');
-    var tabDiv  = document.getElementById('tab-afiliado');
-    if (tabBtn) tabBtn.style.display = isAffiliate ? '' : 'none';
-    if (tabDiv) tabDiv.style.display = isAffiliate ? '' : 'none';
-  }
-
-  // Quando login/logout muda
-  Session.onAuthChange(function(event, user) {
-    _applyAffiliateVisibility(user);
-    if (event === 'login' && user && user.role === 'affiliate') {
-      setTimeout(function() {
-        if (typeof AffiliateDashboard !== 'undefined') AffiliateDashboard.init();
-        if (typeof AffiliateRealtime  !== 'undefined') AffiliateRealtime.start();
-      }, 300);
-    }
-    if (event === 'logout') {
-      if (typeof AffiliateRealtime !== 'undefined') AffiliateRealtime.stop();
-    }
-  });
-
-  // Caso já esteja logado ao carregar a página
-  Session.ready().then(function() {
-    var user = Session.getCurrentUser();
-    _applyAffiliateVisibility(user);
-    if (user && user.role === 'affiliate') {
-      if (typeof AffiliateDashboard !== 'undefined') AffiliateDashboard.init();
-      if (typeof AffiliateRealtime  !== 'undefined') AffiliateRealtime.start();
-      // Se URL for #afiliado, abre a aba direto
-      if (location.hash === '#afiliado') {
-        setTimeout(function() {
-          var btn = document.getElementById('tab-btn-afiliado');
-          if (typeof switchTab === 'function') switchTab('afiliado', btn);
-        }, 500);
-      }
-    }
-  });
-});
-</script>
 
 <!-- TAB: MARKETPLACE -->
 <div class="tab-content" id="tab-marketplace">
@@ -2464,16 +2246,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/marketplace-trade.js"></script>
 <script src="js/marketplace-chat.js"></script>
 <script src="js/marketplace-inbox.js"></script>
-<!-- Marketplace filter helpers (inline) -->
-<script>
-function _mkFilter(btn, type) {
-  document.querySelectorAll('.mk-filter-chip').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('type', type);
-}
-function _mkSearch(q) {
-  if (window.PA && window.PA.marketplace) window.PA.marketplace.setFilter('search', q);
-}
-</script>
+<!-- Marketplace filter helpers: _mkFilter e _mkSearch definidos em marketplace.js -->
 </body>
 </html>

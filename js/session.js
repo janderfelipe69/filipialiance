@@ -665,3 +665,10 @@ const Session = (() => {
     _openMyAccount,
   };
 })();
+
+// ── Inicialização da sessão ────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  Session.init().catch(function(err) {
+    console.error('[App] Erro crítico na inicialização da sessão:', err);
+  });
+});

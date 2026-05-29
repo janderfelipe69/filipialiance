@@ -526,6 +526,45 @@
     _markRead,
   };
 
-  console.log('[AffiliateDashboard] ✅ Módulo carregado.');
-
 })(window);
+
+// ── Controla visibilidade da aba Afiliado + inicialização ─────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof Session === 'undefined') return;
+
+  function _applyAffiliateVisibility(user) {
+    var isAffiliate = user && user.role === 'affiliate';
+    var tabBtn = document.getElementById('tab-btn-afiliado');
+    var tabDiv = document.getElementById('tab-afiliado');
+    if (tabBtn) tabBtn.style.display = isAffiliate ? '' : 'none';
+    if (tabDiv) tabDiv.style.display = isAffiliate ? '' : 'none';
+  }
+
+  Session.onAuthChange(function(event, user) {
+    _applyAffiliateVisibility(user);
+    if (event === 'login' && user && user.role === 'affiliate') {
+      setTimeout(function() {
+        if (typeof AffiliateDashboard !== 'undefined') AffiliateDashboard.init();
+        if (typeof AffiliateRealtime  !== 'undefined') AffiliateRealtime.start();
+      }, 300);
+    }
+    if (event === 'logout') {
+      if (typeof AffiliateRealtime !== 'undefined') AffiliateRealtime.stop();
+    }
+  });
+
+  Session.ready().then(function() {
+    var user = Session.getCurrentUser();
+    _applyAffiliateVisibility(user);
+    if (user && user.role === 'affiliate') {
+      if (typeof AffiliateDashboard !== 'undefined') AffiliateDashboard.init();
+      if (typeof AffiliateRealtime  !== 'undefined') AffiliateRealtime.start();
+      if (location.hash === '#afiliado') {
+        setTimeout(function() {
+          var btn = document.getElementById('tab-btn-afiliado');
+          if (typeof switchTab === 'function') switchTab('afiliado', btn);
+        }, 500);
+      }
+    }
+  });
+});
