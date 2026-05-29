@@ -151,12 +151,19 @@
   }
 
   // ── Estado global ─────────────────────────────────────────────
-  var _form        = {};
-  var _pay         = {};
-  var _modalEl     = null;
-  var _locked      = false;
-  var _pkgCache    = null;
-  var _selectedPkg = null;
+  var _form          = {};
+  var _pay           = {};
+  var _modalEl       = null;
+  var _locked        = false;
+  var _pkgCache      = null;
+  var _selectedPkg   = null;
+  var _priceCache    = null; // { 'item name lower': price_npc }
+
+  // ── Formata preço NPC do jogo (ex: 10000 → "10.000$") ────────
+  function _fmtNpc(price) {
+    if (!price && price !== 0) return null;
+    return price.toLocaleString('pt-BR') + '$';
+  }
 
   function _resetForm(type) {
     _form = {
@@ -439,6 +446,24 @@
     return _pkgCache;
   }
 
+  async function _fetchItemPrices() {
+    if (_priceCache) return _priceCache;
+    var url=SB_URL+'/rest/v1/catalog_items?select=name,price_npc&price_npc=not.is.null';
+    var res=await fetch(url,{headers:_hdrs()});
+    var data=await res.json().catch(function(){return[];});
+    _priceCache={};
+    (Array.isArray(data)?data:[]).forEach(function(item){
+      if (item.name && item.price_npc!=null)
+        _priceCache[item.name.toLowerCase()]=Number(item.price_npc);
+    });
+    return _priceCache;
+  }
+
+  function _getItemPrice(itemName) {
+    if (!_priceCache||!itemName) return null;
+    return _priceCache[itemName.toLowerCase()]??null;
+  }
+
   function _buildBrowserHtml() {
     return '<div class="mk-modal-backdrop" id="wtb-create-backdrop">'
       +'<div class="mk-modal wtb-pkg-modal" id="wtb-create-modal" role="dialog" aria-modal="true">'
@@ -459,8 +484,9 @@
     var searchEl=global.document.getElementById('wtb-pkg-search');
     if (searchEl) searchEl.addEventListener('input', function(){ _renderPkgList(_pkgCache||[],searchEl.value.toLowerCase()); });
     try {
-      var pkgs=await _fetchPackages();
-      _renderPkgList(pkgs,'');
+      // Busca pacotes e preços em paralelo
+      var results=await Promise.all([_fetchPackages(), _fetchItemPrices()]);
+      _renderPkgList(results[0],'');
     } catch(e) {
       var list=global.document.getElementById('wtb-pkg-list');
       if (list) list.innerHTML='<div class="wtb-pkg-loading">Erro ao carregar. Tente novamente.</div>';
@@ -529,15 +555,29 @@
 
     var slotsHtml=slots.map(function(slot) {
       var items=_slotItems(slot);
+      // Calcula subtotal do slot (para mostrar referência)
+      var slotTotal=items.reduce(function(acc,item){
+        var p=_getItemPrice(item.item_name);
+        return acc+(p?p*item.quantity:0);
+      },0);
+
       return '<div class="wtb-cst-slot">'
         +'<div class="wtb-cst-slot-hdr">'
         +'<span class="wtb-cst-slot-num" style="color:'+meta.color+'">Slot '+(slot.slot_index+1)+'</span>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
         +'<span class="wtb-cst-slot-count">'+items.length+' '+(items.length===1?'item':'itens')+'</span>'
+        +(slotTotal>0?'<span class="wtb-cst-slot-price">≈ '+_fmtNpc(slotTotal)+'</span>':'')
+        +'</div>'
         +'</div>'
         +'<div class="wtb-cst-items">'
         +items.map(function(item) {
+          var unitPrice=_getItemPrice(item.item_name);
+          var priceHtml=unitPrice!=null
+            ?'<span class="wtb-cst-item-price" data-unit-price="'+unitPrice+'">'+_fmtNpc(unitPrice)+'/un</span>'
+            :'<span class="wtb-cst-item-price" data-unit-price="0"></span>';
           return '<div class="wtb-cst-item" data-item-id="'+_esc(item.id)+'" data-qty-max="'+item.quantity+'">'
             +'<span class="wtb-cst-item-name">'+_esc(item.item_name)+'</span>'
+            +priceHtml
             +'<div class="wtb-cst-qty-wrap">'
             +'<button type="button" class="wtb-cst-qty-btn" data-dir="-1">−</button>'
             +'<div class="wtb-cst-qty-display">'
@@ -571,9 +611,11 @@
       +'<div class="wtb-cst-summary-bar">'
       +'<span>'+slots.length+' slots</span>'
       +'<span class="wtb-cst-summary-dot">·</span>'
-      +'<span id="wtb-cst-total-label">'+totalItems+' itens no total</span>'
-      +'<span class="wtb-cst-summary-hint">— reduza a qty dos itens que já tem</span>'
+      +'<span id="wtb-cst-total-label">'+totalItems+' itens necessários</span>'
+      +'<span class="wtb-cst-summary-dot">·</span>'
+      +'<span id="wtb-cst-est-price" class="wtb-cst-est-price"></span>'
       +'</div>'
+      +'<div class="wtb-cst-price-hint">Os valores <strong>$</strong> são preços de NPC — referência mínima de mercado. Ajuste a qty dos itens que já tem.</div>'
 
       +'<div class="wtb-cst-slots" id="wtb-cst-slots">'+slotsHtml+'</div>'
 
@@ -630,12 +672,27 @@
 
   function _refreshTotalLabel(pkg) {
     var lbl=global.document.getElementById('wtb-cst-total-label');
-    if (!lbl) return;
-    var total=0;
-    Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-qty-inp'), function(inp){
-      total+=parseInt(inp.value,10)||0;
+    var est=global.document.getElementById('wtb-cst-est-price');
+    var totalQty=0, totalPrice=0;
+
+    Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-item'), function(row){
+      var inp=row.querySelector('.wtb-cst-qty-inp');
+      var priceEl=row.querySelector('.wtb-cst-item-price');
+      var qty=parseInt(inp?inp.value:0,10)||0;
+      var unitPrice=priceEl?parseFloat(priceEl.getAttribute('data-unit-price')||0):0;
+      totalQty+=qty;
+      totalPrice+=qty*unitPrice;
     });
-    lbl.textContent=total+' itens no total';
+
+    if (lbl) lbl.textContent=totalQty+' itens necessários';
+    if (est) {
+      if (totalPrice>0) {
+        est.textContent='≈ '+totalPrice.toLocaleString('pt-BR')+'$ (referência NPC)';
+        est.style.display='';
+      } else {
+        est.style.display='none';
+      }
+    }
   }
 
   function _buildSlotsSnapshot(pkg) {
