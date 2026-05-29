@@ -1056,17 +1056,21 @@
     </div>
   </div>
 
-  <div class="wtb-hint-banner">
-    <strong>Como funciona:</strong> publique o Pok&eacute;mon que voc&ecirc; quer comprar, defina o quanto paga e a bola desejada. Quem tiver o pok&eacute;mon clica em <strong>Tenho isso!</strong> e abre um chat direto com voc&ecirc;.
+  <!-- Filtro de tipo: Todos / Pokémon / Talentos -->
+  <div class="mk-filters" id="wtb-type-filters">
+    <button class="mk-filter-chip active" data-wtb-type="all">Todos</button>
+    <button class="mk-filter-chip" data-wtb-type="pokemon">🎴 Pok&eacute;mon</button>
+    <button class="mk-filter-chip" data-wtb-type="talent">🎯 Talentos</button>
+    <input class="mk-search" id="wtb-search" placeholder="Buscar por nome...">
   </div>
 
+  <!-- Filtro de bola (visível apenas quando tipo = Todos ou Pokémon) -->
   <div class="mk-filters mk-filters--balls" id="wtb-ball-filters">
     <span class="mk-ball-filters-label">Bola:</span>
     <button class="mk-ball-chip active" data-wtb-ball="all">Qualquer</button>
     <button class="mk-ball-chip" data-wtb-ball="ultra"    style="--ball:#f5c518">Ultra</button>
     <button class="mk-ball-chip" data-wtb-ball="premier"  style="--ball:#cfd3dc">Premier</button>
     <button class="mk-ball-chip" data-wtb-ball="alliance" style="--ball:#7c6aff">Alliance</button>
-    <input class="mk-search" id="wtb-search" placeholder="Buscar Pok&eacute;mon...">
   </div>
 
   <div id="wtb-list"></div>

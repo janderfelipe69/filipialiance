@@ -190,6 +190,189 @@
 .wtb-chat-input { flex: 1; }
 .wtb-chat-send  { flex-shrink: 0; }
 
+/* ── Chooser de tipo (Pokémon vs Talento) ───────────────────────── */
+.wtb-chooser-hint {
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.wtb-type-chooser {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.wtb-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, transform .15s;
+  text-align: center;
+}
+
+.wtb-type-card:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-2px);
+}
+
+.wtb-type-card-icon  { font-size: 2.2rem; line-height: 1; }
+.wtb-type-card-title { font-size: 1rem; font-weight: 700; color: #fff; }
+.wtb-type-card-desc  { font-size: 0.74rem; color: rgba(255,255,255,0.45); line-height: 1.4; }
+
+/* ── Botão Voltar no modal ───────────────────────────────────────── */
+.wtb-back-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.50);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 8px 2px 0;
+  margin-right: 4px;
+  transition: color .15s;
+  flex-shrink: 0;
+}
+.wtb-back-btn:hover { color: #fff; }
+
+/* ── Tipo de talento — chips de seleção (no form) ───────────────── */
+.wtb-talent-type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.wtb-talent-type-chip {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.60);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.wtb-talent-type-chip:hover {
+  border-color: var(--tc, rgba(255,255,255,0.3));
+  color: #fff;
+}
+.wtb-talent-type-chip.selected {
+  border-color: var(--tc, #4fa3f7);
+  background: color-mix(in srgb, var(--tc, #4fa3f7) 15%, transparent);
+  color: var(--tc, #4fa3f7);
+}
+
+/* ── Slots (toggle de completude) ───────────────────────────────── */
+.wtb-full-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.70);
+  user-select: none;
+  margin-top: 6px;
+}
+
+.wtb-full-toggle input { display: none; }
+
+.wtb-full-toggle-track {
+  width: 36px;
+  height: 20px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  position: relative;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.wtb-full-toggle input:checked + .wtb-full-toggle-track { background: #4fa3f7; }
+
+.wtb-full-toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .2s;
+}
+.wtb-full-toggle input:checked ~ .wtb-full-toggle-track .wtb-full-toggle-thumb,
+.wtb-full-toggle input:checked + .wtb-full-toggle-track .wtb-full-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* ── Card de Talento ────────────────────────────────────────────── */
+.wtb-talent-card {
+  border-color: rgba(var(--tc-raw, 167,139,250), 0.20);
+}
+
+.wtb-card-badge--talent {
+  background: rgba(167,139,250,0.13);
+  color: #a78bfa;
+  border-color: rgba(167,139,250,0.28);
+}
+
+.wtb-talent-header {
+  padding: 14px 14px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wtb-talent-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.80rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.wtb-talent-poke-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 8px;
+  flex-wrap: wrap;
+}
+.wtb-talent-poke-label {
+  font-size: 0.70rem;
+  color: rgba(255,255,255,0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.wtb-talent-any-poke {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.32);
+  font-style: italic;
+}
+
+.wtb-talent-slots-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 14px 10px;
+}
+.wtb-talent-slots-icon { font-size: 0.9rem; }
+.wtb-talent-slots-label {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.55);
+  font-weight: 500;
+}
+
 /* ── Seleção de método de pagamento (etapa 1) ───────────────────── */
 .wtb-pay-step-hint {
   font-size: 0.78rem;

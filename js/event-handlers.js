@@ -190,6 +190,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof WTBCreate !== 'undefined') WTBCreate.open();
   });
 
+  document.querySelectorAll('.mk-filter-chip[data-wtb-type]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (typeof _wtbTypeFilter === 'function') _wtbTypeFilter(btn, btn.dataset.wtbType);
+    });
+  });
+
   document.querySelectorAll('.mk-ball-chip[data-wtb-ball]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       if (typeof _wtbBallFilter === 'function') _wtbBallFilter(btn, btn.dataset.wtbBall);

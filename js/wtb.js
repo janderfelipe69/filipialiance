@@ -15,7 +15,7 @@
   var _state = {
     listings: [],
     loading:  false,
-    filters:  { ball: 'all', search: '' },
+    filters:  { type: 'all', ball: 'all', search: '' },
   };
 
   function _headers() {
@@ -88,6 +88,14 @@
     _state.filters[key] = val;
     _render();
   }
+
+  // ── Filtro de tipo (handler global para event-handlers.js) ───
+  global._wtbTypeFilter = function (btn, type) {
+    document.querySelectorAll('.mk-filter-chip[data-wtb-type]').forEach(function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    setFilter('type', type);
+  };
 
   // ── Filtro de bola (handler global para event-handlers.js) ────
   global._wtbBallFilter = function (btn, ball) {
