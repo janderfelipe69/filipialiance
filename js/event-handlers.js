@@ -179,9 +179,26 @@ document.addEventListener('DOMContentLoaded', function() {
   if (wikiPopupClose) wikiPopupClose.addEventListener('click', function() { closeWikiPopup(); });
 
   // ── Marketplace ──────────────────────────────────────────────────────────
-  var mkBtnCreate = document.querySelector('.mk-btn--primary');
+  var mkBtnCreate = document.getElementById('mk-btn-create');
   if (mkBtnCreate) mkBtnCreate.addEventListener('click', function() {
     if (typeof MarketplaceCreate !== 'undefined') MarketplaceCreate.open();
+  });
+
+  // ── WTB (Procura) ─────────────────────────────────────────────────────────
+  var wtbBtnCreate = document.getElementById('wtb-btn-create');
+  if (wtbBtnCreate) wtbBtnCreate.addEventListener('click', function() {
+    if (typeof WTBCreate !== 'undefined') WTBCreate.open();
+  });
+
+  document.querySelectorAll('.mk-ball-chip[data-wtb-ball]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (typeof _wtbBallFilter === 'function') _wtbBallFilter(btn, btn.dataset.wtbBall);
+    });
+  });
+
+  var wtbSearch = document.getElementById('wtb-search');
+  if (wtbSearch) wtbSearch.addEventListener('input', function() {
+    if (typeof WTB !== 'undefined') WTB.setFilter('search', this.value);
   });
 
   document.querySelectorAll('.mk-filter-chip[data-filter]').forEach(function(btn) {

@@ -142,6 +142,10 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
     Marketplace
   </button>
+  <button class="tab-btn tab-btn--wtb" data-tab="wtb">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Procura
+  </button>
   <button class="tab-btn tab-btn--wiki" data-tab="wiki">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     Wiki
@@ -861,6 +865,7 @@
 
 <!-- Marketplace M1 -->
 <link rel="stylesheet" href="css/marketplace.css">
+<link rel="stylesheet" href="css/wtb.css">
 
 <script src="js/supabase-client.js"></script>
 <script src="js/db-bootstrap.js"></script>
@@ -1004,7 +1009,7 @@
     <div class="mk-header-actions">
 <!-- mk-inbox-badge: hidden element for realtime unread counter -->
       <span id="mk-inbox-badge" style="display:none" aria-live="polite"></span>
-      <button class="mk-btn mk-btn--primary">
+      <button class="mk-btn mk-btn--primary" id="mk-btn-create">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Anunciar
       </button>
@@ -1030,6 +1035,45 @@
 
 </div>
 </div><!-- /tab-marketplace -->
+
+<!-- TAB: PROCURA (WTB — Want to Buy) -->
+<div class="tab-content" id="tab-wtb">
+<div class="mk-wrap">
+
+  <div class="mk-header">
+    <div>
+      <div class="mk-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Procura
+      </div>
+      <div class="mk-subtitle">Publique o que você quer comprar &mdash; vendedores entram em contato</div>
+    </div>
+    <div class="mk-header-actions">
+      <button class="mk-btn mk-btn--primary" id="wtb-btn-create">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Procurar
+      </button>
+    </div>
+  </div>
+
+  <div class="wtb-hint-banner">
+    <strong>Como funciona:</strong> publique o Pok&eacute;mon que voc&ecirc; quer comprar, defina o quanto paga e a bola desejada. Quem tiver o pok&eacute;mon clica em <strong>Tenho isso!</strong> e abre um chat direto com voc&ecirc;.
+  </div>
+
+  <div class="mk-filters mk-filters--balls" id="wtb-ball-filters">
+    <span class="mk-ball-filters-label">Bola:</span>
+    <button class="mk-ball-chip active" data-wtb-ball="all">Qualquer</button>
+    <button class="mk-ball-chip" data-wtb-ball="ultra"    style="--ball:#f5c518">Ultra</button>
+    <button class="mk-ball-chip" data-wtb-ball="premier"  style="--ball:#cfd3dc">Premier</button>
+    <button class="mk-ball-chip" data-wtb-ball="alliance" style="--ball:#7c6aff">Alliance</button>
+    <input class="mk-search" id="wtb-search" placeholder="Buscar Pok&eacute;mon...">
+  </div>
+
+  <div id="wtb-list"></div>
+
+</div>
+</div><!-- /tab-wtb -->
+
 <!-- Marketplace M1 scripts -->
 <script src="js/marketplace-channels.js"></script>
 <script src="js/marketplace.js"></script>
@@ -1042,6 +1086,10 @@
 <script src="js/marketplace-chat.js"></script>
 <script src="js/marketplace-inbox.js"></script>
 <!-- Marketplace filter helpers: _mkFilter e _mkSearch definidos em marketplace.js -->
+<script src="js/wtb.js"></script>
+<script src="js/wtb-render.js"></script>
+<script src="js/wtb-create.js"></script>
+<script src="js/wtb-chat.js"></script>
 <script src="js/event-handlers.js"></script>
 </body>
 </html>

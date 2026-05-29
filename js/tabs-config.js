@@ -12,6 +12,7 @@ const TABS_CONFIG = {
   entregas:    true,
   wiki:        true,
   marketplace: true,   // Fase M1 — aba marketplace
+  wtb:         true,   // Aba Procura (Want to Buy)
 };
 
 // ============================================================
