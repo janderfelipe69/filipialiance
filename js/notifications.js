@@ -108,7 +108,7 @@ const NotificationsAPI = (() => {
     }
 
     const currentUser = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-    console.log('[Notifications] criando notificação — destinatário user_id:', user_id,
+    if (window.PA_DEBUG) console.log('[Notifications] criando notificação — destinatário user_id:', user_id,
       '| pedido_id:', pedido_id || null,
       '| tipo:', type || 'info',
       '| criado por:', currentUser?.id || '(sistema)');
@@ -139,7 +139,6 @@ const NotificationsAPI = (() => {
         // Fallback: tenta via RPC
         return await _createViaRPC(user_id, pedido_id, title, message, type);
       }
-      console.log('[Notifications] notificação criada para user_id:', user_id);
       return { ok: true };
     } catch (e) {
       console.warn('[Notifications] createNotification erro:', e.message);
@@ -196,7 +195,6 @@ const NotificationsAPI = (() => {
 
     // [ISOLAMENTO] Filtra SEMPRE pelo user_id do usuário logado.
     // Mesmo que RLS esteja mal configurado, o query tem a cláusula explícita.
-    console.log('[Notifications] carregando do user:', user.id, '| limit:', limit);
 
     try {
       // COLUNAS: id, user_id, pedido_id, title, message, type, read, created_at
@@ -218,7 +216,6 @@ const NotificationsAPI = (() => {
       const rows = await res.json();
 
       if (!Array.isArray(rows) || rows.length === 0) {
-        console.log('[Notifications] total carregado: 0 — nenhuma notificação para user_id:', user.id);
         return [];
       }
 
@@ -239,8 +236,6 @@ const NotificationsAPI = (() => {
         seen.add(r.id);
         return true;
       });
-
-      console.log('[Notifications] total carregado:', unique.length, '| user_id:', user.id);
 
       return unique;
     } catch (e) {
@@ -293,9 +288,7 @@ const NotificationsAPI = (() => {
     const user = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
     if (!user) return false;
 
-    console.log('[Notifications] mark all clicked');
-
-    // Conta não lidas antes
+    // Marca todas as não lidas
     let unreadBefore = 0;
     try {
       const countRes = await fetch(
@@ -308,7 +301,6 @@ const NotificationsAPI = (() => {
         unreadBefore = Array.isArray(rows) ? rows.length : 0;
       }
     } catch {}
-    console.log('[Notifications] unread before:', unreadBefore);
 
     // [FIX] REST direto primeiro — não depende de RPC inexistente
     try {
@@ -322,7 +314,6 @@ const NotificationsAPI = (() => {
         }
       );
       if (res.ok) {
-        console.log('[Notifications] unread after: 0');
         return true;
       }
     } catch {}
@@ -334,7 +325,6 @@ const NotificationsAPI = (() => {
         { method: 'POST', headers: _headers(), body: JSON.stringify({}) }
       );
       if (res.ok) {
-        console.log('[Notifications] unread after: 0');
         return true;
       }
     } catch {}
@@ -377,7 +367,7 @@ const NotificationsAPI = (() => {
       + '?apikey=' + window.SUPABASE_KEY
       + '&vsn=1.0.0';
 
-    console.log('[Notifications] realtime user:', userId, '| iniciando WebSocket (ref=' + myRef + ')');
+    if (window.PA_DEBUG) console.log('[Notifications] realtime user:', userId, '| iniciando WebSocket (ref=' + myRef + ')');
 
     let ws;
     try {
@@ -392,7 +382,6 @@ const NotificationsAPI = (() => {
 
     ws.onopen = () => {
       if (myRef !== _subscribeRef) { ws.close(); return; }
-      console.log('[Realtime] ✅ WebSocket conectado (ref=' + myRef + ')');
 
       _heartbeat = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -403,8 +392,6 @@ const NotificationsAPI = (() => {
       }, 25000);
 
       const channel = `realtime:public:notifications:user_id=eq.${userId}`;
-      console.log('[Realtime] Inscrevendo canal:', channel);
-
       ws.send(JSON.stringify({
         topic:   channel,
         event:   'phx_join',
@@ -430,23 +417,9 @@ const NotificationsAPI = (() => {
       let msg;
       try { msg = JSON.parse(evt.data); } catch { return; }
 
-      // Log de todos os eventos (pode remover em produção após diagnóstico)
-      console.log('[Realtime] Evento recebido:', JSON.stringify({
-        event:   msg.event,
-        topic:   msg.topic,
-        payload: msg.payload,
-      }));
-
       // Inscrição confirmada
       if (msg.event === 'phx_reply' && msg.payload?.status === 'ok') {
         _wsActive = true;
-        console.log('[Notifications] realtime user:', userId, '| canal conectado (ref=' + myRef + ')');
-        console.log('[Notifications] realtime user:', userId, '| escutando INSERTs WHERE user_id =', userId);
-        console.log('%c[Realtime] ⚠️  CHECKLIST SE NADA CHEGAR:', 'color:orange;font-weight:bold');
-        console.log('  1. Supabase Dashboard → Table Editor → notifications → Enable Realtime (toggle)');
-        console.log('  2. Supabase Dashboard → Database → Replication → supabase_realtime publication');
-        console.log('  3. RLS: o admin precisa ter INSERT na tabela notifications');
-        console.log('  4. Confirme user_id do INSERT = ' + userId);
         return;
       }
 
@@ -492,8 +465,6 @@ const NotificationsAPI = (() => {
 
       if (!record) return;
 
-      console.log('[Realtime] 📥 INSERT detectado (formato=' + formato + '):', record);
-
       if (!record.id) {
         console.warn('[Realtime] Record sem ID — ignorando:', record);
         return;
@@ -506,10 +477,7 @@ const NotificationsAPI = (() => {
       }
 
       // Deduplicação
-      if (_seenIds.has(record.id)) {
-        console.log('[Realtime] Duplicado ignorado:', record.id);
-        return;
-      }
+      if (_seenIds.has(record.id)) return;
       _seenIds.add(record.id);
       if (_seenIds.size > SEEN_MAX) {
         const oldest = [..._seenIds].slice(0, 50);
@@ -533,8 +501,6 @@ const NotificationsAPI = (() => {
         title:   record.title   || record.subject || record.heading || 'Notificação',
       };
 
-      console.log('[Realtime] 🔔 Notificação normalizada:', normalizedRecord);
-
       if (typeof _onNewCallback === 'function') _onNewCallback(normalizedRecord);
     };
 
@@ -545,7 +511,6 @@ const NotificationsAPI = (() => {
 
     ws.onclose = (evt) => {
       if (myRef !== _subscribeRef) return;
-      console.log('[Realtime] Conexão fechada (ref=' + myRef + ') | code:', evt.code, '| reason:', evt.reason || '(sem motivo)');
       _wsActive = false;
       clearInterval(_heartbeat);
       _heartbeat = null;
@@ -555,10 +520,7 @@ const NotificationsAPI = (() => {
       _reconnectTimer = setTimeout(() => {
         if (myRef !== _subscribeRef) return;
         const u = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
-        if (u && u.id === userId) {
-          console.log('[Realtime] Reconectando...');
-          startRealtime(userId, _onNewCallback);
-        }
+        if (u && u.id === userId) startRealtime(userId, _onNewCallback);
       }, 12000);
     };
   }
@@ -581,7 +543,6 @@ const NotificationsAPI = (() => {
     _subscribeRef++;
     _stopInternal();
     _seenIds.clear();
-    console.log('[Notifications] realtime user:', _currentUserId || '(nenhum)', '| canal removido definitivamente.');
   }
 
   // ── Archive / Delete ─────────────────────────────────────────────────────
@@ -707,20 +668,12 @@ const NotificationsAPI = (() => {
       const _parKey = 'notif:' + record.id;
       if (_par && _par.seen[_parKey]) {
         _par.matches++;
-        console.log('[Notifications/parallel] match detectado id:', record.id,
-          '| delta:', Date.now() - _par.seen[_parKey], 'ms');
         // Evento já processado pelo WS — dedup via _seenIds vai barrar abaixo
       }
 
       // Deduplicação: reutiliza _seenIds (Set existente) — sempre executado
-      if (_seenIds.has(record.id)) {
-        console.log('[Notifications/parallel] já processado pelo WS — descartando CustomEvent id:', record.id);
-        return;
-      }
+      if (_seenIds.has(record.id)) return;
 
-      // Evento chegou pelo CustomEvent antes do WS (ou WS não está ativo)
-      // Processar normalmente pelo mesmo fluxo
-      console.log('[Notifications/parallel] CustomEvent sem match WS — processando id:', record.id);
       _seenIds.add(record.id);
       if (_seenIds.size > SEEN_MAX) {
         const oldest = [..._seenIds].slice(0, 50);
@@ -736,7 +689,6 @@ const NotificationsAPI = (() => {
 
       if (typeof _onNewCallback === 'function') _onNewCallback(normalizedRecord);
     });
-    console.log('[Notifications] ✅ Listener paralelo notifications:changed registrado (Passo 5C.1).');
   })();
 
   // ── Exporta API Pública ──────────────────────────────────────────────────

@@ -59,9 +59,6 @@
     }
     if (record._normalized) return record;
 
-    console.log('[DataNormalize] normalizando id:', record.id,
-      '| campos recebidos:', Object.keys(record).join(', '));
-
     // ── 1. service_name ────────────────────────────────────────────────
     const service_name =
       record.service_name   ||   // EN canônico (novo)
@@ -69,25 +66,12 @@
       record.service        ||   // alias curto
       null;
 
-    if (!service_name) {
-      console.log('[DataNormalize] campo ausente: service_name (id:', record.id, ')');
-    } else if (!record.service_name) {
-      const src = record.servico_nome ? 'servico_nome' : 'service';
-      console.log('[DataNormalize] fallback service_name ←', src, '=', service_name);
-    }
-
     // ── 2. pokemon_name ────────────────────────────────────────────────
     const pokemon_name =
       record.pokemon_name   ||   // EN canônico (novo)
       record.pokemon_nome   ||   // PT legado
       record.pokemon        ||   // alias curto
       null;
-
-    if (!pokemon_name && !record.pokemon_name) {
-      console.log('[DataNormalize] campo ausente: pokemon_name (id:', record.id, ')');
-    } else if (record.pokemon_name === undefined && pokemon_name) {
-      console.log('[DataNormalize] fallback pokemon_name ← legado');
-    }
 
     // ── 3. service_type ────────────────────────────────────────────────
     const service_type =
@@ -171,21 +155,6 @@
       _normalized: true,
       _partial: !service_name || !image_url,
     };
-
-    if (normalized._partial) {
-      console.log('[PartialRender] dados incompletos detectados — id:', record.id,
-        '| service_name:', !!service_name, '| image_url:', !!image_url);
-    }
-
-    console.log('[DataNormalize] ✅ normalizado id:', record.id, {
-      service_name: service_name || '(null)',
-      pokemon_name: pokemon_name || '(null)',
-      service_type: service_type || '(null)',
-      cliente_nick: cliente_nick || '(null)',
-      image_url:    image_url    ? '✅' : '(sem imagem)',
-      prints:       prints.length,
-      _partial:     normalized._partial,
-    });
 
     return normalized;
   }
@@ -282,15 +251,9 @@
       sanitized[key] = value;
     }
 
-    if (blockedFound.length) {
+    if (blockedFound.length && window.PA_DEBUG) {
       console.warn('[PayloadSanitize] campos legados removidos:', blockedFound.join(', '));
     }
-    if (mappedFields.length) {
-      console.log('[PayloadSanitize] campos mapeados PT→EN:', mappedFields.join(', '));
-    }
-
-    console.log('[PayloadSanitize] ✅ payload sanitizado:',
-      Object.keys(sanitized).join(', '));
 
     return sanitized;
   }
@@ -406,13 +369,10 @@
       const rows = await res.json();
 
       if (Array.isArray(rows) && rows.length > 0) {
-        const cols = Object.keys(rows[0]);
-        console.log('[SchemaAudit] ✅ Schema real detectado (', cols.length, 'colunas ):', cols.join(', '));
-        return cols;
+        return Object.keys(rows[0]);
       }
 
       // Estratégia 2: tabela existe mas está vazia — usa limit=0 + header
-      console.warn('[SchemaAudit] Tabela vazia — tentando Content-Range...');
       const res0 = await fetch(
         `${sbUrl}/rest/v1/delivery_proofs?select=*&limit=0`,
         { headers: { apikey: sbKey, Authorization: 'Bearer ' + _jwt,
@@ -448,28 +408,12 @@
         _realSchemaColumns = realCols;
 
         confirmed = DESIRED_COLUMNS.filter(col => {
-          if (BANNED_FROM_SELECT.includes(col)) {
-            console.error('[SchemaAudit] ❌ coluna banida em DESIRED_COLUMNS:', col, '— removida');
-            return false;
-          }
-          const exists = realCols.includes(col);
-          if (!exists) {
-            console.warn(`[SchemaAudit] ⚠️ "${col}" desejada mas não existe na tabela — ignorada`);
-          }
-          return exists;
+          if (BANNED_FROM_SELECT.includes(col)) return false;
+          return realCols.includes(col);
         });
-
-        const extras = realCols.filter(c => !DESIRED_COLUMNS.includes(c));
-        if (extras.length) {
-          console.log('[SchemaAudit] ℹ️ Colunas na tabela não solicitadas:', extras.join(', '));
-        }
-        console.log('[SchemaAudit] ✅ SELECT confirmado pelo banco:', confirmed.join(', '));
       } else {
-        // Introspecção falhou: usa DESIRED_COLUMNS filtrado de banidas.
-        // Não inclui nenhuma coluna com histórico de causar HTTP 400.
-        _realSchemaColumns = null; // sem schema real — resolveSelectAdmin usará safe-fail
+        _realSchemaColumns = null;
         confirmed = DESIRED_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c));
-        console.warn('[SchemaAudit] ⚠️ Usando fallback (sem introspecção):', confirmed.join(', '));
       }
 
       _resolvedColumns = confirmed.join(',');
@@ -487,11 +431,7 @@
    */
   function buildDeliveryProofsSelect() {
     if (_resolvedColumns !== null) return _resolvedColumns;
-    // Usa apenas CORE_COLUMNS no fallback síncrono — não inclui colunas opcionais
-    // que podem não existir e causariam HTTP 400 antes da introspecção completar.
-    const fallback = CORE_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c)).join(',');
-    console.warn('[SchemaAudit] buildDeliveryProofsSelect() síncrono antes da introspecção — fallback CORE:', fallback);
-    return fallback;
+    return CORE_COLUMNS.filter(c => !BANNED_FROM_SELECT.includes(c)).join(',');
   }
 
   /** Versão assíncrona preferível — aguarda introspecção completa.
@@ -516,22 +456,13 @@
     // Se introspecção falhou (_realSchemaColumns === null), omite financeiras (safe-fail):
     // admin perde campos financeiros mas as entregas aparecem — nunca HTTP 400 por coluna inexistente.
     const extra = FINANCIAL_COLUMNS.filter(function(c) {
-      if (baseCols.includes(c)) return false; // já está na base
-      if (_realSchemaColumns === null) {
-        console.warn('[SchemaAudit] resolveSelectAdmin: schema real desconhecido — coluna "' + c + '" omitida (safe-fail)');
-        return false;
-      }
-      const exists = _realSchemaColumns.includes(c);
-      if (!exists) {
-        console.warn('[SchemaAudit] resolveSelectAdmin: coluna financeira "' + c + '" não existe no banco — omitida do SELECT admin');
-      }
-      return exists;
+      if (baseCols.includes(c)) return false;
+      if (_realSchemaColumns === null) return false;
+      return _realSchemaColumns.includes(c);
     });
 
     if (!extra.length) return base;
-    const adminSelect = base + ',' + extra.join(',');
-    console.log('[SchemaAudit] resolveSelectAdmin SELECT:', adminSelect);
-    return adminSelect;
+    return base + ',' + extra.join(',');
   }
 
   /**
@@ -567,10 +498,6 @@
     if (fallback === undefined) fallback = '-';
 
     if (value === null || value === undefined || value === '') {
-      if (fallback !== '-') {
-        // Só loga quando fallback customizado é ativado (reduz ruído)
-        console.log('[SafeRender] valor ausente → usando fallback:', JSON.stringify(fallback));
-      }
       return fallback;
     }
 
@@ -906,9 +833,6 @@
   global.safe                     = safe;
 
   // ── Log de inicialização ───────────────────────────────────
-  console.log('[SchemaCompat] ✅ Camada de compatibilidade carregada.',
-    '| Core columns:', CORE_COLUMNS.join(', '),
-    '| Optional columns: quantity, player_name, delivered_at, order_created_at');
 
   // ── Auto-validação em desenvolvimento (remove em produção) ──
   if (global.location && global.location.hostname === 'localhost') {

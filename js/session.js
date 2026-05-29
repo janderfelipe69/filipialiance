@@ -71,7 +71,7 @@ const Session = (() => {
   }
 
   function _notify(eventType, user) {
-    console.log(`[Session] 🔔 ${eventType}`, user ? `→ ${user.nickname || user.email}` : '(sem user)');
+    if (window.PA_DEBUG) console.log(`[Session] 🔔 ${eventType}`, user ? `→ ${user.nickname || user.email}` : '(sem user)');
     for (const cb of _listeners) {
       try { cb(eventType, user); } catch (e) {
         console.warn('[Session] Erro em listener de auth:', e);
@@ -146,7 +146,7 @@ const Session = (() => {
     if (_refreshTimer) clearTimeout(_refreshTimer);
     const delay = Math.max(expiresInSeconds * 0.75 * 1000, 30_000);
     _refreshTimer = setTimeout(_doRefresh, delay);
-    console.log(`[Session] ⏱ Próximo refresh em ~${Math.round(delay / 60_000)}min`);
+    if (window.PA_DEBUG) console.log(`[Session] ⏱ Próximo refresh em ~${Math.round(delay / 60_000)}min`);
   }
 
   async function _doRefresh() {
@@ -154,13 +154,12 @@ const Session = (() => {
       console.warn('[Session] _doRefresh: sem refresh_token, abortando.');
       return;
     }
-    console.log('[Session] 🔄 Renovando token...');
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
         if (!data || !data.access_token) throw new Error('Resposta inválida do refresh endpoint');
         _saveTokens(data.access_token, data.refresh_token, data.expires_in);
-        console.log('[Session] ✅ TOKEN REFRESHED (tentativa %d) | expires_in: %ds', attempt, data.expires_in);
+        if (window.PA_DEBUG) console.log('[Session] ✅ TOKEN REFRESHED (tentativa %d) | expires_in: %ds', attempt, data.expires_in);
         _notify('token_refreshed', _currentUser);
         return;
       } catch (e) {
@@ -181,13 +180,11 @@ const Session = (() => {
       console.error('[Session] _loadProfile: authUserId é null — isso não deveria acontecer');
       return null;
     }
-    console.log('[Session] 📋 Carregando perfil para user_id:', authUserId);
     try {
       const cached = localStorage.getItem(KEYS.USER_CACHE);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed && parsed.id === authUserId) {
-          console.log('[Session] 📋 Perfil do cache:', parsed.nickname);
           return parsed;
         }
       }
@@ -197,7 +194,6 @@ const Session = (() => {
       const profile = await SupabaseClient.DB.getUserProfile(authUserId, jwt);
       if (profile) {
         try { localStorage.setItem(KEYS.USER_CACHE, JSON.stringify(profile)); } catch (_) {}
-        console.log('[Session] ✅ Perfil carregado do banco. Role:', profile.role);
         return profile;
       }
       console.warn('[Session] ⚠️ Perfil não encontrado em public.users para id:', authUserId);
@@ -223,7 +219,7 @@ const Session = (() => {
             }
           );
           if (insertRes.ok || insertRes.status === 409) {
-            console.log('[Session] 🔧 Perfil criado automaticamente em public.users (fallback trigger).');
+            if (window.PA_DEBUG) console.log('[Session] 🔧 Perfil criado automaticamente em public.users (fallback trigger).');
             // Tenta carregar o perfil recém-criado
             const created = await SupabaseClient.DB.getUserProfile(authUserId, jwt);
             if (created) {
@@ -272,31 +268,24 @@ const Session = (() => {
    * Isso garante que Session.ready() sempre resolve, nunca rejeita.
    */
   async function _doInit() {
-    console.log('[Session] 🚀 Inicializando sessão...');
-
     try {
       // Passo 1: Carrega tokens do storage
       const hasStoredTokens = _loadTokensFromStorage();
 
       if (!hasStoredTokens) {
-        console.log('[Session] ℹ️ Nenhuma sessão persistida. Usuário não logado.');
         _initialized = true;
         window.SESSION_READY = true;
         _renderLoggedOut();
         return;
       }
 
-      console.log('[Session] 🔑 Tokens encontrados no localStorage. Validando...');
-
       // Passo 2: Se token expirado, tenta refresh antes de validar
       if (_isTokenExpired()) {
-        console.log('[Session] ⏰ Token expirado, tentando renovar antes de validar...');
         if (_refreshToken) {
           try {
             const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
             if (data?.access_token) {
               _saveTokens(data.access_token, data.refresh_token, data.expires_in);
-              console.log('[Session] ✅ Token renovado durante init.');
             } else {
               console.warn('[Session] ⚠️ Refresh retornou resposta sem access_token.');
             }
@@ -315,13 +304,12 @@ const Session = (() => {
         if (!authUser || !authUser.id) {
           throw new Error('getUser retornou objeto inválido (sem .id)');
         }
-        console.log('[Session] ✅ SESSION RESTORED | user:', authUser.email, '| id:', authUser.id);
+        if (window.PA_DEBUG) console.log('[Session] ✅ SESSION RESTORED | user:', authUser.email, '| id:', authUser.id);
       } catch (getUserErr) {
         console.warn('[Session] ⚠️ Token rejeitado pelo servidor:', getUserErr.message);
 
         // Última tentativa: refresh de emergência
         if (_refreshToken) {
-          console.log('[Session] 🔄 Refresh de emergência...');
           try {
             const data = await SupabaseClient.Auth.refreshToken(_refreshToken);
 
@@ -339,7 +327,6 @@ const Session = (() => {
             try {
               authUser = await SupabaseClient.Auth.getUser(_accessToken);
               if (!authUser || !authUser.id) throw new Error('getUser inválido após refresh de emergência');
-              console.log('[Session] ✅ Sessão recuperada via refresh de emergência. user:', authUser.email);
             } catch (getUserAfterRefreshErr) {
               console.error('[Session] ❌ getUser falhou mesmo após refresh de emergência:', getUserAfterRefreshErr.message);
               _clearTokens();
@@ -381,7 +368,6 @@ const Session = (() => {
         _scheduleRefresh(remainingSec);
       } else {
         _refreshTimer = setTimeout(_doRefresh, 5_000);
-        console.log('[Session] ⚠️ Token com < 30s restantes, refresh em 5s.');
       }
 
       // Passo 6: Atualiza UI e notifica
@@ -389,13 +375,6 @@ const Session = (() => {
       window.SESSION_READY = true;
       _renderLoggedIn(_currentUser);
       _notify('login', _currentUser);
-
-      console.log(
-        '[Session] ✅ SESSION RESTORED | user:', _currentUser.nickname || _currentUser.email,
-        '| role:', _currentUser.role,
-        '| token expira em:', Math.round(remainingSec / 60) + 'min',
-        '| access_token:', _accessToken ? _accessToken.slice(0, 20) + '…' : 'NULL'
-      );
 
     } catch (fatalErr) {
       // Captura qualquer exceção não prevista — _initPromise NUNCA deve rejeitar
@@ -432,18 +411,10 @@ const Session = (() => {
     _initialized = true;
     _renderLoggedIn(_currentUser);
     _notify('login', _currentUser);
-
-    console.log(
-      '[Session] ✅ LOGIN SUCCESS | user:', _currentUser.nickname || _currentUser.email,
-      '| role:', _currentUser.role,
-      '| access_token:', authData.access_token.slice(0, 20) + '…',
-      '| expires_in:', authData.expires_in + 's'
-    );
     return _currentUser;
   }
 
   async function logout() {
-    console.log('[Session] 👋 Logout solicitado...');
     if (_accessToken) {
       try {
         await SupabaseClient.Auth.signOut(_accessToken);
@@ -452,7 +423,6 @@ const Session = (() => {
       }
     }
     _forceLogoutSync();
-    console.log('[Session] ✅ Logout concluído.');
   }
 
   async function _forceLogout() { _forceLogoutSync(); }
@@ -512,7 +482,6 @@ const Session = (() => {
       console.warn('[Session] forceRefresh: sem refresh_token.');
       return null;
     }
-    console.log('[Session] 🔄 forceRefresh() chamado por módulo externo...');
     await _doRefresh();
     return _accessToken;
   }

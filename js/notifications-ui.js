@@ -586,7 +586,6 @@ const NotificationsUI = (() => {
       $badge.classList.remove('bump');
       requestAnimationFrame(() => $badge.classList.add('bump'));
     }
-    console.log('[NotificationsUI] badge updated →', n);
 
     // Atualiza estado dos botões de ação
     _updateActionButtons();
@@ -609,9 +608,6 @@ const NotificationsUI = (() => {
   // ── RENDER LIST (completo, só quando necessário) ──────────────────────────
   function _render() {
     if (!$list) return;
-    console.log('[NotificationsUI] rerender triggered, notifs:', _notifs.filter(n=>!n.archived).length);
-    console.log('[NotificationsUI] rendering header');
-    console.log('[NotificationsUI] rendering footer');
     const visible = _notifs.filter(n => !n.archived);
     if (visible.length === 0) {
       $list.innerHTML = `
@@ -647,7 +643,6 @@ const NotificationsUI = (() => {
         </button>
       </div>`).join('');
     _updateActionButtons();
-    console.log('[NotificationsUI] scroll container height:', $list.scrollHeight, 'px, clientHeight:', $list.clientHeight, 'px');
   }
 
   // ── REMOVE ITEM DA UI COM ANIMAÇÃO ────────────────────────────────────────
@@ -670,7 +665,6 @@ const NotificationsUI = (() => {
   // ── DISMISS INDIVIDUAL ────────────────────────────────────────────────────
   async function _removeOne(id) {
     if (!id) return;
-    console.log('[NotificationsUI] remove item', id);
     _notifs = _notifs.filter(n => n.id !== id);
     _animateOut(id, () => {
       const remaining = $list ? $list.querySelectorAll('.nui-item:not(.removing)').length : 0;
@@ -713,10 +707,7 @@ const NotificationsUI = (() => {
     const $btn = document.getElementById('nui-mark-all');
     if ($btn) $btn.disabled = true;
 
-    // [DEBUG] Log antes
     const unreadBefore = _notifs.filter(n => !n.read && !n.archived).length;
-    console.log('[Notifications] mark all clicked');
-    console.log('[Notifications] unread before:', unreadBefore);
 
     // 1. Atualiza array local IMEDIATAMENTE (sem esperar o banco)
     _notifs = _notifs.map(n => ({ ...n, read: true }));
@@ -746,12 +737,7 @@ const NotificationsUI = (() => {
       }
     } catch (e) {
       console.warn('[Notifications] markAllRead banco falhou:', e.message);
-      // UI já está atualizada — não reverte para não confundir o usuário
     }
-
-    // [DEBUG] Log depois
-    const unreadAfter = _notifs.filter(n => !n.read && !n.archived).length;
-    console.log('[Notifications] unread after:', unreadAfter);
 
     if ($btn) $btn.disabled = false;
     _updateActionButtons();
@@ -767,7 +753,6 @@ const NotificationsUI = (() => {
     if ($btn) $btn.disabled = true;
 
     const readIds = _notifs.filter(n => n.read && !n.archived).map(n => n.id);
-    console.log('[Notifications] deleted read notifications:', readIds.length);
 
     // 1. Remove do array local
     _notifs = _notifs.filter(n => !n.read || n.archived);
@@ -795,7 +780,6 @@ const NotificationsUI = (() => {
 
   // ── CLEAR ALL ─────────────────────────────────────────────────────────────
   async function _clearAll() {
-    console.log('[NotificationsUI] clear all');
     _notifs = [];
     _render();
     _badge(false);
@@ -918,10 +902,7 @@ const NotificationsUI = (() => {
   // [FIX 6] Realtime continua funcionando após marcar todas
   function _onNew(rec) {
     if (!rec || !rec.id) return;
-    if (_seen.has(rec.id)) {
-      console.log('[NotificationsUI] dedup ignored:', rec.id);
-      return;
-    }
+    if (_seen.has(rec.id)) return;
     _seen.add(rec.id);
     if (_notifs.find(n => n.id === rec.id)) return;
 
@@ -992,7 +973,6 @@ const NotificationsUI = (() => {
     if (_slotObserver) _slotObserver.disconnect();
     _slotObserver = new MutationObserver(() => {
       if (!document.getElementById('nui-bell')) {
-        console.log('[NotificationsUI] nui-wrap foi removido pelo session.js — reinjectando');
         _injectInto(authSlot);
       }
     });
@@ -1043,9 +1023,6 @@ const NotificationsUI = (() => {
     document.removeEventListener('click', _outsideClick);
     document.addEventListener('click', _outsideClick);
 
-    console.log('[NotificationsUI] injected into header');
-    console.log('[NotificationsUI] clear button mounted:', !!document.getElementById('nui-clear-read'));
-    console.log('[NotificationsUI] mark-all button mounted:', !!document.getElementById('nui-mark-all'));
 
     // Restaura o badge e estado visual
     _badge(false);

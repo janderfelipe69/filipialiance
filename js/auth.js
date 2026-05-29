@@ -130,7 +130,6 @@ const Auth = (() => {
     const cleanEmail    = email.trim().toLowerCase();
     const cleanNickname = nickname.trim(); // preserva espaços internos: "J F" → "J F"
 
-    console.log('[Auth] Iniciando cadastro para:', cleanEmail, '| Nickname:', cleanNickname);
 
     try {
       const data = await SupabaseClient.Auth.signUp(
@@ -143,16 +142,6 @@ const Auth = (() => {
         }
       );
 
-      // ── LOG DIAGNÓSTICO ───────────────────────────────────────────────────
-      console.log('[Auth] SIGNUP RESPONSE bruto:', JSON.stringify({
-        has_access_token:      !!data?.access_token,
-        has_user:              !!data?.user,
-        has_id_root:           !!data?.id,
-        has_confirmation_sent: !!data?.confirmation_sent_at,
-        user_id:               data?.user?.id   || data?.id    || null,
-        user_email:            data?.user?.email || data?.email || null,
-      }));
-
       if (!data) {
         console.error('[Auth] Resposta nula do servidor');
         return { success: false, message: 'Sem resposta do servidor. Verifique sua conexão.' };
@@ -161,7 +150,6 @@ const Auth = (() => {
       // ── CASO 1: auto-confirm ATIVADO ──────────────────────────────────────
       // GoTrue retorna: { access_token, refresh_token, expires_in, user: {...} }
       if (data.access_token && data.user) {
-        console.log('[Auth] Cadastro com auto-confirm ON. Login automático...');
         const user = await Session._handleLoginSuccess({
           access_token:  data.access_token,
           refresh_token: data.refresh_token,
@@ -177,7 +165,6 @@ const Auth = (() => {
       // O usuário FOI criado em auth.users mas precisa confirmar o email.
       if (data.id || data.confirmation_sent_at) {
         const userEmail = data.email || cleanEmail;
-        console.log('[Auth] Cadastro com auto-confirm OFF. Email enviado para:', userEmail);
         return {
           success:           true,
           needsConfirmation: true,
@@ -207,22 +194,14 @@ const Auth = (() => {
     if (!email || !email.trim()) return { success: false, field: 'email', message: 'Digite seu e-mail.' };
     if (!password)               return { success: false, field: 'password', message: 'Digite sua senha.' };
 
-    console.log('[Auth] Tentando login para:', email.trim().toLowerCase());
-
     try {
       const data = await SupabaseClient.Auth.signIn(email.trim().toLowerCase(), password);
-
-      console.log('[Auth] LOGIN RESPONSE:', JSON.stringify({
-        has_access_token: !!data?.access_token,
-        has_user:         !!data?.user,
-      }));
 
       if (!data || !data.access_token) {
         return { success: false, message: 'Resposta inesperada do servidor. Tente novamente.' };
       }
 
       const user = await Session._handleLoginSuccess(data);
-      console.log('[Auth] Login bem-sucedido:', user.nickname || user.email);
       return { success: true, user };
 
     } catch (e) {

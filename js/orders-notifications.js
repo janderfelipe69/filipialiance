@@ -70,13 +70,8 @@ const OrdersNotifications = (() => {
   // ── Init ─────────────────────────────────────────────────────────────────
 
   function init() {
-    if (_initCalled) {
-      console.log('[OrdersNotifications] init() ignorado — já inicializado.');
-      return;
-    }
+    if (_initCalled) return;
     _initCalled = true;
-
-    console.log('[OrdersNotifications] init() executando...');
 
     _injectStyles();
     _ensureToastContainer();
@@ -85,8 +80,6 @@ const OrdersNotifications = (() => {
     // não criar um segundo sino duplicado. Apenas registrar o realtime.
     if (!document.getElementById('nui-bell')) {
       _injectBell();
-    } else {
-      console.log('[OrdersNotifications] NotificationsUI já injetou o sino — pulando _injectBell()');
     }
 
     if (typeof Session === 'undefined') {
@@ -95,7 +88,6 @@ const OrdersNotifications = (() => {
     }
 
     _authChangeHandler = function _authHandler(event, user) {
-      console.log('[OrdersNotifications] Auth event:', event, user ? user.id : null);
       if (event === 'login' && user) {
         _onLogin(user);
       } else if (event === 'logout') {
@@ -109,7 +101,6 @@ const OrdersNotifications = (() => {
   // ── Login / Logout ────────────────────────────────────────────────────────
 
   function _onLogin(user) {
-    console.log('[OrdersNotifications] _onLogin — user:', user.id, '| role:', user.role);
     _refreshBadge();
     if (typeof NotificationsAPI !== 'undefined') {
       NotificationsAPI.startRealtime(user.id, _onRealtimeNotification);
@@ -119,7 +110,6 @@ const OrdersNotifications = (() => {
   }
 
   function _onLogout() {
-    console.log('[OrdersNotifications] _onLogout');
     if (typeof NotificationsAPI !== 'undefined') {
       NotificationsAPI.stopRealtime();
     }
@@ -132,13 +122,7 @@ const OrdersNotifications = (() => {
 
   function _onRealtimeNotification(record) {
     if (!record || !record.id) return;
-
-    console.log('[OrdersNotifications] _onRealtimeNotification:', record);
-
-    if (_toastedIds.has(record.id)) {
-      console.log('[OrdersNotifications] Toast duplicado ignorado:', record.id);
-      return;
-    }
+    if (_toastedIds.has(record.id)) return;
     _toastedIds.add(record.id);
 
     // [FIX D] Fallback de campos para garantir texto no toast e no card
@@ -205,7 +189,6 @@ const OrdersNotifications = (() => {
 
     list.insertBefore(div, list.firstChild);
 
-    console.log('[OrdersNotifications] Card realtime injetado no topo do dropdown');
   }
 
   // ── Sininho ───────────────────────────────────────────────────────────────
@@ -228,7 +211,6 @@ const OrdersNotifications = (() => {
     }
 
     if (!container) {
-      console.log('[OrdersNotifications] Container do sininho não encontrado, tentando em 500ms...');
       setTimeout(_injectBell, 500);
       return;
     }
@@ -247,8 +229,6 @@ const OrdersNotifications = (() => {
     `;
     bell.onclick = _toggleDropdown;
     container.insertBefore(bell, container.firstChild);
-
-    console.log('[OrdersNotifications] Sininho injetado em:', container.className);
   }
 
   // ── Badge ─────────────────────────────────────────────────────────────────
@@ -257,7 +237,6 @@ const OrdersNotifications = (() => {
     if (typeof NotificationsAPI === 'undefined') return;
     try {
       const count = await NotificationsAPI.countUnread();
-      console.log('[OrdersNotifications] Badge count do banco:', count);
       _setBadge(count);
     } catch (e) {
       console.warn('[OrdersNotifications] _refreshBadge erro:', e.message);
@@ -352,34 +331,16 @@ const OrdersNotifications = (() => {
     // Delegação de eventos no painel — todos os botões do header
     panel.addEventListener('click', e => {
       e.stopPropagation();
-
-      if (e.target.closest('#pa-notif-close-btn')) {
-        _closeDropdown();
-        return;
-      }
-      if (e.target.closest('#pa-notif-mark-all')) {
-        _handleMarkAll();
-        return;
-      }
-      if (e.target.closest('#pa-notif-clear-read')) {
-        _handleClearRead();
-        return;
-      }
-      if (e.target.closest('#pa-notif-clear-all')) {
-        _handleClearAll();
-        return;
-      }
+      if (e.target.closest('#pa-notif-close-btn')) { _closeDropdown(); return; }
+      if (e.target.closest('#pa-notif-mark-all'))  { _handleMarkAll();  return; }
+      if (e.target.closest('#pa-notif-clear-read')){ _handleClearRead();return; }
+      if (e.target.closest('#pa-notif-clear-all')) { _handleClearAll(); return; }
     });
-
-    console.log('[UI] renderHeader');
-    console.log('[UI] botão limpar renderizado', !!panel.querySelector('#pa-notif-clear-read'));
-    console.log('[UI] notifications.length sendo carregado...');
   }
 
   // ── Handlers dos botões do header ────────────────────────────────────────
 
   async function _handleMarkAll() {
-    console.log('[UI] marcar todas clicado');
     if (typeof NotificationsAPI === 'undefined') return;
     const btn = document.getElementById('pa-notif-mark-all');
     if (btn) btn.disabled = true;
@@ -395,7 +356,6 @@ const OrdersNotifications = (() => {
   }
 
   async function _handleClearRead() {
-    console.log('[UI] limpar lidas clicado');
     if (typeof NotificationsAPI === 'undefined') return;
     const btn = document.getElementById('pa-notif-clear-read');
     if (btn) { btn.disabled = true; btn.textContent = 'Limpando...'; }
@@ -417,7 +377,6 @@ const OrdersNotifications = (() => {
   }
 
   async function _handleClearAll() {
-    console.log('[UI] limpar tudo clicado');
     if (typeof NotificationsAPI === 'undefined') return;
     const btn = document.getElementById('pa-notif-clear-all');
     if (btn) btn.disabled = true;
@@ -463,11 +422,7 @@ const OrdersNotifications = (() => {
     const list = document.getElementById('pa-notif-list');
     if (!list || typeof NotificationsAPI === 'undefined') return;
 
-    console.log('[OrdersNotifications] _loadDropdownContent: buscando notificações...');
-
     const rows = await NotificationsAPI.fetchMyNotifications(30);
-
-    console.log('[OrdersNotifications] _loadDropdownContent: rows =', rows);
 
     if (!rows || !rows.length) {
       list.innerHTML = `
@@ -476,7 +431,6 @@ const OrdersNotifications = (() => {
           <span>Nenhuma notificação ainda</span>
         </div>
       `;
-      console.log('[OrdersNotifications] Painel: sem notificações');
       return;
     }
 
@@ -508,8 +462,6 @@ const OrdersNotifications = (() => {
         </div>
       `;
     }).join('');
-
-    console.log('[OrdersNotifications] Painel: renderizou', rows.length, 'notificações');
 
     // Marca como lidas após 1.5s de exibição
     const unreadIds = rows.filter(n => !n.read).map(n => n.id);

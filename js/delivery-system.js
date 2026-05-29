@@ -208,7 +208,6 @@
         // Fallback ultra-conservador: apenas colunas core SEM financeiras.
         _selectCols = 'id,order_id,service_name,pokemon_name,service_type,image_url,cliente_nick,delivered_by,created_at,descricao';
       }
-      console.log('[Entrega] GET delivery_proofs select (admin=' + _userIsAdmin + '):', _selectCols);
 
       const url = `${SB_URL}/rest/v1/${TABLE}` +
         `?select=${_selectCols}` +
@@ -242,7 +241,6 @@
             try {
               const retryRes = await fetch(retryUrl, { headers: _headers(jwt) });
               if (retryRes.ok) {
-                console.log('[Entrega] ✅ Retry CORE bem-sucedido após erro de coluna inexistente');
                 const retryRows = await retryRes.json();
                 retryRows.forEach(row => {
                   if (!row.image_url && Array.isArray(row.prints) && row.prints[0]?.url) {
@@ -320,8 +318,6 @@
           const e = await rPatch.json().catch(() => ({}));
           // Não lança — o proof já foi deletado; logar e continuar
           console.error('[Entrega] ⚠️ Prova removida mas falhou ao reverter status do pedido:', e.message || rPatch.status);
-        } else {
-          console.log('[Entrega] ✅ pedido', orderId, 'revertido para in_progress');
         }
       }
     },
