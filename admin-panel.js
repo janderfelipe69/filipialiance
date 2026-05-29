@@ -1385,10 +1385,17 @@
         '<span class="admin-ff-name">' + labels[tab] + '</span>' +
         '<span class="admin-ff-controls">' +
           '<span id="admin-ff-badge-' + tab + '" class="admin-ff-badge ' + (on ? 'on' : 'off') + '">' + (on ? 'Ativo' : 'Bloqueado') + '</span>' +
-          '<div id="admin-ff-track-' + tab + '" class="admin-ff-track ' + (on ? 'on' : 'off') + '" onclick="window.__adminToggleFeatureFlag('' + tab + '')">' +
+          '<div id="admin-ff-track-' + tab + '" class="admin-ff-track ' + (on ? 'on' : 'off') + '">' +
             '<span class="admin-ff-knob"></span>' +
           '</div>' +
         '</span>';
+      // Liga o handler via addEventListener (evita problemas de escape em onclick inline)
+      var track = row.querySelector('#admin-ff-track-' + tab);
+      if (track) {
+        track.addEventListener('click', function () {
+          global.__adminToggleFeatureFlag(tab);
+        });
+      }
       drawer.appendChild(row);
     });
 
