@@ -410,10 +410,13 @@
 
       await _patchListing(_editId, patch);
 
-      // Atualiza estado local
+      // Atualiza estado local (otimista) — bump updated_at força o card a
+      // reconstruir imediatamente, sem esperar o round-trip do realtime.
+      // O render resolve os helds pelo id, então held_x_id/held_y_id já bastam.
       if (global.PA && global.PA.marketplace) {
+        var optimistic = Object.assign({}, patch, { updated_at: new Date().toISOString() });
         global.PA.marketplace.listings = (global.PA.marketplace.listings || []).map(function(l){
-          return l.id === _editId ? Object.assign({}, l, patch) : l;
+          return l.id === _editId ? Object.assign({}, l, optimistic) : l;
         });
         _triggerRender();
       }

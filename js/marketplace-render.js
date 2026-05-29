@@ -63,6 +63,17 @@
       + _esc(cfg.label) + '</span>';
   }
 
+  // ── Resolve held (join object or catalog fallback by id) ──────
+  function _resolveHeld(joined, id) {
+    if (!id) return null;
+    if (joined && joined.id === id) return joined;
+    if (typeof HeldsCatalog !== 'undefined' && typeof HeldsCatalog.getById === 'function') {
+      var fromCatalog = HeldsCatalog.getById(id);
+      if (fromCatalog) return fromCatalog;
+    }
+    return joined || null; // last resort: whatever we have
+  }
+
   // ── Boost class ───────────────────────────────────────────────
   function _boostClass(boost) {
     if (!boost) return 'mk-card-boost--low';
@@ -198,8 +209,12 @@
     var boostCls   = _boostClass(listing.boost);
     var priceLabel = (typeof formatKK === 'function' && listing.price_kk)
       ? formatKK(listing.price_kk) : null;
-    var heldX  = listing.helds_x || null;
-    var heldY  = listing.helds_y || null;
+    // Resolve helds by id so the chip never goes stale: the realtime UPDATE and
+    // the optimistic save merge carry held_x_id/held_y_id but NOT the joined
+    // helds_x/helds_y object. Prefer the catalog lookup whenever the join is
+    // missing or doesn't match the current id.
+    var heldX = _resolveHeld(listing.helds_x, listing.held_x_id);
+    var heldY = _resolveHeld(listing.helds_y, listing.held_y_id);
     var status = listing.status || 'active';
     var tier   = _getTier(listing.pokemon_name);
     var ddNum  = 0;
@@ -259,6 +274,7 @@
     return '<div class="mk-card mk-card--' + _esc(status) + '"'
       + ' data-listing-id="' + _esc(listing.id) + '"'
       + ' data-status="' + _esc(status) + '"'
+      + ' data-updated="' + _esc(listing.updated_at || '') + '"'
       + ' data-seller="' + _esc(listing.seller_id || '') + '">'
 
       // Top: sprite + boost + stars + types
@@ -334,6 +350,26 @@
     listings.forEach(function(listing) {
       var el = existing[listing.id];
       if (el) {
+        // Content changed (edit) → rebuild the whole card so held/stars/tier/
+        // training/boost/name/price all refresh. updated_at is bumped on every edit.
+        var oldUpdated = el.getAttribute('data-updated') || '';
+        var newUpdated = listing.updated_at || '';
+        if (oldUpdated && newUpdated && oldUpdated !== newUpdated) {
+          var tmp = global.document.createElement('div');
+          tmp.innerHTML = _buildCardHtml(listing, userId, admin);
+          var fresh = tmp.firstElementChild;
+          if (fresh) {
+            if (global.PA && global.PA.hardening) {
+              global.PA.hardening.unobserveCard(el);
+              global.PA.hardening.observeCard(fresh);
+            }
+            delete existing[listing.id];
+            morphs++;
+            frag.appendChild(fresh);
+            return; // skip lightweight morph below
+          }
+        }
+
         // Morph: update status badge
         var newStatus = listing.status || 'active';
         if (el.getAttribute('data-status') !== newStatus) {
@@ -392,16 +428,20 @@
           var editBtn = global.document.createElement('button');
           editBtn.className = 'mk-btn mk-btn--ghost mk-btn--sm';
           editBtn.textContent = '✏️ Editar';
+          // NOTE: setAttribute stores the value literally and the browser compiles
+          // it as raw JS — so the JSON must NOT be _esc()'d. Escaping turned " into
+          // &quot; and broke the handler with "Unexpected token '&'". Plain
+          // JSON.stringify yields valid JS (inner quotes are \"-escaped).
           editBtn.setAttribute('onclick',
             'event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.openEdit('
-            + _esc(JSON.stringify({
+            + JSON.stringify({
                 id: listing.id, pokemon_name: listing.pokemon_name,
                 pokemon_slug: listing.pokemon_slug, pokemon_types: listing.pokemon_types,
                 stars: listing.stars, boost: listing.boost,
                 held_x_id: listing.held_x_id, held_y_id: listing.held_y_id,
                 training: listing.training, price_kk: listing.price_kk,
                 observations: listing.observations,
-              })) + ')');
+              }) + ')');
 
           var cancelBtn = global.document.createElement('button');
           cancelBtn.className = 'mk-btn mk-btn--danger-ghost mk-btn--sm';
