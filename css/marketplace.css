@@ -1066,6 +1066,20 @@
   transform: translateX(-50%) translateY(0);
 }
 
+/* O .mk-card tem overflow:hidden (para os cantos arredondados), o que recortava
+   o tooltip do held. Libera o overflow apenas enquanto um held está em hover/foco,
+   permitindo o tooltip aparecer inteiro sem perder o arredondamento no resto. */
+.mk-card:has(.mk-held-chip:hover),
+.mk-card:has(.mk-held-chip:focus-within) {
+  overflow: visible;
+}
+
+/* Fallback para a regra :first-child (left:0) também sair do card */
+.mk-helds .mk-held-chip:first-child:hover .mk-held-tooltip,
+.mk-helds .mk-held-chip:first-child:focus-within .mk-held-tooltip {
+  transform: translateX(0) translateY(0);
+}
+
 /* Tooltip internals */
 .mk-held-tooltip-header {
   display: flex;
