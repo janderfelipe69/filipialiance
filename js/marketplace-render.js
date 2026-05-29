@@ -298,9 +298,16 @@
       // Footer: price + status + time
       + '<div class="mk-card-footer">'
       + '<div class="mk-price">'
-      + '<span class="mk-price-kk">' + (priceLabel ? _esc(priceLabel.label) : '—') + '</span>'
-      + (priceLabel ? '<span class="mk-price-brl">' + _esc(priceLabel.brl) + '</span>' : '')
-      + (ddNum > 0 ? '<span class="mk-price-dd">' + ddNum.toLocaleString('pt-BR') + ' DD</span>' : '')
+      + '<span class="mk-price-kk">'
+      +   '<span class="mk-price-coin">◈</span>'
+      +   (priceLabel ? _esc(priceLabel.label) : '—')
+      + '</span>'
+      + ((priceLabel || ddNum > 0)
+          ? '<div class="mk-price-conv">'
+            + (priceLabel ? '<span class="mk-price-brl">' + _esc(priceLabel.brl) + '</span>' : '')
+            + (ddNum > 0 ? '<span class="mk-price-dd">' + ddNum.toLocaleString('pt-BR') + ' DD</span>' : '')
+            + '</div>'
+          : '')
       + '</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
       + '<span class="mk-status-badge mk-status--' + _esc(status) + '">' + statusLabel + '</span>'

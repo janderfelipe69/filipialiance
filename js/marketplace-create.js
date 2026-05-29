@@ -488,112 +488,131 @@
       + '</div>'
       + '<div class="mk-modal-body">'
 
-      // Pokémon
-      + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-poke-input">Pokémon</label>'
-      + '  <div class="mk-autocomplete">'
-      + '    <input class="mk-input" id="mk-poke-input" type="text" placeholder="Ex: Shiny Charizard" autocomplete="off"'
+      // ══ Seção: Pokémon ══════════════════════════════════════════
+      + '<div class="mk-section">'
+      + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Pokémon</div>'
+
+      + '  <div class="mk-field">'
+      + '    <label class="mk-label" for="mk-poke-input">Nome</label>'
+      + '    <div class="mk-autocomplete">'
+      + '      <input class="mk-input" id="mk-poke-input" type="text" placeholder="Ex: Shiny Charizard" autocomplete="off"'
       + (_mode === 'edit' ? ' readonly' : '') + '>'
-      + '    <div class="mk-dropdown" id="mk-poke-dropdown" style="display:none"></div>'
+      + '      <div class="mk-dropdown" id="mk-poke-dropdown" style="display:none"></div>'
+      + '    </div>'
+      + '    <span class="mk-field-error" id="mk-err-pokemon_name"></span>'
       + '  </div>'
-      + '  <span class="mk-field-error" id="mk-err-pokemon_name"></span>'
-      + '</div>'
 
       // Preview
-      + '<div id="mk-poke-preview-wrap" style="display:none">'
-      + '  <div class="mk-poke-preview">'
-      + '    <img class="mk-poke-preview-sprite" id="mk-poke-sprite" src="" alt="" onerror="this.style.display=\'none\'">'
-      + '    <div class="mk-poke-preview-info">'
-      + '      <span class="mk-poke-preview-name" id="mk-poke-name"></span>'
-      + '      <div class="mk-types" id="mk-poke-types"></div>'
-      + '      <div class="mk-poke-tier-row" id="mk-poke-tier"></div>'
+      + '  <div id="mk-poke-preview-wrap" style="display:none">'
+      + '    <div class="mk-poke-preview">'
+      + '      <img class="mk-poke-preview-sprite" id="mk-poke-sprite" src="" alt="" onerror="this.style.display=\'none\'">'
+      + '      <div class="mk-poke-preview-info">'
+      + '        <span class="mk-poke-preview-name" id="mk-poke-name"></span>'
+      + '        <div class="mk-types" id="mk-poke-types"></div>'
+      + '        <div class="mk-poke-tier-row" id="mk-poke-tier"></div>'
+      + '      </div>'
       + '    </div>'
       + '  </div>'
-      + '</div>'
 
-      // Stars
-      + '<div class="mk-field">'
-      + '  <label class="mk-label">Stars</label>'
-      + '  <div class="mk-stars-input" id="mk-stars-input">'
+      // Stars + Boost lado a lado
+      + '  <div class="mk-field-pair">'
+      + '    <div class="mk-field">'
+      + '      <label class="mk-label">Stars</label>'
+      + '      <div class="mk-stars-input" id="mk-stars-input">'
       + [1,2,3,4,5].map(function(i){
           return '<button type="button" class="mk-star-btn" data-val="' + i + '" title="' + i + ' ★">★</button>';
         }).join('')
+      + '      </div>'
+      + '      <span class="mk-field-error" id="mk-err-stars"></span>'
+      + '    </div>'
+      + '    <div class="mk-field">'
+      + '      <label class="mk-label" for="mk-boost-num">Boost</label>'
+      + '      <div class="mk-boost-row">'
+      + '        <input class="mk-boost-slider" id="mk-boost-slider" type="range" min="0" max="70" value="0" step="1">'
+      + '        <input class="mk-boost-num" id="mk-boost-num" type="number" min="0" max="70" value="0">'
+      + '      </div>'
+      + '      <span class="mk-field-error" id="mk-err-boost"></span>'
+      + '    </div>'
       + '  </div>'
-      + '  <span class="mk-field-error" id="mk-err-stars"></span>'
-      + '</div>'
+      + '</div>' // .mk-section Pokémon
 
-      // Boost
-      + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-boost-slider">Boost</label>'
-      + '  <div class="mk-boost-row">'
-      + '    <input class="mk-boost-slider" id="mk-boost-slider" type="range" min="0" max="70" value="0" step="1">'
-      + '    <input class="mk-boost-num" id="mk-boost-num" type="number" min="0" max="70" value="0">'
+      // ══ Seção: Equipamento (Helds) ══════════════════════════════
+      + '<div class="mk-section">'
+      + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Equipamento</div>'
+
+      + '  <div class="mk-field">'
+      + '    <label class="mk-label">Held X</label>'
+      + '    <div class="mk-held-picker" id="mk-held-picker-x">'
+      + '      <button type="button" class="mk-held-trigger" id="mk-held-trigger-x">'
+      + '        <span class="mk-held-trigger-slot mk-held-trigger-slot--x">X</span>'
+      + '        <img class="mk-held-trigger-img" id="mk-held-timg-x" src="" alt="" style="display:none">'
+      + '        <span class="mk-held-trigger-name" id="mk-held-tname-x">— Nenhum —</span>'
+      + '        <span class="mk-held-trigger-arrow" id="mk-held-tarrow-x">▾</span>'
+      + '      </button>'
+      + '      <div class="mk-held-grid-wrap" id="mk-held-grid-x" style="display:none"></div>'
+      + '    </div>'
+      + '    <span class="mk-field-error" id="mk-err-held_x"></span>'
       + '  </div>'
-      + '  <span class="mk-field-error" id="mk-err-boost"></span>'
-      + '</div>'
 
-      // Held X
-      + '<div class="mk-field">'
-      + '  <label class="mk-label">Held X</label>'
-      + '  <div class="mk-held-picker" id="mk-held-picker-x">'
-      + '    <button type="button" class="mk-held-trigger" id="mk-held-trigger-x">'
-      + '      <span class="mk-held-trigger-slot mk-held-trigger-slot--x">X</span>'
-      + '      <img class="mk-held-trigger-img" id="mk-held-timg-x" src="" alt="" style="display:none">'
-      + '      <span class="mk-held-trigger-name" id="mk-held-tname-x">— Nenhum —</span>'
-      + '      <span class="mk-held-trigger-arrow" id="mk-held-tarrow-x">▾</span>'
-      + '    </button>'
-      + '    <div class="mk-held-grid-wrap" id="mk-held-grid-x" style="display:none"></div>'
+      + '  <div class="mk-field">'
+      + '    <label class="mk-label">Held Y</label>'
+      + '    <div class="mk-held-picker" id="mk-held-picker-y">'
+      + '      <button type="button" class="mk-held-trigger" id="mk-held-trigger-y">'
+      + '        <span class="mk-held-trigger-slot mk-held-trigger-slot--y">Y</span>'
+      + '        <img class="mk-held-trigger-img" id="mk-held-timg-y" src="" alt="" style="display:none">'
+      + '        <span class="mk-held-trigger-name" id="mk-held-tname-y">— Nenhum —</span>'
+      + '        <span class="mk-held-trigger-arrow" id="mk-held-tarrow-y">▾</span>'
+      + '      </button>'
+      + '      <div class="mk-held-grid-wrap" id="mk-held-grid-y" style="display:none"></div>'
+      + '    </div>'
+      + '    <span class="mk-field-error" id="mk-err-held_y"></span>'
       + '  </div>'
-      + '  <span class="mk-field-error" id="mk-err-held_x"></span>'
-      + '</div>'
+      + '</div>' // .mk-section Equipamento
 
-      // Held Y
-      + '<div class="mk-field">'
-      + '  <label class="mk-label">Held Y</label>'
-      + '  <div class="mk-held-picker" id="mk-held-picker-y">'
-      + '    <button type="button" class="mk-held-trigger" id="mk-held-trigger-y">'
-      + '      <span class="mk-held-trigger-slot mk-held-trigger-slot--y">Y</span>'
-      + '      <img class="mk-held-trigger-img" id="mk-held-timg-y" src="" alt="" style="display:none">'
-      + '      <span class="mk-held-trigger-name" id="mk-held-tname-y">— Nenhum —</span>'
-      + '      <span class="mk-held-trigger-arrow" id="mk-held-tarrow-y">▾</span>'
-      + '    </button>'
-      + '    <div class="mk-held-grid-wrap" id="mk-held-grid-y" style="display:none"></div>'
-      + '  </div>'
-      + '  <span class="mk-field-error" id="mk-err-held_y"></span>'
-      + '</div>'
-
-      // Training — 2 colunas com slider+input
-      + '<div class="mk-field">'
-      + '  <label class="mk-label">Treinamento</label>'
+      // ══ Seção: Treinamento (steppers) ═══════════════════════════
+      + '<div class="mk-section">'
+      + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Treinamento <small class="mk-section-hint">níveis 0–100</small></div>'
       + '  <div class="mk-training-grid">'
       + STATS_ROWS.map(function(s){
-          return '<div class="mk-train-input-row">'
-            + '<span class="mk-train-input-label">' + _esc(s.label) + '</span>'
-            + '<input type="range" class="mk-train-range" id="mk-trange-' + s.key + '" min="0" max="100" value="0" data-stat="' + s.key + '">'
-            + '<input type="number" class="mk-train-num" id="mk-tnum-' + s.key + '" min="0" max="100" value="0" data-stat="' + s.key + '">'
-            + '<span class="mk-train-pct-label" id="mk-tpct-' + s.key + '">Lv 0</span>'
+          return '<div class="mk-train-cell">'
+            + '<span class="mk-train-cell-label">' + _esc(s.label) + '</span>'
+            + '<div class="mk-stepper">'
+            + '<button type="button" class="mk-step-btn" data-stat="' + s.key + '" data-dir="-1" tabindex="-1">−</button>'
+            + '<input type="number" class="mk-step-num" id="mk-tnum-' + s.key + '" min="0" max="100" value="0" data-stat="' + s.key + '">'
+            + '<button type="button" class="mk-step-btn" data-stat="' + s.key + '" data-dir="1" tabindex="-1">+</button>'
+            + '</div>'
             + '</div>';
         }).join('')
       + '  </div>'
-      + '</div>'
+      + '</div>' // .mk-section Treinamento
 
-      // Preço
-      + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-price">Preço</label>'
-      + '  <input class="mk-input mk-price-input" id="mk-price" type="number" min="1" placeholder="Ex: 500000000 → 500kk">'
-      + '  <span class="mk-field-hint" id="mk-price-preview"></span>'
-      + '  <span class="mk-field-error" id="mk-err-price_kk"></span>'
-      + '</div>'
+      // ══ Seção: Venda ════════════════════════════════════════════
+      + '<div class="mk-section">'
+      + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Venda</div>'
 
-      // Observações
-      + '<div class="mk-field">'
-      + '  <label class="mk-label" for="mk-obs">Observações <small>(opcional, máx 500)</small></label>'
-      + '  <textarea class="mk-textarea" id="mk-obs" maxlength="500" placeholder="Informações adicionais..."></textarea>'
-      + '  <span class="mk-field-error" id="mk-err-observations"></span>'
-      + '</div>'
+      + '  <div class="mk-field">'
+      + '    <label class="mk-label" for="mk-price">Preço</label>'
+      + '    <div class="mk-price-row">'
+      + '      <input class="mk-input mk-price-input" id="mk-price" type="number" min="0" step="any" placeholder="Ex: 500">'
+      + '      <select class="mk-price-unit" id="mk-price-unit">'
+      + '        <option value="1000">k</option>'
+      + '        <option value="1000000" selected>kk</option>'
+      + '        <option value="1000000000">kkk</option>'
+      + '      </select>'
+      + '    </div>'
+      + '    <span class="mk-field-hint" id="mk-price-preview"></span>'
+      + '    <span class="mk-field-error" id="mk-err-price_kk"></span>'
+      + '  </div>'
+
+      + '  <div class="mk-field">'
+      + '    <label class="mk-label" for="mk-obs">Observações <small>(opcional, máx 500)</small></label>'
+      + '    <textarea class="mk-textarea" id="mk-obs" maxlength="500" placeholder="Informações adicionais..."></textarea>'
+      + '    <span class="mk-field-error" id="mk-err-observations"></span>'
+      + '  </div>'
+      + '</div>' // .mk-section Venda
 
       // Footer
-      + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">'
+      + '<div class="mk-modal-footer">'
       + '  <button class="mk-btn mk-btn--ghost" onclick="MarketplaceCreate.close()">Cancelar</button>'
       + '  <button class="mk-btn mk-btn--primary" id="mk-submit-btn" onclick="'
       + (_mode === 'create' ? 'MarketplaceCreate.publish()' : 'MarketplaceCreate.saveEdit()')
@@ -666,33 +685,50 @@
     if (boostSlider) boostSlider.addEventListener('input', function () { _syncBoost(boostSlider.value); });
     if (boostNum)    boostNum.addEventListener('input',   function () { _syncBoost(boostNum.value); });
 
-    // Training — slider/input sync bidirecional
+    // Training — steppers (number input + botões −/+)
     var STATS = ['attack','defense','hp','precision','evasion','critical_damage','critical_chance','critical_resistance'];
     STATS.forEach(function (s) {
-      var range = global.document.getElementById('mk-trange-' + s);
-      var num   = global.document.getElementById('mk-tnum-' + s);
-      var pct   = global.document.getElementById('mk-tpct-' + s);
-      function _sync(val) {
-        var v = Math.min(100, Math.max(0, parseInt(val, 10) || 0));
-        _form.training[s] = v;
-        if (range) range.value = v;
-        if (num)   num.value   = v;
-        if (pct)   pct.textContent = 'Lv ' + v;
+      var num = global.document.getElementById('mk-tnum-' + s);
+      if (num) {
+        num.addEventListener('input', function () {
+          _form.training[s] = Math.min(100, Math.max(0, parseInt(num.value, 10) || 0));
+        });
+        num.addEventListener('blur', function () {
+          var v = Math.min(100, Math.max(0, parseInt(num.value, 10) || 0));
+          _form.training[s] = v;
+          num.value = v;
+        });
       }
-      if (range) range.addEventListener('input', function () { _sync(range.value); });
-      if (num)   num.addEventListener('input',  function () { _sync(num.value);   });
     });
+    // Stepper buttons
+    Array.prototype.forEach.call(
+      global.document.querySelectorAll('.mk-step-btn'),
+      function (btn) {
+        btn.addEventListener('click', function () {
+          var s   = btn.getAttribute('data-stat');
+          var dir = parseInt(btn.getAttribute('data-dir'), 10);
+          var num = global.document.getElementById('mk-tnum-' + s);
+          if (!num) return;
+          var v = Math.min(100, Math.max(0, (parseInt(num.value, 10) || 0) + dir));
+          num.value = v;
+          _form.training[s] = v;
+        });
+      }
+    );
 
-    // Price preview — kk + R$ + DD
+    // Preço — valor + unidade (k / kk / kkk) → price_kk (raw)
     var priceInput   = global.document.getElementById('mk-price');
+    var priceUnit    = global.document.getElementById('mk-price-unit');
     var pricePreview = global.document.getElementById('mk-price-preview');
-    if (priceInput) {
-      priceInput.addEventListener('input', function () {
-        var v = Number(priceInput.value);
-        _form.price_kk = v;
-        if (pricePreview) pricePreview.innerHTML = _formatPriceHint(v);
-      });
+    function _recalcPrice() {
+      var amount = Number(priceInput ? priceInput.value : 0) || 0;
+      var unit   = Number(priceUnit ? priceUnit.value : 1000000) || 1000000;
+      var raw    = Math.round(amount * unit);
+      _form.price_kk = raw;
+      if (pricePreview) pricePreview.innerHTML = _formatPriceHint(raw);
     }
+    if (priceInput) priceInput.addEventListener('input',  _recalcPrice);
+    if (priceUnit)  priceUnit.addEventListener('change', _recalcPrice);
 
     // Observations
     var obsEl = global.document.getElementById('mk-obs');
@@ -812,27 +848,36 @@
     var obsEl       = global.document.getElementById('mk-obs');
 
     if (pokeInput)   pokeInput.value   = _form.pokemon_name;
-    if (boostSlider) boostSlider.value = _form.boost;
+    if (boostSlider) {
+      boostSlider.value = _form.boost;
+      // Dispara o handler já vinculado para aplicar a cor progressiva do boost
+      boostSlider.dispatchEvent(new global.Event('input'));
+    }
     if (boostNum)    boostNum.value    = _form.boost;
+
+    // Preço — decompõe o raw na maior unidade limpa (kkk/kk/k)
+    var priceUnit = global.document.getElementById('mk-price-unit');
     if (priceInput) {
-      priceInput.value = _form.price_kk || '';
+      var raw = Number(_form.price_kk) || 0;
+      var unit = 1000000; // kk default
+      if (raw >= 1000000000)      unit = 1000000000;
+      else if (raw >= 1000000)    unit = 1000000;
+      else if (raw >= 1000)       unit = 1000;
+      if (priceUnit) priceUnit.value = String(unit);
+      priceInput.value = raw ? parseFloat((raw / unit).toFixed(2)) : '';
       var pricePreview = global.document.getElementById('mk-price-preview');
-      if (pricePreview) pricePreview.innerHTML = _formatPriceHint(Number(_form.price_kk));
+      if (pricePreview) pricePreview.innerHTML = _formatPriceHint(raw);
     }
     if (obsEl) obsEl.value = _form.observations || '';
 
     _updateStarsUI();
 
-    // Training sliders
+    // Training steppers
     var STATS = ['attack','defense','hp','precision','evasion','critical_damage','critical_chance','critical_resistance'];
     STATS.forEach(function (s) {
       var v = _form.training[s] || 0;
-      var range = global.document.getElementById('mk-trange-' + s);
-      var num   = global.document.getElementById('mk-tnum-' + s);
-      var pct   = global.document.getElementById('mk-tpct-' + s);
-      if (range) range.value = v;
-      if (num)   num.value   = v;
-      if (pct)   pct.textContent = 'Lv ' + v;
+      var num = global.document.getElementById('mk-tnum-' + s);
+      if (num) num.value = v;
     });
 
     // Sprite preview

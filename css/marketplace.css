@@ -399,23 +399,48 @@
 .mk-price {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
 }
 .mk-price-kk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   color: var(--mk-gold);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(240,184,41,0.25);
+}
+.mk-price-coin {
+  font-size: 13px;
+  opacity: .85;
+}
+.mk-price-conv {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mk-price-brl,
+.mk-price-dd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+  line-height: 1.4;
 }
 .mk-price-brl {
-  font-size: 10px;
-  color: var(--mk-muted);
+  color: #7bdfa0;
+  background: rgba(123,223,160,0.10);
+  border: 1px solid rgba(123,223,160,0.22);
 }
 .mk-price-dd {
-  font-size: 10px;
-  color: #a78bfa;
-  font-family: var(--font-mono);
+  color: #b89cff;
+  background: rgba(167,139,250,0.10);
+  border: 1px solid rgba(167,139,250,0.22);
 }
 
 .mk-status-badge {
@@ -551,7 +576,85 @@
 }
 .mk-modal-close:hover { color: var(--mk-text); }
 
-.mk-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.mk-modal-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Sections ───────────────────────────────────────────────── */
+.mk-section {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 15px 15px 16px;
+  background: rgba(255,255,255,0.018);
+  border: 1px solid var(--mk-border);
+  border-radius: 11px;
+}
+.mk-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mk-text);
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--mk-border);
+}
+.mk-section-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mk-gold);
+  box-shadow: 0 0 7px var(--mk-gold);
+  flex-shrink: 0;
+}
+.mk-section-hint {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--mk-muted);
+  font-family: var(--font-mono);
+}
+
+/* Two fields side by side */
+.mk-field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+/* Modal footer (sticky-ish action row) */
+.mk-modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+/* Price amount + unit selector */
+.mk-price-row { display: flex; gap: 8px; }
+.mk-price-row .mk-price-input { flex: 1; }
+.mk-price-unit {
+  width: 64px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mk-gold);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-border-lit);
+  border-radius: var(--mk-r-sm);
+  padding: 9px 8px;
+  outline: none;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s;
+}
+.mk-price-unit:focus { border-color: var(--mk-gold); }
 
 /* ── Form fields ────────────────────────────────────────────── */
 .mk-field { display: flex; flex-direction: column; gap: 5px; }
@@ -825,6 +928,8 @@
   .mk-card-top { padding: 14px 12px 10px; }
   .mk-sprite, .mk-sprite-wrap { width: 64px; height: 64px; }
   .mk-modal { max-width: 100%; }
+  .mk-field-pair { grid-template-columns: 1fr; }
+  .mk-training-grid { grid-template-columns: 1fr; }
 }
 
 /* ── M2 additions ──────────────────────────────────────────── */
@@ -847,48 +952,68 @@
   opacity: 1;
 }
 
-/* Training grid in modal */
+/* Training grid (steppers) in modal */
 .mk-training-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 8px 14px;
 }
-.mk-train-input-row {
+.mk-train-cell {
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 8px;
 }
-.mk-train-input-label {
-  font-size: 9px;
+.mk-train-cell-label {
+  font-size: 10px;
   color: var(--mk-muted);
-  width: 48px;
-  flex-shrink: 0;
   font-family: var(--font-mono);
   text-transform: uppercase;
+  letter-spacing: .03em;
+  flex-shrink: 0;
 }
-.mk-train-range {
-  flex: 1;
-  accent-color: var(--mk-blue);
-  height: 3px;
-}
-.mk-train-num {
-  width: 42px;
-  padding: 3px 5px;
-  font-size: 11px;
-  text-align: center;
-  font-family: var(--font-mono);
+.mk-stepper {
+  display: flex;
+  align-items: center;
   background: var(--mk-surface);
   border: 1px solid var(--mk-border-lit);
-  border-radius: 4px;
-  color: var(--mk-text);
+  border-radius: 7px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
-.mk-train-pct-label {
-  font-size: 9px;
-  color: var(--mk-blue);
+.mk-step-btn {
+  width: 24px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--mk-muted);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: background .12s, color .12s;
+}
+.mk-step-btn:hover { background: rgba(96,165,250,.14); color: var(--mk-blue); }
+.mk-step-btn:active { background: rgba(96,165,250,.25); }
+.mk-step-num {
+  width: 40px;
+  height: 28px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
   font-family: var(--font-mono);
-  width: 28px;
-  text-align: right;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--mk-border);
+  border-right: 1px solid var(--mk-border);
+  color: var(--mk-text);
+  outline: none;
+  -moz-appearance: textfield;
 }
+.mk-step-num::-webkit-inner-spin-button,
+.mk-step-num::-webkit-outer-spin-button { -webkit-appearance: none; }
+.mk-step-num:focus { color: var(--mk-blue); }
 
 /* Training pct on card */
 .mk-train-pct {
