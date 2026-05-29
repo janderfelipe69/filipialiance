@@ -192,8 +192,10 @@
   }
 
   // ── Realtime: escuta CustomEvent emitido pelo realtime-manager ──
+  // NOTA: o realtime-manager despacha em window (global.dispatchEvent), então
+  // escutamos em window — não em document (senão o evento nunca chega).
   function _initRealtime() {
-    global.document.addEventListener('marketplace_listings:changed', function (e) {
+    global.addEventListener('marketplace_listings:changed', function (e) {
       try {
         var detail  = e.detail || {};
         var tipo    = detail.event;   // 'INSERT' | 'UPDATE' | 'DELETE'

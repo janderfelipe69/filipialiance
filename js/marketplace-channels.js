@@ -67,7 +67,10 @@
   }
 
   // ── Wire to realtime-manager CustomEvents ────────────────────
-  global.document.addEventListener('trade_messages:changed', function(e) {
+  // IMPORTANTE: o realtime-manager despacha em window (global.dispatchEvent),
+  // então escutamos em window (global), NÃO em document — senão os eventos de
+  // realtime nunca chegam e o chat só atualiza ao recarregar a página.
+  global.addEventListener('trade_messages:changed', function(e) {
     var d = (e&&e.detail)||{};
     var record = d.record||{};
     if (!record.id || !record.session_id) return;
@@ -85,7 +88,7 @@
     _dispatch('messages:*', d.event, record);
   });
 
-  global.document.addEventListener('trade_sessions:changed', function(e) {
+  global.addEventListener('trade_sessions:changed', function(e) {
     var d = (e&&e.detail)||{};
     var record = d.record||{};
     if (!record.id) return;
@@ -99,7 +102,7 @@
     _dispatch('sessions:*', d.event, record);
   });
 
-  global.document.addEventListener('marketplace_listings:changed', function(e) {
+  global.addEventListener('marketplace_listings:changed', function(e) {
     var d = (e&&e.detail)||{};
     var record = d.record||{};
     if (!record.id) return;
