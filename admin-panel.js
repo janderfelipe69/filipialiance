@@ -1229,9 +1229,6 @@
   function injectAdminBars() {
     if (!isAdmin()) return;
 
-    // ── Feature Flags panel ──
-    _injectFeatureFlagsPanel();
-
     // ── Aba Itens ──
     var itemsGrid = document.getElementById('items-grid');
     if (itemsGrid && !document.getElementById('admin-bar-items')) {
@@ -1480,6 +1477,81 @@
       setTimeout(doInject, 500);
     }
   }, { once: true });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  BOOTSTRAP INDEPENDENTE DO BOTÃO ⚙️ DE FEATURE FLAGS
+  //
+  //  CRÍTICO: este botão NÃO pode depender de injectAdminBars nem de
+  //  nenhuma aba estar visível/acessível. Caso contrário, ao desabilitar
+  //  todas as abas, o admin fica preso sem como reativar.
+  //
+  //  Estratégia: tenta injetar assim que possível e re-tenta em cada
+  //  evento relevante (db:ready, auth change, DOMContentLoaded), além de
+  //  um retry temporizado. O _injectFeatureFlagsPanel é idempotente.
+  // ═══════════════════════════════════════════════════════════════════════
+  function _ensureFeatureFlagsFab() {
+    // Só injeta para admin; se ainda não há sessão, tenta de novo depois
+    if (typeof isAdmin === 'function' && isAdmin()) {
+      _injectFeatureFlagsPanel();
+    }
+  }
+
+  // 1. Tenta no carregamento do DOM (independe de db/session)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Aguarda Session se existir, senão injeta direto
+      if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+        Session.ready().then(_ensureFeatureFlagsFab);
+      } else {
+        _ensureFeatureFlagsFab();
+      }
+    });
+  } else {
+    if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+      Session.ready().then(_ensureFeatureFlagsFab);
+    } else {
+      _ensureFeatureFlagsFab();
+    }
+  }
+
+  // 2. Tenta quando o banco fica pronto
+  document.addEventListener('db:ready', function() {
+    if (typeof Session !== 'undefined' && typeof Session.ready === 'function') {
+      Session.ready().then(_ensureFeatureFlagsFab);
+    } else {
+      _ensureFeatureFlagsFab();
+    }
+  });
+
+  // 3. Tenta sempre que o estado de login muda (login como admin)
+  document.addEventListener('db:ready', function() {
+    if (typeof Session === 'undefined' || typeof Session.onAuthChange !== 'function') return;
+    Session.onAuthChange(function() {
+      setTimeout(function() {
+        if (isAdmin()) {
+          _ensureFeatureFlagsFab();
+        } else {
+          // Logout / não-admin: remove o botão e o drawer
+          ['admin-ff-fab', 'admin-ff-drawer'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.remove();
+          });
+        }
+      }, 120);
+    });
+  }, { once: true });
+
+  // 4. Retry temporizado de segurança (caso eventos acima não disparem)
+  var _ffRetries = 0;
+  var _ffTimer = setInterval(function() {
+    _ffRetries++;
+    if (document.getElementById('admin-ff-fab') || _ffRetries > 10) {
+      clearInterval(_ffTimer);
+      return;
+    }
+    _ensureFeatureFlagsFab();
+  }, 800);
+
 
   // Re-renderiza cards e barras quando sessão muda (login/logout)
   document.addEventListener('db:ready', function() {
