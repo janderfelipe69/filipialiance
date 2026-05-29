@@ -301,9 +301,8 @@ const TABS_CONFIG = {
 
   Object.keys(TABS_CONFIG).forEach(function(tab) {
     if (TABS_CONFIG[tab] === false) {
-      document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        var oc = btn.getAttribute('onclick') || '';
-        if (oc.indexOf("'" + tab + "'") !== -1) btn.style.display = 'none';
+      document.querySelectorAll('.tab-btn[data-tab="' + tab + '"]').forEach(function(btn) {
+        btn.style.display = 'none';
       });
       var content = document.getElementById('tab-' + tab);
       if (content) content.style.display = 'none';
@@ -318,19 +317,17 @@ const TABS_CONFIG = {
 
     var firstBtn = null;
     var firstTab = null;
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
       if (firstBtn) return;
       if (btn.style.display === 'none') return;
-      var oc = btn.getAttribute('onclick') || '';
-      var m = oc.match(/switchTab\('([^']+)'/);
-      var tabName = m ? m[1] : null;
+      var tabName = btn.dataset.tab;
       if (tabName && typeof isFeatureEnabled === 'function' && !isFeatureEnabled(tabName)) return;
       firstBtn = btn;
       firstTab = tabName || firstEnabled;
     });
 
     if (!firstBtn) {
-      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
         if (!firstBtn && btn.style.display !== 'none') firstBtn = btn;
       });
       firstTab = firstEnabled;

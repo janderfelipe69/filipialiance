@@ -94,14 +94,14 @@
     <!-- Auth slot: populated by session.js on DOMContentLoaded -->
     <div id="auth-header-slot">
       <!-- Default state: login button, replaced when user is logged in -->
-      <button class="auth-login-btn" onclick="AuthModal.open('login')" aria-label="Entrar na sua conta">
+      <button class="auth-login-btn" aria-label="Entrar na sua conta">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         <span>Entrar</span>
       </button>
     </div>
 
     <!-- Cart -->
-    <button class="cart-trigger" onclick="openCart()">
+    <button class="cart-trigger">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -114,36 +114,36 @@
 
 <!-- TABS NAV -->
 <div class="tabs-nav">
-  <button class="tab-btn active" onclick="switchTab('itens', this)">
+  <button class="tab-btn active" data-tab="itens">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
     Itens
   </button>
-  <button class="tab-btn" onclick="switchTab('pacotes', this)">
+  <button class="tab-btn" data-tab="pacotes">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
     Pacotes
   </button>
-  <button class="tab-btn" onclick="switchTab('captura', this)">
+  <button class="tab-btn" data-tab="captura">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
     Captura
   </button>
-  <button class="tab-btn" onclick="switchTab('entregas', this)">
+  <button class="tab-btn" data-tab="entregas">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     Entregas
   </button>
-  <button class="tab-btn tab-btn--pedidos" onclick="switchTab('pedidos', this)">
+  <button class="tab-btn tab-btn--pedidos" data-tab="pedidos">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
     Pedidos
   </button>
   <!-- ABA AFILIADO — só aparece para usuários com role='affiliate' -->
-  <button class="tab-btn" id="tab-btn-afiliado" style="display:none" onclick="switchTab('afiliado', this)">
+  <button class="tab-btn" id="tab-btn-afiliado" data-tab="afiliado" style="display:none">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Afiliado
   </button>
-  <button class="tab-btn tab-btn--marketplace" onclick="switchTab('marketplace', this); PA.marketplace && PA.marketplace.onTabActivated()">
+  <button class="tab-btn tab-btn--marketplace" data-tab="marketplace">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
     Marketplace
   </button>
-  <button class="tab-btn tab-btn--wiki" onclick="switchTab('wiki', this)">
+  <button class="tab-btn tab-btn--wiki" data-tab="wiki">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     Wiki
   </button>
@@ -214,11 +214,11 @@
 </div>
 
 <!-- MODAL DE PACOTE -->
-<div class="pkg-overlay" id="pkg-overlay" onclick="handlePkgOverlayClick(event)">
+<div class="pkg-overlay" id="pkg-overlay">
   <div class="pkg-modal" id="pkg-modal">
     <div class="pkg-modal-header">
       <div class="pkg-modal-title" id="pkg-modal-title">Pacote</div>
-      <button class="close-btn" onclick="closePkgModal()">&#x2715;</button>
+      <button class="close-btn">&#x2715;</button>
     </div>
     <div class="pkg-modal-body" id="pkg-modal-body"></div>
     <div class="pkg-modal-footer">
@@ -229,7 +229,7 @@
           <span class="pkg-modal-total-brl" id="pkg-modal-brl">—</span>
         </div>
       </div>
-      <button class="pkg-modal-add-btn" onclick="addPackageToCart()">
+      <button class="pkg-modal-add-btn">
         + Adicionar Pacote ao Carrinho
       </button>
     </div>
@@ -264,28 +264,15 @@
         placeholder="Buscar Pokémon..."
         autocomplete="off"
         spellcheck="false"
-        oninput="
-          clearTimeout(_capturaSearchTimer);
-          _capturaSearchTimer = setTimeout(renderCaptura, 150);
-          var clr = this.parentElement.querySelector('.captura-search-clear');
-          if(clr) clr.classList.toggle('visible', this.value.length > 0);
-        "
       />
       <button
         class="captura-search-clear"
         type="button"
         title="Limpar busca"
         aria-label="Limpar busca"
-        onclick="
-          var inp = document.getElementById('captura-search');
-          inp.value = '';
-          this.classList.remove('visible');
-          renderCaptura();
-          inp.focus();
-        "
       >✕</button>
     </div>
-    <select id="captura-filter" onchange="renderCaptura()">
+    <select id="captura-filter">
       <option value="all">Todos</option>
       <option value="t1">T1</option>
       <option value="t2">T2</option>
@@ -302,85 +289,85 @@
       <option value="none">Sem tag</option>
     </select>
     <div class="type-dropdown" id="type-dropdown">
-      <button class="type-dropdown-btn" id="type-dropdown-btn" onclick="toggleTypeDropdown(event)" type="button">
+      <button class="type-dropdown-btn" id="type-dropdown-btn" type="button">
         <span class="type-dropdown-icon" id="type-dropdown-icon"><span class="type-dropdown-all-dot"></span></span>
         <span class="type-dropdown-label" id="type-dropdown-label">Tipo</span>
         <svg class="type-dropdown-arrow" width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
       </button>
       <div class="type-dropdown-menu" id="type-dropdown-menu">
-        <button class="type-dropdown-item active" data-type="all" onclick="selectTypeFilter('all', this)">
+        <button class="type-dropdown-item active" data-type="all">
           <span class="type-dropdown-all-dot"></span>
           <span>Todos</span>
         </button>
-        <button class="type-dropdown-item" data-type="fire" onclick="selectTypeFilter('fire', this)">
+        <button class="type-dropdown-item" data-type="fire">
           <img src="https://i.imgur.com/O8TONGE.png" alt="fire">
           <span>Fogo</span>
         </button>
-        <button class="type-dropdown-item" data-type="water" onclick="selectTypeFilter('water', this)">
+        <button class="type-dropdown-item" data-type="water">
           <img src="https://i.imgur.com/zpRe43i.png" alt="water">
           <span>Água</span>
         </button>
-        <button class="type-dropdown-item" data-type="electric" onclick="selectTypeFilter('electric', this)">
+        <button class="type-dropdown-item" data-type="electric">
           <img src="https://i.imgur.com/Yv2WEYc.png" alt="electric">
           <span>Elétrico</span>
         </button>
-        <button class="type-dropdown-item" data-type="grass" onclick="selectTypeFilter('grass', this)">
+        <button class="type-dropdown-item" data-type="grass">
           <img src="https://i.imgur.com/YjKxtoE.png" alt="grass">
           <span>Planta</span>
         </button>
-        <button class="type-dropdown-item" data-type="ice" onclick="selectTypeFilter('ice', this)">
+        <button class="type-dropdown-item" data-type="ice">
           <img src="https://i.imgur.com/ssFz0sA.png" alt="ice">
           <span>Gelo</span>
         </button>
-        <button class="type-dropdown-item" data-type="psychic" onclick="selectTypeFilter('psychic', this)">
+        <button class="type-dropdown-item" data-type="psychic">
           <img src="https://i.imgur.com/ASiZi1K.png" alt="psychic">
           <span>Psíquico</span>
         </button>
-        <button class="type-dropdown-item" data-type="ghost" onclick="selectTypeFilter('ghost', this)">
+        <button class="type-dropdown-item" data-type="ghost">
           <img src="https://i.imgur.com/HuybbPn.png" alt="ghost">
           <span>Fantasma</span>
         </button>
-        <button class="type-dropdown-item" data-type="dragon" onclick="selectTypeFilter('dragon', this)">
+        <button class="type-dropdown-item" data-type="dragon">
           <img src="https://i.imgur.com/o7JWbaN.png" alt="dragon">
           <span>Dragão</span>
         </button>
-        <button class="type-dropdown-item" data-type="dark" onclick="selectTypeFilter('dark', this)">
+        <button class="type-dropdown-item" data-type="dark">
           <img src="https://i.imgur.com/7Luj4az.png" alt="dark">
           <span>Sombrio</span>
         </button>
-        <button class="type-dropdown-item" data-type="fairy" onclick="selectTypeFilter('fairy', this)">
+        <button class="type-dropdown-item" data-type="fairy">
           <img src="https://i.imgur.com/j3HaXTh.png" alt="fairy">
           <span>Fada</span>
         </button>
-        <button class="type-dropdown-item" data-type="poison" onclick="selectTypeFilter('poison', this)">
+        <button class="type-dropdown-item" data-type="poison">
           <img src="https://i.imgur.com/xfX0ReE.png" alt="poison">
           <span>Veneno</span>
         </button>
-        <button class="type-dropdown-item" data-type="ground" onclick="selectTypeFilter('ground', this)">
+        <button class="type-dropdown-item" data-type="ground">
           <img src="https://i.imgur.com/JPcD2l3.png" alt="ground">
           <span>Terra</span>
         </button>
-        <button class="type-dropdown-item" data-type="rock" onclick="selectTypeFilter('rock', this)">
+        <button class="type-dropdown-item" data-type="rock">
           <img src="https://i.imgur.com/GvD1Mtq.png" alt="rock">
           <span>Pedra</span>
         </button>
-        <button class="type-dropdown-item" data-type="bug" onclick="selectTypeFilter('bug', this)">
+        <button class="type-dropdown-item" data-type="bug">
           <img src="https://i.imgur.com/V4IXR51.png" alt="bug">
           <span>Inseto</span>
         </button>
-        <button class="type-dropdown-item" data-type="flying" onclick="selectTypeFilter('flying', this)">
+        <button class="type-dropdown-item" data-type="flying">
           <img src="https://i.imgur.com/npGjQae.png" alt="flying">
           <span>Voador</span>
         </button>
-        <button class="type-dropdown-item" data-type="steel" onclick="selectTypeFilter('steel', this)">
+        <button class="type-dropdown-item" data-type="steel">
           <img src="https://i.imgur.com/GleRjiM.png" alt="steel">
           <span>Aço</span>
         </button>
-        <button class="type-dropdown-item" data-type="normal" onclick="selectTypeFilter('normal', this)">
+        <button class="type-dropdown-item" data-type="normal">
           <img src="https://i.imgur.com/w2ChsIe.png" alt="normal">
           <span>Normal</span>
         </button>
-        <button class="type-dropdown-item" data-type="fighting" onclick="selectTypeFilter('fighting', this)">
+        <button class="type-dropdown-item" data-type="fighting">
           <img src="https://i.imgur.com/OKsJXh7.png" alt="fighting">
           <span>Lutador</span>
         </button>
@@ -394,18 +381,18 @@
 </div>
 
 <!-- MODAL DE CAPTURA -->
-<div class="captura-overlay" id="captura-overlay" onclick="handleCapturaOverlayClick(event)">
+<div class="captura-overlay" id="captura-overlay">
   <div class="captura-modal" id="captura-modal">
     <div class="captura-modal-header">
       <div class="captura-modal-title" id="captura-modal-title">Captura</div>
-      <button class="close-btn" onclick="closeCapturaModal()">&#x2715;</button>
+      <button class="close-btn">&#x2715;</button>
     </div>
     <div class="captura-modal-body" id="captura-modal-body"></div>
   </div>
 </div>
 
 <!-- MODAL DE SELEÇÃO DE POKÉBOLA -->
-<div id="balls-overlay" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px;" onclick="BallsSelector.handleOverlayClick(event)">
+<div id="balls-overlay" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px;">
   <div id="balls-modal" role="dialog" aria-modal="true" aria-label="Escolher Pokébola" style="background:#0b0b18;border:1px solid rgba(255,255,255,0.08);border-radius:20px;width:100%;max-width:660px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.7);">
 
     <!-- Header -->
@@ -417,7 +404,7 @@
           <div id="balls-pkmn-sub" style="font-size:12px;color:rgba(255,255,255,0.38);margin-top:3px;font-family:var(--font-body,sans-serif);"></div>
         </div>
       </div>
-      <button onclick="BallsSelector.close()" style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.45);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">✕</button>
+      <button id="balls-header-close" style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.45);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">✕</button>
     </div>
 
     <!-- Avisos -->
@@ -462,8 +449,8 @@
 
     <!-- Footer -->
     <div style="padding:16px 22px 22px;display:flex;flex-direction:column;gap:8px;">
-      <button id="balls-confirm-btn" onclick="BallsSelector.confirm()" style="width:100%;padding:13px;border-radius:11px;border:none;cursor:pointer;font-family:var(--font-title,'Cinzel',serif);font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#000;transition:all .2s;"></button>
-      <button onclick="BallsSelector.close()" style="width:100%;padding:10px;border-radius:11px;border:1px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.38);font-family:var(--font-body,sans-serif);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">Cancelar</button>
+      <button id="balls-confirm-btn" style="width:100%;padding:13px;border-radius:11px;border:none;cursor:pointer;font-family:var(--font-title,'Cinzel',serif);font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#000;transition:all .2s;"></button>
+      <button id="balls-footer-cancel" style="width:100%;padding:10px;border-radius:11px;border:1px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.38);font-family:var(--font-body,sans-serif);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">Cancelar</button>
     </div>
 
   </div>
@@ -516,37 +503,37 @@
 
   <!-- Sub-abas da Wiki -->
   <div class="wiki-subtabs" id="wiki-subtabs">
-    <button class="wiki-subtab-btn active" onclick="switchWikiTab('itens', this)">
+    <button class="wiki-subtab-btn active" data-wiki-tab="itens">
       <span class="wiki-subtab-icon">📦</span> Itens
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('respawn', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="respawn">
       <span class="wiki-subtab-icon">🗺️</span> Local de Respawn
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('quests', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="quests">
       <span class="wiki-subtab-icon">📜</span> Quests
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('npcs', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="npcs">
       <span class="wiki-subtab-icon">🧑‍💼</span> NPC's
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('brokes', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="brokes">
       <span class="wiki-subtab-icon">💥</span> Brokes
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('hazard', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="hazard">
       <span class="wiki-subtab-icon">⚠️</span> Hazard Tasks
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('starcalc', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="starcalc">
       <span class="wiki-subtab-icon">⭐</span> Star Calculation
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('punchingbag', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="punchingbag">
       <span class="wiki-subtab-icon">🥊</span> Punching Bag
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('roupasspeed', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="roupasspeed">
       <span class="wiki-subtab-icon">🎽</span> Roupas de Speed
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('talents', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="talents">
       <span class="wiki-subtab-icon">✨</span> PokéTalents
     </button>
-    <button class="wiki-subtab-btn" onclick="switchWikiTab('tokens', this)">
+    <button class="wiki-subtab-btn" data-wiki-tab="tokens">
       <span class="wiki-subtab-icon">🪙</span> Tokens
     </button>
   </div>
@@ -560,7 +547,7 @@
           <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
           <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <input type="text" id="wiki-search" placeholder="Buscar item ou Pokémon..." oninput="clearTimeout(_wikiSearchTimer); _wikiSearchTimer = setTimeout(renderWiki, 150)" />
+        <input type="text" id="wiki-search" placeholder="Buscar item ou Pokémon..." />
       </div>
       <span class="wiki-count-label" id="wiki-count-label">— itens</span>
     </div>
@@ -581,7 +568,7 @@
           <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
           <path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <input type="text" id="respawn-search" placeholder="Buscar Pokémon..." oninput="clearTimeout(_respawnSearchTimer); _respawnSearchTimer = setTimeout(renderRespawn, 150)" />
+        <input type="text" id="respawn-search" placeholder="Buscar Pokémon..." />
       </div>
 
       <!-- Contador -->
@@ -592,7 +579,7 @@
 
       <!-- Toggle Grid / Lista -->
       <div class="rsp-topbar-views">
-        <button class="rsp-topbar-view-btn active" id="rsp-btn-grid" title="Grade" onclick="setRespawnView('grid')">
+        <button class="rsp-topbar-view-btn active" id="rsp-btn-grid" title="Grade">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <rect x="1" y="1" width="6" height="6" rx="1.5"/>
             <rect x="9" y="1" width="6" height="6" rx="1.5"/>
@@ -601,7 +588,7 @@
           </svg>
           <span>Grade</span>
         </button>
-        <button class="rsp-topbar-view-btn" id="rsp-btn-list" title="Lista" onclick="setRespawnView('list')">
+        <button class="rsp-topbar-view-btn" id="rsp-btn-list" title="Lista">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <rect x="1" y="2" width="14" height="2.5" rx="1"/>
             <rect x="1" y="6.75" width="14" height="2.5" rx="1"/>
@@ -718,7 +705,7 @@
           <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
           <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <input type="text" id="quests-search" placeholder="Buscar quest..." oninput="clearTimeout(_questsSearchTimer); _questsSearchTimer = setTimeout(renderQuests, 150)" />
+        <input type="text" id="quests-search" placeholder="Buscar quest..." />
       </div>
       <span class="wiki-count-label" id="quests-count-label">— quests</span>
     </div>
@@ -731,10 +718,10 @@
   <div id="wiki-tab-npcs" class="wiki-subtab-content" style="display:none">
     <!-- Sub-categorias de NPC's -->
     <div class="npc-subcats" id="npc-subcats">
-      <button class="npc-subcat-btn active" data-subcat="rockets" onclick="switchNpcSubcat('rockets', this)">
+      <button class="npc-subcat-btn active" data-subcat="rockets">
         <span>🚀</span> Rockets
       </button>
-      <button class="npc-subcat-btn" data-subcat="officers" onclick="switchNpcSubcat('officers', this)">
+      <button class="npc-subcat-btn" data-subcat="officers">
         <span>👮</span> Officers
       </button>
       <!-- Futuras categorias entram aqui -->
@@ -748,7 +735,7 @@
             <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
             <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <input type="text" id="rockets-search" placeholder="Buscar Rocket..." oninput="clearTimeout(_rocketsSearchTimer); _rocketsSearchTimer = setTimeout(renderRockets, 150)" />
+          <input type="text" id="rockets-search" placeholder="Buscar Rocket..." />
         </div>
         <span class="wiki-count-label" id="rockets-count-label">— rockets</span>
       </div>
@@ -763,7 +750,7 @@
             <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
             <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <input type="text" id="officers-search" placeholder="Buscar Officer..." oninput="clearTimeout(_officersSearchTimer); _officersSearchTimer = setTimeout(renderOfficers, 150)" />
+          <input type="text" id="officers-search" placeholder="Buscar Officer..." />
         </div>
         <span class="wiki-count-label" id="officers-count-label">— officers</span>
       </div>
@@ -784,7 +771,7 @@
           <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/>
           <path d="M10 10L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <input type="text" id="hazard-search" placeholder="Buscar NPC ou Pokémon..." oninput="clearTimeout(_hazardSearchTimer); _hazardSearchTimer = setTimeout(renderHazard, 150)" />
+        <input type="text" id="hazard-search" placeholder="Buscar NPC ou Pokémon..." />
       </div>
       <span class="wiki-count-label" id="hazard-count-label">— NPCs</span>
     </div>
@@ -834,16 +821,16 @@
         </button>
         <div class="pedidos-search-wrap">
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <input type="text" id="pedidos-search" placeholder="Buscar nick ou item..." oninput="pedidosFiltrar()" />
+          <input type="text" id="pedidos-search" placeholder="Buscar nick ou item..." />
         </div>
-        <select id="pedidos-status-filter" onchange="pedidosFiltrar()">
+        <select id="pedidos-status-filter">
           <option value="all">Todos status</option>
           <option value="waiting_queue">⏳ Na Fila</option>
           <option value="in_progress">⚡ Em Andamento</option>
           <option value="completed">✅ Concluído</option>
           <option value="cancelled">✕ Cancelado</option>
         </select>
-        <button class="pedidos-refresh-btn" onclick="pedidosCarregar()" title="Atualizar">
+        <button class="pedidos-refresh-btn" title="Atualizar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </button>
       </div>
@@ -860,7 +847,7 @@
     <div id="pedidos-erro" class="pedidos-erro" style="display:none">
       <div style="font-size:36px;margin-bottom:10px">⚠️</div>
       <div id="pedidos-erro-msg">Erro ao carregar pedidos</div>
-      <button onclick="pedidosCarregar()" style="margin-top:14px;padding:8px 20px;border-radius:8px;border:none;background:#3a8cff;color:#fff;cursor:pointer;font-weight:700">Tentar novamente</button>
+      <button style="margin-top:14px;padding:8px 20px;border-radius:8px;border:none;background:#3a8cff;color:#fff;cursor:pointer;font-weight:700">Tentar novamente</button>
     </div>
     <div id="pedidos-lista" class="pedidos-lista"></div>
 
@@ -1140,11 +1127,11 @@
 </style>
 
 
-<div class="cart-overlay" id="cart-overlay" onclick="handleOverlayClick(event)">
+<div class="cart-overlay" id="cart-overlay">
   <div class="cart-panel">
     <div class="cart-header">
       <h2>Carrinho</h2>
-      <button class="close-btn" onclick="closeCart()">&#x2715;</button>
+      <button class="close-btn">&#x2715;</button>
     </div>
     <div class="cart-list" id="cart-list">
       <div class="cart-empty">
@@ -1185,10 +1172,10 @@
 
         <!-- ── SELETOR DE MODO DE PAGAMENTO ── -->
         <div class="pay-mode-selector">
-          <button class="pay-mode-btn kk active" onclick="setPayMode('kk')">⚔ KK</button>
-          <button class="pay-mode-btn brl" onclick="setPayMode('brl')">💵 PIX R$</button>
-          <button class="pay-mode-btn dd" onclick="setPayMode('dd')">💎 DD</button>
-          <button class="pay-mode-btn mix" onclick="setPayMode('mix')">⚡ Misto</button>
+          <button class="pay-mode-btn kk active" data-mode="kk">⚔ KK</button>
+          <button class="pay-mode-btn brl" data-mode="brl">💵 PIX R$</button>
+          <button class="pay-mode-btn dd" data-mode="dd">💎 DD</button>
+          <button class="pay-mode-btn mix" data-mode="mix">⚡ Misto</button>
         </div>
 
         <!-- KK puro -->
@@ -1222,11 +1209,11 @@
           <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Dividir pagamento</div>
           <div class="pay-mix-row">
             <span class="pay-mix-label">KK</span>
-            <input class="pay-mix-input kk-input" id="mix-kk-input" type="number" min="0" placeholder="0" oninput="onMixKkChange(this.value)" />
+            <input class="pay-mix-input kk-input" id="mix-kk-input" type="number" min="0" placeholder="0" />
           </div>
           <div class="pay-mix-row">
             <span class="pay-mix-label">R$</span>
-            <input class="pay-mix-input brl-input" id="mix-brl-input" type="number" min="0" step="0.01" placeholder="0,00" oninput="onMixBrlChange(this.value)" />
+            <input class="pay-mix-input brl-input" id="mix-brl-input" type="number" min="0" step="0.01" placeholder="0,00" />
           </div>
           <div class="pay-mix-divider"></div>
           <div class="pay-mix-balance" id="mix-balance">Preencha os valores acima</div>
@@ -1240,12 +1227,12 @@
         <div class="nick-display" id="cart-nick-display">—</div>
       </div>
       <div class="contact-btns-row">
-        <button class="send-order-btn" id="send-order-btn" onclick="enviarPedido()">
+        <button class="send-order-btn" id="send-order-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           Enviar Pedido
         </button>
       </div>
-      <button class="clear-btn" onclick="clearCart()">Limpar Carrinho</button>
+      <button class="clear-btn">Limpar Carrinho</button>
     </div>
   </div>
 </div>
@@ -2068,7 +2055,7 @@
 <!-- WIKI LOOKUP POPUP -->
 <div id="wiki-popup-overlay">
   <div id="wiki-popup">
-    <button id="wiki-popup-close" onclick="closeWikiPopup()">✕</button>
+    <button id="wiki-popup-close">✕</button>
     <div id="wiki-popup-title"></div>
     <div id="wiki-popup-sub"></div>
     <div id="wiki-popup-grid"></div>
@@ -2217,7 +2204,7 @@
     <div class="mk-header-actions">
 <!-- mk-inbox-badge: hidden element for realtime unread counter -->
       <span id="mk-inbox-badge" style="display:none" aria-live="polite"></span>
-      <button class="mk-btn mk-btn--primary" onclick="MarketplaceCreate && MarketplaceCreate.open()">
+      <button class="mk-btn mk-btn--primary">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Anunciar
       </button>
@@ -2225,10 +2212,10 @@
   </div>
 
   <div class="mk-filters" id="mk-filters">
-    <button class="mk-filter-chip active" data-filter="all"    onclick="_mkFilter(this,'all')">Todos</button>
-    <button class="mk-filter-chip"        data-filter="pokemon" onclick="_mkFilter(this,'pokemon')">Pok&eacute;mon</button>
-    <button class="mk-filter-chip"        data-filter="held"    onclick="_mkFilter(this,'held')">Helds</button>
-    <input class="mk-search" id="mk-search" placeholder="Buscar Pok&eacute;mon..." oninput="_mkSearch(this.value)">
+    <button class="mk-filter-chip active" data-filter="all"   >Todos</button>
+    <button class="mk-filter-chip"        data-filter="pokemon">Pok&eacute;mon</button>
+    <button class="mk-filter-chip"        data-filter="held"   >Helds</button>
+    <input class="mk-search" id="mk-search" placeholder="Buscar Pok&eacute;mon...">
   </div>
 
   <div id="marketplace-list"></div>
@@ -2247,5 +2234,6 @@
 <script src="js/marketplace-chat.js"></script>
 <script src="js/marketplace-inbox.js"></script>
 <!-- Marketplace filter helpers: _mkFilter e _mkSearch definidos em marketplace.js -->
+<script src="js/event-handlers.js"></script>
 </body>
 </html>
