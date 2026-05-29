@@ -108,24 +108,20 @@ const TABS_CONFIG = {
   // ── Visual: aplica/remove classes de bloqueio nos botões ─────────────
 
   function _applyVisual(tab, enabled) {
-    document.querySelectorAll('.tab-btn').forEach(function (btn) {
-      var oc = btn.getAttribute('onclick') || '';
-      var dt = btn.getAttribute('data-tab') || '';
-      if (oc.indexOf("'" + tab + "'") !== -1 || dt === tab) {
-        if (enabled) {
-          btn.classList.remove('tab-btn--disabled');
-          btn.removeAttribute('data-feature-disabled');
-          var badge = btn.querySelector('.tab-disabled-badge');
-          if (badge) badge.remove();
-        } else {
-          btn.classList.add('tab-btn--disabled');
-          btn.setAttribute('data-feature-disabled', tab);
-          if (!btn.querySelector('.tab-disabled-badge')) {
-            var b = document.createElement('span');
-            b.className = 'tab-disabled-badge';
-            b.textContent = 'Desativado';
-            btn.appendChild(b);
-          }
+    document.querySelectorAll('.tab-btn[data-tab="' + tab + '"]').forEach(function (btn) {
+      if (enabled) {
+        btn.classList.remove('tab-btn--disabled');
+        btn.removeAttribute('data-feature-disabled');
+        var badge = btn.querySelector('.tab-disabled-badge');
+        if (badge) badge.remove();
+      } else {
+        btn.classList.add('tab-btn--disabled');
+        btn.setAttribute('data-feature-disabled', tab);
+        if (!btn.querySelector('.tab-disabled-badge')) {
+          var b = document.createElement('span');
+          b.className = 'tab-disabled-badge';
+          b.textContent = 'Desativado';
+          btn.appendChild(b);
         }
       }
     });
@@ -218,11 +214,9 @@ const TABS_CONFIG = {
     var id  = active.id || '';                       // ex.: 'tab-itens'
     var tab = id.indexOf('tab-') === 0 ? id.slice(4) : '';
     if (!tab || isFeatureEnabled(tab)) return;       // aba atual está ok
-    var btns = document.querySelectorAll('.tab-btn');
+    var btns = document.querySelectorAll('.tab-btn[data-tab]');
     for (var i = 0; i < btns.length; i++) {
-      var oc = btns[i].getAttribute('onclick') || '';
-      var m  = oc.match(/switchTab\(['"]([^'"]+)['"]/);
-      var t  = m ? m[1] : (btns[i].getAttribute('data-tab') || '');
+      var t = btns[i].getAttribute('data-tab') || '';
       if (t && isFeatureEnabled(t)) {
         if (typeof global.switchTab === 'function') global.switchTab(t, btns[i]);
         return;
