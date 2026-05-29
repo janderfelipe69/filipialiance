@@ -37,6 +37,51 @@
     other:   { label:'Outros',  icon:'📦', color:'#94a3b8', bg:'rgba(148,163,184,0.10)' },
   };
 
+  // ── Tipo Pokémon por nome de pacote ───────────────────────────
+  // Usado para mostrar o ícone/cor correto em cada card de pacote.
+  var TYPE_META = {
+    bug:      { color:'#92d050', bg:'rgba(146,208,80,.15)',   label:'Bug',      emoji:'🐛' },
+    dark:     { color:'#705848', bg:'rgba(112,88,72,.15)',    label:'Dark',     emoji:'🌑' },
+    dragon:   { color:'#6f35fc', bg:'rgba(111,53,252,.15)',   label:'Dragon',   emoji:'🐉' },
+    electric: { color:'#f8d030', bg:'rgba(248,208,48,.15)',   label:'Electric', emoji:'⚡' },
+    fairy:    { color:'#ee99ac', bg:'rgba(238,153,172,.15)',  label:'Fairy',    emoji:'✨' },
+    fighting: { color:'#c22e28', bg:'rgba(194,46,40,.15)',    label:'Fighting', emoji:'🥊' },
+    fire:     { color:'#ff6c31', bg:'rgba(255,108,49,.15)',   label:'Fire',     emoji:'🔥' },
+    flying:   { color:'#6db7f0', bg:'rgba(109,183,240,.15)', label:'Flying',   emoji:'🌬️' },
+    ghost:    { color:'#735797', bg:'rgba(115,87,151,.15)',   label:'Ghost',    emoji:'👻' },
+    grass:    { color:'#7ac74c', bg:'rgba(122,199,76,.15)',   label:'Grass',    emoji:'🌿' },
+    ground:   { color:'#e2bf65', bg:'rgba(226,191,101,.15)', label:'Ground',   emoji:'🏜️' },
+    ice:      { color:'#96d9d6', bg:'rgba(150,217,214,.15)', label:'Ice',      emoji:'❄️' },
+    normal:   { color:'#a8a878', bg:'rgba(168,168,120,.15)', label:'Normal',   emoji:'⭐' },
+    poison:   { color:'#a33ea1', bg:'rgba(163,62,161,.15)',   label:'Poison',   emoji:'☠️' },
+    psychic:  { color:'#f95587', bg:'rgba(249,85,135,.15)',   label:'Psychic',  emoji:'🔮' },
+    rock:     { color:'#b6a136', bg:'rgba(182,161,54,.15)',   label:'Rock',     emoji:'🪨' },
+    steel:    { color:'#b7b7ce', bg:'rgba(183,183,206,.15)', label:'Steel',    emoji:'⚙️' },
+    water:    { color:'#6390f0', bg:'rgba(99,144,240,.15)',   label:'Water',    emoji:'💧' },
+  };
+
+  // Mapeamento de ginásio → tipo
+  var GYM_TYPES = {
+    celadon:'grass', cerulean:'water', cinnabar:'fire',
+    fuchsia:'poison', pewter:'rock', saffron:'psychic',
+    vermilion:'electric', viridian:'ground',
+  };
+
+  // Extrai o tipo do nome do pacote (para exibir banner correto)
+  function _pkgTypeKey(name) {
+    // "Talent Fire 7/8" → "fire"
+    var m1 = name.match(/^talent\s+(\w+)\s/i);
+    if (m1) return m1[1].toLowerCase();
+    // "Gym Cerulean" → water (via GYM_TYPES)
+    var m2 = name.match(/^gym\s+(\w+)/i);
+    if (m2) return GYM_TYPES[m2[1].toLowerCase()] || 'normal';
+    // "Reduces Speed Ice 6/6" → "ice"
+    var m3 = name.match(/^reduces\s+\w+\s+(\w+)/i);
+    if (m3) { var t = m3[1].toLowerCase(); return t === 'sand' ? 'rock' : t; }
+    // "Full HP" / "Full Speed" → normal
+    return 'normal';
+  }
+
   var BALL_META = {
     ultra:    { label:'Ultra Ball',    color:'#f5c518', border:'#f5c518', glow:'rgba(245,197,24,0.40)',  accent:'#111' },
     premier:  { label:'Premier Ball',  color:'#e8e8e8', border:'#cfd3dc', glow:'rgba(232,232,232,0.30)', accent:'#666' },
@@ -398,8 +443,11 @@
         +groups[g].map(function(p){
           var slots=(p.catalog_package_slots||[]).length;
           var items=(p.catalog_package_slots||[]).reduce(function(acc,s){return acc+(s.catalog_package_slot_items||[]).filter(function(i){return i.is_default;}).length;},0);
-          return '<button class="wtb-pkg-card" data-pkg-id="'+_esc(p.id)+'">'
-            +'<span class="wtb-pkg-card-icon" style="color:'+meta.color+'">'+meta.icon+'</span>'
+          var typeKey = _pkgTypeKey(p.name);
+          var tMeta  = TYPE_META[typeKey] || TYPE_META.normal;
+          return '<button class="wtb-pkg-card" data-pkg-id="'+_esc(p.id)+'"'
+            +' style="--pkgc:'+tMeta.color+';--pkgbg:'+tMeta.bg+'">'
+            +'<span class="wtb-pkg-card-type-badge mk-type-badge mk-type--'+_esc(typeKey)+'">'+_esc(tMeta.label)+'</span>'
             +'<span class="wtb-pkg-card-name">'+_esc(p.name)+'</span>'
             +'<span class="wtb-pkg-card-info">'+slots+' slots · '+items+' itens</span>'
             +'</button>';
@@ -430,10 +478,12 @@
   }
 
   function _buildCustomizerHtml(pkg) {
-    var group=_pkgGroup(pkg.name);
-    var meta=PKG_GROUP_META[group];
-    var slots=_sortedSlots(pkg);
-    var totalItems=slots.reduce(function(acc,s){return acc+_slotItems(s).length;},0);
+    var group   = _pkgGroup(pkg.name);
+    var meta    = PKG_GROUP_META[group];
+    var typeKey = _pkgTypeKey(pkg.name);
+    var tMeta   = TYPE_META[typeKey] || TYPE_META.normal;
+    var slots   = _sortedSlots(pkg);
+    var totalItems = slots.reduce(function(acc,s){return acc+_slotItems(s).length;},0);
 
     var slotsHtml=slots.map(function(slot) {
       var items=_slotItems(slot);
@@ -466,7 +516,7 @@
       +'<div class="mk-modal-header">'
       +'<button class="wtb-back-btn" onclick="WTBCreate._talentBack()">←</button>'
       +'<div class="wtb-cst-modal-title-wrap">'
-      +'<span class="wtb-cst-type-badge" style="color:'+meta.color+';background:'+meta.bg+';border-color:'+meta.color+'44">'+meta.icon+' '+meta.label+'</span>'
+      +'<span class="mk-type-badge mk-type--'+_esc(typeKey)+'" style="font-size:.68rem;padding:3px 10px">'+_esc(tMeta.label)+'</span>'
       +'<span class="mk-modal-title" style="font-size:.95rem">'+_esc(pkg.name)+'</span>'
       +'</div>'
       +'<button class="mk-modal-close" onclick="WTBCreate.close()">✕</button>'
