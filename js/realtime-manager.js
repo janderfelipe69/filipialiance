@@ -256,6 +256,19 @@
     _emit(channel.customEvent, extracted.tipo, extracted.record);
   }
 
+  // ── Auth token ───────────────────────────────────────────────────────────
+  // Tabelas com RLS (ex.: trade_messages) só entregam linhas via realtime se a
+  // conexão estiver autenticada com o JWT do usuário. Sem ele, o servidor
+  // inscreve o canal mas NÃO entrega as linhas privadas (cai no role anon).
+  function _getAccessToken() {
+    try {
+      if (typeof Session !== 'undefined' && typeof Session.getAccessToken === 'function') {
+        return Session.getAccessToken() || global.SUPABASE_KEY;
+      }
+    } catch (e) {}
+    return global.SUPABASE_KEY;
+  }
+
   // ── WebSocket Connection ───────────────────────────────────────────────
   function _connect() {
     var myRef = ++_subscribeRef;
@@ -303,14 +316,24 @@
 
       // Heartbeat a cada 25s para manter a conexão viva
       _heartbeatTimer = setInterval(function () {
-        if (ws.readyState === WebSocket.OPEN) {
+        if (ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({
+          topic: 'phoenix',
+          event: 'heartbeat',
+          payload: {},
+          ref: String(_msgRef++),
+        }));
+        // Renova o token de auth do realtime — o Session troca o JWT
+        // periodicamente; sem renovar, o servidor para de entregar ao expirar.
+        var tok = _getAccessToken();
+        CHANNELS.forEach(function (ch) {
           ws.send(JSON.stringify({
-            topic: 'phoenix',
-            event: 'heartbeat',
-            payload: {},
-            ref: String(_msgRef++),
+            topic:   ch.topic,
+            event:   'access_token',
+            payload: { access_token: tok },
+            ref:     String(_msgRef++),
           }));
-        }
+        });
       }, 25000);
 
       // Inscreve cada canal
@@ -320,6 +343,7 @@
           topic:   ch.topic,
           event:   'phx_join',
           payload: {
+            access_token: _getAccessToken(),
             config: {
               broadcast:        { self: false },
               presence:         { key: '' },
