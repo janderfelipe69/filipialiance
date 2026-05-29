@@ -66,8 +66,12 @@
   function _tierBadgeHtml(tier) {
     var cfg = _tierCfg(tier);
     if (!cfg) return '';
+    var glow = cfg.glow || (cfg.color + '66');
     return '<span class="mk-tier-badge" style="color:' + cfg.color
-      + ';border-color:' + cfg.color + '55;background:' + cfg.color + '14">'
+      + ';border-color:' + cfg.color
+      + ';background:' + (cfg.bg || cfg.color + '1f')
+      + ';box-shadow:0 0 12px ' + glow + ', inset 0 0 10px ' + cfg.color + '22'
+      + ';text-shadow:0 0 8px ' + glow + '">'
       + _esc(cfg.label) + '</span>';
   }
 
