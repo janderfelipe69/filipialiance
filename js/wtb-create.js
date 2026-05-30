@@ -734,10 +734,47 @@
   // Mostra o valor mínimo em KK como hint suave dentro do campo de pagamento
   function _updatePaymentMinHint(totalDl) {
     var hint = global.document.getElementById('wtb-pay-min-hint');
-    if (!hint) return;
-    if (!totalDl || totalDl <= 0) { hint.style.display = 'none'; return; }
-    hint.textContent = 'estimativa: ' + _fmtDl(totalDl);
-    hint.style.display = '';
+    if (hint) {
+      if (totalDl > 0) { hint.textContent = 'total estimado: ' + _fmtDl(totalDl); hint.style.display = ''; }
+      else             { hint.style.display = 'none'; }
+    }
+    if (!totalDl || totalDl <= 0) return;
+
+    // ── Auto-preenche o campo de KK com o total calculado ──────────
+    // Escolhe a unidade mais legível: k se < 1M, kk se ≥ 1M
+    var kkUnit = global.document.getElementById('wtb-pay-kk-unit');
+    var kkInp  = global.document.getElementById('wtb-pay-primary-val');
+    var step2  = global.document.getElementById('wtb-pay-step2');
+    var step3  = global.document.getElementById('wtb-pay-step3');
+
+    if (!kkInp) return;
+
+    var unitVal, displayVal;
+    if (totalDl >= 1000000) {
+      unitVal    = 1000000;                    // kk
+      displayVal = parseFloat((totalDl / 1000000).toFixed(2));
+    } else {
+      unitVal    = 1000;                       // k
+      displayVal = parseFloat((totalDl / 1000).toFixed(3));
+    }
+
+    // Atualiza o seletor de unidade
+    if (kkUnit) {
+      kkUnit.value = String(unitVal);
+    }
+
+    // Preenche o input com o total calculado
+    kkInp.value = displayVal;
+
+    // Garante que os steps seguintes apareçam
+    if (step2) step2.style.display = '';
+    if (step3) step3.style.display = '';
+
+    // Atualiza o estado interno de _pay
+    _pay.primaryMethod   = 'kk';
+    _pay.primaryRawVal   = displayVal;
+    _pay.kkUnit          = unitVal;
+    _syncFormPay();
   }
 
   function _buildSlotsSnapshot(pkg) {
