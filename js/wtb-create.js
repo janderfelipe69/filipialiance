@@ -21,6 +21,17 @@
   function _toast(m,t) { if (typeof showToast === 'function') showToast(m, t||'info'); }
   function _toSlug(n) { return String(n||'').toLowerCase().replace(/['']/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }
   function _hdrs()  { return { 'apikey': SB_KEY, 'Authorization': 'Bearer '+(_jwt()||SB_KEY) }; }
+  function _each(list, fn) { Array.prototype.forEach.call(list || [], fn); }
+
+  // ── Helds (listing_type='held'): catálogo + rótulos ──────────
+  function _allHelds() { return (typeof HeldsCatalog !== 'undefined' && HeldsCatalog.getAll) ? (HeldsCatalog.getAll() || []) : []; }
+  function _heldById(id) { return (id && typeof HeldsCatalog !== 'undefined' && HeldsCatalog.getById) ? HeldsCatalog.getById(id) : null; }
+  function _validHelds() {
+    return (_form.helds || []).filter(function (r) { return r && r.held_id && _heldById(r.held_id) && Number(r.pay_kk) > 0; });
+  }
+  function _heldsLabel(rows) {
+    return (rows || []).map(function (r) { var h = _heldById(r.held_id); return h ? h.name : ''; }).filter(Boolean).join(' + ').slice(0, 80);
+  }
 
   // ── Identificação de grupo de pacote por nome ─────────────────
   function _pkgGroup(name) {
@@ -195,6 +206,7 @@
       listing_type: type||'pokemon',
       pokemon_name:'', pokemon_slug:'', pokemon_types:[], stars:0, ball_type:null,
       catalog_package_id:null, package_name:null, slots_data:null,
+      helds:[{ held_id:null, pay_kk:0 }],
       pay_kk:null, pay_dd:null, pay_brl:null,
       observations:'', errors:{},
     };
@@ -219,6 +231,23 @@
 
   function _validate() {
     var errs={};
+    // Procura de helds: 1 a 3 helds, orçamento por held (não usa a seção de pagamento)
+    if (_form.listing_type==='held') {
+      var filled=(_form.helds||[]).filter(function(r){ return r && r.held_id; });
+      if (filled.length===0) errs.helds='Adicione pelo menos 1 held.';
+      else if (filled.length>3) errs.helds='Máximo de 3 helds por procura.';
+      else {
+        for (var i=0;i<filled.length;i++){
+          if (!_heldById(filled[i].held_id)){ errs.helds='Há um held inválido na lista.'; break; }
+          var p=Number(filled[i].pay_kk);
+          if (!p||p<=0){ errs.helds='Defina um orçamento (> 0) para cada held.'; break; }
+          if (p>999999999999){ errs.helds='Orçamento muito alto em um dos helds.'; break; }
+        }
+      }
+      if (_form.observations&&_form.observations.length>500) errs.observations='Máx 500 caracteres.';
+      _form.errors=errs;
+      return Object.keys(errs).length===0;
+    }
     if (_form.listing_type==='pokemon') {
       if (!_form.pokemon_name||!_form.pokemon_name.trim()) errs.pokemon_name='Selecione ou digite o nome do Pokémon.';
     }
@@ -394,6 +423,11 @@
       +'<span class="wtb-type-card-title">Pokémon</span>'
       +'<span class="wtb-type-card-desc">Procuro um Pokémon específico para comprar</span>'
       +'</button>'
+      +'<button class="wtb-type-card" id="wtb-type-card-held">'
+      +'<span class="wtb-type-card-icon">🎒</span>'
+      +'<span class="wtb-type-card-title">Helds</span>'
+      +'<span class="wtb-type-card-desc">Procuro helds (até 3) — orçamento por held</span>'
+      +'</button>'
       +'<button class="wtb-type-card" id="wtb-type-card-talent">'
       +'<span class="wtb-type-card-icon">🎯</span>'
       +'<span class="wtb-type-card-title">Talento</span>'
@@ -407,8 +441,10 @@
     _ensureModal();
     _modalEl.innerHTML=_buildTypeChooserHtml();
     var pb=global.document.getElementById('wtb-type-card-pokemon');
+    var hb=global.document.getElementById('wtb-type-card-held');
     var tb=global.document.getElementById('wtb-type-card-talent');
     if (pb) pb.addEventListener('click',function(){ _resetForm('pokemon'); _showPokemonForm(); });
+    if (hb) hb.addEventListener('click',function(){ _resetForm('held'); _showHeldForm(); });
     if (tb) tb.addEventListener('click',function(){ _resetForm('talent'); _showTalentBrowser(); });
   }
 
@@ -474,6 +510,156 @@
     });
     var obs=global.document.getElementById('wtb-obs');
     if (obs) obs.addEventListener('input', function(){ _form.observations=obs.value; });
+  }
+
+  // ================================================================
+  // HELDS FORM — vitrine de 1 a 3 helds com orçamento por held
+  // ================================================================
+  function _buildHeldFormHtml() {
+    return '<div class="mk-modal-backdrop" id="wtb-create-backdrop">'
+      +'<div class="mk-modal" id="wtb-create-modal" role="dialog" aria-modal="true">'
+      +'<div class="mk-modal-header">'
+      +'<button class="wtb-back-btn" onclick="WTBCreate._showChooser()">←</button>'
+      +'<span class="mk-modal-title">🎒 Procura de Helds</span>'
+      +'<button class="mk-modal-close" onclick="WTBCreate.close()">✕</button>'
+      +'</div>'
+      +'<div class="mk-modal-body">'
+      +'<div class="mk-section">'
+      +'<div class="mk-section-title"><span class="mk-section-dot"></span>Helds que você procura <small class="mk-section-hint">até 3 — orçamento por held</small></div>'
+      +'<div id="wtb-helds-rows"></div>'
+      +'<button type="button" class="mk-btn mk-btn--ghost mk-btn--sm" id="wtb-add-held">+ Adicionar held</button>'
+      +'<span class="mk-field-error" id="wtb-err-helds"></span>'
+      +'</div>'
+      +'<div class="mk-section"><div class="mk-field"><label class="mk-label" for="wtb-obs">Observações <small>(opcional, máx 500)</small></label>'
+      +'<textarea class="mk-textarea" id="wtb-obs" maxlength="500" placeholder="Detalhes sobre os helds que você procura..."></textarea>'
+      +'</div></div>'
+      +'<div class="mk-modal-footer">'
+      +'<button class="mk-btn mk-btn--ghost" onclick="WTBCreate.close()">Cancelar</button>'
+      +'<button class="mk-btn mk-btn--primary" id="wtb-submit-btn" onclick="WTBCreate.publish()">Publicar Procura</button>'
+      +'</div></div></div></div>';
+  }
+
+  function _showHeldForm() {
+    _ensureModal();
+    _modalEl.innerHTML=_buildHeldFormHtml();
+    var obs=global.document.getElementById('wtb-obs');
+    if (obs) obs.addEventListener('input', function(){ _form.observations=obs.value; });
+    var addBtn=global.document.getElementById('wtb-add-held');
+    if (addBtn) addBtn.addEventListener('click', function(){
+      if ((_form.helds||[]).length>=3) return;
+      _form.helds.push({ held_id:null, pay_kk:0 });
+      _wtbRenderHeldRows();
+    });
+    global.document.addEventListener('click', function(e){
+      var wrap=global.document.getElementById('wtb-helds-rows');
+      if (!wrap) return;
+      if (!e.target.closest || !e.target.closest('.mk-held-row-pick')) {
+        _each(wrap.querySelectorAll('.mk-hr-grid'), function(g){ g.style.display='none'; });
+      }
+    });
+    if (typeof HeldsCatalog!=='undefined' && !HeldsCatalog.isLoaded()) HeldsCatalog.load().then(_wtbRenderHeldRows);
+    _wtbRenderHeldRows();
+  }
+
+  function _wtbRenderHeldRows() {
+    var wrap=global.document.getElementById('wtb-helds-rows');
+    if (!wrap) return;
+    if (!_form.helds||!_form.helds.length) _form.helds=[{ held_id:null, pay_kk:0 }];
+    wrap.innerHTML=_form.helds.map(function(row,i){
+      var h=_heldById(row.held_id);
+      var raw=Number(row.pay_kk)||0;
+      var unit=raw>=1000000000?1000000000:raw>=1000000?1000000:raw>=1000?1000:1000000;
+      var amt=raw?parseFloat((raw/unit).toFixed(2)):'';
+      var canRemove=_form.helds.length>1;
+      return '<div class="mk-held-row" data-idx="'+i+'">'
+        +'<div class="mk-held-row-pick">'
+        +'<button type="button" class="mk-held-trigger mk-hr-trigger" data-idx="'+i+'">'
+        +(h&&h.sprite_url?'<img class="mk-held-trigger-img" src="'+_esc(h.sprite_url)+'" alt="" style="display:inline-block">':'<span class="mk-held-trigger-slot">＋</span>')
+        +'<span class="mk-held-trigger-name">'+(h?_esc(h.name):'— Escolher held —')+'</span>'
+        +'<span class="mk-held-trigger-arrow">▾</span>'
+        +'</button>'
+        +'<div class="mk-held-grid-wrap mk-hr-grid" data-idx="'+i+'" style="display:none">'
+        +'<input type="text" class="mk-input mk-hr-search" data-idx="'+i+'" placeholder="Buscar held...">'
+        +'<div class="mk-held-grid-items mk-hr-items" data-idx="'+i+'"></div>'
+        +'</div>'
+        +'</div>'
+        +'<div class="mk-held-row-price">'
+        +'<input class="mk-input mk-price-input mk-hr-price" data-idx="'+i+'" type="number" min="0" step="any" placeholder="Orçamento" value="'+amt+'">'
+        +'<select class="mk-price-unit mk-hr-unit" data-idx="'+i+'">'
+        +'<option value="1000"'+(unit===1000?' selected':'')+'>k</option>'
+        +'<option value="1000000"'+(unit===1000000?' selected':'')+'>kk</option>'
+        +'<option value="1000000000"'+(unit===1000000000?' selected':'')+'>kkk</option>'
+        +'</select>'
+        +(canRemove?'<button type="button" class="mk-hr-remove" data-idx="'+i+'" title="Remover">✕</button>':'')
+        +'</div>'
+        +'</div>';
+    }).join('');
+    var addBtn=global.document.getElementById('wtb-add-held');
+    if (addBtn) addBtn.style.display=(_form.helds.length>=3)?'none':'';
+    _wtbBindHeldRows();
+  }
+
+  function _wtbBindHeldRows() {
+    var wrap=global.document.getElementById('wtb-helds-rows');
+    if (!wrap) return;
+    _each(wrap.querySelectorAll('.mk-hr-trigger'), function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var idx=btn.getAttribute('data-idx');
+        var grid=wrap.querySelector('.mk-hr-grid[data-idx="'+idx+'"]');
+        var willOpen=grid&&grid.style.display==='none';
+        _each(wrap.querySelectorAll('.mk-hr-grid'), function(g){ g.style.display='none'; });
+        if (willOpen){ grid.style.display=''; _wtbRenderHeldGrid(idx,''); var s=grid.querySelector('.mk-hr-search'); if (s) s.focus(); }
+      });
+    });
+    _each(wrap.querySelectorAll('.mk-hr-search'), function(inp){
+      inp.addEventListener('click', function(e){ e.stopPropagation(); });
+      inp.addEventListener('input', function(){ _wtbRenderHeldGrid(inp.getAttribute('data-idx'), inp.value); });
+    });
+    _each(wrap.querySelectorAll('.mk-hr-price'), function(inp){
+      inp.addEventListener('input', function(){ _wtbRecalcBudget(inp.getAttribute('data-idx')); });
+    });
+    _each(wrap.querySelectorAll('.mk-hr-unit'), function(sel){
+      sel.addEventListener('change', function(){ _wtbRecalcBudget(sel.getAttribute('data-idx')); });
+    });
+    _each(wrap.querySelectorAll('.mk-hr-remove'), function(btn){
+      btn.addEventListener('click', function(){ _form.helds.splice(parseInt(btn.getAttribute('data-idx'),10),1); _wtbRenderHeldRows(); });
+    });
+  }
+
+  function _wtbRecalcBudget(idx) {
+    var wrap=global.document.getElementById('wtb-helds-rows');
+    if (!wrap) return;
+    var inp=wrap.querySelector('.mk-hr-price[data-idx="'+idx+'"]');
+    var sel=wrap.querySelector('.mk-hr-unit[data-idx="'+idx+'"]');
+    var amount=Number(inp?inp.value:0)||0;
+    var unit=Number(sel?sel.value:1000000)||1000000;
+    if (_form.helds[idx]) _form.helds[idx].pay_kk=Math.round(amount*unit);
+  }
+
+  function _wtbRenderHeldGrid(idx, query) {
+    var wrap=global.document.getElementById('wtb-helds-rows');
+    if (!wrap) return;
+    var box=wrap.querySelector('.mk-hr-items[data-idx="'+idx+'"]');
+    if (!box) return;
+    var all=_allHelds();
+    var q=(query||'').toLowerCase().trim();
+    var list=q?all.filter(function(h){ return (h.name||'').toLowerCase().indexOf(q)>=0; }):all;
+    var currentId=_form.helds[idx]?_form.helds[idx].held_id:null;
+    box.innerHTML=list.map(function(h){
+      return '<button type="button" class="mk-held-item'+(h.id===currentId?' selected':'')+'" data-id="'+_esc(h.id)+'">'
+        +(h.sprite_url?'<img class="mk-held-item-img" src="'+_esc(h.sprite_url)+'" alt="">':'<span class="mk-held-item-no-img">?</span>')
+        +'<span class="mk-held-item-label">'+_esc(h.name)+'</span>'
+        +'</button>';
+    }).join('')||'<div class="mk-hr-empty">Nenhum held encontrado.</div>';
+    _each(box.querySelectorAll('.mk-held-item'), function(btn){
+      btn.addEventListener('click', function(){
+        if (_form.helds[idx]) _form.helds[idx].held_id=btn.getAttribute('data-id')||null;
+        var err=global.document.getElementById('wtb-err-helds');
+        if (err) err.textContent='';
+        _wtbRenderHeldRows();
+      });
+    });
   }
 
   // ================================================================
@@ -922,11 +1108,20 @@
       var user=_user();
       if (!user){ _toast('Faça login para criar uma procura.','error'); return; }
 
+      // Procura de helds: monta helds_data + orçamento total em pay_kk
+      var heldsData=null, heldsTotal=null, heldsName=null;
+      if (_form.listing_type==='held') {
+        var hrows=_validHelds().slice(0,3);
+        heldsData=hrows.map(function(r){ return { held_id:r.held_id, pay_kk:Math.floor(Number(r.pay_kk)) }; });
+        heldsTotal=heldsData.reduce(function(a,r){ return a+r.pay_kk; },0);
+        heldsName=_heldsLabel(hrows)||'Helds';
+      }
+
       var payload={
         buyer_id:           user.id,
         listing_type:       _form.listing_type,
-        pokemon_name:       (_form.pokemon_name||'').trim()||null,
-        pokemon_slug:       _form.pokemon_name?_toSlug(_form.pokemon_name):null,
+        pokemon_name:       _form.listing_type==='held'?heldsName:((_form.pokemon_name||'').trim()||null),
+        pokemon_slug:       _form.listing_type==='pokemon'&&_form.pokemon_name?_toSlug(_form.pokemon_name):null,
         pokemon_types:      _form.pokemon_types||[],
         stars:              _form.stars||0,
         boost:              0,
@@ -934,9 +1129,10 @@
         catalog_package_id: _form.catalog_package_id||null,
         package_name:       _form.package_name||null,
         slots_data:         _form.slots_data||null,
-        pay_kk:             _form.pay_kk||null,
-        pay_dd:             _form.pay_dd||null,
-        pay_brl:            _form.pay_brl||null,
+        helds_data:         heldsData,
+        pay_kk:             _form.listing_type==='held'?heldsTotal:(_form.pay_kk||null),
+        pay_dd:             _form.listing_type==='held'?null:(_form.pay_dd||null),
+        pay_brl:            _form.listing_type==='held'?null:(_form.pay_brl||null),
         observations:       (_form.observations||'').trim().slice(0,500)||null,
         status:             'active',
         server:             (global.PA&&global.PA.world&&global.PA.world.get())||'Moon',

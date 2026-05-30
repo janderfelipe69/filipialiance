@@ -256,6 +256,11 @@
         isAdmin: isAdmin,
       });
     }
+    // Anúncio de helds (vitrine de 1 a 3 helds) — card dedicado
+    if (listing.listing_type === 'held') {
+      return _buildHeldCardHtml(listing, isOwner);
+    }
+
     var sprites    = _spriteUrl(listing.pokemon_name);
     var boostCls   = _boostClass(listing.boost);
     var priceLabel = (typeof formatKK === 'function' && listing.price_kk)
@@ -390,6 +395,94 @@
       + '</div>'; // .mk-card
   }
 
+  // ── Held vitrine: um item (sprite + nome + preço individual) ───
+  function _heldVitrineItem(entry) {
+    var h    = _resolveHeld(null, entry && entry.held_id);
+    var name = h ? h.name : 'Held';
+    var img  = (h && h.sprite_url)
+      ? '<img class="mk-hv-img" src="' + _esc(h.sprite_url) + '" alt="' + _esc(name) + '" onerror="this.style.display=\'none\'">'
+      : '<span class="mk-hv-img-fallback">🎯</span>';
+    var pl     = (typeof formatKK === 'function' && entry && entry.price_kk) ? formatKK(entry.price_kk) : null;
+    var rarity = (h && h.rarity) ? ' mk-hv-item--' + _esc(h.rarity) : '';
+    return '<div class="mk-hv-item' + rarity + '">'
+      + '<div class="mk-hv-img-wrap">' + img + '</div>'
+      + '<span class="mk-hv-name">' + _esc(name) + '</span>'
+      + '<span class="mk-hv-price"><span class="mk-price-coin">◈</span>' + (pl ? _esc(pl.label) : '—') + '</span>'
+      + (pl ? '<span class="mk-hv-brl">' + _esc(pl.brl) + '</span>' : '')
+      + '</div>';
+  }
+
+  // ── Build held listing card (vitrine) ──────────────────────────
+  function _buildHeldCardHtml(listing, isOwner) {
+    var status     = listing.status || 'active';
+    var entries    = Array.isArray(listing.helds_data) ? listing.helds_data.slice(0, 3) : [];
+    var count      = entries.length;
+    var total      = listing.price_kk;
+    var priceLabel = (typeof formatKK === 'function' && total) ? formatKK(total) : null;
+    var statusLabel = status === 'sold' ? 'Vendido' : status === 'expired' ? 'Expirado'
+      : (status === 'cancelled' || status === 'deleted') ? 'Cancelado' : 'À venda';
+
+    var canNegotiate = !isOwner && status === 'active';
+    var negotiateHtml = canNegotiate
+      ? '<div class="mk-card-negotiate">'
+        + '<button class="mk-btn mk-btn--primary mk-btn--negotiate"'
+        + ' onclick="event.stopPropagation();MarketplaceTrade&&MarketplaceTrade.startNegotiation(\'' + _esc(listing.id) + '\')">'
+        + '🤝 Negociar</button></div>'
+      : '';
+
+    var actionsHtml = '';
+    if (isOwner) {
+      var renewBtn = (status === 'expired')
+        ? '<button class="mk-btn mk-btn--primary mk-btn--sm" '
+          + 'onclick="event.stopPropagation();PA&&PA.marketplace&&PA.marketplace.renewListing(\'' + _esc(listing.id) + '\')">♻️ Renovar</button>'
+        : '';
+      actionsHtml = '<div class="mk-card-actions">'
+        + renewBtn
+        + '<button class="mk-btn mk-btn--ghost mk-btn--sm" '
+        + 'onclick="event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.openEdit(' + _esc(JSON.stringify({
+            id: listing.id,
+            listing_type: 'held',
+            helds_data: listing.helds_data,
+            observations: listing.observations,
+          })) + ')">✏️ Editar</button>'
+        + '<button class="mk-btn mk-btn--danger-ghost mk-btn--sm" '
+        + 'onclick="event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.cancel(\'' + _esc(listing.id) + '\')">✕ Cancelar</button>'
+        + '</div>';
+    }
+
+    return '<div class="mk-card mk-card--held mk-card--' + _esc(status) + '"'
+      + ' data-listing-id="' + _esc(listing.id) + '"'
+      + ' data-status="' + _esc(status) + '"'
+      + ' data-updated="' + _esc(listing.updated_at || '') + '"'
+      + ' data-type="held"'
+      + ' data-seller="' + _esc(listing.seller_id || '') + '">'
+
+      + '<div class="mk-card-body">'
+      + '<div class="mk-card-name-row">'
+      + '<span class="mk-card-name">🎒 ' + (count > 1 ? (count + ' Helds') : 'Held') + '</span>'
+      + '</div>'
+      + '<div class="mk-held-vitrine mk-hv--' + count + '">'
+      +   entries.map(_heldVitrineItem).join('')
+      + '</div>'
+      + (listing.observations ? '<p class="mk-held-obs">' + _esc(listing.observations) + '</p>' : '')
+      + '</div>'
+
+      + '<div class="mk-card-footer">'
+      + '<div class="mk-price"><span class="mk-price-kk"><span class="mk-price-coin">◈</span>'
+      +   (priceLabel ? _esc(priceLabel.label) : '—') + '</span>'
+      +   (count > 1 ? '<span class="mk-hv-total-label">total dos ' + count + '</span>' : '')
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
+      + '<span class="mk-status-badge mk-status--' + _esc(status) + '">' + statusLabel + '</span>'
+      + '<span class="mk-card-time">' + _timeAgo(listing.created_at) + '</span>'
+      + '</div>'
+      + '</div>'
+
+      + negotiateHtml
+      + actionsHtml
+      + '</div>'; // .mk-card
+  }
+
   // ── Apply filters ─────────────────────────────────────────────
   function _applyFilters(listings, filters) {
     if (!filters) return listings;
@@ -410,7 +503,8 @@
       // Exclui listings não-ativos (soft-deleted, cancelados, vendidos)
       if (l.status && l.status !== 'active') return false;
       if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;
-      if (filters.ball && filters.ball !== 'all' && l.ball_type !== filters.ball) return false;
+      // Helds não têm pokébola — o filtro de bola não se aplica a eles
+      if (filters.ball && filters.ball !== 'all' && l.listing_type !== 'held' && l.ball_type !== filters.ball) return false;
       if (filters.search) {
         var q = filters.search.toLowerCase();
         if (!(l.pokemon_name || '').toLowerCase().includes(q)) return false;
@@ -442,7 +536,10 @@
         // training/boost/name/price all refresh. updated_at is bumped on every edit.
         var oldUpdated = el.getAttribute('data-updated') || '';
         var newUpdated = listing.updated_at || '';
-        if (oldUpdated && newUpdated && oldUpdated !== newUpdated) {
+        // Cards de held têm estrutura própria — o morph leve abaixo é específico de
+        // Pokémon (rebuild do botão Editar com payload de Pokémon). Sempre reconstrói
+        // por inteiro para helds, evitando handlers de edição errados.
+        if (listing.listing_type === 'held' || (oldUpdated && newUpdated && oldUpdated !== newUpdated)) {
           var tmp = global.document.createElement('div');
           tmp.innerHTML = _buildCardHtml(listing, userId, admin);
           var fresh = tmp.firstElementChild;

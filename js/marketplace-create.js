@@ -25,6 +25,7 @@
   function _user() { return typeof Session !== 'undefined' ? Session.getCurrentUser() : null; }
   function _tel(cat, data) { if (global.PA && global.PA.telemetry) global.PA.telemetry.push(cat, data); }
   function _toast(msg, type) { if (typeof showToast === 'function') showToast(msg, type || 'info'); }
+  function _each(list, fn) { Array.prototype.forEach.call(list || [], fn); }
 
   function _toSlug(name) {
     return String(name || '').toLowerCase()
@@ -70,14 +71,60 @@
       price_kk:      0,
       ball_type:     '',
       observations:  '',
+      helds:         [{ held_id: null, price_kk: 0 }], // listing_type === 'held'
       loading:       false,
       errors:        {},
     };
   }
 
+  // ── Helds (listing_type='held'): catálogo + rótulos ──────────
+  function _allHelds() {
+    return (typeof HeldsCatalog !== 'undefined' && HeldsCatalog.getAll) ? (HeldsCatalog.getAll() || []) : [];
+  }
+  function _heldById(id) {
+    return (id && typeof HeldsCatalog !== 'undefined' && HeldsCatalog.getById) ? HeldsCatalog.getById(id) : null;
+  }
+  // Helds preenchidos (held_id válido + preço > 0)
+  function _validHelds() {
+    return (_form.helds || []).filter(function (r) {
+      return r && r.held_id && _heldById(r.held_id) && Number(r.price_kk) > 0;
+    });
+  }
+  // Rótulo combo p/ pokemon_name (mantém a busca funcionando)
+  function _heldsLabel(rows) {
+    return (rows || []).map(function (r) {
+      var h = _heldById(r.held_id);
+      return h ? h.name : '';
+    }).filter(Boolean).join(' + ').slice(0, 80);
+  }
+
   // ── Validation ───────────────────────────────────────────────
   function validateListing() {
     var errs = {};
+
+    // ── Anúncio de helds (vitrine de 1 a 3 helds, preço individual) ──
+    if (_form.listing_type === 'held') {
+      var rows = _form.helds || [];
+      var filled = rows.filter(function (r) { return r && r.held_id; });
+      if (filled.length === 0) {
+        errs.helds = 'Adicione pelo menos 1 held.';
+      } else if (filled.length > 3) {
+        errs.helds = 'Máximo de 3 helds por anúncio.';
+      } else {
+        for (var i = 0; i < filled.length; i++) {
+          var r = filled[i];
+          if (!_heldById(r.held_id)) { errs.helds = 'Há um held inválido na lista.'; break; }
+          var p = Number(r.price_kk);
+          if (!p || p <= 0)            { errs.helds = 'Defina um preço (> 0) para cada held.'; break; }
+          if (p > 999999999999)        { errs.helds = 'Preço muito alto em um dos helds.'; break; }
+        }
+      }
+      if (_form.observations && _form.observations.length > 500) {
+        errs.observations = 'Observações excedem 500 caracteres.';
+      }
+      _form.errors = errs;
+      return Object.keys(errs).length === 0;
+    }
 
     // Pokémon
     if (!_form.pokemon_name || !_form.pokemon_name.trim()) {
@@ -239,25 +286,52 @@
       }
 
       // 4. Monta payload (sem campos que o banco não aceita, sem image_url)
-      var slug = _toSlug(_form.pokemon_name);
-      var payload = {
-        seller_id:     user.id,
-        listing_type:  'pokemon',
-        pokemon_name:  _form.pokemon_name.trim(),
-        pokemon_slug:  slug,
-        pokemon_types: _form.pokemon_types || [],
-        stars:         _form.stars,
-        boost:         _form.boost,
-        held_x_id:     _form.held_x_id || null,
-        held_y_id:     _form.held_y_id || null,
-        training:      _buildTrainingPayload(),
-        price_kk:      Math.floor(Number(_form.price_kk)),
-        ball_type:     _form.ball_type || null,
-        observations:  (_form.observations || '').trim().slice(0, 500) || null,
-        status:        'active',
-      };
+      var slug, payload;
+      if (_form.listing_type === 'held') {
+        var hrows = _validHelds().slice(0, 3);
+        var heldsData = hrows.map(function (r) {
+          return { held_id: r.held_id, price_kk: Math.floor(Number(r.price_kk)) };
+        });
+        var total = heldsData.reduce(function (a, r) { return a + r.price_kk; }, 0);
+        payload = {
+          seller_id:     user.id,
+          listing_type:  'held',
+          pokemon_name:  _heldsLabel(hrows) || 'Helds',
+          pokemon_slug:  null,
+          pokemon_types: [],
+          stars:         null,
+          boost:         null,
+          held_x_id:     null,
+          held_y_id:     null,
+          training:      {},
+          helds_data:    heldsData,
+          price_kk:      total,            // soma (mantém ordenação/total)
+          ball_type:     null,
+          observations:  (_form.observations || '').trim().slice(0, 500) || null,
+          status:        'active',
+        };
+        slug = 'held';
+      } else {
+        slug = _toSlug(_form.pokemon_name);
+        payload = {
+          seller_id:     user.id,
+          listing_type:  'pokemon',
+          pokemon_name:  _form.pokemon_name.trim(),
+          pokemon_slug:  slug,
+          pokemon_types: _form.pokemon_types || [],
+          stars:         _form.stars,
+          boost:         _form.boost,
+          held_x_id:     _form.held_x_id || null,
+          held_y_id:     _form.held_y_id || null,
+          training:      _buildTrainingPayload(),
+          price_kk:      Math.floor(Number(_form.price_kk)),
+          ball_type:     _form.ball_type || null,
+          observations:  (_form.observations || '').trim().slice(0, 500) || null,
+          status:        'active',
+        };
+      }
 
-      _log('[PA.marketplace.fetch] INSERT listing', { slug: slug, price: payload.price_kk });
+      _log('[PA.marketplace.fetch] INSERT listing', { type: payload.listing_type, price: payload.price_kk });
 
       // 5. withLock para evitar renders simultâneos durante insert
       var newListing = null;
@@ -392,6 +466,22 @@
     _editId = listing.id;
 
     _resetForm();
+    _form.listing_type  = listing.listing_type || 'pokemon';
+    _form.observations  = listing.observations || '';
+
+    if (_form.listing_type === 'held') {
+      var hd = Array.isArray(listing.helds_data) ? listing.helds_data : [];
+      _form.helds = hd.length
+        ? hd.map(function (r) { return { held_id: r.held_id, price_kk: Number(r.price_kk) || 0 }; })
+        : [{ held_id: null, price_kk: 0 }];
+      _renderModal('✏️ Editar Anúncio', 'Salvar Alterações');
+      _bindEvents();
+      var obsEl = global.document.getElementById('mk-obs');
+      if (obsEl) obsEl.value = _form.observations || '';
+      _log('Modal edit (held) aberto para listing', _editId);
+      return;
+    }
+
     _form.pokemon_name  = listing.pokemon_name  || '';
     _form.pokemon_slug  = listing.pokemon_slug  || '';
     _form.pokemon_types = listing.pokemon_types || [];
@@ -401,7 +491,6 @@
     _form.held_y_id     = listing.held_y_id || null;
     _form.price_kk      = listing.price_kk  || 0;
     _form.ball_type     = listing.ball_type || '';
-    _form.observations  = listing.observations || '';
 
     // Training: flatten pct
     var STATS = ['attack','defense','hp','precision','evasion','critical_damage','critical_chance','critical_resistance'];
@@ -432,16 +521,30 @@
         return;
       }
 
-      var patch = {
-        price_kk:      Math.floor(Number(_form.price_kk)),
-        held_x_id:     _form.held_x_id || null,
-        held_y_id:     _form.held_y_id || null,
-        training:      _buildTrainingPayload(),
-        ball_type:     _form.ball_type || null,
-        observations:  (_form.observations || '').trim().slice(0, 500) || null,
-        stars:         _form.stars,
-        boost:         _form.boost,
-      };
+      var patch;
+      if (_form.listing_type === 'held') {
+        var hrows = _validHelds().slice(0, 3);
+        var heldsData = hrows.map(function (r) {
+          return { held_id: r.held_id, price_kk: Math.floor(Number(r.price_kk)) };
+        });
+        patch = {
+          helds_data:    heldsData,
+          price_kk:      heldsData.reduce(function (a, r) { return a + r.price_kk; }, 0),
+          pokemon_name:  _heldsLabel(hrows) || 'Helds',
+          observations:  (_form.observations || '').trim().slice(0, 500) || null,
+        };
+      } else {
+        patch = {
+          price_kk:      Math.floor(Number(_form.price_kk)),
+          held_x_id:     _form.held_x_id || null,
+          held_y_id:     _form.held_y_id || null,
+          training:      _buildTrainingPayload(),
+          ball_type:     _form.ball_type || null,
+          observations:  (_form.observations || '').trim().slice(0, 500) || null,
+          stars:         _form.stars,
+          boost:         _form.boost,
+        };
+      }
 
       await _patchListing(_editId, patch);
 
@@ -522,6 +625,17 @@
       + '  <button class="mk-modal-close" onclick="MarketplaceCreate.close()" aria-label="Fechar">✕</button>'
       + '</div>'
       + '<div class="mk-modal-body">'
+
+      // ══ Seletor de tipo (Pokémon / Helds) — só na criação ═══════
+      + (_mode === 'create'
+          ? '<div class="mk-type-toggle" id="mk-type-toggle">'
+            + '<button type="button" class="mk-type-tab' + (_form.listing_type !== 'held' ? ' active' : '') + '" data-type="pokemon">🎴 Pokémon</button>'
+            + '<button type="button" class="mk-type-tab' + (_form.listing_type === 'held' ? ' active' : '') + '" data-type="held">🎒 Helds</button>'
+            + '</div>'
+          : '')
+
+      // ══ Container das seções de Pokémon ═════════════════════════
+      + '<div id="mk-pokemon-sections"' + (_form.listing_type === 'held' ? ' style="display:none"' : '') + '>'
 
       // ══ Seção: Pokémon ══════════════════════════════════════════
       + '<div class="mk-section">'
@@ -638,7 +752,7 @@
       + '  </div>'
       + '</div>' // .mk-section Treinamento
 
-      // ══ Seção: Venda ════════════════════════════════════════════
+      // ══ Seção: Venda (preço único — só Pokémon) ═════════════════
       + '<div class="mk-section">'
       + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Venda</div>'
 
@@ -655,13 +769,28 @@
       + '    <span class="mk-field-hint" id="mk-price-preview"></span>'
       + '    <span class="mk-field-error" id="mk-err-price_kk"></span>'
       + '  </div>'
+      + '</div>' // .mk-section Venda
 
+      + '</div>' // #mk-pokemon-sections
+
+      // ══ Container das seções de Held (vitrine de 1 a 3 helds) ═══
+      + '<div id="mk-held-sections"' + (_form.listing_type === 'held' ? '' : ' style="display:none"') + '>'
+      + '<div class="mk-section">'
+      + '  <div class="mk-section-title"><span class="mk-section-dot"></span>Helds à venda <small class="mk-section-hint">até 3 — preço por held</small></div>'
+      + '  <div id="mk-helds-rows"></div>'
+      + '  <button type="button" class="mk-btn mk-btn--ghost mk-btn--sm" id="mk-add-held">+ Adicionar held</button>'
+      + '  <span class="mk-field-error" id="mk-err-helds"></span>'
+      + '</div>'
+      + '</div>' // #mk-held-sections
+
+      // ══ Seção: Observações (compartilhada) ══════════════════════
+      + '<div class="mk-section">'
       + '  <div class="mk-field">'
       + '    <label class="mk-label" for="mk-obs">Observações <small>(opcional, máx 500)</small></label>'
       + '    <textarea class="mk-textarea" id="mk-obs" maxlength="500" placeholder="Informações adicionais..."></textarea>'
       + '    <span class="mk-field-error" id="mk-err-observations"></span>'
       + '  </div>'
-      + '</div>' // .mk-section Venda
+      + '</div>'
 
       // Footer
       + '<div class="mk-modal-footer">'
@@ -797,6 +926,176 @@
         });
       }
     );
+
+    // Seletor de tipo (Pokémon / Helds)
+    _each(global.document.querySelectorAll('.mk-type-tab'), function (btn) {
+      btn.addEventListener('click', function () { _setType(btn.getAttribute('data-type')); });
+    });
+
+    // Seção de helds (vitrine)
+    _initHeldSection();
+  }
+
+  // ── Alterna entre anúncio de Pokémon e de Helds ───────────────
+  function _setType(type) {
+    if (type !== 'held') type = 'pokemon';
+    _form.listing_type = type;
+    _each(global.document.querySelectorAll('.mk-type-tab'), function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-type') === type);
+    });
+    var pk = global.document.getElementById('mk-pokemon-sections');
+    var hd = global.document.getElementById('mk-held-sections');
+    if (pk) pk.style.display = (type === 'held') ? 'none' : '';
+    if (hd) hd.style.display = (type === 'held') ? '' : 'none';
+    // Limpa erros visíveis ao trocar de modo
+    _each(global.document.querySelectorAll('.mk-field-error'), function (el) { el.textContent = ''; });
+  }
+
+  // ══ Helds (vitrine) — picker múltiplo de 1 a 3 helds ══════════
+  function _initHeldSection() {
+    var addBtn = global.document.getElementById('mk-add-held');
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        if ((_form.helds || []).length >= 3) return;
+        _form.helds.push({ held_id: null, price_kk: 0 });
+        _renderHeldRows();
+      });
+    }
+    // Fecha grids abertos ao clicar fora
+    global.document.addEventListener('click', function (e) {
+      var wrap = global.document.getElementById('mk-helds-rows');
+      if (!wrap) return;
+      if (!e.target.closest || !e.target.closest('.mk-held-row-pick')) {
+        _each(wrap.querySelectorAll('.mk-hr-grid'), function (g) { g.style.display = 'none'; });
+      }
+    });
+    if (typeof HeldsCatalog !== 'undefined' && !HeldsCatalog.isLoaded()) {
+      HeldsCatalog.load().then(_renderHeldRows);
+    }
+    _renderHeldRows();
+  }
+
+  function _renderHeldRows() {
+    var wrap = global.document.getElementById('mk-helds-rows');
+    if (!wrap) return;
+    if (!_form.helds || !_form.helds.length) _form.helds = [{ held_id: null, price_kk: 0 }];
+
+    wrap.innerHTML = _form.helds.map(function (row, i) {
+      var h    = _heldById(row.held_id);
+      var raw  = Number(row.price_kk) || 0;
+      var unit = raw >= 1000000000 ? 1000000000 : raw >= 1000000 ? 1000000 : raw >= 1000 ? 1000 : 1000000;
+      var amt  = raw ? parseFloat((raw / unit).toFixed(2)) : '';
+      var canRemove = _form.helds.length > 1;
+      return '<div class="mk-held-row" data-idx="' + i + '">'
+        + '  <div class="mk-held-row-pick">'
+        + '    <button type="button" class="mk-held-trigger mk-hr-trigger" data-idx="' + i + '">'
+        +        (h && h.sprite_url
+                    ? '<img class="mk-held-trigger-img" src="' + _esc(h.sprite_url) + '" alt="" style="display:inline-block">'
+                    : '<span class="mk-held-trigger-slot">＋</span>')
+        + '      <span class="mk-held-trigger-name">' + (h ? _esc(h.name) : '— Escolher held —') + '</span>'
+        + '      <span class="mk-held-trigger-arrow">▾</span>'
+        + '    </button>'
+        + '    <div class="mk-held-grid-wrap mk-hr-grid" data-idx="' + i + '" style="display:none">'
+        + '      <input type="text" class="mk-input mk-hr-search" data-idx="' + i + '" placeholder="Buscar held...">'
+        + '      <div class="mk-held-grid-items mk-hr-items" data-idx="' + i + '"></div>'
+        + '    </div>'
+        + '  </div>'
+        + '  <div class="mk-held-row-price">'
+        + '    <input class="mk-input mk-price-input mk-hr-price" data-idx="' + i + '" type="number" min="0" step="any" placeholder="Preço" value="' + amt + '">'
+        + '    <select class="mk-price-unit mk-hr-unit" data-idx="' + i + '">'
+        + '      <option value="1000"' + (unit === 1000 ? ' selected' : '') + '>k</option>'
+        + '      <option value="1000000"' + (unit === 1000000 ? ' selected' : '') + '>kk</option>'
+        + '      <option value="1000000000"' + (unit === 1000000000 ? ' selected' : '') + '>kkk</option>'
+        + '    </select>'
+        +      (canRemove ? '<button type="button" class="mk-hr-remove" data-idx="' + i + '" title="Remover">✕</button>' : '')
+        + '  </div>'
+        + '</div>';
+    }).join('');
+
+    var addBtn = global.document.getElementById('mk-add-held');
+    if (addBtn) addBtn.style.display = (_form.helds.length >= 3) ? 'none' : '';
+
+    _bindHeldRows();
+  }
+
+  function _bindHeldRows() {
+    var wrap = global.document.getElementById('mk-helds-rows');
+    if (!wrap) return;
+
+    _each(wrap.querySelectorAll('.mk-hr-trigger'), function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var idx  = btn.getAttribute('data-idx');
+        var grid = wrap.querySelector('.mk-hr-grid[data-idx="' + idx + '"]');
+        var willOpen = grid && grid.style.display === 'none';
+        _each(wrap.querySelectorAll('.mk-hr-grid'), function (g) { g.style.display = 'none'; });
+        if (willOpen) {
+          grid.style.display = '';
+          _renderHeldGrid(idx, '');
+          var s = grid.querySelector('.mk-hr-search');
+          if (s) s.focus();
+        }
+      });
+    });
+
+    _each(wrap.querySelectorAll('.mk-hr-search'), function (inp) {
+      inp.addEventListener('click', function (e) { e.stopPropagation(); });
+      inp.addEventListener('input', function () { _renderHeldGrid(inp.getAttribute('data-idx'), inp.value); });
+    });
+
+    _each(wrap.querySelectorAll('.mk-hr-price'), function (inp) {
+      inp.addEventListener('input', function () { _recalcHeldPrice(inp.getAttribute('data-idx')); });
+    });
+    _each(wrap.querySelectorAll('.mk-hr-unit'), function (sel) {
+      sel.addEventListener('change', function () { _recalcHeldPrice(sel.getAttribute('data-idx')); });
+    });
+
+    _each(wrap.querySelectorAll('.mk-hr-remove'), function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        _form.helds.splice(idx, 1);
+        _renderHeldRows();
+      });
+    });
+  }
+
+  function _recalcHeldPrice(idx) {
+    var wrap = global.document.getElementById('mk-helds-rows');
+    if (!wrap) return;
+    var inp = wrap.querySelector('.mk-hr-price[data-idx="' + idx + '"]');
+    var sel = wrap.querySelector('.mk-hr-unit[data-idx="' + idx + '"]');
+    var amount = Number(inp ? inp.value : 0) || 0;
+    var unit   = Number(sel ? sel.value : 1000000) || 1000000;
+    if (_form.helds[idx]) _form.helds[idx].price_kk = Math.round(amount * unit);
+  }
+
+  function _renderHeldGrid(idx, query) {
+    var wrap = global.document.getElementById('mk-helds-rows');
+    if (!wrap) return;
+    var box = wrap.querySelector('.mk-hr-items[data-idx="' + idx + '"]');
+    if (!box) return;
+    var all = _allHelds();
+    var q   = (query || '').toLowerCase().trim();
+    var list = q ? all.filter(function (h) { return (h.name || '').toLowerCase().indexOf(q) >= 0; }) : all;
+    var currentId = _form.helds[idx] ? _form.helds[idx].held_id : null;
+
+    box.innerHTML = list.map(function (h) {
+      return '<button type="button" class="mk-held-item' + (h.id === currentId ? ' selected' : '') + '" data-id="' + _esc(h.id) + '">'
+        + (h.sprite_url
+            ? '<img class="mk-held-item-img" src="' + _esc(h.sprite_url) + '" alt="">'
+            : '<span class="mk-held-item-no-img">?</span>')
+        + '<span class="mk-held-item-label">' + _esc(h.name) + '</span>'
+        + '</button>';
+    }).join('') || '<div class="mk-hr-empty">Nenhum held encontrado.</div>';
+
+    _each(box.querySelectorAll('.mk-held-item'), function (btn) {
+      btn.addEventListener('click', function () {
+        if (_form.helds[idx]) _form.helds[idx].held_id = btn.getAttribute('data-id') || null;
+        var err = global.document.getElementById('mk-err-helds');
+        if (err) err.textContent = '';
+        _renderHeldRows();
+      });
+    });
   }
 
   function _updateBallUI() {

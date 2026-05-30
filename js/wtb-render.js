@@ -176,6 +176,42 @@
   }
 
   // ================================================================
+  // Card: Helds — vitrine de 1 a 3 helds procurados (orçamento por held)
+  // ================================================================
+  function _heldById(id){ return (id&&typeof HeldsCatalog!=='undefined'&&HeldsCatalog.getById)?HeldsCatalog.getById(id):null; }
+
+  function _wtbHeldItem(entry){
+    var h=_heldById(entry&&entry.held_id);
+    var name=h?h.name:'Held';
+    var img=(h&&h.sprite_url)
+      ?'<img class="mk-hv-img" src="'+_esc(h.sprite_url)+'" alt="'+_esc(name)+'" onerror="this.style.display=\'none\'">'
+      :'<span class="mk-hv-img-fallback">🎯</span>';
+    var fmt=(typeof formatKK==='function'&&entry&&entry.pay_kk)?formatKK(entry.pay_kk):null;
+    var rarity=(h&&h.rarity)?' mk-hv-item--'+_esc(h.rarity):'';
+    return '<div class="mk-hv-item'+rarity+'">'
+      +'<div class="mk-hv-img-wrap">'+img+'</div>'
+      +'<span class="mk-hv-name">'+_esc(name)+'</span>'
+      +'<span class="mk-hv-price"><span class="mk-price-coin">◈</span>'+(fmt?_esc(fmt.label):'—')+'</span>'
+      +(fmt?'<span class="mk-hv-brl">'+_esc(fmt.brl)+'</span>':'')
+      +'</div>';
+  }
+
+  function _buildHeldCard(listing, userId, isAdmin){
+    var isOwner=!!(userId&&listing.buyer_id===userId);
+    var entries=Array.isArray(listing.helds_data)?listing.helds_data.slice(0,3):[];
+    var count=entries.length;
+    return '<div class="mk-card wtb-card mk-card--held" data-wtb-id="'+_esc(listing.id)+'" data-updated="'+_esc(listing.updated_at||'')+'">'
+      +'<div class="wtb-card-badge">🎒 '+(count>1?(count+' Helds'):'Held')+'</div>'
+      +'<div class="mk-card-body">'
+      +'<div class="mk-held-vitrine mk-hv--'+count+'">'+entries.map(_wtbHeldItem).join('')+'</div>'
+      +(listing.observations?'<div class="wtb-obs">'+_esc(listing.observations)+'</div>':'')
+      +'</div>'
+      +'<div class="mk-card-footer"><div class="wtb-payment">'+_paymentHtml(listing)+(count>1?' <span class="mk-hv-total-label">total</span>':'')+'</div><span class="mk-card-time">'+_timeAgo(listing.created_at)+'</span></div>'
+      +_actionHtml(listing,isOwner)
+      +'</div>';
+  }
+
+  // ================================================================
   // Filtros
   // ================================================================
   function _applyFilters(listings, filters){
@@ -219,7 +255,9 @@
     }
 
     container.innerHTML=filtered.map(function(l){
-      return l.listing_type==='talent'?_buildTalentCard(l,userId,admin):_buildPokemonCard(l,userId,admin);
+      if (l.listing_type==='held')   return _buildHeldCard(l,userId,admin);
+      if (l.listing_type==='talent') return _buildTalentCard(l,userId,admin);
+      return _buildPokemonCard(l,userId,admin);
     }).join('');
   }
 
