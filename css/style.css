@@ -21,9 +21,10 @@
   --gold-bright: #ffd166;
   --glow-blue: rgba(58,140,255,0.4);
   --glow-gold: rgba(240,180,41,0.35);
-  --radius: 12px;
-  --font-title: 'Cinzel', serif;
-  --font-body: 'Rajdhani', sans-serif;
+  --radius: 14px;
+  --font-title: 'Baloo 2', 'Fredoka', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  --font-display: 'Baloo 2', sans-serif;
   --font-mono: 'Space Mono', monospace;
 }
 
@@ -4240,3 +4241,180 @@ body[data-server="sun"] .stars { opacity: 0.12; }
 
 /* ---- Hub kind switch: leve glow no ativo ---- */
 .hub-kind-btn.active { text-shadow: 0 0 12px rgba(255,255,255,0.35); }
+
+/* ============================================================
+ * REDESIGN POKÉMON v2 — tipografia chunky, logo pokébola, botões de jogo
+ * Bloco no fim do arquivo = vence no cascade.
+ * ============================================================ */
+
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+/* ---- MARCA estilo logo Pokémon (amarelo + contorno azul) ---- */
+.seller-name::before, .seller-name::after { display: none !important; } /* mata o glitch */
+.seller-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(24px, 3.2vw, 33px);
+  letter-spacing: 0.5px;
+  line-height: 1.05;
+  background: none !important;
+  color: #ffde00 !important;
+  -webkit-text-fill-color: #ffde00 !important;
+  -webkit-text-stroke: 2.4px #2a63b4;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #143a7a, 0 4px 7px rgba(0,0,0,0.55);
+  animation: none !important;
+  transform: rotate(-1.5deg);
+  transform-origin: left center;
+  display: inline-block;
+}
+.seller-title {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  color: #7fb0ff;
+  text-transform: uppercase;
+}
+body[data-server="sun"] .seller-title { color: #ffc24d; }
+
+/* ---- POKÉBOLA emblema: glow do mundo + flutuação ---- */
+.pa-emblem { width: 66px; height: 66px; }
+.pa-emblem svg {
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)) drop-shadow(0 0 14px var(--glow-blue));
+  animation: pbBob 3.2s ease-in-out infinite !important;
+}
+@keyframes pbBob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-4px) rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .pa-emblem svg { animation: none !important; } }
+
+/* ---- BOTÕES CHUNKY (estilo candy/game UI: base sólida + borda inferior 3D) ---- */
+.mk-btn--primary,
+.cart-trigger,
+.auth-login-btn,
+.send-order-btn,
+#mk-btn-create, #wtb-btn-create, #svc-btn-create {
+  font-family: var(--font-title) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+  border: none !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, var(--blue-bright) 0%, var(--blue) 100%) !important;
+  color: #06122b !important;
+  box-shadow: 0 4px 0 0 #11418f, 0 6px 14px rgba(0,0,0,0.35) !important;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease !important;
+}
+body[data-server="sun"] .mk-btn--primary,
+body[data-server="sun"] .cart-trigger,
+body[data-server="sun"] .auth-login-btn,
+body[data-server="sun"] #mk-btn-create,
+body[data-server="sun"] #wtb-btn-create,
+body[data-server="sun"] #svc-btn-create { box-shadow: 0 4px 0 0 #9a6a06, 0 6px 14px rgba(0,0,0,0.35) !important; color: #2a1800 !important; }
+.mk-btn--primary:hover,
+.cart-trigger:hover,
+.auth-login-btn:hover,
+.send-order-btn:hover,
+#mk-btn-create:hover, #wtb-btn-create:hover, #svc-btn-create:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.05) !important;
+}
+.mk-btn--primary:active,
+.cart-trigger:active,
+.auth-login-btn:active,
+#mk-btn-create:active, #wtb-btn-create:active, #svc-btn-create:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 1px 0 0 #11418f, 0 2px 6px rgba(0,0,0,0.3) !important;
+}
+.cart-count { background: #ef2d3c !important; color: #fff !important; }
+
+/* ---- ABAS principais: pílulas chunky centralizadas ---- */
+.tabs-nav {
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  flex: 0 0 auto;
+  border-radius: 999px !important;
+  border: 2px solid transparent !important;
+  font-family: var(--font-title);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  padding: 10px 22px;
+  color: var(--muted);
+}
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.tab-btn.active {
+  color: #06122b !important;
+  background: linear-gradient(180deg, var(--blue-bright), var(--blue)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.35), 0 0 18px var(--glow-blue) !important;
+}
+body[data-server="sun"] .tab-btn.active { color: #2a1800 !important; }
+
+/* ---- Pílulas de filtro/mundo: mais redondas e gordinhas ---- */
+.mk-filter-chip, .mk-ball-chip, .hub-kind-btn { font-family: var(--font-title); }
+.hub-kind { border-radius: 999px; }
+.hub-kind-btn { border-radius: 999px; }
+
+/* ---- Títulos de seção em Baloo (já via --font-title) — só reforça peso ---- */
+.mk-title, .ph-title, .rep-title, .svc-card-title { font-weight: 700; letter-spacing: 0.2px; }
+
+/* ---- Cards: cantos mais redondos (mais amigável) ---- */
+.mk-card, .svc-card { border-radius: 18px; }
+
+/* ============================================================
+ * CARDS COLORIDOS POR TIPO — a cara mais "Pokémon" possível
+ * ============================================================ */
+.mk-card[data-type="normal"]   { --type: #9aa0aa; }
+.mk-card[data-type="fire"]     { --type: #ff7a3d; }
+.mk-card[data-type="water"]    { --type: #4aa0ff; }
+.mk-card[data-type="electric"] { --type: #ffd23d; }
+.mk-card[data-type="grass"]    { --type: #5ecb6a; }
+.mk-card[data-type="ice"]      { --type: #6fd6d6; }
+.mk-card[data-type="fighting"] { --type: #e0533b; }
+.mk-card[data-type="poison"]   { --type: #b667d6; }
+.mk-card[data-type="ground"]   { --type: #e0b457; }
+.mk-card[data-type="flying"]   { --type: #8fa9ff; }
+.mk-card[data-type="psychic"]  { --type: #ff6fa3; }
+.mk-card[data-type="bug"]      { --type: #a7c93b; }
+.mk-card[data-type="rock"]     { --type: #cbb868; }
+.mk-card[data-type="ghost"]    { --type: #8a6fd6; }
+.mk-card[data-type="dragon"]   { --type: #7a6bff; }
+.mk-card[data-type="dark"]     { --type: #7a6c66; }
+.mk-card[data-type="steel"]    { --type: #8fb2c9; }
+.mk-card[data-type="fairy"]    { --type: #ff8fd0; }
+
+/* Topo do card recebe um halo da cor do tipo */
+.mk-card[data-type] .mk-card-top { position: relative; }
+.mk-card[data-type] .mk-card-top::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 130% 90% at 50% -15%, var(--type) 0%, transparent 60%),
+    linear-gradient(180deg, var(--type) 0%, transparent 48%);
+  opacity: 0.42;
+  pointer-events: none;
+}
+/* faixa de cor sólida no topo do card (assinatura de tipo) */
+.mk-card[data-type] .mk-card-top {
+  border-top: 3px solid var(--type);
+  box-shadow: inset 0 14px 26px -14px var(--type);
+}
+.mk-card[data-type] .mk-card-top > * { position: relative; z-index: 1; }
+
+/* Linha de acento e glow do card seguem a cor do tipo */
+.mk-card[data-type]::after {
+  background: linear-gradient(90deg, transparent, var(--type), transparent);
+  opacity: 0.75;
+}
+.mk-card[data-type]:hover {
+  border-color: var(--type);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 26px var(--type);
+}
+/* aro da bola atrás do sprite ganha leve tom do tipo */
+.mk-card[data-type] .mk-sprite-wrap { filter: drop-shadow(0 0 10px var(--type)); }

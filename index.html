@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mercadão Aliance • Comunidade PokéAlliance</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/packages.css" />
   <link rel="stylesheet" href="css/packages.animations.css" />
@@ -40,42 +40,31 @@
   <div class="aurora"></div>
   <div class="header-grid">
 
-    <!-- Emblem SVG -->
+    <!-- Pokébola emblem -->
     <div class="pa-emblem">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <!-- Outer shield -->
         <defs>
-          <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#3a8cff;stop-opacity:1" />
-            <stop offset="50%" style="stop-color:#1a5fcc;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#0a3a8a;stop-opacity:1" />
+          <linearGradient id="pbTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ff7a7a"/><stop offset="50%" stop-color="#ef2d3c"/><stop offset="100%" stop-color="#c01525"/>
           </linearGradient>
-          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#ffd166;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#c88a00;stop-opacity:1" />
+          <linearGradient id="pbBot" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#d2dae6"/>
           </linearGradient>
-          <linearGradient id="innerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#0d1e3d;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#040810;stop-opacity:1" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
+          <radialGradient id="pbBtn" cx="50%" cy="38%" r="65%">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#b7c1d1"/>
+          </radialGradient>
+          <clipPath id="pbClip"><circle cx="50" cy="50" r="46"/></clipPath>
         </defs>
-        <!-- Shield base -->
-        <path d="M50 5 L88 22 L88 55 Q88 78 50 95 Q12 78 12 55 L12 22 Z" fill="url(#shieldGrad)" />
-        <!-- Gold border -->
-        <path d="M50 5 L88 22 L88 55 Q88 78 50 95 Q12 78 12 55 L12 22 Z" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" />
-        <!-- Inner shield -->
-        <path d="M50 14 L80 28 L80 54 Q80 72 50 85 Q20 72 20 54 L20 28 Z" fill="url(#innerGrad)" />
-        <!-- PA letters -->
-        <text x="50" y="58" text-anchor="middle" font-family="Cinzel,serif" font-size="26" font-weight="900" fill="url(#goldGrad)" filter="url(#glow)">PA</text>
-        <!-- Star top -->
-        <polygon points="50,6 52,11 57,11 53,14 55,19 50,16 45,19 47,14 43,11 48,11" fill="url(#goldGrad)" />
-        <!-- Corner ornaments -->
-        <circle cx="19" cy="26" r="2.5" fill="url(#goldGrad)" opacity="0.8" />
-        <circle cx="81" cy="26" r="2.5" fill="url(#goldGrad)" opacity="0.8" />
+        <g clip-path="url(#pbClip)">
+          <rect x="0" y="0"  width="100" height="50" fill="url(#pbTop)"/>
+          <rect x="0" y="50" width="100" height="50" fill="url(#pbBot)"/>
+          <rect x="0" y="44" width="100" height="12" fill="#14171e"/>
+          <ellipse cx="34" cy="28" rx="16" ry="10" fill="#ffffff" opacity="0.30" transform="rotate(-22 34 28)"/>
+        </g>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#0e1118" stroke-width="3.5"/>
+        <circle cx="50" cy="50" r="15" fill="#14171e"/>
+        <circle cx="50" cy="50" r="11.5" fill="#ffffff"/>
+        <circle cx="50" cy="50" r="6.5" fill="url(#pbBtn)" stroke="#0e1118" stroke-width="1.5"/>
       </svg>
     </div>
 

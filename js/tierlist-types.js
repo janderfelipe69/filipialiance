@@ -711,4 +711,7 @@ if (document.readyState === 'loading') {
   tryInit();
 }
 
+// Expõe o mapa nome→tipos para outros módulos (cards coloridos por tipo no marketplace)
+try { window.POKEMON_TYPES = POKEMON_TYPES; } catch (_) {}
+
 })();

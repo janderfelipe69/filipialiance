@@ -142,6 +142,17 @@
       + '</div>';
   }
 
+  // Tipo primário do listing: usa pokemon_types ou deriva pelo nome (POKEMON_TYPES)
+  function _firstType(listing) {
+    if (Array.isArray(listing.pokemon_types) && listing.pokemon_types[0]) {
+      return String(listing.pokemon_types[0]).toLowerCase();
+    }
+    var nm = (listing.pokemon_name || '').replace(/^\s*(shiny|shadow|mega|gigantamax|alolan|galarian)\s+/i, '').trim();
+    var map = (typeof window !== 'undefined' && window.POKEMON_TYPES) || null;
+    if (map && map[nm] && map[nm][0]) return String(map[nm][0]).toLowerCase();
+    return '';
+  }
+
   // ── Held chip with image + tooltip ───────────────────────────
   function _heldChip(held, label) {
     var slotClass = label === 'X' ? 'mk-held-chip--x' : 'mk-held-chip--y';
@@ -325,6 +336,7 @@
       + (ballMeta ? ' data-ball="' + _esc(ballType) + '"' : '')
       + (ballMeta ? ' style="--mk-ball:' + ballMeta.border + ';--mk-ball-glow:' + ballMeta.glow + '"' : '')
       + ' data-updated="' + _esc(listing.updated_at || '') + '"'
+      + (function(){ var ft = _firstType(listing); return ft ? ' data-type="' + _esc(ft) + '"' : ''; })()
       + ' data-seller="' + _esc(listing.seller_id || '') + '">'
 
       // Top: sprite + boost + stars + types
