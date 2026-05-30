@@ -159,18 +159,26 @@
   var _selectedPkg   = null;
   var _priceCache    = null; // { 'item name lower': price_npc }
 
-  // ── Formata preço mínimo em KK (ex: 185 → "185 KK", 2000 → "2kk") ──
-  function _fmtMinKk(rawKk) {
-    if (!rawKk && rawKk !== 0) return null;
-    // price_npc já está em KK (unidade mínima de mercado)
-    if (rawKk >= 1000) return parseFloat((rawKk/1000).toFixed(1)) + 'kkk';
-    if (rawKk >= 1)    return rawKk % 1 === 0 ? rawKk + ' KK' : rawKk.toFixed(1) + ' KK';
-    return rawKk + ' KK';
+  // ── Formata moeda do jogo: DL / K / KK ──────────────────────────
+  // 0–999        = DL   (ex: 185 → "185 DL")
+  // 1.000–999.999 = K   (ex: 2000 → "2 K")
+  // 1.000.000+   = KK   (ex: 1500000 → "1,5 KK")
+  function _fmtDl(val) {
+    if (val == null || isNaN(val)) return null;
+    val = Number(val);
+    if (val >= 1000000) {
+      var kk = val / 1000000;
+      return _trimDec(kk) + ' KK';
+    }
+    if (val >= 1000) {
+      var k = val / 1000;
+      return _trimDec(k) + ' K';
+    }
+    return val + ' DL';
   }
-  function _fmtMinKkShort(rawKk) {
-    // Para usar como placeholder: só o número
-    if (!rawKk) return null;
-    return rawKk;
+  function _trimDec(n) {
+    // Remove zeros desnecessários: 1.50 → 1,5 | 2.00 → 2
+    return parseFloat(n.toFixed(2)).toLocaleString('pt-BR');
   }
 
   function _resetForm(type) {
@@ -578,18 +586,24 @@
         +'<span class="wtb-cst-slot-num" style="color:'+meta.color+'">Slot '+(slot.slot_index+1)+'</span>'
         +'<div style="display:flex;align-items:center;gap:8px">'
         +'<span class="wtb-cst-slot-count">'+items.length+' '+(items.length===1?'item':'itens')+'</span>'
-        +(slotTotal>0?'<span class="wtb-cst-slot-price">≈ '+_fmtMinKk(slotTotal)+'</span>':'')
+        +(slotTotal>0?'<span class="wtb-cst-slot-price">≈ '+_fmtDl(slotTotal)+'</span>':'')
         +'</div>'
         +'</div>'
         +'<div class="wtb-cst-items">'
         +items.map(function(item) {
           var unitPrice=_getItemPrice(item.item_name);
-          var priceHtml=unitPrice!=null
-            ?'<span class="wtb-cst-item-price" data-unit-price="'+unitPrice+'">'+_fmtMinKk(unitPrice)+'/un</span>'
-            :'<span class="wtb-cst-item-price" data-unit-price="0"></span>';
-          return '<div class="wtb-cst-item" data-item-id="'+_esc(item.id)+'" data-qty-max="'+item.quantity+'">'
+          // Campo de preço: placeholder mostra o mínimo NPC no formato correto
+          var placeholderTxt = unitPrice != null ? _fmtDl(unitPrice) : 'ex: 185 DL';
+          return '<div class="wtb-cst-item" data-item-id="'+_esc(item.id)+'" data-qty-max="'+item.quantity+'" data-npc-price="'+(unitPrice||0)+'">'
             +'<span class="wtb-cst-item-name">'+_esc(item.item_name)+'</span>'
-            +priceHtml
+            // Campo de preço por unidade (editável, placeholder = NPC)
+            +'<div class="wtb-cst-price-field">'
+            +'<input type="number" class="wtb-cst-price-inp" min="0" step="any"'
+            +' placeholder="'+_esc(placeholderTxt)+'"'
+            +' title="Preço por unidade — mínimo NPC: '+_esc(placeholderTxt)+'">'
+            +'<span class="wtb-cst-price-unit">DL/un</span>'
+            +'</div>'
+            // Controles de quantidade
             +'<div class="wtb-cst-qty-wrap">'
             +'<button type="button" class="wtb-cst-qty-btn" data-dir="-1">−</button>'
             +'<div class="wtb-cst-qty-display">'
@@ -663,73 +677,67 @@
   }
 
   function _bindCustomizerEvents(pkg) {
-    // Qty +/- por item
     Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-item'), function(row) {
-      var inp=row.querySelector('.wtb-cst-qty-inp');
-      var max=parseInt(row.getAttribute('data-qty-max'),10)||0;
+      var qtyInp   = row.querySelector('.wtb-cst-qty-inp');
+      var priceInp = row.querySelector('.wtb-cst-price-inp');
+      var max      = parseInt(row.getAttribute('data-qty-max'),10)||0;
 
-      function _clamp(v){ return Math.min(max,Math.max(0,parseInt(v,10)||0)); }
-      function _update() {
-        var v=_clamp(inp.value);
-        inp.value=v;
-        row.classList.toggle('wtb-cst-item--have',v===0);
+      function _clamp(v){ return Math.min(max, Math.max(0, parseInt(v,10)||0)); }
+
+      function _updateQty() {
+        var v = _clamp(qtyInp.value);
+        qtyInp.value = v;
+        row.classList.toggle('wtb-cst-item--have', v === 0);
         _refreshTotalLabel(pkg);
       }
 
+      // Qty +/−
       Array.prototype.forEach.call(row.querySelectorAll('.wtb-cst-qty-btn'), function(btn) {
         btn.addEventListener('click', function(){
-          inp.value=_clamp((parseInt(inp.value,10)||0)+parseInt(btn.getAttribute('data-dir'),10));
-          _update();
+          qtyInp.value = _clamp((parseInt(qtyInp.value,10)||0) + parseInt(btn.getAttribute('data-dir'),10));
+          _updateQty();
         });
       });
-      if (inp) inp.addEventListener('input',_update);
+      if (qtyInp)   qtyInp.addEventListener('input', _updateQty);
+
+      // Campo de preço por unidade → atualiza total ao digitar
+      if (priceInp) priceInp.addEventListener('input', function(){ _refreshTotalLabel(pkg); });
     });
 
-    var obs=global.document.getElementById('wtb-obs');
-    if (obs) obs.addEventListener('input', function(){ _form.observations=obs.value; });
+    var obs = global.document.getElementById('wtb-obs');
+    if (obs) obs.addEventListener('input', function(){ _form.observations = obs.value; });
   }
 
   // Calcula total mínimo em KK e atualiza a barra + o placeholder do campo KK
   function _refreshTotalLabel(pkg) {
     var lbl=global.document.getElementById('wtb-cst-total-label');
     var est=global.document.getElementById('wtb-cst-est-price');
-    var totalQty=0, totalKk=0;
+    var totalQty=0, totalDl=0;
 
     Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-item'), function(row){
-      var inp=row.querySelector('.wtb-cst-qty-inp');
-      var priceEl=row.querySelector('.wtb-cst-item-price');
-      var qty=parseInt(inp?inp.value:0,10)||0;
-      var unitKk=priceEl?parseFloat(priceEl.getAttribute('data-unit-price')||0):0;
-      totalQty+=qty;
-      totalKk+=qty*unitKk;
+      var qtyInp   = row.querySelector('.wtb-cst-qty-inp');
+      var priceInp = row.querySelector('.wtb-cst-price-inp');
+      var npcPrice = parseFloat(row.getAttribute('data-npc-price')||0)||0;
+      var qty      = parseInt(qtyInp?qtyInp.value:0,10)||0;
+      // Usa preço digitado pelo player; se vazio usa o NPC como referência
+      var unitDl   = (priceInp && priceInp.value !== '') ? (parseFloat(priceInp.value)||0) : npcPrice;
+      totalQty += qty;
+      totalDl  += qty * unitDl;
     });
 
-    if (lbl) lbl.textContent=totalQty+' itens necessários';
-    if (est) {
-      est.textContent=totalKk>0?'≈ '+_fmtMinKk(totalKk)+' (mín. NPC)':'';
-    }
+    if (lbl) lbl.textContent = totalQty + ' itens necessários';
+    if (est) est.textContent = totalDl > 0 ? '≈ ' + _fmtDl(totalDl) : '';
 
-    // Injeta o mínimo como placeholder no campo KK de pagamento
-    _updatePaymentMinHint(totalKk);
+    _updatePaymentMinHint(totalDl);
   }
 
   // Mostra o valor mínimo em KK como hint suave dentro do campo de pagamento
-  function _updatePaymentMinHint(minKk) {
-    var hint=global.document.getElementById('wtb-pay-min-hint');
-    var kkInp=global.document.getElementById('wtb-pay-primary-val');
-
-    if (!minKk||minKk<=0) {
-      if (hint) hint.style.display='none';
-      return;
-    }
-
-    // Placeholder do input em KK (número puro, pois a unit já é 'kk')
-    if (kkInp && !kkInp.value) kkInp.placeholder='Ex: '+minKk;
-
-    if (hint) {
-      hint.textContent='mínimo: '+_fmtMinKk(minKk)+' (base NPC)';
-      hint.style.display='';
-    }
+  function _updatePaymentMinHint(totalDl) {
+    var hint = global.document.getElementById('wtb-pay-min-hint');
+    if (!hint) return;
+    if (!totalDl || totalDl <= 0) { hint.style.display = 'none'; return; }
+    hint.textContent = 'estimativa: ' + _fmtDl(totalDl);
+    hint.style.display = '';
   }
 
   function _buildSlotsSnapshot(pkg) {
@@ -739,9 +747,20 @@
       return {
         slot_index: slot.slot_index,
         items: items.map(function(item) {
-          var inp=global.document.querySelector('[data-item-id="'+item.id+'"] .wtb-cst-qty-inp');
-          var qty=inp?(parseInt(inp.value,10)||0):item.quantity;
-          return { id:item.id, name:item.item_name, qty_original:item.quantity, qty:qty };
+          var row       = global.document.querySelector('[data-item-id="'+item.id+'"]');
+          var qtyInp    = row ? row.querySelector('.wtb-cst-qty-inp')   : null;
+          var priceInp  = row ? row.querySelector('.wtb-cst-price-inp') : null;
+          var npcPrice  = row ? parseFloat(row.getAttribute('data-npc-price')||0)||0 : 0;
+          var qty       = qtyInp   ? (parseInt(qtyInp.value,10)||0)   : item.quantity;
+          var priceDl   = priceInp && priceInp.value !== ''
+            ? (parseFloat(priceInp.value)||0)
+            : npcPrice;
+          return {
+            id: item.id, name: item.item_name,
+            qty_original: item.quantity, qty: qty,
+            price_dl: priceDl,           // preço unitário em DL (digitado ou NPC)
+            price_npc: npcPrice,          // referência NPC original
+          };
         }),
       };
     });
