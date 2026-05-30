@@ -158,6 +158,7 @@
   var _pkgCache      = null;
   var _selectedPkg   = null;
   var _priceCache    = null; // { 'item name lower': price_npc }
+  var _minTotalDl    = 0;   // mínimo calculado dos preços por item (em DL)
 
   // ── Formata moeda do jogo: DL / K / KK ──────────────────────────
   // 0–999        = DL   (ex: 185 → "185 DL")
@@ -220,7 +221,14 @@
         if (!anyNeeded) errs.package='Você precisa de pelo menos 1 item.';
       }
     }
-    if (!_form.pay_kk&&!_form.pay_dd&&!_form.pay_brl) errs.payment='Informe pelo menos um valor de pagamento.';
+    if (!_form.pay_kk&&!_form.pay_dd&&!_form.pay_brl) {
+      errs.payment='Informe pelo menos um valor de pagamento.';
+    } else if (_minTotalDl > 0 && _form.pay_kk) {
+      // Valida se o valor em KK é pelo menos o mínimo calculado
+      if (_form.pay_kk < _minTotalDl) {
+        errs.payment='Valor abaixo do mínimo de referência (' + _fmtDl(_minTotalDl) + '). Aumente o valor ou ajuste nas observações.';
+      }
+    }
     if (_form.observations&&_form.observations.length>500) errs.observations='Máx 500 caracteres.';
     _form.errors=errs;
     return Object.keys(errs).length===0;
@@ -294,6 +302,8 @@
       // Esconde o hint quando o usuário já digitou um valor
       var hint=global.document.getElementById('wtb-pay-min-hint');
       if (hint) hint.style.opacity=v>0?'0.4':'1';
+      // Valida mínimo em tempo real
+      _validateMinPayment();
     }
     if (pInp) pInp.addEventListener('input',_onPrimary);
     if (kkU)  kkU.addEventListener('change',_onPrimary);
@@ -337,9 +347,15 @@
   function _bindSecondaryEvents() {
     Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-pay-sec-remove'), function(btn) {
       btn.addEventListener('click', function() {
-        _pay.secondary[btn.getAttribute('data-sec-method')]=null;
-        var inp=btn.closest('[data-sec-method]').querySelector('input');
-        if (inp) inp.value='';
+        var method = btn.getAttribute('data-sec-method');
+        _pay.secondary[method] = null;
+        // ── Esconde a linha inteira ──────────────────────────────
+        var row = btn.closest('[data-sec-method]');
+        if (row) {
+          row.style.transition = 'opacity .15s';
+          row.style.opacity = '0';
+          setTimeout(function() { if (row.parentNode) row.remove(); }, 160);
+        }
         _syncFormPay();
       });
     });
@@ -725,13 +741,37 @@
       totalDl  += qty * unitDl;
     });
 
+    _minTotalDl = totalDl; // salva o mínimo global
+
     if (lbl) lbl.textContent = totalQty + ' itens necessários';
     if (est) est.textContent = totalDl > 0 ? '≈ ' + _fmtDl(totalDl) : '';
 
     _updatePaymentMinHint(totalDl);
+    _validateMinPayment(); // verifica se o valor digitado respeita o mínimo
   }
 
   // Mostra o valor mínimo em KK como hint suave dentro do campo de pagamento
+  // Verifica em tempo real se o valor de pagamento está abaixo do mínimo
+  function _validateMinPayment() {
+    if (!_minTotalDl || _minTotalDl <= 0) return;
+    var kkInp  = global.document.getElementById('wtb-pay-primary-val');
+    var kkUnit = global.document.getElementById('wtb-pay-kk-unit');
+    var errEl  = global.document.getElementById('wtb-err-payment');
+    if (!kkInp || !errEl) return;
+
+    var v = parseFloat(kkInp.value) || 0;
+    var u = kkUnit ? (parseInt(kkUnit.value, 10) || 1e6) : 1e6;
+    var enteredDl = v * u;               // converte o que foi digitado para DL
+
+    if (v > 0 && enteredDl < _minTotalDl) {
+      errEl.textContent = '⚠️ Valor abaixo do mínimo de referência (' + _fmtDl(_minTotalDl) + '). Aumente ou justifique nas observações.';
+      if (kkInp) kkInp.style.borderColor = 'rgba(252,129,74,0.6)';
+    } else {
+      if (errEl.textContent.startsWith('⚠️')) errEl.textContent = '';
+      if (kkInp) kkInp.style.borderColor = '';
+    }
+  }
+
   function _updatePaymentMinHint(totalDl) {
     var hint = global.document.getElementById('wtb-pay-min-hint');
     if (hint) {
