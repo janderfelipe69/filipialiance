@@ -149,8 +149,9 @@
         +'</div></div>';
     }).join('')+'</div>':'';
 
-    return '<div class="mk-card wtb-card wtb-talent-card" data-wtb-id="'+_esc(listing.id)+'" data-updated="'+_esc(listing.updated_at||'')+'" style="--tc:'+meta.color+'">'
+    return '<div class="mk-card wtb-card wtb-talent-card wtb-card--clickable" data-wtb-id="'+_esc(listing.id)+'" data-updated="'+_esc(listing.updated_at||'')+'" style="--tc:'+meta.color+'" onclick="WTBRender&&WTBRender.openDetail(\''+_esc(listing.id)+'\')">'
       +'<div class="wtb-card-badge wtb-card-badge--talent">'+meta.icon+' '+meta.label+'</div>'
+      +'<div class="wtb-card-open-hint">👁️ ver itens</div>'
 
       +'<div class="wtb-talent-card-header">'
       +'<div class="wtb-talent-card-pkg-name">'+_esc(pkgName)+'</div>'
@@ -208,6 +209,124 @@
     }).join('');
   }
 
-  global.WTBRender={render:render};
+  // ================================================================
+  // Detalhe (modal) — itens organizados por slot
+  // ================================================================
+  var _detailEl=null;
+
+  function _fmtDlNum(dl){
+    dl=Number(dl)||0;
+    if (dl>=1000000) return (Math.round(dl/10000)/100)+' KK';
+    if (dl>=1000)    return (Math.round(dl/10)/100)+' K';
+    return dl+' DL';
+  }
+
+  function _ensureDetailEl(){
+    if (!_detailEl){
+      _detailEl=global.document.createElement('div');
+      _detailEl.className='wtb-detail-overlay';
+      _detailEl.addEventListener('click',function(e){ if (e.target===_detailEl) closeDetail(); });
+      global.document.body.appendChild(_detailEl);
+    }
+    return _detailEl;
+  }
+
+  function _detailTalentBody(listing){
+    var slots=Array.isArray(listing.slots_data)?listing.slots_data:[];
+    var grandTotal=0;
+
+    var slotsHtml=slots.map(function(slot){
+      var items=(slot.items||[]);
+      var need=items.filter(function(i){return i.qty>0;});
+      var have=items.filter(function(i){return i.qty===0;});
+
+      var needHtml=need.map(function(i){
+        var unit=Number(i.price_dl)||0;
+        var line=unit*(Number(i.qty)||0);
+        grandTotal+=line;
+        return '<div class="wtb-dt-item">'
+          +'<span class="wtb-dt-item-qty">×'+i.qty+'</span>'
+          +'<span class="wtb-dt-item-name">'+_esc(i.name)+'</span>'
+          +'<span class="wtb-dt-item-price">'+(unit>0?_fmtDlNum(unit)+'/un':'—')+'</span>'
+          +'<span class="wtb-dt-item-total">'+(line>0?_fmtDlNum(line):'—')+'</span>'
+          +'</div>';
+      }).join('');
+
+      var haveHtml=have.length
+        ?'<div class="wtb-dt-have">já tenho: '+have.map(function(i){return _esc(i.name);}).join(', ')+'</div>'
+        :'';
+
+      return '<div class="wtb-dt-slot'+(need.length?'':' wtb-dt-slot--done')+'">'
+        +'<div class="wtb-dt-slot-head"><span class="wtb-dt-slot-num">Slot '+(slot.slot_index+1)+'</span>'
+        +(need.length?'':'<span class="wtb-ts-done">✓ Completo</span>')+'</div>'
+        +(need.length?'<div class="wtb-dt-items">'+needHtml+'</div>':'')
+        +haveHtml
+        +'</div>';
+    }).join('');
+
+    var totalHtml=grandTotal>0
+      ?'<div class="wtb-dt-grandtotal"><span>Total estimado dos itens</span><strong>'+_fmtDlNum(grandTotal)+'</strong></div>'
+      :'';
+
+    return slotsHtml+totalHtml;
+  }
+
+  function _detailPokemonBody(listing){
+    var sprites=_spriteUrl(listing.pokemon_name);
+    var tier=_getTier(listing.pokemon_name);
+    var spriteHtml=sprites?'<img class="mk-sprite" src="'+_esc(sprites.animated)+'" data-static="'+_esc(sprites.static)+'" alt="'+_esc(listing.pokemon_name||'')+'" onerror="this.src=this.dataset.static;this.onerror=null">':'<div class="mk-sprite-fallback">🔍</div>';
+    return '<div class="wtb-dt-poke">'
+      +'<div class="mk-sprite-wrap">'+spriteHtml+'</div>'
+      +'<div class="wtb-dt-poke-info">'
+      +'<div class="mk-card-name-row"><span class="mk-card-name">'+_esc(listing.pokemon_name)+'</span>'+_tierBadgeHtml(tier)+'</div>'
+      +_starsHtml(listing.stars)+_typesHtml(listing.pokemon_types)
+      +'<div class="wtb-ball-row">'+_ballPillHtml(listing.ball_type)+'</div>'
+      +'</div></div>';
+  }
+
+  function openDetail(id){
+    var state=global.WTB&&global.WTB.state;
+    var listing=state&&(state.listings||[]).filter(function(x){return x.id===id;})[0];
+    if (!listing) return;
+
+    var user=_user(), userId=user?user.id:null;
+    var isOwner=!!(userId&&listing.buyer_id===userId);
+    var isTalent=listing.listing_type==='talent';
+
+    var title, badgeClass, accent;
+    if (isTalent){
+      var group=_pkgGroup(listing.package_name||'');
+      var meta=PKG_GROUP_META[group];
+      title=meta.icon+' '+_esc(listing.package_name||'Talento');
+      badgeClass='wtb-card-badge--talent';
+      accent=meta.color;
+    } else {
+      title='🔍 '+_esc(listing.pokemon_name||'Pokémon');
+      accent='#63b3ed';
+    }
+
+    var body=isTalent?_detailTalentBody(listing):_detailPokemonBody(listing);
+
+    var el=_ensureDetailEl();
+    el.innerHTML='<div class="wtb-detail-modal" style="--tc:'+accent+'">'
+      +'<button class="wtb-detail-close" onclick="WTBRender&&WTBRender.closeDetail()">✕</button>'
+      +'<div class="wtb-detail-header"><h3 class="wtb-detail-title">'+title+'</h3>'
+      +'<span class="wtb-detail-time">'+_timeAgo(listing.created_at)+'</span></div>'
+      +'<div class="wtb-detail-body">'+body+'</div>'
+      +(listing.observations?'<div class="wtb-detail-obs"><span class="wtb-detail-obs-label">Observações</span>'+_esc(listing.observations)+'</div>':'')
+      +'<div class="wtb-detail-pay"><span class="wtb-detail-pay-label">Pagamento oferecido</span><div class="wtb-payment">'+_paymentHtml(listing)+'</div></div>'
+      +'<div class="wtb-detail-footer">'+_actionHtml(listing,isOwner)+'</div>'
+      +'</div>';
+    el.style.display='flex';
+  }
+
+  function closeDetail(){ if (_detailEl) _detailEl.style.display='none'; }
+
+  // Fecha com ESC
+  global.document.addEventListener('keydown',function(e){
+    if (e.key==='Escape'&&_detailEl&&_detailEl.style.display==='flex') closeDetail();
+  });
+
+  global.WTBRender={render:render,openDetail:openDetail,closeDetail:closeDetail};
   console.log('[WTB] wtb-render.js carregado');
 }(window));

@@ -91,6 +91,103 @@
 
 .wtb-obs--talent { padding: 0 14px 8px; margin-top: 0; }
 
+/* ── Card clicável + hint "ver itens" ───────────────────────────── */
+.wtb-card--clickable { cursor: pointer; transition: border-color .18s, transform .15s, box-shadow .18s; }
+.wtb-card--clickable:hover { transform: translateY(-2px); border-color: var(--tc, #a78bfa); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.wtb-card-open-hint {
+  position: absolute; bottom: 10px; right: 12px;
+  font-size: .62rem; font-weight: 600; letter-spacing: .04em;
+  color: var(--tc, #a78bfa); opacity: 0; transform: translateY(4px);
+  transition: opacity .18s, transform .18s; pointer-events: none;
+}
+.wtb-card--clickable:hover .wtb-card-open-hint { opacity: .85; transform: translateY(0); }
+
+/* ================================================================
+   DETALHE (modal) — itens organizados por slot
+   ================================================================ */
+.wtb-detail-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(8,10,18,.74); backdrop-filter: blur(4px);
+  align-items: flex-start; justify-content: center;
+  padding: 40px 16px; overflow-y: auto;
+  animation: wtbFadeIn .18s ease;
+}
+@keyframes wtbFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wtbSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+.wtb-detail-modal {
+  position: relative; width: 100%; max-width: 540px;
+  background: linear-gradient(180deg, rgba(28,30,44,.98), rgba(20,22,34,.98));
+  border: 1px solid var(--tc, #a78bfa); border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04) inset;
+  padding: 22px 22px 18px;
+  animation: wtbSlideUp .22s ease;
+}
+.wtb-detail-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.65); font-size: .9rem; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.wtb-detail-close:hover { background: rgba(255,255,255,.12); color: #fff; }
+
+.wtb-detail-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-right: 36px; margin-bottom: 14px; }
+.wtb-detail-title { margin: 0; font-size: 1.12rem; font-weight: 700; color: #fff; line-height: 1.25; }
+.wtb-detail-time { font-size: .68rem; color: rgba(255,255,255,.4); white-space: nowrap; flex-shrink: 0; }
+
+.wtb-detail-body { display: flex; flex-direction: column; gap: 8px; }
+
+/* Slots no detalhe */
+.wtb-dt-slot {
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px; padding: 10px 12px;
+}
+.wtb-dt-slot--done { opacity: .55; }
+.wtb-dt-slot-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.wtb-dt-slot-num { font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tc, #a78bfa); }
+
+.wtb-dt-items { display: flex; flex-direction: column; gap: 2px; }
+.wtb-dt-item {
+  display: grid; grid-template-columns: 38px 1fr auto auto; gap: 8px; align-items: center;
+  padding: 4px 0; font-size: .8rem; color: rgba(255,255,255,.82);
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.wtb-dt-item:last-child { border-bottom: none; }
+.wtb-dt-item-qty   { font-weight: 700; color: var(--tc, #a78bfa); }
+.wtb-dt-item-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wtb-dt-item-price { font-size: .72rem; color: rgba(255,255,255,.42); text-align: right; }
+.wtb-dt-item-total { font-size: .76rem; font-weight: 600; color: #fbbf24; text-align: right; min-width: 56px; }
+.wtb-dt-have { margin-top: 6px; font-size: .68rem; color: rgba(255,255,255,.35); font-style: italic; }
+
+.wtb-dt-grandtotal {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 4px; padding: 10px 12px;
+  background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.22);
+  border-radius: 10px; font-size: .82rem; color: rgba(255,255,255,.7);
+}
+.wtb-dt-grandtotal strong { font-size: 1rem; color: #fbbf24; }
+
+/* Pokémon no detalhe */
+.wtb-dt-poke { display: flex; gap: 16px; align-items: center; }
+.wtb-dt-poke-info { display: flex; flex-direction: column; gap: 6px; }
+
+/* Blocos auxiliares do modal */
+.wtb-detail-obs {
+  margin-top: 14px; padding: 10px 12px;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px; font-size: .8rem; color: rgba(255,255,255,.7);
+  line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+}
+.wtb-detail-obs-label, .wtb-detail-pay-label {
+  display: block; font-size: .62rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: rgba(255,255,255,.4); margin-bottom: 5px;
+}
+.wtb-detail-pay { margin-top: 14px; }
+.wtb-detail-footer { margin-top: 16px; }
+.wtb-detail-footer .mk-card-negotiate, .wtb-detail-footer .mk-card-actions { display: flex; }
+.wtb-detail-footer .mk-btn { width: 100%; justify-content: center; }
+
 /* ================================================================
    CHOOSER — Pokémon vs Talento
    ================================================================ */
