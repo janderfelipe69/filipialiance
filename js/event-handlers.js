@@ -174,10 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var clearCartBtn = document.querySelector('.clear-btn');
   if (clearCartBtn) clearCartBtn.addEventListener('click', function() { clearCart(); });
 
-  // ── Wiki popup close ─────────────────────────────────────────────────────
-  var wikiPopupClose = document.getElementById('wiki-popup-close');
-  if (wikiPopupClose) wikiPopupClose.addEventListener('click', function() { closeWikiPopup(); });
-
   // ── Marketplace ──────────────────────────────────────────────────────────
   var mkBtnCreate = document.getElementById('mk-btn-create');
   if (mkBtnCreate) mkBtnCreate.addEventListener('click', function() {

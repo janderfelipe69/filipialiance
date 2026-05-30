@@ -4418,3 +4418,104 @@ body[data-server="sun"] .tab-btn.active { color: #2a1800 !important; }
 }
 /* aro da bola atrás do sprite ganha leve tom do tipo */
 .mk-card[data-type] .mk-sprite-wrap { filter: drop-shadow(0 0 10px var(--type)); }
+
+/* ============================================================
+ * FILTROS + BUSCA + SCROLLBAR (polish v2)
+ * ============================================================ */
+
+/* Linha de filtros: um respiro e alinhamento melhores */
+.mk-filters { gap: 9px; align-items: center; margin-bottom: 12px; }
+.mk-ball-filters-label,
+.mk-filters--balls .mk-ball-filters-label {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Chips chunky e arredondados */
+.mk-filter-chip {
+  font-family: var(--font-title) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  border: 2px solid transparent !important;
+  background: rgba(255,255,255,0.055) !important;
+  color: var(--muted) !important;
+  transition: transform .12s ease, background .15s, color .15s, box-shadow .15s !important;
+}
+.mk-filter-chip:hover {
+  color: var(--text) !important;
+  background: rgba(255,255,255,0.10) !important;
+  transform: translateY(-1px);
+}
+.mk-filter-chip.active {
+  color: #06122b !important;
+  background: linear-gradient(180deg, var(--blue-bright), var(--blue)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.30), 0 0 14px var(--glow-blue) !important;
+}
+body[data-server="sun"] .mk-filter-chip.active { color: #2a1800 !important; }
+/* "Minhas/Meus": acento dourado fixo para diferenciar do filtro normal */
+.mk-filter-chip--mine.active {
+  background: linear-gradient(180deg, #ffd86b, #f0b429) !important;
+  color: #2a1800 !important;
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.30), 0 0 14px var(--glow-gold) !important;
+}
+
+/* Chips de bola: pílula com bolinha colorida */
+.mk-ball-chip {
+  font-family: var(--font-title) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  padding: 6px 13px 6px 11px !important;
+  border-radius: 999px !important;
+  border: 2px solid transparent !important;
+  background: rgba(255,255,255,0.05) !important;
+  color: var(--muted) !important;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: transform .12s, background .15s, color .15s !important;
+}
+.mk-ball-chip::before {
+  content: '';
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--ball, var(--muted));
+  box-shadow: 0 0 7px var(--ball, transparent);
+  flex-shrink: 0;
+}
+.mk-ball-chip:hover { color: var(--text) !important; background: rgba(255,255,255,0.10) !important; transform: translateY(-1px); }
+.mk-ball-chip.active {
+  color: #06122b !important;
+  background: var(--ball, var(--blue)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.30) !important;
+}
+.mk-ball-chip.active::before { background: #06122b; box-shadow: none; }
+
+/* Busca arredondada com foco aceso */
+.mk-search {
+  border-radius: 999px !important;
+  padding: 9px 16px !important;
+  border: 2px solid var(--border) !important;
+  background: rgba(0,0,0,0.28) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600;
+}
+.mk-search:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 3px var(--glow-blue); }
+
+/* ---- SCROLLBAR estilizada (segue o acento do mundo) ---- */
+* { scrollbar-width: thin; scrollbar-color: var(--blue) transparent; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--blue-bright), var(--blue));
+  border-radius: 999px;
+  border: 3px solid var(--bg);     /* "respiro" que afina e arredonda o thumb */
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
+::-webkit-scrollbar-corner { background: transparent; }
