@@ -716,8 +716,18 @@
       });
       if (qtyInp)   qtyInp.addEventListener('input', _updateQty);
 
-      // Campo de preço por unidade → atualiza total ao digitar
-      if (priceInp) priceInp.addEventListener('input', function(){ _refreshTotalLabel(pkg); });
+      // Campo de preço por unidade → atualiza total E unidade ao digitar
+      if (priceInp) priceInp.addEventListener('input', function(){
+        _refreshTotalLabel(pkg);
+        // Atualiza o label da unidade dinamicamente
+        var unitLbl = priceInp.parentElement && priceInp.parentElement.querySelector('.wtb-cst-price-unit');
+        if (unitLbl) {
+          var v = parseFloat(priceInp.value) || 0;
+          if      (v >= 1000000) unitLbl.textContent = 'KK/un';
+          else if (v >= 1000)    unitLbl.textContent = 'K/un';
+          else                   unitLbl.textContent = 'DL/un';
+        }
+      });
     });
 
     var obs = global.document.getElementById('wtb-obs');
@@ -733,10 +743,22 @@
     Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-item'), function(row){
       var qtyInp   = row.querySelector('.wtb-cst-qty-inp');
       var priceInp = row.querySelector('.wtb-cst-price-inp');
+      var unitLbl  = row.querySelector('.wtb-cst-price-unit');
       var npcPrice = parseFloat(row.getAttribute('data-npc-price')||0)||0;
       var qty      = parseInt(qtyInp?qtyInp.value:0,10)||0;
-      // Usa preço digitado pelo player; se vazio usa o NPC como referência
-      var unitDl   = (priceInp && priceInp.value !== '') ? (parseFloat(priceInp.value)||0) : npcPrice;
+      var rawVal   = (priceInp && priceInp.value !== '') ? (parseFloat(priceInp.value)||0) : 0;
+
+      // Converte para DL com base no label atual (DL/K/KK)
+      var unitDl;
+      if (rawVal > 0) {
+        var lbl = unitLbl ? unitLbl.textContent : 'DL/un';
+        if      (lbl === 'KK/un') unitDl = rawVal * 1000000;
+        else if (lbl === 'K/un')  unitDl = rawVal * 1000;
+        else                      unitDl = rawVal; // DL
+      } else {
+        unitDl = npcPrice; // fallback: usa NPC
+      }
+
       totalQty += qty;
       totalDl  += qty * unitDl;
     });
@@ -789,13 +811,14 @@
 
     if (!kkInp) return;
 
+    // Arredonda sempre para CIMA para garantir que o valor >= mínimo
     var unitVal, displayVal;
     if (totalDl >= 1000000) {
-      unitVal    = 1000000;                    // kk
-      displayVal = parseFloat((totalDl / 1000000).toFixed(2));
+      unitVal    = 1000000;
+      displayVal = Math.ceil((totalDl / 1000000) * 100) / 100; // 2 casas, arredonda pra cima
     } else {
-      unitVal    = 1000;                       // k
-      displayVal = parseFloat((totalDl / 1000).toFixed(3));
+      unitVal    = 1000;
+      displayVal = Math.ceil((totalDl / 1000) * 1000) / 1000;  // 3 casas, arredonda pra cima
     }
 
     // Atualiza o seletor de unidade
@@ -827,11 +850,19 @@
           var row       = global.document.querySelector('[data-item-id="'+item.id+'"]');
           var qtyInp    = row ? row.querySelector('.wtb-cst-qty-inp')   : null;
           var priceInp  = row ? row.querySelector('.wtb-cst-price-inp') : null;
+          var unitLbl   = row ? row.querySelector('.wtb-cst-price-unit') : null;
           var npcPrice  = row ? parseFloat(row.getAttribute('data-npc-price')||0)||0 : 0;
-          var qty       = qtyInp   ? (parseInt(qtyInp.value,10)||0)   : item.quantity;
-          var priceDl   = priceInp && priceInp.value !== ''
-            ? (parseFloat(priceInp.value)||0)
-            : npcPrice;
+          var qty       = qtyInp ? (parseInt(qtyInp.value,10)||0) : item.quantity;
+          var rawVal    = priceInp && priceInp.value !== '' ? (parseFloat(priceInp.value)||0) : 0;
+          var priceDl;
+          if (rawVal > 0) {
+            var lbl = unitLbl ? unitLbl.textContent : 'DL/un';
+            if      (lbl === 'KK/un') priceDl = rawVal * 1000000;
+            else if (lbl === 'K/un')  priceDl = rawVal * 1000;
+            else                      priceDl = rawVal;
+          } else {
+            priceDl = npcPrice;
+          }
           return {
             id: item.id, name: item.item_name,
             qty_original: item.quantity, qty: qty,
