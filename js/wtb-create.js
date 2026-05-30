@@ -181,6 +181,14 @@
     // Remove zeros desnecessários: 1.50 → 1,5 | 2.00 → 2
     return parseFloat(n.toFixed(2)).toLocaleString('pt-BR');
   }
+  // Rótulo de magnitude (apenas visual; o valor digitado já é em DL).
+  // <1000 → DL/un | 1000–999999 → K/un | ≥1000000 → KK/un
+  function _unitLabel(v) {
+    v = parseFloat(v) || 0;
+    if (v >= 1000000) return 'KK/un';
+    if (v >= 1000)    return 'K/un';
+    return 'DL/un';
+  }
 
   function _resetForm(type) {
     _form = {
@@ -608,9 +616,11 @@
         +'<div class="wtb-cst-items">'
         +items.map(function(item) {
           var unitPrice=_getItemPrice(item.item_name);
-          // Valor padrão: usa preço NPC se disponível, senão 300 DL
+          // Valor padrão em DL: usa preço NPC se disponível, senão 300 DL.
+          // O número digitado É o valor em DL; o rótulo (DL/K/KK) é só indicação
+          // visual da magnitude (3000 = "3k" = 3000 DL), nunca um multiplicador.
           var defaultPrice = unitPrice != null && unitPrice > 0 ? unitPrice : 300;
-          var defaultUnit  = defaultPrice >= 1000000 ? 'KK/un' : defaultPrice >= 1000 ? 'K/un' : 'DL/un';
+          var defaultUnit  = _unitLabel(defaultPrice);
           return '<div class="wtb-cst-item" data-item-id="'+_esc(item.id)+'" data-qty-max="'+item.quantity+'" data-npc-price="'+(unitPrice||0)+'">'
             +'<span class="wtb-cst-item-name">'+_esc(item.item_name)+'</span>'
             +'<div class="wtb-cst-price-field">'
@@ -716,17 +726,11 @@
       });
       if (qtyInp)   qtyInp.addEventListener('input', _updateQty);
 
-      // Campo de preço por unidade → atualiza total E unidade ao digitar
+      // Campo de preço por unidade → atualiza total E rótulo de magnitude ao digitar
       if (priceInp) priceInp.addEventListener('input', function(){
         _refreshTotalLabel(pkg);
-        // Atualiza o label da unidade dinamicamente
         var unitLbl = priceInp.parentElement && priceInp.parentElement.querySelector('.wtb-cst-price-unit');
-        if (unitLbl) {
-          var v = parseFloat(priceInp.value) || 0;
-          if      (v >= 1000000) unitLbl.textContent = 'KK/un';
-          else if (v >= 1000)    unitLbl.textContent = 'K/un';
-          else                   unitLbl.textContent = 'DL/un';
-        }
+        if (unitLbl) unitLbl.textContent = _unitLabel(priceInp.value);
       });
     });
 
@@ -743,21 +747,12 @@
     Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-item'), function(row){
       var qtyInp   = row.querySelector('.wtb-cst-qty-inp');
       var priceInp = row.querySelector('.wtb-cst-price-inp');
-      var unitLbl  = row.querySelector('.wtb-cst-price-unit');
       var npcPrice = parseFloat(row.getAttribute('data-npc-price')||0)||0;
       var qty      = parseInt(qtyInp?qtyInp.value:0,10)||0;
       var rawVal   = (priceInp && priceInp.value !== '') ? (parseFloat(priceInp.value)||0) : 0;
 
-      // Converte para DL com base no label atual (DL/K/KK)
-      var unitDl;
-      if (rawVal > 0) {
-        var lbl = unitLbl ? unitLbl.textContent : 'DL/un';
-        if      (lbl === 'KK/un') unitDl = rawVal * 1000000;
-        else if (lbl === 'K/un')  unitDl = rawVal * 1000;
-        else                      unitDl = rawVal; // DL
-      } else {
-        unitDl = npcPrice; // fallback: usa NPC
-      }
+      // O valor digitado JÁ é em DL (o rótulo K/KK é só magnitude). Sem multiplicar.
+      var unitDl = rawVal > 0 ? rawVal : npcPrice; // fallback: usa NPC
 
       totalQty += qty;
       totalDl  += qty * unitDl;
@@ -850,16 +845,13 @@
           var row       = global.document.querySelector('[data-item-id="'+item.id+'"]');
           var qtyInp    = row ? row.querySelector('.wtb-cst-qty-inp')   : null;
           var priceInp  = row ? row.querySelector('.wtb-cst-price-inp') : null;
-          var unitLbl   = row ? row.querySelector('.wtb-cst-price-unit') : null;
           var npcPrice  = row ? parseFloat(row.getAttribute('data-npc-price')||0)||0 : 0;
           var qty       = qtyInp ? (parseInt(qtyInp.value,10)||0) : item.quantity;
           var rawVal    = priceInp && priceInp.value !== '' ? (parseFloat(priceInp.value)||0) : 0;
+          // O valor digitado JÁ é em DL (rótulo K/KK é só magnitude). Sem multiplicar.
           var priceDl;
           if (rawVal > 0) {
-            var lbl = unitLbl ? unitLbl.textContent : 'DL/un';
-            if      (lbl === 'KK/un') priceDl = rawVal * 1000000;
-            else if (lbl === 'K/un')  priceDl = rawVal * 1000;
-            else                      priceDl = rawVal;
+            priceDl = rawVal;
           } else {
             priceDl = npcPrice;
           }
