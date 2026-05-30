@@ -397,7 +397,10 @@
       // Modo "Minhas postagens": mostra todos os status (inclui expirados/vendidos),
       // ignora o filtro de tipo; só aplica a busca.
       if (filters.mine) {
-        if (l.status === 'deleted') return false;
+        // Excluído pelo dono: rpc_delete_listing faz soft-delete p/ 'cancelled'
+        // (trigger trg_listing_no_delete bloqueia DELETE físico). 'deleted' fica
+        // como legado. Esconder ambos — senão o anúncio "excluído" reaparece aqui.
+        if (l.status === 'deleted' || l.status === 'cancelled') return false;
         if (filters.search) {
           var qm = filters.search.toLowerCase();
           if (!(l.pokemon_name || '').toLowerCase().includes(qm)) return false;
