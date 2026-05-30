@@ -159,10 +159,18 @@
   var _selectedPkg   = null;
   var _priceCache    = null; // { 'item name lower': price_npc }
 
-  // ── Formata preço NPC do jogo (ex: 10000 → "10.000$") ────────
-  function _fmtNpc(price) {
-    if (!price && price !== 0) return null;
-    return price.toLocaleString('pt-BR') + '$';
+  // ── Formata preço mínimo em KK (ex: 185 → "185 KK", 2000 → "2kk") ──
+  function _fmtMinKk(rawKk) {
+    if (!rawKk && rawKk !== 0) return null;
+    // price_npc já está em KK (unidade mínima de mercado)
+    if (rawKk >= 1000) return parseFloat((rawKk/1000).toFixed(1)) + 'kkk';
+    if (rawKk >= 1)    return rawKk % 1 === 0 ? rawKk + ' KK' : rawKk.toFixed(1) + ' KK';
+    return rawKk + ' KK';
+  }
+  function _fmtMinKkShort(rawKk) {
+    // Para usar como placeholder: só o número
+    if (!rawKk) return null;
+    return rawKk;
   }
 
   function _resetForm(type) {
@@ -232,6 +240,7 @@
       +'<option value="1000">k</option><option value="1000000" selected>kk</option><option value="1000000000">kkk</option>'
       +'</select>'
       +'</div>'
+      +'<span class="wtb-pay-min-hint" id="wtb-pay-min-hint" style="display:none"></span>'
       +'<span class="mk-field-error" id="wtb-err-payment"></span>'
       +'</div></div>'
       +'<div id="wtb-pay-step3" style="display:none">'
@@ -274,6 +283,9 @@
       var s4=global.document.getElementById('wtb-pay-step4');
       if (s3) s3.style.display=v>0?'':'none';
       if (s4) { s4.style.display='none'; s4.innerHTML=''; }
+      // Esconde o hint quando o usuário já digitou um valor
+      var hint=global.document.getElementById('wtb-pay-min-hint');
+      if (hint) hint.style.opacity=v>0?'0.4':'1';
     }
     if (pInp) pInp.addEventListener('input',_onPrimary);
     if (kkU)  kkU.addEventListener('change',_onPrimary);
@@ -555,9 +567,9 @@
 
     var slotsHtml=slots.map(function(slot) {
       var items=_slotItems(slot);
-      // Calcula subtotal do slot (para mostrar referência)
+      // Calcula subtotal do slot em KK
       var slotTotal=items.reduce(function(acc,item){
-        var p=_getItemPrice(item.item_name);
+        var p=_getItemPrice(item.item_name); // price_npc = valor em KK
         return acc+(p?p*item.quantity:0);
       },0);
 
@@ -566,14 +578,14 @@
         +'<span class="wtb-cst-slot-num" style="color:'+meta.color+'">Slot '+(slot.slot_index+1)+'</span>'
         +'<div style="display:flex;align-items:center;gap:8px">'
         +'<span class="wtb-cst-slot-count">'+items.length+' '+(items.length===1?'item':'itens')+'</span>'
-        +(slotTotal>0?'<span class="wtb-cst-slot-price">≈ '+_fmtNpc(slotTotal)+'</span>':'')
+        +(slotTotal>0?'<span class="wtb-cst-slot-price">≈ '+_fmtMinKk(slotTotal)+'</span>':'')
         +'</div>'
         +'</div>'
         +'<div class="wtb-cst-items">'
         +items.map(function(item) {
           var unitPrice=_getItemPrice(item.item_name);
           var priceHtml=unitPrice!=null
-            ?'<span class="wtb-cst-item-price" data-unit-price="'+unitPrice+'">'+_fmtNpc(unitPrice)+'/un</span>'
+            ?'<span class="wtb-cst-item-price" data-unit-price="'+unitPrice+'">'+_fmtMinKk(unitPrice)+'/un</span>'
             :'<span class="wtb-cst-item-price" data-unit-price="0"></span>';
           return '<div class="wtb-cst-item" data-item-id="'+_esc(item.id)+'" data-qty-max="'+item.quantity+'">'
             +'<span class="wtb-cst-item-name">'+_esc(item.item_name)+'</span>'
@@ -641,6 +653,13 @@
     _modalEl.innerHTML=_buildCustomizerHtml(pkg);
     _bindCustomizerEvents(pkg);
     _bindPaymentEvents();
+
+    // Auto-seleciona KK como método de pagamento e exibe campo
+    var kkBtn=global.document.querySelector('.wtb-pay-method-btn[data-method="kk"]');
+    if (kkBtn) kkBtn.click();
+
+    // Calcula e mostra o mínimo assim que abre
+    _refreshTotalLabel(pkg);
   }
 
   function _bindCustomizerEvents(pkg) {
@@ -670,28 +689,46 @@
     if (obs) obs.addEventListener('input', function(){ _form.observations=obs.value; });
   }
 
+  // Calcula total mínimo em KK e atualiza a barra + o placeholder do campo KK
   function _refreshTotalLabel(pkg) {
     var lbl=global.document.getElementById('wtb-cst-total-label');
     var est=global.document.getElementById('wtb-cst-est-price');
-    var totalQty=0, totalPrice=0;
+    var totalQty=0, totalKk=0;
 
     Array.prototype.forEach.call(global.document.querySelectorAll('.wtb-cst-item'), function(row){
       var inp=row.querySelector('.wtb-cst-qty-inp');
       var priceEl=row.querySelector('.wtb-cst-item-price');
       var qty=parseInt(inp?inp.value:0,10)||0;
-      var unitPrice=priceEl?parseFloat(priceEl.getAttribute('data-unit-price')||0):0;
+      var unitKk=priceEl?parseFloat(priceEl.getAttribute('data-unit-price')||0):0;
       totalQty+=qty;
-      totalPrice+=qty*unitPrice;
+      totalKk+=qty*unitKk;
     });
 
     if (lbl) lbl.textContent=totalQty+' itens necessários';
     if (est) {
-      if (totalPrice>0) {
-        est.textContent='≈ '+totalPrice.toLocaleString('pt-BR')+'$ (referência NPC)';
-        est.style.display='';
-      } else {
-        est.style.display='none';
-      }
+      est.textContent=totalKk>0?'≈ '+_fmtMinKk(totalKk)+' (mín. NPC)':'';
+    }
+
+    // Injeta o mínimo como placeholder no campo KK de pagamento
+    _updatePaymentMinHint(totalKk);
+  }
+
+  // Mostra o valor mínimo em KK como hint suave dentro do campo de pagamento
+  function _updatePaymentMinHint(minKk) {
+    var hint=global.document.getElementById('wtb-pay-min-hint');
+    var kkInp=global.document.getElementById('wtb-pay-primary-val');
+
+    if (!minKk||minKk<=0) {
+      if (hint) hint.style.display='none';
+      return;
+    }
+
+    // Placeholder do input em KK (número puro, pois a unit já é 'kk')
+    if (kkInp && !kkInp.value) kkInp.placeholder='Ex: '+minKk;
+
+    if (hint) {
+      hint.textContent='mínimo: '+_fmtMinKk(minKk)+' (base NPC)';
+      hint.style.display='';
     }
   }
 

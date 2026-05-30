@@ -215,17 +215,27 @@
 }
 .wtb-cst-summary-dot { color: rgba(255,255,255,.20); }
 .wtb-cst-summary-hint { color: rgba(255,255,255,.30); font-style: italic; margin-left: auto; font-size: .68rem; }
-.wtb-cst-est-price   { color: #fbbf24; font-weight: 700; font-size: .72rem; }
+.wtb-cst-est-price { color: #fbbf24; font-weight: 700; font-size: .72rem; }
 
 /* Aviso sobre preços NPC */
 .wtb-cst-price-hint {
   font-size: .70rem; color: rgba(255,255,255,.30);
-  background: rgba(251,191,36,.05);
-  border: 1px solid rgba(251,191,36,.12);
+  background: rgba(251,191,36,.04);
+  border: 1px solid rgba(251,191,36,.10);
   border-radius: 6px; padding: 6px 10px; margin-bottom: 8px;
   line-height: 1.4;
 }
-.wtb-cst-price-hint strong { color: rgba(251,191,36,.70); }
+.wtb-cst-price-hint strong { color: rgba(251,191,36,.60); }
+
+/* Hint de valor mínimo dentro do campo de KK */
+.wtb-pay-min-hint {
+  display: block;
+  font-size: .68rem;
+  color: rgba(251,191,36,.40);
+  margin-top: 5px;
+  font-style: italic;
+  letter-spacing: .01em;
+}
 
 /* Slots */
 .wtb-cst-slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
@@ -262,14 +272,15 @@
   text-transform: capitalize;
 }
 
-/* Preço unitário NPC */
+/* Preço unitário em KK por item */
 .wtb-cst-item-price {
-  font-size: .64rem; font-weight: 600;
-  color: rgba(251,191,36,.50);
+  font-size: .63rem; font-weight: 600;
+  color: rgba(251,191,36,.45);
   white-space: nowrap; flex-shrink: 0;
-  min-width: 55px; text-align: right;
+  min-width: 58px; text-align: right;
+  font-variant-numeric: tabular-nums;
 }
-.wtb-cst-item--have .wtb-cst-item-price { opacity: .25; }
+.wtb-cst-item--have .wtb-cst-item-price { opacity: .18; }
 
 /* Qty controls */
 .wtb-cst-qty-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
