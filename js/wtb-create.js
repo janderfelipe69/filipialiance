@@ -608,16 +608,16 @@
         +'<div class="wtb-cst-items">'
         +items.map(function(item) {
           var unitPrice=_getItemPrice(item.item_name);
-          // Campo de preço: placeholder mostra o mínimo NPC no formato correto
-          var placeholderTxt = unitPrice != null ? _fmtDl(unitPrice) : 'ex: 185 DL';
+          // Valor padrão: usa preço NPC se disponível, senão 300 DL
+          var defaultPrice = unitPrice != null && unitPrice > 0 ? unitPrice : 300;
+          var defaultUnit  = defaultPrice >= 1000000 ? 'KK/un' : defaultPrice >= 1000 ? 'K/un' : 'DL/un';
           return '<div class="wtb-cst-item" data-item-id="'+_esc(item.id)+'" data-qty-max="'+item.quantity+'" data-npc-price="'+(unitPrice||0)+'">'
             +'<span class="wtb-cst-item-name">'+_esc(item.item_name)+'</span>'
-            // Campo de preço por unidade (editável, placeholder = NPC)
             +'<div class="wtb-cst-price-field">'
             +'<input type="number" class="wtb-cst-price-inp" min="0" step="any"'
-            +' placeholder="'+_esc(placeholderTxt)+'"'
-            +' title="Preço por unidade — mínimo NPC: '+_esc(placeholderTxt)+'">'
-            +'<span class="wtb-cst-price-unit">DL/un</span>'
+            +' value="'+defaultPrice+'"'
+            +' title="Preço por unidade (mínimo NPC: '+(unitPrice?_fmtDl(unitPrice):'sem referência')+')">'
+            +'<span class="wtb-cst-price-unit">'+defaultUnit+'</span>'
             +'</div>'
             // Controles de quantidade
             +'<div class="wtb-cst-qty-wrap">'
