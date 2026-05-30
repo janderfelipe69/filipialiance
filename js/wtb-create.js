@@ -939,6 +939,7 @@
         pay_brl:            _form.pay_brl||null,
         observations:       (_form.observations||'').trim().slice(0,500)||null,
         status:             'active',
+        server:             (global.PA&&global.PA.world&&global.PA.world.get())||'Moon',
       };
 
       var res=await fetch(SB_URL+'/rest/v1/wtb_listings',{

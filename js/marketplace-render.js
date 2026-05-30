@@ -290,7 +290,12 @@
     // Admin is NOT owner — admin moderation tools are separate (future admin panel)
     var actionsHtml = '';
     if (isOwner) {
+      var renewBtn = (status === 'expired')
+        ? '<button class="mk-btn mk-btn--primary mk-btn--sm" '
+          + 'onclick="event.stopPropagation();PA&&PA.marketplace&&PA.marketplace.renewListing(\'' + _esc(listing.id) + '\')">♻️ Renovar</button>'
+        : '';
       actionsHtml = '<div class="mk-card-actions">'
+        + renewBtn
         + '<button class="mk-btn mk-btn--ghost mk-btn--sm" '
         + 'onclick="event.stopPropagation();MarketplaceCreate&&MarketplaceCreate.openEdit(' + _esc(JSON.stringify({
             id: listing.id,
@@ -312,7 +317,7 @@
     }
 
     // Status badge label
-    var statusLabel = status === 'sold' ? 'Vendido' : status === 'cancelled' || status === 'deleted' ? 'Cancelado' : 'À venda';
+    var statusLabel = status === 'sold' ? 'Vendido' : status === 'expired' ? 'Expirado' : status === 'cancelled' || status === 'deleted' ? 'Cancelado' : 'À venda';
 
     return '<div class="mk-card mk-card--' + _esc(status) + (ballMeta ? ' mk-card--has-ball' : '') + '"'
       + ' data-listing-id="' + _esc(listing.id) + '"'
@@ -335,6 +340,10 @@
       + '<div class="mk-card-name-row">'
       + '<span class="mk-card-name">' + _esc(listing.pokemon_name || listing.listing_type) + '</span>'
       + _tierBadgeHtml(tier)
+      + ((listing.pokemon_slug && listing.listing_type === 'pokemon')
+          ? '<button class="mk-price-hist-btn" title="Histórico de preço da comunidade"'
+            + ' onclick="event.stopPropagation();PA&&PA.priceHistory&&PA.priceHistory.open(\'' + _esc(listing.pokemon_slug) + '\',\'' + _esc((listing.pokemon_name||'').replace(/\x27/g,'')) + '\')">📈</button>'
+          : '')
       + '</div>'
       + (ballMeta ? '<div class="mk-card-ball-row">' + _ballPillHtml(ballType) + '</div>' : '')
       + '<div class="mk-helds">' + _heldChip(heldX, 'X') + _heldChip(heldY, 'Y') + '</div>'
@@ -373,6 +382,16 @@
   function _applyFilters(listings, filters) {
     if (!filters) return listings;
     return (listings || []).filter(function(l) {
+      // Modo "Minhas postagens": mostra todos os status (inclui expirados/vendidos),
+      // ignora o filtro de tipo; só aplica a busca.
+      if (filters.mine) {
+        if (l.status === 'deleted') return false;
+        if (filters.search) {
+          var qm = filters.search.toLowerCase();
+          if (!(l.pokemon_name || '').toLowerCase().includes(qm)) return false;
+        }
+        return true;
+      }
       // Exclui listings não-ativos (soft-deleted, cancelados, vendidos)
       if (l.status && l.status !== 'active') return false;
       if (filters.type && filters.type !== 'all' && l.listing_type !== filters.type) return false;

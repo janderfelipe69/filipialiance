@@ -380,6 +380,17 @@
       if (data && data.success) {
         _toast('🎉 Venda registrada!', 'success');
         _tel('mk-listing-sold', { listingId: self.listingId });
+
+        // Pede o print da entrega ao vendedor (gera reputação)
+        if (global.PA && global.PA.reputation) {
+          global.PA.reputation.openDeliveryModal({
+            listingId:   self.listingId,
+            sessionId:   self.sessionId,
+            pokemonName: self.listingName,
+            buyerName:   self.buyerName,
+          });
+        }
+
         self.destroy();
 
         // Remove listing card immediately (partial render, no full refresh)

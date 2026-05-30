@@ -40,7 +40,9 @@
     return null;
   }
   function _tierBadgeHtml(tier){
-    var cfg=(typeof TIER_CONFIG!=='undefined'&&tier)?TIER_CONFIG[tier]:null;
+    // TIER_CONFIG é const top-level (TDZ por declaração duplicada) — usa o espelho em window.
+    var _tc = (global.PA_TIER_CONFIG || global.TIER_CONFIG || null);
+    var cfg=(_tc&&tier)?_tc[tier]:null;
     if (!cfg) return '';
     var glow=cfg.glow||(cfg.color+'66');
     return '<span class="mk-tier-badge" style="color:'+cfg.color+';border-color:'+cfg.color+';background:'+(cfg.bg||cfg.color+'1f')+';box-shadow:0 0 12px '+glow+',inset 0 0 10px '+cfg.color+'22;text-shadow:0 0 8px '+glow+'">'+_esc(cfg.label)+'</span>';
@@ -88,7 +90,13 @@
     return Math.floor(h/24)+'d atrás';
   }
   function _actionHtml(listing, isOwner){
-    if (isOwner) return '<div class="mk-card-actions"><button class="mk-btn mk-btn--danger-ghost mk-btn--sm" onclick="event.stopPropagation();WTBCreate&&WTBCreate.cancel(\''+_esc(listing.id)+'\')">✕ Cancelar</button></div>';
+    if (isOwner) {
+      var renew = (listing.status==='expired')
+        ? '<button class="mk-btn mk-btn--primary mk-btn--sm" onclick="event.stopPropagation();WTB&&WTB.renewListing(\''+_esc(listing.id)+'\')">♻️ Renovar</button>'
+        : '';
+      return '<div class="mk-card-actions">'+renew+'<button class="mk-btn mk-btn--danger-ghost mk-btn--sm" onclick="event.stopPropagation();WTBCreate&&WTBCreate.cancel(\''+_esc(listing.id)+'\')">✕ Cancelar</button></div>';
+    }
+    if (listing.status && listing.status!=='active') return '';
     return '<div class="mk-card-negotiate"><button class="mk-btn mk-btn--primary mk-btn--negotiate" onclick="event.stopPropagation();WTBChat&&WTBChat.open(\''+_esc(listing.id)+'\',\''+_esc(listing.buyer_id)+'\')">💬 Tenho isso!</button></div>';
   }
 
@@ -172,6 +180,12 @@
   // ================================================================
   function _applyFilters(listings, filters){
     return (listings||[]).filter(function(l){
+      // Modo "Minhas procuras": mostra todos os status (inclui expiradas), só aplica busca
+      if (filters.mine){
+        if (l.status==='deleted') return false;
+        if (filters.search){ var qm=filters.search.toLowerCase(); if (!(l.pokemon_name||l.package_name||'').toLowerCase().includes(qm)) return false; }
+        return true;
+      }
       if (l.status!=='active') return false;
       if (filters.type&&filters.type!=='all'&&l.listing_type!==filters.type) return false;
       if (filters.ball&&filters.ball!=='all'&&l.listing_type==='pokemon'&&l.ball_type!==filters.ball) return false;

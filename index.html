@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>F I L I P I • PokeAlliance Shop [v4]</title>
+<title>Mercadão Aliance • Comunidade PokéAlliance</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/packages.css" />
@@ -75,18 +75,17 @@
       </svg>
     </div>
 
-    <!-- Seller info -->
+    <!-- Brand info -->
     <div class="seller-info">
-      <div class="seller-name" data-text="F I L I P I">F I L I P I</div>
+      <div class="seller-name" data-text="MERCADÃO ALIANCE">MERCADÃO ALIANCE</div>
       <div class="seller-meta">
-        <span class="seller-title">Loja de Itens</span>
+        <span class="seller-title">Comunidade PokéAlliance</span>
         <span class="divider-v"></span>
-        <div class="server-tag">
-          <span class="moon-icon">🌙</span>
-          MOON
-        </div>
+        <!-- Server world switcher (Moon / Sun) — qualquer player troca livre -->
+        <div id="server-switch" class="world-switch" aria-label="Trocar mundo/servidor"></div>
         <span class="divider-v"></span>
-        <span class="item-count-badge" id="total-count">carregando...</span>
+        <!-- Métricas (online + visitas) — só aparece para admin -->
+        <div id="admin-metrics" class="admin-metrics" style="display:none"></div>
       </div>
     </div>
 
@@ -113,38 +112,9 @@
 
 <!-- TABS NAV -->
 <div class="tabs-nav">
-  <button class="tab-btn active" data-tab="itens">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-    Itens
-  </button>
-  <button class="tab-btn" data-tab="pacotes">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-    Pacotes
-  </button>
-  <button class="tab-btn" data-tab="captura">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-    Captura
-  </button>
-  <button class="tab-btn" data-tab="entregas">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-    Entregas
-  </button>
-  <button class="tab-btn tab-btn--pedidos" data-tab="pedidos">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-    Pedidos
-  </button>
-  <!-- ABA AFILIADO — só aparece para usuários com role='affiliate' -->
-  <button class="tab-btn" id="tab-btn-afiliado" data-tab="afiliado" style="display:none">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    Afiliado
-  </button>
-  <button class="tab-btn tab-btn--marketplace" data-tab="marketplace">
+  <button class="tab-btn tab-btn--marketplace active" data-tab="marketplace">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
     Marketplace
-  </button>
-  <button class="tab-btn tab-btn--wtb" data-tab="wtb">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Procura
   </button>
   <button class="tab-btn tab-btn--wiki" data-tab="wiki">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -152,8 +122,8 @@
   </button>
 </div>
 
-<!-- TAB: ITENS -->
-<div class="tab-content active" id="tab-itens">
+<!-- TAB: ITENS (oculta — comunidade não usa loja) -->
+<div class="tab-content" id="tab-itens">
 <div class="items-wrap">
 
 <!-- CONTROLS -->
@@ -868,6 +838,7 @@
 <link rel="stylesheet" href="css/wtb.css">
 
 <script src="js/supabase-client.js"></script>
+<script src="js/server-world.js"></script>
 <script src="js/db-bootstrap.js"></script>
 <script src="js/tabs-config.js"></script>
 <script src="js/dados.js"></script>
@@ -918,6 +889,7 @@
 <!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
 <!-- user-storage.js foi REMOVIDO — dados agora vêm do banco Supabase    -->
 <script src="js/session.js"></script>
+<script src="js/admin-metrics.js"></script>
 <script src="js/schema-compat.js"></script> 
 <script src="js/auth.js"></script>
 <script src="js/login.js"></script>
@@ -994,17 +966,26 @@
 <script src="js/affiliate-dashboard.js"></script>
 <script src="js/affiliate-admin-panel.js"></script>
 
-<!-- TAB: MARKETPLACE -->
-<div class="tab-content" id="tab-marketplace">
+<!-- TAB: MARKETPLACE (HUB unificado: Vendendo / Procurando / Services) -->
+<div class="tab-content active" id="tab-marketplace">
 <div class="mk-wrap">
 
+  <!-- Seletor de tipo de postagem -->
+  <div class="hub-kind" id="hub-kind">
+    <button class="hub-kind-btn active" data-kind="sell">🏷️ Vendendo</button>
+    <button class="hub-kind-btn" data-kind="buy">🔍 Procurando</button>
+    <button class="hub-kind-btn" data-kind="service">🛠️ Services</button>
+  </div>
+
+  <!-- VIEW: VENDENDO -->
+  <div id="hub-sell">
   <div class="mk-header">
     <div>
       <div class="mk-title">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        Marketplace
+        Vendendo
       </div>
-      <div class="mk-subtitle">Pok&eacute;mon &amp; Helds &mdash; Filipi Server</div>
+      <div class="mk-subtitle" id="mk-subtitle">Pok&eacute;mon &amp; Helds &mdash; Mundo Moon</div>
     </div>
     <div class="mk-header-actions">
 <!-- mk-inbox-badge: hidden element for realtime unread counter -->
@@ -1020,6 +1001,7 @@
     <button class="mk-filter-chip active" data-filter="all"   >Todos</button>
     <button class="mk-filter-chip"        data-filter="pokemon">Pok&eacute;mon</button>
     <button class="mk-filter-chip"        data-filter="held"   >Helds</button>
+    <button class="mk-filter-chip mk-filter-chip--mine" id="mk-chip-mine" data-scope="mine">Minhas</button>
     <input class="mk-search" id="mk-search" placeholder="Buscar Pok&eacute;mon...">
   </div>
 
@@ -1032,6 +1014,35 @@
   </div>
 
   <div id="marketplace-list"></div>
+  </div><!-- /hub-sell -->
+
+  <!-- VIEW: PROCURANDO (conteúdo movido do antigo #tab-wtb via market-hub.js) -->
+  <div id="hub-buy" style="display:none"></div>
+
+  <!-- VIEW: SERVICES -->
+  <div id="hub-service" style="display:none">
+    <div class="mk-header">
+      <div>
+        <div class="mk-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Services
+        </div>
+        <div class="mk-subtitle" id="svc-subtitle">Serviços da comunidade &mdash; Mundo Moon</div>
+      </div>
+      <div class="mk-header-actions">
+        <button class="mk-btn mk-btn--primary" id="svc-btn-create">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Oferecer service
+        </button>
+      </div>
+    </div>
+    <div class="mk-filters" id="svc-filters">
+      <button class="mk-filter-chip active" data-svc-scope="all">Todos</button>
+      <button class="mk-filter-chip mk-filter-chip--mine" id="svc-chip-mine" data-svc-scope="mine">Meus</button>
+      <input class="mk-search" id="svc-search" placeholder="Buscar service...">
+    </div>
+    <div id="service-list"></div>
+  </div>
 
 </div>
 </div><!-- /tab-marketplace -->
@@ -1061,6 +1072,7 @@
     <button class="mk-filter-chip active" data-wtb-type="all">Todos</button>
     <button class="mk-filter-chip" data-wtb-type="pokemon">🎴 Pok&eacute;mon</button>
     <button class="mk-filter-chip" data-wtb-type="talent">🎯 Talentos</button>
+    <button class="mk-filter-chip mk-filter-chip--mine" id="wtb-chip-mine" data-wtb-scope="mine">Minhas</button>
     <input class="mk-search" id="wtb-search" placeholder="Buscar por nome...">
   </div>
 
@@ -1082,6 +1094,8 @@
 <script src="js/marketplace-channels.js"></script>
 <script src="js/marketplace.js"></script>
 <script src="js/marketplace-render.js"></script>
+<script src="js/price-history.js"></script>
+<script src="js/reputation.js"></script>
 <script src="js/helds-catalog.js"></script>
 <script src="js/pokemon-selector.js"></script>
 <script src="js/marketplace-create.js"></script>
@@ -1095,5 +1109,7 @@
 <script src="js/wtb-create.js"></script>
 <script src="js/wtb-chat.js"></script>
 <script src="js/event-handlers.js"></script>
+<script src="js/services.js"></script>
+<script src="js/market-hub.js"></script>
 </body>
 </html>

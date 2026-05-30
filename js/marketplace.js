@@ -47,15 +47,28 @@
     if (global.PA && global.PA.telemetry) global.PA.telemetry.push(cat, data);
   }
 
+  // Mundo/servidor ativo (Moon/Sun) — fonte de verdade em PA.world
+  function _world() {
+    return (global.PA && global.PA.world && global.PA.world.get()) || 'Moon';
+  }
+
   // ── Estado interno ────────────────────────────────────────────
   var _state = {
     initialized:  false,
-    listings:     [],       // array canônico de listings
+    listings:     [],       // array canônico de listings (ativos do mundo atual)
+    mineListings: [],        // minhas postagens (todos os status) — modo "Minhas"
+    mine:         false,     // true = exibindo "Minhas postagens"
     filters:      { type: 'all', search: '' },
     loading:      false,
     lastFetch:    0,
     fetchAbort:   null,     // AbortController ativo
   };
+
+  // Fonte de render conforme o modo (Minhas vs. listagem pública)
+  function _renderList()    { return _state.mine ? _state.mineListings : _state.listings; }
+  function _renderFilters() {
+    return Object.assign({}, _state.filters, { mine: _state.mine });
+  }
 
   // Expõe no namespace global PA.marketplace
   if (!global.PA) global.PA = {};
@@ -73,7 +86,7 @@
       owner:     'PA.marketplace',
       render:    function () {
         if (typeof MarketplaceRender !== 'undefined') {
-          MarketplaceRender.render(_state.listings, _state.filters);
+          MarketplaceRender.render(_renderList(), _renderFilters());
         }
       },
     });
@@ -133,6 +146,7 @@
     try {
       var url = SB_URL + '/rest/v1/marketplace_listings'
         + '?status=eq.active'
+        + '&server=eq.' + encodeURIComponent(_world())
         + '&order=updated_at.desc'
         + '&limit=100'
         + '&select=*,helds_x:held_x_id(id,name,sprite_url,category,rarity,description,bonus),helds_y:held_y_id(id,name,sprite_url,category,rarity,description,bonus)';
@@ -180,15 +194,65 @@
     if (typeof MarketplaceRender === 'undefined') return;
     if (global.PA && global.PA.pipeline && typeof global.PA.pipeline.coalesceRender === 'function') {
       global.PA.pipeline.coalesceRender('marketplace-list', function () {
-        MarketplaceRender.render(_state.listings, _state.filters);
+        MarketplaceRender.render(_renderList(), _renderFilters());
       }, 120);
     } else {
       // Fallback sem coalesceRender
       setTimeout(function () {
-        MarketplaceRender.render(_state.listings, _state.filters);
+        MarketplaceRender.render(_renderList(), _renderFilters());
       }, 0);
     }
     _log('[PA.marketplace.render] trigger via', reason);
+  }
+
+  // ── "Minhas postagens": busca as próprias (todos os status) ──
+  async function fetchMine() {
+    var me = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (!me) return;
+    try {
+      var url = SB_URL + '/rest/v1/marketplace_listings'
+        + '?seller_id=eq.' + encodeURIComponent(me.id)
+        + '&server=eq.' + encodeURIComponent(_world())
+        + '&order=updated_at.desc&limit=200'
+        + '&select=*,helds_x:held_x_id(id,name,sprite_url,category,rarity,description,bonus),helds_y:held_y_id(id,name,sprite_url,category,rarity,description,bonus)';
+      var res = await fetch(url, { headers: _headers() });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      _state.mineListings = await res.json();
+      _triggerRender('mine-fetch');
+    } catch (err) {
+      _warn('[PA.marketplace.fetchMine] erro:', err.message);
+    }
+  }
+
+  function toggleMine(on) {
+    var me = typeof Session !== 'undefined' ? Session.getCurrentUser() : null;
+    if (on && !me) {
+      if (typeof showToast === 'function') showToast('Faça login para ver suas postagens.', 'info');
+      return false;
+    }
+    _state.mine = !!on;
+    if (_state.mine) fetchMine();
+    else _triggerRender('mine-off');
+    return _state.mine;
+  }
+
+  // Renova (reativa) uma postagem expirada do próprio usuário
+  async function renewListing(id) {
+    var jwt = _jwt();
+    if (!jwt) return false;
+    try {
+      var res = await fetch(SB_URL + '/rest/v1/rpc/renew_marketplace_listing', {
+        method: 'POST',
+        headers: Object.assign(_headers(), { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ p_id: id }),
+      });
+      var ok = await res.json().catch(function () { return false; });
+      if (ok) {
+        if (typeof showToast === 'function') showToast('Anúncio renovado por mais 7 dias!', 'success');
+        if (_state.mine) fetchMine(); else fetchListings(true);
+      }
+      return ok;
+    } catch (e) { return false; }
   }
 
   // ── Realtime: escuta CustomEvent emitido pelo realtime-manager ──
@@ -208,6 +272,11 @@
         var entityKey = 'listing:' + record.id;
         if (_rv && !_rv.shouldApply(entityKey, record.updated_at || record.created_at)) {
           return; // stale packet — ignore
+        }
+
+        // Ignora postagens de outro mundo/servidor (Moon vs Sun)
+        if (record.server && record.server !== _world()) {
+          return;
         }
 
         if (tipo === 'INSERT') {
@@ -313,6 +382,9 @@
     setFilter:      setFilter,
     onTabActivated: _onTabActivated,
     getListings:    function () { return _state.listings; },
+    toggleMine:     toggleMine,
+    isMine:         function () { return _state.mine; },
+    renewListing:   renewListing,
   });
 
   // ── Boot ─────────────────────────────────────────────────────
@@ -330,6 +402,57 @@
       _log('marketplace.js v1 pronto — aguardando ativação da tab');
     } catch (err) {
       _warn('Erro na inicialização:', err.message);
+    }
+
+    // Troca de mundo (Moon/Sun) → recarrega listings do servidor selecionado
+    global.addEventListener('pa:server-change', function () {
+      _state.lastFetch = 0; // invalida cache para forçar fetch
+      fetchListings(true);
+      if (_state.mine) fetchMine();
+      var sub = document.getElementById('mk-subtitle');
+      if (sub) sub.textContent = 'Pokémon & Helds — Mundo ' + _world();
+    });
+
+    // Chip "Minhas postagens"
+    var _chipMine = document.getElementById('mk-chip-mine');
+    if (_chipMine) {
+      _chipMine.addEventListener('click', function () {
+        var on = !_state.mine;
+        var applied = toggleMine(on);
+        _chipMine.classList.toggle('active', applied);
+        // Ao ligar "Minhas", desativa os chips de tipo (all/pokemon/held)
+        if (applied) {
+          document.querySelectorAll('.mk-filter-chip[data-filter]').forEach(function (b) {
+            b.classList.remove('active');
+          });
+        } else {
+          var allChip = document.querySelector('.mk-filter-chip[data-filter="all"]');
+          if (allChip) allChip.classList.add('active');
+          setFilter('type', 'all');
+        }
+      });
+    }
+    // Selecionar um chip de tipo desliga o modo "Minhas"
+    document.querySelectorAll('.mk-filter-chip[data-filter]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (_state.mine) {
+          _state.mine = false;
+          if (_chipMine) _chipMine.classList.remove('active');
+        }
+      });
+    });
+
+    // Subtítulo reflete o mundo ativo já no load inicial
+    var _sub0 = document.getElementById('mk-subtitle');
+    if (_sub0) _sub0.textContent = 'Pokémon & Helds — Mundo ' + _world();
+
+    // Marketplace agora é a aba default — inicializa no load inicial
+    // (switchTab não é chamado para a aba já-ativa).
+    var _mkTab = document.getElementById('tab-marketplace');
+    if (_mkTab && _mkTab.classList.contains('active')) {
+      var _kick = function () { try { _onTabActivated(); } catch (_) {} };
+      if (global.__dbReady) _kick();
+      else global.document.addEventListener('db:ready', _kick, { once: true });
     }
   });
 

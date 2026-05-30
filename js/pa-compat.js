@@ -36,6 +36,11 @@
   // 1. NAMESPACE CENTRAL
   // ══════════════════════════════════════════════════════════════════════
 
+  // Preserva sub-namespaces registrados ANTES do pa-compat (ex.: PA.world
+  // do server-world.js, carregado bem no início). Sem isso, este reset
+  // duro apagaria o switcher de servidor.
+  var _priorPA = global.PA || {};
+
   global.PA = {
     __version: '1.0.0',
     __loadedAt: _t0,
@@ -49,6 +54,11 @@
     telemetry: {},
     guards:    {},
   };
+
+  // Reanexa chaves pré-existentes que não fazem parte da estrutura acima
+  Object.keys(_priorPA).forEach(function (k) {
+    if (!(k in global.PA)) global.PA[k] = _priorPA[k];
+  });
 
   var PA = global.PA;
 

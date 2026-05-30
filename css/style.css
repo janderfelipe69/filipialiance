@@ -3692,3 +3692,412 @@ span[id^="total-brl-"] {
 .send-order-btn:hover  { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(58,140,255,0.5); }
 .send-order-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(58,140,255,0.25); }
 .send-order-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ============================================================
+ * MERCADÃO ALIANCE — Mundo Moon / Sun + métricas admin
+ * Fundação do redesign da comunidade.
+ * ============================================================ */
+
+/* ---- TEMA SUN: troca o acento azul-frio por dourado/âmbar quente ----
+ * O site inteiro usa --blue/--blue-bright/--glow-blue como acento.
+ * Sobrescrevendo essas variáveis quando data-server="sun", todo o
+ * visual (abas, botões, brilhos, bordas) migra para o tom quente —
+ * mantendo a MESMA base escura. */
+html[data-server="sun"], body[data-server="sun"] {
+  --blue:        #f0a02a;
+  --blue-bright: #ffc24d;
+  --glow-blue:   rgba(240,160,42,0.40);
+  --border:        rgba(240,160,42,0.20);
+  --border-hover:  rgba(240,160,42,0.55);
+}
+/* Transição suave ao trocar de mundo */
+header, .tabs-nav, .tab-btn, .world-switch, .cart-trigger {
+  transition: background-color .35s ease, border-color .35s ease, color .25s ease;
+}
+
+/* ---- Padronização do tom escuro (header + abas no mesmo deep tone) ---- */
+header   { background: rgba(5,8,18,0.98); }
+.tabs-nav{ background: rgba(5,8,18,0.98); }
+
+/* ============================================================
+ * WORLD SWITCH (Moon / Sun) — no header
+ * ============================================================ */
+.world-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.world-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .2s, background .2s, box-shadow .2s;
+}
+.world-opt svg { width: 13px; height: 13px; opacity: 0.85; }
+.world-count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+  min-width: 16px;
+  text-align: center;
+}
+.world-count:empty { display: none; }
+.world-opt.active .world-count { background: rgba(0,0,0,0.28); color: #fff; }
+.world-opt:hover { color: var(--text); }
+.world-opt.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-bright) 100%);
+  box-shadow: 0 0 14px var(--glow-blue);
+}
+/* Moon ativo brilha azul; Sun ativo brilha âmbar — automático via vars */
+
+/* ============================================================
+ * MÉTRICAS DE ADMIN (online + visitas) — só admin
+ * ============================================================ */
+.admin-metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.metric-chip svg { opacity: 0.7; }
+.metric-online { color: #6effa0; border-color: rgba(110,255,160,0.25); }
+.metric-online .metric-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #2ee87a;
+  box-shadow: 0 0 8px #2ee87a;
+  animation: metricPulse 1.8s ease-in-out infinite;
+}
+.metric-visits { color: var(--gold-bright); border-color: rgba(240,180,41,0.3); }
+@keyframes metricPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Responsivo: em telas estreitas, esconde os rótulos longos */
+@media (max-width: 760px) {
+  .world-opt span { display: none; }
+  .world-opt { padding: 6px 9px; }
+  .admin-metrics { display: none; }
+}
+
+/* ============================================================
+ * HISTÓRICO DE PREÇO — botão no card + popup
+ * ============================================================ */
+.mk-price-hist-btn {
+  margin-left: auto;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px 7px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity .15s, border-color .15s, background .15s;
+}
+.mk-price-hist-btn:hover {
+  opacity: 1;
+  border-color: var(--border-hover);
+  background: rgba(255,255,255,0.1);
+}
+
+.ph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2,4,10,0.72);
+  backdrop-filter: blur(3px);
+  padding: 20px;
+}
+.ph-overlay.open { display: flex; animation: phFade .18s ease; }
+@keyframes phFade { from { opacity: 0; } to { opacity: 1; } }
+
+.ph-modal {
+  position: relative;
+  width: min(360px, 94vw);
+  background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+  border: 1px solid var(--border-hover);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px var(--glow-blue);
+}
+.ph-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.ph-close:hover { color: var(--text); border-color: var(--border-hover); }
+.ph-header { margin-bottom: 16px; }
+.ph-title {
+  display: block;
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ph-sub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ph-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ph-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.ph-stat--avg { border-color: var(--border-hover); background: rgba(58,140,255,0.08); }
+.ph-stat-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ph-stat-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-bright);
+}
+.ph-spark { width: 100%; height: 70px; display: block; margin-bottom: 10px; }
+.ph-spark-line { fill: none; stroke: var(--blue-bright); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.ph-spark-area { fill: var(--glow-blue); opacity: 0.18; stroke: none; }
+.ph-spark-dots circle { fill: var(--blue-bright); }
+.ph-note {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ph-empty {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text);
+  padding: 18px 6px;
+  line-height: 1.6;
+}
+.ph-empty span { font-size: 11px; color: var(--muted); }
+.ph-loading { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* ============================================================
+ * REPUTAÇÃO DO VENDEDOR — badge no card + modais (print/avaliação)
+ * ============================================================ */
+.mk-card { position: relative; }
+.mk-rep-badge-wrap {
+  position: absolute;
+  top: 8px; left: 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+.mk-rep-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(8,12,24,0.85);
+  border: 1px solid rgba(240,180,41,0.35);
+  color: var(--gold-bright);
+  backdrop-filter: blur(2px);
+}
+.mk-rep-badge--new {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+/* Modais de reputação (print / confirmação) */
+.rep-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2,4,10,0.74);
+  backdrop-filter: blur(3px);
+  padding: 20px;
+}
+.rep-overlay.open { display: flex; animation: phFade .18s ease; }
+.rep-modal {
+  position: relative;
+  width: min(380px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+  border: 1px solid var(--border-hover);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px var(--glow-blue);
+}
+.rep-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+  color: var(--muted);
+  cursor: pointer; font-size: 13px;
+}
+.rep-close:hover { color: var(--text); border-color: var(--border-hover); }
+.rep-head { margin-bottom: 12px; }
+.rep-title { display: block; font-family: var(--font-title); font-size: 16px; font-weight: 700; color: var(--text); }
+.rep-sub { font-size: 12px; color: var(--muted); }
+.rep-hint { font-size: 12px; color: var(--muted); margin: 8px 0; line-height: 1.5; }
+.rep-input {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.rep-input:focus { outline: none; border-color: var(--border-hover); }
+.rep-textarea { min-height: 60px; resize: vertical; }
+.rep-preview { margin-bottom: 12px; text-align: center; }
+.rep-preview img {
+  max-width: 100%; max-height: 200px;
+  border-radius: 10px; border: 1px solid var(--border);
+}
+.rep-stars { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+.rep-star {
+  background: none; border: none; cursor: pointer;
+  font-size: 30px; line-height: 1;
+  color: rgba(255,255,255,0.18);
+  transition: color .12s, transform .12s;
+}
+.rep-star:hover { transform: scale(1.12); }
+.rep-star.on { color: var(--gold-bright); }
+.rep-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ============================================================
+ * HUB DO MARKETPLACE — seletor de tipo (Vendendo/Procurando/Services)
+ * ============================================================ */
+.hub-kind {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  margin: 4px 0 18px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.hub-kind-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color .18s, background .18s, box-shadow .18s;
+}
+.hub-kind-btn:hover { color: var(--text); }
+.hub-kind-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-bright) 100%);
+  box-shadow: 0 4px 18px var(--glow-blue);
+}
+@media (max-width: 600px) {
+  .hub-kind { display: flex; width: 100%; }
+  .hub-kind-btn { flex: 1; justify-content: center; padding: 9px 6px; font-size: 11px; }
+}
+
+/* ============================================================
+ * SERVICES — cards
+ * ============================================================ */
+.svc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.svc-card {
+  background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .18s, transform .18s;
+}
+.svc-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.svc-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.svc-card-title { font-family: var(--font-title); font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.25; }
+.svc-card-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.svc-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border); }
+.svc-card-provider { font-size: 12px; color: var(--muted); }
+.svc-card-provider b { color: var(--text); }
+.svc-card-price { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--gold-bright); }
+.svc-card-price--neg { color: var(--muted); font-weight: 600; }
+.svc-empty { text-align: center; padding: 48px 16px; color: var(--text); font-size: 14px; line-height: 1.6; }
+.svc-empty span { font-size: 12px; color: var(--muted); }

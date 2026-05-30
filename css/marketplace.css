@@ -454,6 +454,9 @@
 .mk-status--active    { background: var(--mk-green-dim); color: var(--mk-green); border: 1px solid rgba(74,222,128,0.2); }
 .mk-status--sold      { background: rgba(251,191,36,.08); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
 .mk-status--cancelled { background: rgba(248,113,113,.08); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+.mk-status--expired   { background: rgba(148,163,184,.10); color: #94a3b8; border: 1px solid rgba(148,163,184,0.25); }
+/* Chip "Minhas postagens" */
+.mk-filter-chip--mine.active { background: var(--mk-gold, #f0b429); color: #0a0f1e; border-color: var(--mk-gold, #f0b429); }
 
 /* ── Skeleton loader ────────────────────────────────────────── */
 .mk-card--skeleton {

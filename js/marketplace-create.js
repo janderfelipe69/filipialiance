@@ -165,6 +165,10 @@
 
   // ── INSERT real listing ───────────────────────────────────────
   async function _insertListing(payload) {
+    // Carimba a postagem com o mundo/servidor ativo (Moon/Sun)
+    if (payload && payload.server == null) {
+      payload.server = (window.PA && window.PA.world && window.PA.world.get()) || 'Moon';
+    }
     var res = await fetch(SB_URL + '/rest/v1/marketplace_listings', {
       method: 'POST',
       headers: {

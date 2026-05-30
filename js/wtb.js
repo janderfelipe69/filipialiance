@@ -11,11 +11,14 @@
   var SB_KEY = global.SUPABASE_KEY || '';
 
   function _jwt() { return typeof Session !== 'undefined' && Session.getAccessToken ? Session.getAccessToken() : null; }
+  function _world() { return (global.PA && global.PA.world && global.PA.world.get()) || 'Moon'; }
 
   var _state = {
-    listings: [],
-    loading:  false,
-    filters:  { type: 'all', ball: 'all', search: '' },
+    listings:     [],
+    mineListings: [],
+    mine:         false,
+    loading:      false,
+    filters:      { type: 'all', ball: 'all', search: '' },
   };
 
   function _headers() {
@@ -23,17 +26,64 @@
     return { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token };
   }
 
+  function _renderList()    { return _state.mine ? _state.mineListings : _state.listings; }
+  function _renderFilters() { return Object.assign({}, _state.filters, { mine: _state.mine }); }
+
   function _render() {
     if (typeof WTBRender !== 'undefined') {
-      WTBRender.render(_state.listings, _state.filters);
+      WTBRender.render(_renderList(), _renderFilters());
     }
+  }
+
+  function _me() { return typeof Session !== 'undefined' ? Session.getCurrentUser() : null; }
+
+  async function fetchMine() {
+    var me = _me();
+    if (!me) return;
+    try {
+      var url = SB_URL + '/rest/v1/wtb_listings?buyer_id=eq.' + encodeURIComponent(me.id)
+        + '&server=eq.' + encodeURIComponent(_world()) + '&order=updated_at.desc&limit=200&select=*';
+      var res = await fetch(url, { headers: _headers() });
+      var data = await res.json().catch(function () { return []; });
+      _state.mineListings = Array.isArray(data) ? data : [];
+    } catch (e) { console.warn('[WTB] fetchMine error:', e); }
+    finally { _render(); }
+  }
+
+  function toggleMine(on) {
+    var me = _me();
+    if (on && !me) {
+      if (typeof showToast === 'function') showToast('Faça login para ver suas procuras.', 'info');
+      return false;
+    }
+    _state.mine = !!on;
+    if (_state.mine) fetchMine(); else _render();
+    return _state.mine;
+  }
+
+  async function renewListing(id) {
+    var jwt = _jwt();
+    if (!jwt) return false;
+    try {
+      var res = await fetch(SB_URL + '/rest/v1/rpc/renew_wtb_listing', {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_id: id }),
+      });
+      var ok = await res.json().catch(function () { return false; });
+      if (ok) {
+        if (typeof showToast === 'function') showToast('Procura renovada por mais 7 dias!', 'success');
+        if (_state.mine) fetchMine(); else fetchListings();
+      }
+      return ok;
+    } catch (e) { return false; }
   }
 
   async function fetchListings() {
     _state.loading = true;
     _render();
     try {
-      var url = SB_URL + '/rest/v1/wtb_listings?status=eq.active&order=created_at.desc&select=*';
+      var url = SB_URL + '/rest/v1/wtb_listings?status=eq.active&server=eq.' + encodeURIComponent(_world()) + '&order=created_at.desc&select=*';
       var res = await fetch(url, { headers: _headers() });
       var data = await res.json().catch(function () { return []; });
       _state.listings = Array.isArray(data) ? data : [];
@@ -57,6 +107,9 @@
           var ev  = payload.eventType;
           var row = payload.new || {};
           var old = payload.old || {};
+
+          // Ignora postagens de outro mundo/servidor (Moon vs Sun)
+          if (row.server && row.server !== _world()) return;
 
           if (ev === 'INSERT' && row.status === 'active') {
             var exists = _state.listings.some(function (l) { return l.id === row.id; });
@@ -125,12 +178,43 @@
     if (!_inited) { _inited = true; init(); }
   }, 3000);
 
+  // Troca de mundo (Moon/Sun) → recarrega as procuras do servidor ativo
+  global.addEventListener('pa:server-change', function () {
+    if (_inited) { fetchListings(); if (_state.mine) fetchMine(); }
+  });
+
+  // Chip "Minhas procuras"
+  document.addEventListener('DOMContentLoaded', function () {
+    var chip = document.getElementById('wtb-chip-mine');
+    if (chip) {
+      chip.addEventListener('click', function () {
+        var applied = toggleMine(!_state.mine);
+        chip.classList.toggle('active', applied);
+        if (applied) {
+          document.querySelectorAll('.mk-filter-chip[data-wtb-type]').forEach(function (b) { b.classList.remove('active'); });
+        } else {
+          var allChip = document.querySelector('.mk-filter-chip[data-wtb-type="all"]');
+          if (allChip) allChip.classList.add('active');
+          setFilter('type', 'all');
+        }
+      });
+    }
+    document.querySelectorAll('.mk-filter-chip[data-wtb-type]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (_state.mine) { _state.mine = false; if (chip) chip.classList.remove('active'); }
+      });
+    });
+  });
+
   global.WTB = {
     get state() { return _state; },
-    init:      init,
-    fetch:     fetchListings,
-    setFilter: setFilter,
-    render:    _render,
+    init:        init,
+    fetch:       fetchListings,
+    setFilter:   setFilter,
+    render:      _render,
+    toggleMine:  toggleMine,
+    isMine:      function () { return _state.mine; },
+    renewListing: renewListing,
   };
 
   console.log('[WTB] wtb.js carregado');
