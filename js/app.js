@@ -41,7 +41,8 @@ RAW.forEach(([name, image, price, tier, evo]) => {
 // Store original index on each item for O(1) lookup
 items.forEach((item, i) => { item._idx = i; });
 
-document.getElementById('total-count').textContent = items.length + ' itens no índice';
+var _totalCountEl = document.getElementById('total-count');
+if (_totalCountEl) _totalCountEl.textContent = items.length + ' itens no índice';
 
 const cart = {};
 let pkgCartCount = {};
