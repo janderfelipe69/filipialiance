@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#161226"/><stop offset="100%" stop-color="#0a0813"/>
+    </linearGradient>
+    <linearGradient id="pbTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff7a7a"/><stop offset="50%" stop-color="#ef2d3c"/><stop offset="100%" stop-color="#c01525"/>
+    </linearGradient>
+    <linearGradient id="pbBot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#d2dae6"/>
+    </linearGradient>
+    <radialGradient id="pbBtn" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#b7c1d1"/>
+    </radialGradient>
+    <clipPath id="pbClip"><circle cx="50" cy="50" r="46"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+  <g transform="translate(106,106) scale(3)">
+    <g clip-path="url(#pbClip)">
+      <rect x="0" y="0"  width="100" height="50" fill="url(#pbTop)"/>
+      <rect x="0" y="50" width="100" height="50" fill="url(#pbBot)"/>
+      <rect x="0" y="44" width="100" height="12" fill="#14171e"/>
+      <ellipse cx="34" cy="28" rx="16" ry="10" fill="#ffffff" opacity="0.30" transform="rotate(-22 34 28)"/>
+    </g>
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#0e1118" stroke-width="3.5"/>
+    <circle cx="50" cy="50" r="15" fill="#14171e"/>
+    <circle cx="50" cy="50" r="11.5" fill="#ffffff"/>
+    <circle cx="50" cy="50" r="6.5" fill="url(#pbBtn)" stroke="#0e1118" stroke-width="1.5"/>
+  </g>
+</svg>
