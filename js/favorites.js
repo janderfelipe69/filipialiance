@@ -75,11 +75,12 @@
     s.id = 'pa-fav-css';
     s.textContent = [
       '.mk-card{position:relative}',
+      // sem backdrop-filter de propósito: blur é caro no scroll (16 cards = 16 camadas)
       '.mk-fav-btn{position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:flex;',
       'align-items:center;justify-content:center;border-radius:9px;cursor:pointer;',
-      'background:rgba(10,10,24,0.55);border:1px solid rgba(255,255,255,0.12);',
+      'background:rgba(14,14,30,0.82);border:1px solid rgba(255,255,255,0.12);',
       'color:rgba(255,255,255,0.45);transition:transform .15s,color .15s,background .15s,border-color .15s;',
-      'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);-webkit-tap-highlight-color:transparent}',
+      '-webkit-tap-highlight-color:transparent}',
       '.mk-fav-btn svg{fill:none;stroke:currentColor;stroke-width:2}',
       '.mk-fav-btn:hover{color:#ff7a9c;border-color:rgba(255,122,156,0.5);transform:scale(1.08)}',
       '.mk-fav-btn.is-fav{color:#ff4d79;border-color:rgba(255,77,121,0.55);background:rgba(255,77,121,0.12)}',

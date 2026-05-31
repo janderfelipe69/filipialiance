@@ -93,10 +93,11 @@
     var s = doc.createElement('style');
     s.id = 'pa-share-css';
     s.textContent = [
+      // sem backdrop-filter de propósito (blur é caro no scroll com vários cards)
       '.mk-share-btn{position:absolute;top:8px;right:44px;z-index:4;width:30px;height:30px;display:flex;',
       'align-items:center;justify-content:center;border-radius:9px;cursor:pointer;',
-      'background:rgba(10,10,24,0.55);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.45);',
-      'transition:transform .15s,color .15s,border-color .15s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}',
+      'background:rgba(14,14,30,0.82);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.45);',
+      'transition:transform .15s,color .15s,border-color .15s}',
       '.mk-share-btn svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}',
       '.mk-share-btn:hover{color:#7cc4ff;border-color:rgba(124,196,255,0.5);transform:scale(1.08)}',
       '@keyframes paCardGlow{0%,100%{box-shadow:0 0 0 0 rgba(160,120,255,0)}',

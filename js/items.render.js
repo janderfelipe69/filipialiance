@@ -90,6 +90,13 @@ function buildItemCardHtml(item, animateIn) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function renderItems() {
+  // PERF: a aba de itens fica OCULTA (comunidade não usa loja) e montaria ~15k
+  // nós no DOM — o maior peso da página. Não renderiza enquanto a aba não
+  // estiver ativa. switchTab() marca .active ANTES de chamar renderItems, então
+  // se a aba for reativada (nav + switchTab) ela volta a renderizar normalmente.
+  var _itab = document.getElementById('tab-itens');
+  if (_itab && !_itab.classList.contains('active')) return;
+
   var q       = document.getElementById('items-search').value.toLowerCase();
   var f       = document.getElementById('items-filter').value;
   var grid    = document.getElementById('items-grid');
@@ -209,7 +216,8 @@ function _itemsSetupBurst() {
   _itemsSetupVisibilityObserver();
   _itemsSetupBurst();
 
-  // Aguarda db-bootstrap.js terminar antes de renderizar
+  // Aguarda db-bootstrap.js terminar antes de renderizar.
+  // (renderItems() já se auto-protege: não monta nada se a aba estiver oculta.)
   if (window.__dbReady) {
     renderItems();
   } else {
