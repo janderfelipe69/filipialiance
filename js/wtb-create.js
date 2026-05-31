@@ -1167,11 +1167,19 @@
     if (!confirmed) return;
     try {
       var jwt=_jwt(); if (!jwt){_toast('Faça login.','error');return;}
-      var res=await fetch(SB_URL+'/rest/v1/wtb_listings?id=eq.'+listingId,{
-        method:'PATCH',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt,'Prefer':'return=minimal'},
-        body:JSON.stringify({status:'deleted'}),
+      // Soft-delete via RPC SECURITY DEFINER (igual ao marketplace): evita
+      // ambiguidades de RLS/role no PATCH direto que davam 403 Forbidden.
+      var res=await fetch(SB_URL+'/rest/v1/rpc/rpc_delete_wtb_listing',{
+        method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+jwt},
+        body:JSON.stringify({p_id:listingId}),
       });
-      if (!res.ok) throw new Error(await res.text());
+      var raw=await res.text(); var data=null; try{data=JSON.parse(raw);}catch(_){}
+      if (!res.ok || !(data&&data.success)) {
+        console.error('[WTB DELETE RPC ERROR]',{status:res.status,body:data||raw,listingId:listingId});
+        var errMap={unauthorized:'Você não tem permissão.',listing_not_found:'Procura não encontrada.',not_authenticated:'Faça login.'};
+        _toast(errMap[(data&&data.error)]||'Erro ao remover.','error');
+        return;
+      }
       if (global.WTB){ global.WTB.state.listings=(global.WTB.state.listings||[]).filter(function(l){return l.id!==listingId;}); global.WTB.render(); }
       var el=global.document.querySelector('[data-wtb-id="'+listingId+'"]');
       if (el){ el.style.transition='opacity .25s,transform .25s'; el.style.opacity='0'; el.style.transform='scale(0.95)'; setTimeout(function(){if(el.parentNode)el.remove();},260); }

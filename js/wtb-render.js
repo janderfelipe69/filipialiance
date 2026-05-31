@@ -159,7 +159,6 @@
 
     return '<div class="mk-card wtb-card wtb-talent-card wtb-card--clickable" data-wtb-id="'+_esc(listing.id)+'" data-updated="'+_esc(listing.updated_at||'')+'" style="--tc:'+meta.color+'" onclick="WTBRender&&WTBRender.openDetail(\''+_esc(listing.id)+'\')">'
       +'<div class="wtb-card-badge wtb-card-badge--talent">'+meta.icon+' '+meta.label+'</div>'
-      +'<div class="wtb-card-open-hint">👁️ ver itens</div>'
 
       +'<div class="wtb-talent-card-header">'
       +'<div class="wtb-talent-card-pkg-name">'+_esc(pkgName)+'</div>'
@@ -170,7 +169,8 @@
 
       +(listing.observations?'<div class="wtb-obs wtb-obs--talent">'+_esc(listing.observations)+'</div>':'')
 
-      +'<div class="mk-card-footer"><div class="wtb-payment">'+_paymentHtml(listing)+'</div><span class="mk-card-time">'+_timeAgo(listing.created_at)+'</span></div>'
+      +'<div class="mk-card-footer"><div class="wtb-payment">'+_paymentHtml(listing)+'</div>'
+      +'<div class="wtb-footer-right"><span class="wtb-card-open-hint">👁️ ver itens</span><span class="mk-card-time">'+_timeAgo(listing.created_at)+'</span></div></div>'
       +_actionHtml(listing,isOwner)
       +'</div>';
   }
