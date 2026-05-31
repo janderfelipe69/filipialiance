@@ -248,35 +248,100 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     GRID DO HOME
+     CATEGORIAS DA HOME
+     Cada categoria agrupa módulos por afinidade. A ordem de `mods`
+     define a ordem dos cards dentro da seção. Qualquer módulo não
+     listado aqui cai automaticamente em "Outros" (à prova de futuro).
+  ═══════════════════════════════════════════════════════════════ */
+
+  var _categories = [
+    { id: 'guias',    title: 'Guias',         icon: '📘', color: '96,224,160',
+      mods: ['up150', 'starcalc', 'roupasspeed', 'punchingbag', 'boost'] },
+    { id: 'sistemas', title: 'Sistemas',      icon: '⚙️', color: '212,160,255',
+      mods: ['talents', 'starascension', 'medals', 'tokens', 'brokes'] },
+    { id: 'dados',    title: 'Dados & Mundo', icon: '🗺️', color: '96,170,255',
+      mods: ['itens', 'tierlist', 'quests', 'npcs', 'hazard', 'tasks', 'minimap'] },
+  ];
+
+  /** Monta o HTML de um único card de módulo. */
+  function _cardHTML(m, i) {
+    var card = document.createElement('div');
+    card.className = 'wn-card';
+    card.setAttribute('data-wn-id', m.id);
+    card.style.cssText =
+      '--wn-color:' + m.color + ';' +
+      '--wn-rgb:' + m.rgb + ';' +
+      '--wn-glow:rgba(' + m.rgb + ',0.12);' +
+      'animation-delay:' + (i * 30) + 'ms';
+    card.setAttribute('onclick', "WikiModules.open('" + m.id + "')");
+    card.title = m.name;
+    card.innerHTML =
+      '<div class="wn-card-icon">' + m.icon + '</div>' +
+      '<div class="wn-card-name">' + m.name + '</div>' +
+      '<div class="wn-card-desc">' + m.desc + '</div>' +
+      '<div class="wn-card-arrow">→</div>';
+    return card;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     GRID DO HOME — agrupado por categorias
   ═══════════════════════════════════════════════════════════════ */
 
   function _rebuildGrid() {
     var grid = document.getElementById('wn-grid');
     if (!grid) return;
-
-    /* Limpa apenas cards gerenciados (não remove conteúdo externo) */
     grid.innerHTML = '';
 
-    _modules.forEach(function (m, i) {
-      if (m.hidden) return;
-      var card = document.createElement('div');
-      card.className = 'wn-card';
-      card.setAttribute('data-wn-id', m.id);
-      card.style.cssText =
-        '--wn-color:' + m.color + ';' +
-        '--wn-rgb:' + m.rgb + ';' +
-        '--wn-glow:rgba(' + m.rgb + ',0.12);' +
-        'animation-delay:' + (i * 30) + 'ms';
-      card.setAttribute('onclick', "WikiModules.open('" + m.id + "')");
-      card.title = m.name;
-      card.innerHTML =
-        '<div class="wn-card-icon">' + m.icon + '</div>' +
-        '<div class="wn-card-name">' + m.name + '</div>' +
-        '<div class="wn-card-desc">' + m.desc + '</div>' +
-        '<div class="wn-card-arrow">→</div>';
-      grid.appendChild(card);
+    /* Index id → módulo (apenas visíveis) */
+    var byId = {};
+    _modules.forEach(function (m) { if (!m.hidden) byId[m.id] = m; });
+
+    var usados = {};
+    var idxGlobal = 0;
+
+    /* Renderiza cada categoria na ordem definida */
+    _categories.forEach(function (cat) {
+      var mods = cat.mods
+        .map(function (id) { return byId[id]; })
+        .filter(Boolean);
+      if (!mods.length) return;
+
+      grid.appendChild(_categoryHeader(cat, mods.length));
+
+      var section = document.createElement('div');
+      section.className = 'wn-grid';
+      mods.forEach(function (m) {
+        usados[m.id] = true;
+        section.appendChild(_cardHTML(m, idxGlobal++));
+      });
+      grid.appendChild(section);
     });
+
+    /* Módulos visíveis sem categoria → seção "Outros" */
+    var orfaos = _modules.filter(function (m) {
+      return !m.hidden && !usados[m.id];
+    });
+    if (orfaos.length) {
+      grid.appendChild(_categoryHeader(
+        { title: 'Outros', icon: '✦', color: '160,180,210' }, orfaos.length));
+      var extra = document.createElement('div');
+      extra.className = 'wn-grid';
+      orfaos.forEach(function (m) { extra.appendChild(_cardHTML(m, idxGlobal++)); });
+      grid.appendChild(extra);
+    }
+  }
+
+  /** Cabeçalho de uma categoria (título + linha + contador). */
+  function _categoryHeader(cat, count) {
+    var h = document.createElement('div');
+    h.className = 'wn-cat-header';
+    h.style.setProperty('--cat', 'rgba(' + cat.color + ',0.8)');
+    h.innerHTML =
+      '<span class="wn-cat-icon">' + cat.icon + '</span>' +
+      '<span class="wn-cat-title">' + cat.title + '</span>' +
+      '<span class="wn-cat-line"></span>' +
+      '<span class="wn-cat-count">' + count + '</span>';
+    return h;
   }
 
   /* ═══════════════════════════════════════════════════════════════
