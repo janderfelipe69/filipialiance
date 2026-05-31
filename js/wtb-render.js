@@ -108,7 +108,7 @@
     var sprites=_spriteUrl(listing.pokemon_name);
     var tier=_getTier(listing.pokemon_name);
     var ballMeta=BALL_META[listing.ball_type]||null;
-    var spriteHtml=sprites?'<img class="mk-sprite" loading="lazy" src="'+_esc(sprites.animated)+'" data-static="'+_esc(sprites.static)+'" alt="'+_esc(listing.pokemon_name||'')+'" onerror="this.src=this.dataset.static;this.onerror=null">':'<div class="mk-sprite-fallback">🔍</div>';
+    var spriteHtml=sprites?'<img class="mk-sprite" loading="lazy" src="'+_esc(sprites.static)+'" data-anim="'+_esc(sprites.animated)+'" alt="'+_esc(listing.pokemon_name||'')+'" onerror="this.onerror=null;this.src=this.dataset.anim">':'<div class="mk-sprite-fallback">🔍</div>';
 
     return '<div class="mk-card wtb-card" data-wtb-id="'+_esc(listing.id)+'" data-updated="'+_esc(listing.updated_at||'')+'"'+(ballMeta?' style="--mk-ball:'+ballMeta.border+';--mk-ball-glow:'+ballMeta.glow+'"':'')+'>'
       +'<div class="wtb-card-badge">🔍 Pokémon</div>'
@@ -326,7 +326,7 @@
   function _detailPokemonBody(listing){
     var sprites=_spriteUrl(listing.pokemon_name);
     var tier=_getTier(listing.pokemon_name);
-    var spriteHtml=sprites?'<img class="mk-sprite" src="'+_esc(sprites.animated)+'" data-static="'+_esc(sprites.static)+'" alt="'+_esc(listing.pokemon_name||'')+'" onerror="this.src=this.dataset.static;this.onerror=null">':'<div class="mk-sprite-fallback">🔍</div>';
+    var spriteHtml=sprites?'<img class="mk-sprite" src="'+_esc(sprites.static)+'" data-anim="'+_esc(sprites.animated)+'" alt="'+_esc(listing.pokemon_name||'')+'" onerror="this.onerror=null;this.src=this.dataset.anim">':'<div class="mk-sprite-fallback">🔍</div>';
     return '<div class="wtb-dt-poke">'
       +'<div class="mk-sprite-wrap">'+spriteHtml+'</div>'
       +'<div class="wtb-dt-poke-info">'

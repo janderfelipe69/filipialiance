@@ -280,12 +280,15 @@
       ddNum = brlToDd(listing.price_kk / 1000000 * KK_TO_BRL);
     }
 
+    // PERF: usa PNG ESTÁTICO por padrão (não o GIF animado). 16 GIFs animando
+    // ao mesmo tempo pesavam CPU/memória. Se o PNG faltar, cai pro animado
+    // (não quebra a imagem). A lista da Captura já fazia isso.
     var spriteHtml = sprites
       ? '<img class="mk-sprite" loading="lazy"'
-        + ' src="' + _esc(sprites.animated) + '"'
-        + ' data-static="' + _esc(sprites.static) + '"'
+        + ' src="' + _esc(sprites.static) + '"'
+        + ' data-anim="' + _esc(sprites.animated) + '"'
         + ' alt="' + _esc(listing.pokemon_name || '') + '"'
-        + ' onerror="this.src=this.dataset.static;this.onerror=null">'
+        + ' onerror="this.onerror=null;this.src=this.dataset.anim">'
       : '<div class="mk-sprite-fallback">🎴</div>';
 
     // Negotiate button for non-owner buyers (disabled in locked/sold state)
