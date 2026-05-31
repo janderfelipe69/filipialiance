@@ -1,0 +1,8 @@
+# Config local do Claude Code (não versionar)
+.claude/
+
+# Artefatos comuns
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
