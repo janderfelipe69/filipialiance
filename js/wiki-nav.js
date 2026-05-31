@@ -66,8 +66,9 @@
     { id: 'talents',     name: 'PokéTalents',        icon: '✨', desc: 'Sistema de talentos',                   color: '#d4a0ff', rgb: '212,160,255'   },
     { id: 'tokens',      name: 'Tokens',             icon: '🪙', desc: 'Moeda especial e Helds',                color: '#f0b429', rgb: '240,180,41'    },
     { id: 'medals',      name: 'Medal System',       icon: '🏅', desc: 'Medalhas, raridades e XP',              color: '#cd7f32', rgb: '205,127,50'    },
-    { id: 'up150',       name: 'Guia de Up',         icon: '⬆️', desc: 'Do nível 1 ao 150 passo a passo',       color: '#60e0a0', rgb: '96,224,160'    },
-    { id: 'minimap',     name: 'Mapa Liberado',      icon: '🗺️', desc: 'Minimap do térreo 100% revelado',       color: '#4cd9a0', rgb: '76,217,160'    },
+    /* up150 e minimap são registrados por wiki-modules-ext.js (dono único).
+       Antes eram declarados aqui também, mas o register() de lá os sobrescrevia
+       — duplicação removida na Fase 2 da organização da wiki (2026-05-31). */
   ];
 
   /* Renderizadores para módulos nativos — delegam para funções de app.js */
@@ -92,8 +93,7 @@
     talents:     function () { if (typeof renderTalents     === 'function') renderTalents(); },
     tokens:      function () { if (typeof renderTokens      === 'function') renderTokens(); },
     medals:      function () { if (typeof renderMedals      === 'function') renderMedals(); },
-    up150:       function () { if (typeof renderUp150       === 'function') renderUp150(); },
-    minimap:     function () { if (typeof renderMinimap     === 'function') renderMinimap(); },
+    /* up150 e minimap: renderers próprios em wiki-modules-ext.js (Fase 2) */
   };
 
   _native.forEach(function (m) {
