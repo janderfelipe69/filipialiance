@@ -344,6 +344,11 @@
       + (function(){ var ft = _firstType(listing); return ft ? ' data-type="' + _esc(ft) + '"' : ''; })()
       + ' data-seller="' + _esc(listing.seller_id || '') + '">'
 
+      // Botão favorito (watchlist)
+      + ((global.PA && global.PA.favorites) ? global.PA.favorites.buttonHtml(listing.id) : '')
+      // Botão compartilhar (link do anúncio)
+      + ((global.PA && global.PA.listingShare) ? global.PA.listingShare.buttonHtml(listing.id) : '')
+
       // Top: sprite + boost + stars + types
       + '<div class="mk-card-top">'
       + (listing.boost ? '<span class="mk-card-boost ' + boostCls + '">+' + _esc(String(listing.boost)) + '</span>' : '')
@@ -457,6 +462,11 @@
       + ' data-type="held"'
       + ' data-seller="' + _esc(listing.seller_id || '') + '">'
 
+      // Botão favorito (watchlist)
+      + ((global.PA && global.PA.favorites) ? global.PA.favorites.buttonHtml(listing.id) : '')
+      // Botão compartilhar (link do anúncio)
+      + ((global.PA && global.PA.listingShare) ? global.PA.listingShare.buttonHtml(listing.id) : '')
+
       + '<div class="mk-card-body">'
       + '<div class="mk-card-name-row">'
       + '<span class="mk-card-name">🎒 ' + (count > 1 ? (count + ' Helds') : 'Held') + '</span>'
@@ -486,7 +496,10 @@
   // ── Apply filters ─────────────────────────────────────────────
   function _applyFilters(listings, filters) {
     if (!filters) return listings;
+    var favOnly = !!(filters.fav && global.PA && global.PA.favorites);
     return (listings || []).filter(function(l) {
+      // Watchlist: só anúncios favoritados (aplica em qualquer modo)
+      if (favOnly && !global.PA.favorites.has(l.id)) return false;
       // Modo "Minhas postagens": mostra todos os status (inclui expirados/vendidos),
       // ignora o filtro de tipo; só aplica a busca.
       if (filters.mine) {
@@ -511,6 +524,44 @@
       }
       return true;
     });
+  }
+
+  // ── Ordenação ─────────────────────────────────────────────────
+  function _tierRank(name) {
+    var t = _getTier(name);
+    if (!t) return null;
+    var m = String(t).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  function _sortListings(arr, mode) {
+    arr = (arr || []).slice();
+    if (mode === 'price_asc' || mode === 'price_desc') {
+      var dir = mode === 'price_asc' ? 1 : -1;
+      arr.sort(function (a, b) {
+        var pa = a.price_kk || 0, pb = b.price_kk || 0;
+        if (!pa && pb) return 1;   // sem preço sempre ao fim
+        if (pa && !pb) return -1;
+        return (pa - pb) * dir;
+      });
+      return arr;
+    }
+    if (mode === 'tier_asc' || mode === 'tier_desc') {
+      var d = mode === 'tier_asc' ? 1 : -1;
+      arr.sort(function (a, b) {
+        var ra = _tierRank(a.pokemon_name), rb = _tierRank(b.pokemon_name);
+        if (ra == null && rb == null) return 0;
+        if (ra == null) return 1;  // sem tier ao fim
+        if (rb == null) return -1;
+        return (ra - rb) * d;
+      });
+      return arr;
+    }
+    // 'recent' (padrão): mais novos primeiro
+    arr.sort(function (a, b) {
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+    return arr;
   }
 
   // ── Reconcile DOM (morph) ─────────────────────────────────────
@@ -695,6 +746,7 @@
     }
 
     var filtered = _applyFilters(listings || [], filters || {});
+    filtered = _sortListings(filtered, (filters && filters.sort) || 'recent');
 
     // Empty state
     if (!filtered.length) {

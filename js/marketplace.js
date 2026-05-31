@@ -442,6 +442,20 @@
       });
     });
 
+    // Chip "Favoritos" (watchlist) — toggle independente
+    var _chipFav = document.getElementById('mk-chip-fav');
+    if (_chipFav) {
+      _chipFav.addEventListener('click', function () {
+        var on = !_chipFav.classList.contains('active');
+        _chipFav.classList.toggle('active', on);
+        setFilter('fav', on);
+      });
+    }
+    // Re-render quando favoritar/desfavoritar enquanto o filtro Favoritos está ligado
+    global.addEventListener('pa:favorites-changed', function () {
+      if (_state.filters.fav) _triggerRender('fav-change');
+    });
+
     // Subtítulo reflete o mundo ativo já no load inicial
     var _sub0 = document.getElementById('mk-subtitle');
     if (_sub0) _sub0.textContent = 'Pokémon & Helds — Mundo ' + _world();

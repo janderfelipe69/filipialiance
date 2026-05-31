@@ -4,6 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mercadão Aliance • Comunidade PokéAlliance</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0b0b18" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mercadão" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/packages.css" />
@@ -831,6 +840,8 @@
 <!-- Marketplace M1 — CSS movido para o <head> (evita FOUC; W03) -->
 <script defer src="js/supabase-client.js"></script>
 <script defer src="js/escape-html.js"></script>
+<script defer src="js/favorites.js"></script>
+<script defer src="js/listing-deeplink.js"></script>
 <script defer src="js/server-world.js"></script>
 <script defer src="js/db-bootstrap.js"></script>
 <script defer src="js/tabs-config.js"></script>
@@ -930,6 +941,7 @@
 <script defer src="js/nav-runtime.js"></script>
 
 <script defer src="js/sw-register.js"></script>
+<script defer src="js/pwa-install.js"></script>
 
 
 <script defer src="js/balls-selector.js"></script>
@@ -985,7 +997,15 @@
     <button class="mk-filter-chip"        data-filter="pokemon">Pok&eacute;mon</button>
     <button class="mk-filter-chip"        data-filter="held"   >Helds</button>
     <button class="mk-filter-chip mk-filter-chip--mine" id="mk-chip-mine" data-scope="mine">Minhas</button>
+    <button class="mk-filter-chip mk-filter-chip--fav" id="mk-chip-fav" title="Meus favoritos">❤️ Favoritos</button>
     <input class="mk-search" id="mk-search" placeholder="Buscar Pok&eacute;mon...">
+    <select class="mk-sort" id="mk-sort" title="Ordenar" aria-label="Ordenar anúncios" onchange="if(window.PA&&PA.marketplace)PA.marketplace.setFilter('sort',this.value)">
+      <option value="recent">🕒 Recentes</option>
+      <option value="price_asc">💰 Menor preço</option>
+      <option value="price_desc">💎 Maior preço</option>
+      <option value="tier_desc">⭐ Tier (maior)</option>
+      <option value="tier_asc">Tier (menor)</option>
+    </select>
   </div>
 
   <div class="mk-filters mk-filters--balls" id="mk-ball-filters">
