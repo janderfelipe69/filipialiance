@@ -90,6 +90,14 @@
       return r && r.held_id && _heldById(r.held_id) && Number(r.price_kk) > 0;
     });
   }
+  // Rótulo de magnitude (estilo Talento): o número digitado É o valor cru.
+  // <1000 → DL | 1000–999999 → K | ≥1000000 → KK (só indicação visual)
+  function _magLabel(v) {
+    v = Number(v) || 0;
+    if (v >= 1000000) return 'KK';
+    if (v >= 1000)    return 'K';
+    return 'DL';
+  }
   // Rótulo combo p/ pokemon_name (mantém a busca funcionando)
   function _heldsLabel(rows) {
     return (rows || []).map(function (r) {
@@ -983,8 +991,6 @@
     wrap.innerHTML = _form.helds.map(function (row, i) {
       var h    = _heldById(row.held_id);
       var raw  = Number(row.price_kk) || 0;
-      var unit = raw >= 1000000000 ? 1000000000 : raw >= 1000000 ? 1000000 : raw >= 1000 ? 1000 : 1000000;
-      var amt  = raw ? parseFloat((raw / unit).toFixed(2)) : '';
       var canRemove = _form.helds.length > 1;
       return '<div class="mk-held-row" data-idx="' + i + '">'
         + '  <div class="mk-held-row-pick">'
@@ -1001,12 +1007,8 @@
         + '    </div>'
         + '  </div>'
         + '  <div class="mk-held-row-price">'
-        + '    <input class="mk-input mk-price-input mk-hr-price" data-idx="' + i + '" type="number" min="0" step="any" placeholder="Preço" value="' + amt + '">'
-        + '    <select class="mk-price-unit mk-hr-unit" data-idx="' + i + '">'
-        + '      <option value="1000"' + (unit === 1000 ? ' selected' : '') + '>k</option>'
-        + '      <option value="1000000"' + (unit === 1000000 ? ' selected' : '') + '>kk</option>'
-        + '      <option value="1000000000"' + (unit === 1000000000 ? ' selected' : '') + '>kkk</option>'
-        + '    </select>'
+        + '    <input class="mk-input mk-hr-price" data-idx="' + i + '" type="number" min="0" step="1" placeholder="Preço" value="' + (raw || '') + '">'
+        + '    <span class="mk-hr-unit" data-idx="' + i + '">' + _magLabel(raw) + '</span>'
         +      (canRemove ? '<button type="button" class="mk-hr-remove" data-idx="' + i + '" title="Remover">✕</button>' : '')
         + '  </div>'
         + '</div>';
@@ -1044,10 +1046,13 @@
     });
 
     _each(wrap.querySelectorAll('.mk-hr-price'), function (inp) {
-      inp.addEventListener('input', function () { _recalcHeldPrice(inp.getAttribute('data-idx')); });
-    });
-    _each(wrap.querySelectorAll('.mk-hr-unit'), function (sel) {
-      sel.addEventListener('change', function () { _recalcHeldPrice(sel.getAttribute('data-idx')); });
+      inp.addEventListener('input', function () {
+        var idx = inp.getAttribute('data-idx');
+        var v = Math.max(0, Math.floor(Number(inp.value) || 0));
+        if (_form.helds[idx]) _form.helds[idx].price_kk = v;
+        var lbl = wrap.querySelector('.mk-hr-unit[data-idx="' + idx + '"]');
+        if (lbl) lbl.textContent = _magLabel(v);
+      });
     });
 
     _each(wrap.querySelectorAll('.mk-hr-remove'), function (btn) {
@@ -1057,16 +1062,6 @@
         _renderHeldRows();
       });
     });
-  }
-
-  function _recalcHeldPrice(idx) {
-    var wrap = global.document.getElementById('mk-helds-rows');
-    if (!wrap) return;
-    var inp = wrap.querySelector('.mk-hr-price[data-idx="' + idx + '"]');
-    var sel = wrap.querySelector('.mk-hr-unit[data-idx="' + idx + '"]');
-    var amount = Number(inp ? inp.value : 0) || 0;
-    var unit   = Number(sel ? sel.value : 1000000) || 1000000;
-    if (_form.helds[idx]) _form.helds[idx].price_kk = Math.round(amount * unit);
   }
 
   function _renderHeldGrid(idx, query) {

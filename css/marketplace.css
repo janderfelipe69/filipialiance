@@ -2024,7 +2024,12 @@
 .mk-held-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; }
 .mk-held-row-pick { flex: 1 1 200px; position: relative; min-width: 0; }
 .mk-held-row-price { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
-.mk-held-row-price .mk-hr-price { width: 92px; }
+.mk-held-row-price .mk-hr-price { width: 110px; text-align: right; }
+/* Rótulo de magnitude (estilo Talento): DL / K / KK — muda sozinho ao digitar */
+.mk-hr-unit {
+  min-width: 30px; font-size: 12px; font-weight: 700; color: var(--mk-gold);
+  letter-spacing: .02em; text-align: left; flex: 0 0 auto;
+}
 .mk-hr-trigger .mk-held-trigger-slot { font-size: 18px; line-height: 1; opacity: .7; }
 .mk-hr-trigger .mk-held-trigger-img { width: 24px; height: 24px; object-fit: contain; }
 .mk-hr-trigger .mk-held-trigger-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

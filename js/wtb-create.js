@@ -200,6 +200,13 @@
     if (v >= 1000)    return 'K/un';
     return 'DL/un';
   }
+  // Magnitude p/ helds (sem "/un"): valor cru digitado → DL / K / KK
+  function _magLabel(v) {
+    v = parseFloat(v) || 0;
+    if (v >= 1000000) return 'KK';
+    if (v >= 1000)    return 'K';
+    return 'DL';
+  }
 
   function _resetForm(type) {
     _form = {
@@ -568,8 +575,6 @@
     wrap.innerHTML=_form.helds.map(function(row,i){
       var h=_heldById(row.held_id);
       var raw=Number(row.pay_kk)||0;
-      var unit=raw>=1000000000?1000000000:raw>=1000000?1000000:raw>=1000?1000:1000000;
-      var amt=raw?parseFloat((raw/unit).toFixed(2)):'';
       var canRemove=_form.helds.length>1;
       return '<div class="mk-held-row" data-idx="'+i+'">'
         +'<div class="mk-held-row-pick">'
@@ -584,12 +589,8 @@
         +'</div>'
         +'</div>'
         +'<div class="mk-held-row-price">'
-        +'<input class="mk-input mk-price-input mk-hr-price" data-idx="'+i+'" type="number" min="0" step="any" placeholder="Orçamento" value="'+amt+'">'
-        +'<select class="mk-price-unit mk-hr-unit" data-idx="'+i+'">'
-        +'<option value="1000"'+(unit===1000?' selected':'')+'>k</option>'
-        +'<option value="1000000"'+(unit===1000000?' selected':'')+'>kk</option>'
-        +'<option value="1000000000"'+(unit===1000000000?' selected':'')+'>kkk</option>'
-        +'</select>'
+        +'<input class="mk-input mk-hr-price" data-idx="'+i+'" type="number" min="0" step="1" placeholder="Orçamento" value="'+(raw||'')+'">'
+        +'<span class="mk-hr-unit" data-idx="'+i+'">'+_magLabel(raw)+'</span>'
         +(canRemove?'<button type="button" class="mk-hr-remove" data-idx="'+i+'" title="Remover">✕</button>':'')
         +'</div>'
         +'</div>';
@@ -617,24 +618,17 @@
       inp.addEventListener('input', function(){ _wtbRenderHeldGrid(inp.getAttribute('data-idx'), inp.value); });
     });
     _each(wrap.querySelectorAll('.mk-hr-price'), function(inp){
-      inp.addEventListener('input', function(){ _wtbRecalcBudget(inp.getAttribute('data-idx')); });
-    });
-    _each(wrap.querySelectorAll('.mk-hr-unit'), function(sel){
-      sel.addEventListener('change', function(){ _wtbRecalcBudget(sel.getAttribute('data-idx')); });
+      inp.addEventListener('input', function(){
+        var idx=inp.getAttribute('data-idx');
+        var v=Math.max(0, Math.floor(Number(inp.value)||0));
+        if (_form.helds[idx]) _form.helds[idx].pay_kk=v;
+        var lbl=wrap.querySelector('.mk-hr-unit[data-idx="'+idx+'"]');
+        if (lbl) lbl.textContent=_magLabel(v);
+      });
     });
     _each(wrap.querySelectorAll('.mk-hr-remove'), function(btn){
       btn.addEventListener('click', function(){ _form.helds.splice(parseInt(btn.getAttribute('data-idx'),10),1); _wtbRenderHeldRows(); });
     });
-  }
-
-  function _wtbRecalcBudget(idx) {
-    var wrap=global.document.getElementById('wtb-helds-rows');
-    if (!wrap) return;
-    var inp=wrap.querySelector('.mk-hr-price[data-idx="'+idx+'"]');
-    var sel=wrap.querySelector('.mk-hr-unit[data-idx="'+idx+'"]');
-    var amount=Number(inp?inp.value:0)||0;
-    var unit=Number(sel?sel.value:1000000)||1000000;
-    if (_form.helds[idx]) _form.helds[idx].pay_kk=Math.round(amount*unit);
   }
 
   function _wtbRenderHeldGrid(idx, query) {
