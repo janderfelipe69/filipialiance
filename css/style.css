@@ -3956,10 +3956,10 @@ header   { background: rgba(5,8,18,0.98); }
   letter-spacing: 0.3px;
   padding: 3px 7px;
   border-radius: 999px;
-  background: rgba(8,12,24,0.85);
+  background: rgba(8,12,24,0.92);
   border: 1px solid rgba(240,180,41,0.35);
   color: var(--gold-bright);
-  backdrop-filter: blur(2px);
+  /* backdrop-filter removido: fundo já opaco; blur custava GPU em cada card (jank de scroll) */
 }
 .mk-rep-badge--new {
   border-color: var(--border);
