@@ -64,14 +64,28 @@
     return typeof Session !== 'undefined' && Session.isAdmin && Session.isAdmin();
   }
 
-  // ── Visita única por sessão ─────────────────────────────────
+  // ── Visita única por dispositivo POR DIA ────────────────────
+  // Antes era por sessão (sessionStorage) → reabrir aba recontava. Agora usa
+  // localStorage com a data → conta no máximo 1 visita por mundo por dia, por
+  // dispositivo. Refresh, nova aba ou reabrir no mesmo dia NÃO recontam; fica
+  // bem mais perto de "visitantes únicos do dia".
   function _trackVisitOnce() {
-    var k = 'pa_visit_' + _world();
+    var today = new Date().toISOString().slice(0, 10); // AAAA-MM-DD
+    var k = 'pa_visit_' + _world() + '_' + today;
     var done = false;
-    try { done = sessionStorage.getItem(k) === '1'; } catch (_) {}
+    try { done = localStorage.getItem(k) === '1'; } catch (_) {}
     if (done) return;
     _rpc('track_visit', { p_server: _world() });
-    try { sessionStorage.setItem(k, '1'); } catch (_) {}
+    try {
+      localStorage.setItem(k, '1');
+      // limpa marcas de visita de dias anteriores (evita acúmulo)
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf('pa_visit_') === 0 && key.indexOf(today) === -1) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (_) {}
   }
 
   // ── Heartbeat: marca presença (não exibe nada por si só) ────
