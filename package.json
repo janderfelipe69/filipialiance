@@ -1,0 +1,14 @@
+{
+  "name": "mercadao-aliance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mercadão Aliance — comunidade PokéAlliance (SPA vanilla JS + Supabase)",
+  "scripts": {
+    "lint": "eslint js/",
+    "lint:fix": "eslint js/ --fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0"
+  }
+}
