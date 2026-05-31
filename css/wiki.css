@@ -51,8 +51,24 @@
   padding: 3px 10px;
 }
 
-/* Seções internas (uma por categoria) mantêm o grid de cards */
-#wn-grid .wn-grid { gap: 14px; }
+/* Seções internas (uma por categoria) — grid explícito de cards.
+   Precisa redeclarar display:grid: como #wn-grid virou block, as filhas
+   .wn-grid não herdam o grid do <style> injetado de forma confiável. */
+#wn-grid .wn-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 4px;
+}
+@media (max-width: 640px) {
+  #wn-grid .wn-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+}
+@media (max-width: 400px) {
+  #wn-grid .wn-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+/* Esconde o header antigo "Módulos" — substituído pelos cabeçalhos de categoria */
+.wn-home-header { display: none !important; }
 
 /* Hero mais cinematográfico */
 .wn-hero { padding: 60px 20px 48px !important; }
