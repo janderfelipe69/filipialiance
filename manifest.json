@@ -1,0 +1,21 @@
+{
+  "name": "Mercadão Aliance — PokéAlliance",
+  "short_name": "Mercadão",
+  "description": "Marketplace e Wiki da comunidade PokéAlliance — Pokémon, Helds, Services e Pedidos.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0b18",
+  "theme_color": "#0b0b18",
+  "categories": ["games", "shopping", "social"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

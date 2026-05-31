@@ -16,13 +16,10 @@ const CACHE_NAME = 'pokealliance-' + VERSAO;
 
 const ARQUIVOS = [
   './css/style.css',
-  './css/mobile-patch.css',
   './js/dados.js',
   './js/app.js',
   './js/mobile-ux.js',
-  './js/url-hash.js',
   './js/respawn_patch_modal.js',
-  './js/wildscape_path_patch.js',
   './js/item-card-popup.js',
   './js/wiki-nav.js',
   './js/wiki-cards-upgrade.js',
@@ -32,10 +29,10 @@ const ARQUIVOS = [
   './js/tierlist-types.js',
 ];
 
-// ── Instalação: skipWaiting imediato + cacheia assets ─────────────────────
+// ── Instalação: cacheia assets (NÃO força skipWaiting) ────────────────────
+// O novo SW fica "waiting" até o usuário aceitar a atualização pelo banner
+// (sw-register.js envia SKIP_WAITING ao clicar). Evita reload abrupto.
 self.addEventListener('install', function(event) {
-  self.skipWaiting(); // assume controle imediato, sem esperar aba fechar
-
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return Promise.allSettled(

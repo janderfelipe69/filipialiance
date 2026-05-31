@@ -212,7 +212,7 @@ const POKEMON_TYPES = {
   "Kyogre":["water"],"Groudon":["ground"],"Rayquaza":["dragon","flying"],
   "Jirachi":["steel","psychic"],"Deoxys":["psychic"],
   "Toxicroak":["poison","fighting"],
-  "Abomasnow":["grass","ice"],"Mega Abomasnow":["grass","ice"],
+  "Abomasnow":["grass","ice"],
   // Mega Evolutions
   "Mega Venusaur":["grass","poison"],
   "Mega Charizard X":["fire","dragon"],
@@ -241,8 +241,8 @@ const POKEMON_TYPES = {
   "Mega Aggron":["steel"],
   "Mega Medicham":["fighting","psychic"],
   "Mega Manectric":["electric"],
-  "Mega Sharpedo":["water","dark"],
-  "Mega Camerupt":["fire","ground"],
+  
+  
   "Mega Altaria":["dragon","fairy"],
   "Mega Banette":["ghost"],
   "Mega Absol":["dark"],

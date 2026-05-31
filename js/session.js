@@ -521,6 +521,15 @@ const Session = (() => {
     return str.length > max ? str.slice(0, max) + '…' : str;
   }
 
+  // Escape de conteúdo de usuário antes de ir pro innerHTML.
+  // Usa o helper central (escape-html.js); fallback local por segurança.
+  function _esc(s) {
+    if (window.PA && typeof window.PA.escapeHtml === 'function') return window.PA.escapeHtml(s);
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function _renderLoggedIn(user) {
     const container = document.getElementById('auth-header-slot');
     if (!container) return;
@@ -530,17 +539,17 @@ const Session = (() => {
 
     container.innerHTML = `
       <div class="auth-user-widget" id="auth-user-widget">
-        <div class="auth-avatar" aria-label="Avatar de ${user.nickname || user.email}">
+        <div class="auth-avatar" aria-label="Avatar de ${_esc(user.nickname || user.email)}">
           ${user.avatar
-            ? `<img src="${user.avatar}" alt="${user.nickname}" />`
-            : `<span class="auth-avatar-initials">${initials}</span>`
+            ? `<img src="${_esc(user.avatar)}" alt="${_esc(user.nickname)}" />`
+            : `<span class="auth-avatar-initials">${_esc(initials)}</span>`
           }
           <span class="auth-status-dot" aria-hidden="true"></span>
         </div>
 
         <div class="auth-user-info">
-          <span class="auth-nickname" title="${user.nickname || user.email}">
-            ${_truncate(user.nickname || user.email, 12)}
+          <span class="auth-nickname" title="${_esc(user.nickname || user.email)}">
+            ${_esc(_truncate(user.nickname || user.email, 12))}
           </span>
           <span class="auth-server-tag">
             ${isAdminUser ? '⚙️ Admin' : '🌙 Moon'}
@@ -555,8 +564,8 @@ const Session = (() => {
 
         <div class="auth-dropdown" id="auth-dropdown" role="menu" aria-hidden="true">
           <div class="auth-dropdown-header">
-            <div class="auth-dropdown-nick">${user.nickname || '—'}</div>
-            <div class="auth-dropdown-email">${user.email || '—'}</div>
+            <div class="auth-dropdown-nick">${_esc(user.nickname) || '—'}</div>
+            <div class="auth-dropdown-email">${_esc(user.email) || '—'}</div>
             ${isAdminUser ? '<div class="auth-dropdown-role-badge">⚙️ Administrador</div>' : ''}
           </div>
           <div class="auth-dropdown-divider"></div>

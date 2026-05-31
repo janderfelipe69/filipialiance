@@ -23,6 +23,14 @@ const AuthModal = (() => {
   let _lastRegisterAt = 0;
   const DEBOUNCE_MS = 2000;
 
+  // Escape de conteúdo de usuário (nickname/email) antes do innerHTML.
+  // Usa o helper central (escape-html.js); fallback local por segurança.
+  function _esc(s) {
+    if (window.PA && typeof window.PA.escapeHtml === 'function') return window.PA.escapeHtml(s);
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   // ── Injeção do HTML do modal ─────────────────────────────────────────────
   // O modal é criado dinamicamente para não poluir o HTML principal
   function _ensureModal() {
@@ -574,12 +582,12 @@ const AuthModal = (() => {
     body.innerHTML = `
       <div class="auth-account-profile">
         <div class="auth-account-avatar">
-          <span>${initials}</span>
+          <span>${_esc(initials)}</span>
           <span class="auth-status-dot"></span>
         </div>
         <div class="auth-account-info">
-          <div class="auth-account-nick">${user.nickname}</div>
-          <div class="auth-account-email">${user.email}</div>
+          <div class="auth-account-nick">${_esc(user.nickname)}</div>
+          <div class="auth-account-email">${_esc(user.email)}</div>
         </div>
       </div>
 
@@ -598,7 +606,7 @@ const AuthModal = (() => {
         </div>
         <div class="auth-account-stat">
           <div class="auth-account-stat-label">Favoritos</div>
-          <div class="auth-account-stat-val">${(user.favorites || []).length}</div>
+          <div class="auth-account-stat-val">${(window.PA && PA.favorites) ? PA.favorites.count() : (user.favorites || []).length}</div>
         </div>
       </div>
 
@@ -621,7 +629,10 @@ const AuthModal = (() => {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           Favoritos
         </div>
-        <div class="auth-account-empty"><span>Em breve disponível.</span></div>
+        ${(window.PA && PA.favorites && PA.favorites.count() > 0)
+          ? `<button class="auth-btn" style="width:100%;justify-content:center" onclick="PA.favorites.openWatchlist()">❤️ Ver meus ${PA.favorites.count()} favoritos no marketplace</button>`
+          : `<div class="auth-account-empty"><span>Nenhum favorito ainda. Toque no ❤️ de um anúncio.</span></div>`
+        }
       </div>
 
       <button class="auth-btn auth-btn--danger auth-logout-full-btn" onclick="AuthModal.closeMyAccount(); AuthModal.openLogoutConfirm()">

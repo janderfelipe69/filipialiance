@@ -4,6 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mercadão Aliance • Comunidade PokéAlliance</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0b0b18" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mercadão" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/packages.css" />
@@ -829,14 +838,17 @@
 </div>
 
 <!-- Marketplace M1 — CSS movido para o <head> (evita FOUC; W03) -->
-<script src="js/supabase-client.js"></script>
-<script src="js/server-world.js"></script>
-<script src="js/db-bootstrap.js"></script>
-<script src="js/tabs-config.js"></script>
-<script src="js/dados.js"></script>
-<script src="js/respawn_patch_modal.js"></script>
-<script src="js/price-layer.js"></script>
-<script src="js/app.js"></script>
+<script defer src="js/supabase-client.js"></script>
+<script defer src="js/escape-html.js"></script>
+<script defer src="js/favorites.js"></script>
+<script defer src="js/listing-deeplink.js"></script>
+<script defer src="js/server-world.js"></script>
+<script defer src="js/db-bootstrap.js"></script>
+<script defer src="js/tabs-config.js"></script>
+<script defer src="js/dados.js"></script>
+<script defer src="js/respawn_patch_modal.js"></script>
+<script defer src="js/price-layer.js"></script>
+<script defer src="js/app.js"></script>
 
 
 
@@ -850,103 +862,104 @@
 <!-- DEVE vir após app.js e antes de session.js.                          -->
 <!-- NÃO altera comportamento. Apenas observa, registra e protege.       -->
 <!-- Ativar painel de debug: window.PA_DEBUG=true  ou  Ctrl+Shift+P      -->
-<script src="js/pa-compat.js"></script>
+<script defer src="js/pa-compat.js"></script>
 <!-- ── Runtime infrastructure (Fase 5) ── -->
-<script src="js/render-registry.js"></script>
-<script src="js/hooks.js"></script>
+<script defer src="js/render-registry.js"></script>
+<script defer src="js/hooks.js"></script>
 <!-- ── State consistency layer (Fase 5.1) ── -->
-<script src="js/pa-state.js"></script>
+<script defer src="js/pa-state.js"></script>
 <!-- ── Transactional render pipeline + temporal engine (Fase 5.2) ── -->
-<script src="js/pa-render-pipeline.js"></script>
+<script defer src="js/pa-render-pipeline.js"></script>
 <!-- ── Render health: ownership, heartbeat, stale detection (Fase 5.2.2) ── -->
-<script src="js/pa-render-health.js"></script>
+<script defer src="js/pa-render-health.js"></script>
 <!-- ── Hardening: lazy render, virtual SLA, formatters, skeleton (Fase 5.2.3) ── -->
-<script src="js/pa-hardening.js"></script>
+<script defer src="js/pa-hardening.js"></script>
 <!-- ── Lifecycle: cleanup, timers, listeners, reconnect recovery (M3.2) ── -->
-<script src="js/pa-lifecycle.js"></script>
+<script defer src="js/pa-lifecycle.js"></script>
 <!-- ── Partial delivery system (Fase 5.3.1) ── -->
-<script src="js/capture-items.js"></script>
+<script defer src="js/capture-items.js"></script>
 
 <!-- ── Sistema de Autenticação PokeAlliance (Supabase) ──────────────── -->
 <!-- Ordem importa: supabase-client → session → auth → login (UI)        -->
 <!-- user-storage.js foi REMOVIDO — dados agora vêm do banco Supabase    -->
-<script src="js/session.js"></script>
-<script src="js/admin-metrics.js"></script>
-<script src="js/schema-compat.js"></script> 
-<script src="js/auth.js"></script>
-<script src="js/login.js"></script>
+<script defer src="js/session.js"></script>
+<script defer src="js/admin-metrics.js"></script>
+<script defer src="js/schema-compat.js"></script> 
+<script defer src="js/auth.js"></script>
+<script defer src="js/login.js"></script>
 <!-- ── Feature flag kanban: ativo, mas orders-ui.js restringe a admins ── -->
 <script>window.PA_KANBAN_ENABLED = true;</script>
 
-<script src="js/toast.js"></script>
-<script src="js/confirm-modal.js"></script>
-<script src="js/filipi-ui.js"></script>
+<script defer src="js/toast.js"></script>
+<script defer src="js/confirm-modal.js"></script>
+<script defer src="js/filipi-ui.js"></script>
 
 <!-- ── Sistema de Pedidos v2 ── -->
-<script src="js/orders-storage.js"></script>
-<script src="js/orders-progress.js"></script>
-<script src="js/notifications.js"></script>
-<script src="js/notifications-ui.js"></script> 
-<script src="js/orders-notifications.js"></script>
-<script src="js/queue-privacy.js"></script>
-<script src="js/orders-admin.js"></script>
-<script src="js/delivery-system.js"></script>
-<script src="js/delivery-financial.js"></script>
+<script defer src="js/orders-storage.js"></script>
+<script defer src="js/orders-progress.js"></script>
+<script defer src="js/notifications.js"></script>
+<script defer src="js/notifications-ui.js"></script> 
+<script defer src="js/orders-notifications.js"></script>
+<script defer src="js/queue-privacy.js"></script>
+<script defer src="js/orders-admin.js"></script>
+<script defer src="js/delivery-system.js"></script>
+<script defer src="js/delivery-financial.js"></script>
 
 <!-- ── Kanban (novos arquivos) ── -->
-<script src="js/orders-kanban.js"></script>
+<script defer src="js/orders-kanban.js"></script>
 
 <!-- ── UI de pedidos ── -->
 
-<script src="js/orders-ui.js"></script>
-<script src="js/orders-integration-patch.js"></script>
-<script src="js/pedidos.js"></script>
-<script src="js/realtime-manager.js"></script>
-<script src="js/pedidos-realtime.js"></script>
-<script src="js/sla-realtime-ui.js"></script>
+<script defer src="js/orders-ui.js"></script>
+<script defer src="js/orders-integration-patch.js"></script>
+<script defer src="js/pedidos.js"></script>
+<script defer src="js/realtime-manager.js"></script>
+<script defer src="js/pedidos-realtime.js"></script>
+<script defer src="js/sla-realtime-ui.js"></script>
 
-<script src="js/mobile-ux.js"></script>
-<script src="js/item-card-popup.js"></script>
-<script src="js/wiki-cards-upgrade.js"></script>
-<script src="js/quest-modal.js"></script>
+<script defer src="js/mobile-ux.js"></script>
+<script defer src="js/item-card-popup.js"></script>
+<script defer src="js/wiki-cards-upgrade.js"></script>
+<script defer src="js/quest-modal.js"></script>
 
 <!-- Renderizadores de módulos (ordem não importa entre si) -->
-<script src="js/tierlist.js"></script>
-<script src="js/tierlist-types.js"></script>
-<script src="js/tierlist-popup.js"></script>
-<script src="js/filter-smart.js"></script>
-<script src="js/wiki-boost.js"></script>
-<script src="js/wiki-star-ascension.js"></script>
-<script src="js/wiki-up150.js"></script>
-<script src="js/wiki-minimap.js"></script>
-<script src="js/wiki-medals.js"></script>
-<script src="js/wiki-medals-buffs.js"></script>
+<script defer src="js/tierlist.js"></script>
+<script defer src="js/tierlist-types.js"></script>
+<script defer src="js/tierlist-popup.js"></script>
+<script defer src="js/filter-smart.js"></script>
+<script defer src="js/wiki-boost.js"></script>
+<script defer src="js/wiki-star-ascension.js"></script>
+<script defer src="js/wiki-up150.js"></script>
+<script defer src="js/wiki-minimap.js"></script>
+<script defer src="js/wiki-medals.js"></script>
+<script defer src="js/wiki-medals-buffs.js"></script>
 
 <!-- Runtime de navegação — deve vir APÓS todos os renderizadores -->
-<script src="js/wiki-nav.js"></script>
-<script src="js/wiki-tasks.js"></script>
-<script src="js/wiki-modules-ext.js"></script>
-<script src="js/nav-runtime.js"></script>
+<script defer src="js/wiki-nav.js"></script>
+<script defer src="js/wiki-tasks.js"></script>
+<script defer src="js/wiki-modules-ext.js"></script>
+<script defer src="js/nav-runtime.js"></script>
 
-<script src="js/sw-register.js"></script>
+<script defer src="js/sw-register.js"></script>
+<script defer src="js/pwa-install.js"></script>
 
 
-<script src="js/balls-selector.js"></script>
-<script src="js/captura-redesign.js"></script>
-<script src="js/packages.logic.js"></script>
-<script src="js/packages.render.js"></script>
-<script src="js/items.logic.js"></script>
-<script src="js/items.render.js"></script>
+<script defer src="js/balls-selector.js"></script>
+<script defer src="js/captura-redesign.js"></script>
+<script defer src="js/packages.logic.js"></script>
+<script defer src="js/packages.render.js"></script>
+<script defer src="js/items.logic.js"></script>
+<script defer src="js/items.render.js"></script>
 <!-- ── Controllers de Fase 5 (ownership explícito de DOM) ── -->
-<script src="js/captura-controller.js"></script>
-<script src="js/items-controller.js"></script>
-<script src="js/admin-panel.js"></script>
+<script defer src="js/captura-controller.js"></script>
+<script defer src="js/items-controller.js"></script>
+<script defer src="js/admin-panel.js"></script>
 
 <!-- ── Sistema de Afiliados (arquivos novos) ── -->
-<script src="js/affiliate-service.js"></script>
-<script src="js/affiliate-realtime.js"></script>
-<script src="js/affiliate-dashboard.js"></script>
-<script src="js/affiliate-admin-panel.js"></script>
+<script defer src="js/affiliate-service.js"></script>
+<script defer src="js/affiliate-realtime.js"></script>
+<script defer src="js/affiliate-dashboard.js"></script>
+<script defer src="js/affiliate-admin-panel.js"></script>
 
 <!-- TAB: MARKETPLACE (HUB unificado: Vendendo / Procurando / Services) -->
 <div class="tab-content active" id="tab-marketplace">
@@ -984,7 +997,15 @@
     <button class="mk-filter-chip"        data-filter="pokemon">Pok&eacute;mon</button>
     <button class="mk-filter-chip"        data-filter="held"   >Helds</button>
     <button class="mk-filter-chip mk-filter-chip--mine" id="mk-chip-mine" data-scope="mine">Minhas</button>
+    <button class="mk-filter-chip mk-filter-chip--fav" id="mk-chip-fav" title="Meus favoritos">❤️ Favoritos</button>
     <input class="mk-search" id="mk-search" placeholder="Buscar Pok&eacute;mon...">
+    <select class="mk-sort" id="mk-sort" title="Ordenar" aria-label="Ordenar anúncios" onchange="if(window.PA&&PA.marketplace)PA.marketplace.setFilter('sort',this.value)">
+      <option value="recent">🕒 Recentes</option>
+      <option value="price_asc">💰 Menor preço</option>
+      <option value="price_desc">💎 Maior preço</option>
+      <option value="tier_desc">⭐ Tier (maior)</option>
+      <option value="tier_asc">Tier (menor)</option>
+    </select>
   </div>
 
   <div class="mk-filters mk-filters--balls" id="mk-ball-filters">
@@ -1074,25 +1095,25 @@
 </div><!-- /tab-wtb -->
 
 <!-- Marketplace M1 scripts -->
-<script src="js/marketplace-channels.js"></script>
-<script src="js/marketplace.js"></script>
-<script src="js/marketplace-render.js"></script>
-<script src="js/price-history.js"></script>
-<script src="js/reputation.js"></script>
-<script src="js/helds-catalog.js"></script>
-<script src="js/pokemon-selector.js"></script>
-<script src="js/marketplace-create.js"></script>
+<script defer src="js/marketplace-channels.js"></script>
+<script defer src="js/marketplace.js"></script>
+<script defer src="js/marketplace-render.js"></script>
+<script defer src="js/price-history.js"></script>
+<script defer src="js/reputation.js"></script>
+<script defer src="js/helds-catalog.js"></script>
+<script defer src="js/pokemon-selector.js"></script>
+<script defer src="js/marketplace-create.js"></script>
 <!-- Marketplace M3 -->
-<script src="js/marketplace-trade.js"></script>
-<script src="js/marketplace-chat.js"></script>
-<script src="js/marketplace-inbox.js"></script>
+<script defer src="js/marketplace-trade.js"></script>
+<script defer src="js/marketplace-chat.js"></script>
+<script defer src="js/marketplace-inbox.js"></script>
 <!-- Marketplace filter helpers: _mkFilter e _mkSearch definidos em marketplace.js -->
-<script src="js/wtb.js"></script>
-<script src="js/wtb-render.js"></script>
-<script src="js/wtb-create.js"></script>
-<script src="js/wtb-chat.js"></script>
-<script src="js/event-handlers.js"></script>
-<script src="js/services.js"></script>
-<script src="js/market-hub.js"></script>
+<script defer src="js/wtb.js"></script>
+<script defer src="js/wtb-render.js"></script>
+<script defer src="js/wtb-create.js"></script>
+<script defer src="js/wtb-chat.js"></script>
+<script defer src="js/event-handlers.js"></script>
+<script defer src="js/services.js"></script>
+<script defer src="js/market-hub.js"></script>
 </body>
 </html>

@@ -3515,31 +3515,31 @@ var _rocketsRendered = false;
 // ── Tipos por Pokémon (Gen 1-2 relevantes para o jogo) ───────────────────────
 var POKE_TYPES = {
   // Water
-  'feraligatr':['water'],'shiny feraligatr':['water'],'gyarados':['water','flying'],'shiny gyarados':['water','flying'],
+  'shiny feraligatr':['water'],'shiny gyarados':['water','flying'],
   'starmie':['water','psychic'],'shiny starmie':['water','psychic'],'politoad':['water'],'shiny politoad':['water'],
   'vaporeon':['water'],'shiny vaporeon':['water'],'lapras':['water','ice'],'shiny lapras':['water','ice'],
-  'slowking':['water','psychic'],'shiny slowking':['water','psychic'],'mantine':['water','flying'],'shiny mantine':['water','flying'],
+  'shiny slowking':['water','psychic'],'mantine':['water','flying'],'shiny mantine':['water','flying'],
   'qwilfish':['water','poison'],'shiny qwilfish':['water','poison'],'kingdra':['dragon','water'],'shiny kingdra':['dragon','water'],
-  'magmar':['fire'],'shiny magmar':['fire'],
+  'magmar':['fire'],
   // Fire
-  'charizard':['fire','flying'],'shiny charizard':['fire','flying'],'typhlosion':['fire'],'shiny typhlosion':['fire'],
-  'flareon':['fire'],'shiny flareon':['fire'],'ninetales':['fire'],'shiny ninetales':['fire'],
-  'rapidash':['fire'],'shiny rapidash':['fire'],'magcargo':['fire','rock'],'shiny magcargo':['fire','rock'],
-  'houndoom':['dark','fire'],'houndour':['dark','fire'],
+  'shiny charizard':['fire','flying'],'shiny typhlosion':['fire'],
+  'flareon':['fire'],'shiny flareon':['fire'],
+  'rapidash':['fire'],'shiny rapidash':['fire'],'shiny magcargo':['fire','rock'],
+  
   // Grass
-  'venusaur':['grass','poison'],'shiny venusaur':['grass','poison'],'meganium':['grass'],'shiny meganium':['grass'],
+  'shiny venusaur':['grass','poison'],'shiny meganium':['grass'],
   'exeggutor':['grass','psychic'],'shiny exeggutor':['grass','psychic'],'victreebel':['grass','poison'],'shiny victreebel':['grass','poison'],
   'vileplume':['grass','poison'],'shiny vileplume':['grass','poison'],'tangela':['grass'],'shiny tangela':['grass'],
   'bellossom':['grass'],'shiny bellossom':['grass'],'tangrowth':['grass'],'shiny tangrowth':['grass'],
   // Electric
   'raichu':['electric'],'shiny raichu':['electric'],'ampharos':['electric'],'shiny ampharos':['electric'],
   'electrode':['electric'],'shiny electrode':['electric'],'magneton':['electric','steel'],'shiny magneton':['electric','steel'],
-  'jolteon':['electric'],'shiny jolteon':['electric'],'electabuzz':['electric'],'luxray':['electric'],'shiny luxray':['electric'],
+  'jolteon':['electric'],'shiny jolteon':['electric'],'luxray':['electric'],'shiny luxray':['electric'],
   // Psychic
-  'alakazam':['psychic'],'hypno':['psychic'],'espeon':['psychic'],'shiny espeon':['psychic'],
+  'espeon':['psychic'],'shiny espeon':['psychic'],
   'xatu':['psychic','flying'],'shiny xatu':['psychic','flying'],'slowking':['water','psychic'],
   // Ghost/Dark
-  'gengar':['ghost','poison'],'shiny gengar':['ghost','poison'],'misdreavus':['ghost'],'shiny misdreavus':['ghost'],
+  'shiny gengar':['ghost','poison'],'shiny misdreavus':['ghost'],
   'haunter':['ghost','poison'],'shiny haunter':['ghost','poison'],'dusknoir':['ghost'],'shiny dusknoir':['ghost'],
   'umbreon':['dark'],'shiny umbreon':['dark'],
   // Fighting
@@ -3550,14 +3550,14 @@ var POKE_TYPES = {
   // Normal/Flying
   'pidgeot':['normal','flying'],'shiny pidgeot':['normal','flying'],'fearow':['normal','flying'],'shiny fearow':['normal','flying'],
   'dodrio':['normal','flying'],'shiny dodrio':['normal','flying'],'kangaskhan':['normal'],'shiny kangaskhan':['normal'],
-  'snorlax':['normal'],'shiny snorlax':['normal'],'muk':['poison'],'shiny muk':['poison'],
+  'shiny muk':['poison'],
   // Ground/Rock
   'golem':['rock','ground'],'shiny golem':['rock','ground'],'marowak':['ground'],'shiny marowak':['ground'],
-  'nidoking':['poison','ground'],'shiny nidoking':['poison','ground'],'nidoqueen':['poison','ground'],'shiny nidoqueen':['poison','ground'],
+  'shiny nidoking':['poison','ground'],'shiny nidoqueen':['poison','ground'],
   'rhydon':['ground','rock'],'shiny rhydon':['ground','rock'],'dugtrio':['ground'],'shiny dugtrio':['ground'],
-  'omastar':['rock','water'],'shiny omastar':['rock','water'],'kabutops':['rock','water'],'shiny kabutops':['rock','water'],
+  
   // Steel/Ice
-  'scizor':['bug','steel'],'shiny scizor':['bug','steel'],'steelix':['steel','ground'],'shiny steelix':['steel','ground'],
+  'shiny scizor':['bug','steel'],'steelix':['steel','ground'],'shiny steelix':['steel','ground'],
   'skarmory':['steel','flying'],'shiny skarmory':['steel','flying'],'onix':['rock','ground'],'shiny onix':['rock','ground'],
   'jynx':['ice','psychic'],'shiny jynx':['ice','psychic'],'pinsir':['bug'],'shiny pinsir':['bug'],
   // Poison/Bug
@@ -3568,15 +3568,15 @@ var POKE_TYPES = {
   'dragonair':['dragon'],'shiny dragonair':['dragon'],
   // Others
   'tauros':['normal'],'shiny tauros':['normal'],'persian':['normal'],'shiny persian':['normal'],
-  'gligar':['ground','flying'],'arcanine':['fire'],'shiny arcanine':['fire'],
-  'blastoise':['water'],'shiny blastoise':['water'],'pupitar':['rock','ground'],'shiny pupitar':['rock','ground'],
-  'murkrow':['dark','flying'],'shiny murkrow':['dark','flying'],'ninetales':['fire'],'shiny ninetales':['fire'],
+  'shiny arcanine':['fire'],
+  'shiny blastoise':['water'],
+  'shiny murkrow':['dark','flying'],'ninetales':['fire'],'shiny ninetales':['fire'],
   // Officer pokemons previously missing
   'forretress':['bug','steel'],'shiny forretress':['bug','steel'],
   'sudowoodo':['rock'],'shiny sudowoodo':['rock'],
   'sandslash':['ground'],'shiny sandslash':['ground'],
   'donphan':['ground'],'shiny donphan':['ground'],
-  'scyther':['bug','flying'],'shiny scyther':['bug','flying'],
+  'shiny scyther':['bug','flying'],
   'lanturn':['water','electric'],'shiny lanturn':['water','electric'],
   'shiny electabuzz':['electric'],
   'jumpluff':['grass','flying'],'shiny jumpluff':['grass','flying'],
@@ -3585,7 +3585,7 @@ var POKE_TYPES = {
   'dewgong':['water','ice'],'shiny dewgong':['water','ice'],
   'sneasel':['dark','ice'],'shiny sneasel':['dark','ice'],
   'shiny alakazam':['psychic'],
-  'mr. mime':['psychic'],'shiny mr. mime':['psychic'],
+  
   'shiny houndoom':['dark','fire'],
   'tyranitar':['rock','dark'],'shiny tyranitar':['rock','dark'],
   'weezing':['poison'],'shiny weezing':['poison'],
@@ -3593,7 +3593,7 @@ var POKE_TYPES = {
   // Pokémons dos Rockets faltando (adicionados para corrigir fraquezas/counters no card)
   // Thorn
   'golbat':['poison','flying'],'shiny golbat':['poison','flying'],
-  'hypno':['psychic'],'shiny hypno':['psychic'],
+  'shiny hypno':['psychic'],
   // Tempest
   'mr. mime':['psychic'],'shiny mr. mime':['psychic'],'shiny mime':['psychic'],
   'snorlax':['normal'],'shiny snorlax':['normal'],
@@ -3682,11 +3682,11 @@ var TYPE_COUNTERS = {
 var POKE_TYPE_MAIN = {
   'shiny ampharos':'electric','shiny arbok':'poison','shiny ariados':'bug','shiny bellossom':'grass',
   'shiny blastoise':'water','shiny charizard':'fire','shiny crobat':'poison','shiny donphan':'ground',
-  'shiny dugtrio':'ground','shiny espeon':'psychic','shiny exeggutor':'grass','shiny farfetch\'d':'normal',
+  'shiny dugtrio':'ground','shiny exeggutor':'grass','shiny farfetch\'d':'normal',
   'shiny fearow':'normal','shiny feraligatr':'water','shiny flareon':'fire','shiny golem':'rock',
   'shiny gyarados':'water','shiny hitmonchan':'fighting','shiny hitmonlee':'fighting','shiny hitmontop':'fighting',
   'shiny jolteon':'electric','shiny jynx':'ice','shiny kingdra':'dragon','shiny lapras':'water',
-  'shiny machamp':'fighting','shiny magcargo':'fire','shiny magneton':'electric','shiny mantine':'water',
+  'shiny magcargo':'fire','shiny magneton':'electric','shiny mantine':'water',
   'shiny marowak':'ground','shiny meganium':'grass','shiny misdreavus':'ghost','shiny muk':'poison',
   'shiny nidoking':'poison','shiny nidoqueen':'poison','shiny ninetales':'fire','shiny onix':'rock',
   'shiny persian':'normal','shiny pidgeot':'normal','shiny politoad':'water','shiny poliwrath':'water',

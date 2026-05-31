@@ -265,20 +265,20 @@
   // 6. _scanAndInject GUARD — previne execuções concorrentes
   // ══════════════════════════════════════════════════════════════════════
 
-  // Instala guard em SlaRealtimeUI._scanAndInject se disponível.
+  // Instala guard em SLARealtimeUI._scanAndInject se disponível.
   // A função já tem _slaTickerRunning por card, mas não tem guard global
   // contra chamadas simultâneas do próprio scan.
 
   global.document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-      if (typeof SlaRealtimeUI === 'undefined') return;
-      if (typeof SlaRealtimeUI.scan !== 'function') return;
-      if (SlaRealtimeUI.__pa_scan_guarded) return;
+      if (typeof SLARealtimeUI === 'undefined') return;
+      if (typeof SLARealtimeUI.scan !== 'function') return;
+      if (SLARealtimeUI.__pa_scan_guarded) return;
 
-      var _origScan = SlaRealtimeUI.scan;
+      var _origScan = SLARealtimeUI.scan;
       var _scanning = false;
 
-      SlaRealtimeUI.scan = function() {
+      SLARealtimeUI.scan = function() {
         if (_scanning) {
           _tel('duplicate_render_prevented', { source: 'sla-scan' });
           return; // já está rodando, ignora
@@ -287,8 +287,8 @@
         try { _origScan.apply(this, arguments); }
         finally { _scanning = false; }
       };
-      SlaRealtimeUI.__pa_scan_guarded = true;
-      _log('SlaRealtimeUI.scan guardado contra execuções concorrentes');
+      SLARealtimeUI.__pa_scan_guarded = true;
+      _log('SLARealtimeUI.scan guardado contra execuções concorrentes');
 
     }, 800);
   });
