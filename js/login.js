@@ -23,6 +23,14 @@ const AuthModal = (() => {
   let _lastRegisterAt = 0;
   const DEBOUNCE_MS = 2000;
 
+  // Escape de conteúdo de usuário (nickname/email) antes do innerHTML.
+  // Usa o helper central (escape-html.js); fallback local por segurança.
+  function _esc(s) {
+    if (window.PA && typeof window.PA.escapeHtml === 'function') return window.PA.escapeHtml(s);
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   // ── Injeção do HTML do modal ─────────────────────────────────────────────
   // O modal é criado dinamicamente para não poluir o HTML principal
   function _ensureModal() {
@@ -574,12 +582,12 @@ const AuthModal = (() => {
     body.innerHTML = `
       <div class="auth-account-profile">
         <div class="auth-account-avatar">
-          <span>${initials}</span>
+          <span>${_esc(initials)}</span>
           <span class="auth-status-dot"></span>
         </div>
         <div class="auth-account-info">
-          <div class="auth-account-nick">${user.nickname}</div>
-          <div class="auth-account-email">${user.email}</div>
+          <div class="auth-account-nick">${_esc(user.nickname)}</div>
+          <div class="auth-account-email">${_esc(user.email)}</div>
         </div>
       </div>
 

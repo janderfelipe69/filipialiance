@@ -16,6 +16,13 @@
 
 const OrdersAdmin = (() => {
 
+  // Escape de conteúdo antes do innerHTML (helper central + fallback).
+  function _esc(s) {
+    if (window.PA && typeof window.PA.escapeHtml === 'function') return window.PA.escapeHtml(s);
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   // ── Verificação de Permissão ─────────────────────────────────────────────
   // Fase 2 Passo 3.8: isCurrentUserAdmin() delega para Session.isAdmin().
   // isAdmin(user) mantido para compatibilidade da exportação pública.
@@ -901,7 +908,7 @@ const OrdersAdmin = (() => {
           <textarea class="oa-obs-input" placeholder="Notas internas (não visível ao cliente)..."
                     maxlength="500"
                     onblur="OrdersAdmin.saveObservation('${order.id}', this.value)"
-          >${order.observations || ''}</textarea>
+          >${_esc(order.observations || '')}</textarea>
         </div>
 
         <div class="oa-actions">
