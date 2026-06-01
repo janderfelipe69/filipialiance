@@ -172,4 +172,24 @@
     },
   });
 
+  /* ═══════════════════════════════════════════════════════════════
+     LINKED TASKS — hunts sequenciais (aba separada das Tasks NPC)
+  ═══════════════════════════════════════════════════════════════ */
+
+  WikiModules.register({
+    id:    'linkedtasks',
+    name:  'Linked Tasks',
+    icon:  '🔗',
+    desc:  'Hunts sequenciais + guia de combos',
+    color: '#f59e0b',
+    rgb:   '245,158,11',
+
+    render: function () {
+      _ensurePanel('linkedtasks');
+      if (typeof global.renderLinkedTasks === 'function') {
+        global.renderLinkedTasks();
+      }
+    },
+  });
+
 }(window));

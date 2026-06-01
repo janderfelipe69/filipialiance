@@ -260,7 +260,7 @@
     { id: 'sistemas', title: 'Sistemas',      icon: '⚙️', color: '212,160,255',
       mods: ['talents', 'starascension', 'medals', 'tokens', 'brokes'] },
     { id: 'dados',    title: 'Dados & Mundo', icon: '🗺️', color: '96,170,255',
-      mods: ['itens', 'tierlist', 'quests', 'npcs', 'hazard', 'tasks', 'minimap'] },
+      mods: ['itens', 'tierlist', 'quests', 'npcs', 'hazard', 'tasks', 'linkedtasks', 'minimap'] },
   ];
 
   /** Monta o HTML de um único card de módulo. */

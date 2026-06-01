@@ -498,7 +498,19 @@ window.openWikiLookup = function (itemName, e) {
   // ════════════════════════════════════════
   const wEntry = (typeof RAW_WIKI !== 'undefined')
     ? RAW_WIKI.find(en => en[0].toLowerCase() === nl) : null;
-  const wikiSources = wEntry ? wEntry.slice(1).filter(s => s && s.trim()) : [];
+  const manualSources = wEntry ? wEntry.slice(1).filter(s => s && String(s).trim()) : [];
+  // Drops da planilha oficial (drops-data.js) — índice item -> Pokémon
+  const sheetSources = (window.PA_DROPS_BY_ITEM && window.PA_DROPS_BY_ITEM[nl.trim()]) || [];
+  // União manual + planilha, dedup case-insensitive (manual tem prioridade de ordem)
+  const _seenLk = {};
+  const wikiSources = [];
+  manualSources.concat(sheetSources).forEach(function (p) {
+    if (!p || !String(p).trim()) return;
+    const k = String(p).toLowerCase();
+    if (_seenLk[k]) return;
+    _seenLk[k] = 1;
+    wikiSources.push(p);
+  });
 
   const dropsEl = document.getElementById('icp-drops');
 

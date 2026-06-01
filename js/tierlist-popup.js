@@ -439,6 +439,10 @@ function getSprites(name) {
     '.tlpop-map-slot.wildscape.has-map:hover{border-color:rgba(255,220,50,.3);background:rgba(255,220,50,.08)}',
     '.tlpop-map-slot.wildscape.has-map .tlpop-map-slot-label{color:rgba(255,220,50,.85)}',
     '.tlpop-loc-no-data{font-size:12px;color:rgba(255,255,255,.18);font-style:italic;padding:4px 0}',
+    '.tlpop-drops-section{padding:0 24px 4px;display:flex;flex-direction:column;gap:10px}',
+    '.tlpop-drops-grid{display:flex;flex-wrap:wrap;gap:7px}',
+    '.tlpop-drop-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1px solid rgba(96,170,255,.22);background:rgba(96,170,255,.08);font-family:Rajdhani,sans-serif;font-size:12.5px;font-weight:600;color:rgba(220,235,255,.9);letter-spacing:.3px;text-transform:capitalize}',
+    '.tlpop-drop-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:#60aaff;box-shadow:0 0 6px rgba(96,170,255,.6);flex-shrink:0}',
     '.tlpop-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:10600;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(8,15,30,.92);color:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .18s,color .18s,border-color .18s,transform .15s;backdrop-filter:blur(8px)}',
     '.tlpop-nav:hover{background:rgba(58,140,255,.18);border-color:rgba(58,140,255,.45);color:#60aaff;transform:translateY(-50%) scale(1.08)}',
     '.tlpop-nav:active{transform:translateY(-50%) scale(.95)}',
@@ -631,6 +635,33 @@ function buildLocSection(baseName) {
   return html;
 }
 
+function _tlpopEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+/* Seção de DROPS — itens que o Pokémon (forma exata, shiny inclusive) dropa.
+   Usa window.getDropsByName de drops-data.js. */
+function buildDropsSection(fullName) {
+  var drops = (typeof window.getDropsByName === 'function') ? window.getDropsByName(fullName) : [];
+  var html = '<div class="tlpop-loc-divider"></div>'
+    + '<div class="tlpop-drops-section">'
+    + '<div class="tlpop-loc-title">'
+    +   '<span class="tlpop-loc-title-icon">💧</span>'
+    +   '<span class="tlpop-loc-title-text">Drops</span>'
+    +   '<div class="tlpop-loc-title-line"></div>'
+    + '</div>';
+  if (!drops || !drops.length) {
+    html += '<div class="tlpop-loc-no-data">Nenhum drop cadastrado para este Pokémon.</div>';
+  } else {
+    html += '<div class="tlpop-drops-grid">'
+      + drops.map(function (it) { return '<span class="tlpop-drop-chip">' + _tlpopEsc(it) + '</span>'; }).join('')
+      + '</div>';
+  }
+  return html + '</div>';
+}
+
 function _openInternal(name, tier) {
   buildOverlay();
   var isShiny  = /^shiny\s+/i.test(name);
@@ -676,6 +707,7 @@ function _openInternal(name, tier) {
       (hasTypes ? buildEffBody(eff) :
         '<div class="tlpop-eff-section"><div class="tlpop-eff-title"><span class="tlpop-eff-title-icon">⚡</span><span class="tlpop-eff-title-text">Efetividades</span><div class="tlpop-eff-title-line"></div></div><div class="tlpop-eff-empty">Tipagem não cadastrada para este Pokémon.</div></div>') +
     '</div>' +
+    buildDropsSection(name) +
     buildLocSection(baseName) +
     '<div class="tlpop-footer">Efetividades de ' + baseName + (types ? ' &nbsp;·&nbsp; ' + types.map(function(t){return TYPE_LABELS[t];}).join(' / ') : '') + '</div>';
 

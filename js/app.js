@@ -789,17 +789,39 @@ let _wikiRendered = false;
 
 // Build wiki data from RAW_WIKI
 function buildWikiData() {
-  var seen = new Set();
-  return RAW_WIKI.map(function(entry) {
-    var name = entry[0];
-    var sources = entry.slice(1).filter(function(s) { return s && s.trim() !== ''; });
-    return { name: name, sources: sources };
-  }).filter(function(item) {
-    if (item.sources.length === 0) return false;
-    if (seen.has(item.name)) return false;
-    seen.add(item.name);
-    return true;
+  // Índice item(minúsculo) -> { name(exibição), sources, seen }.
+  // Base: RAW_WIKI (entradas manuais preservadas). Merge: PA_DROPS_BY_ITEM (planilha).
+  var byItem = {};
+  var order = [];
+  function ensure(displayName) {
+    var key = String(displayName).toLowerCase().trim();
+    if (!byItem[key]) { byItem[key] = { name: displayName, sources: [], seen: {} }; order.push(key); }
+    return byItem[key];
+  }
+  function addSource(rec, poke) {
+    if (!poke || !String(poke).trim()) return;          // ignora "" e 0
+    var k = String(poke).toLowerCase();
+    if (rec.seen[k]) return;
+    rec.seen[k] = 1;
+    rec.sources.push(poke);
+  }
+
+  // 1) RAW_WIKI — entradas manuais (preserva nome de exibição e ordem)
+  (typeof RAW_WIKI !== 'undefined' ? RAW_WIKI : []).forEach(function(entry) {
+    var rec = ensure(entry[0]);
+    entry.slice(1).forEach(function(s) { addSource(rec, s); });
   });
+
+  // 2) Planilha oficial — item -> Pokémon (drops-data.js)
+  var sheet = window.PA_DROPS_BY_ITEM || {};
+  Object.keys(sheet).forEach(function(itemKey) {
+    var rec = ensure(itemKey);
+    sheet[itemKey].forEach(function(p) { addSource(rec, p); });
+  });
+
+  return order
+    .map(function(k) { return { name: byItem[k].name, sources: byItem[k].sources }; })
+    .filter(function(item) { return item.sources.length > 0; });
 }
 
 function renderWiki() {

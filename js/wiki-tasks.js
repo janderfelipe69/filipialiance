@@ -296,5 +296,7 @@ global.WikiTasks = {
   },
 };
 global.renderTasks = renderTasks;
+/* Exposto p/ cruzamento de combos em wiki-linked-tasks.js */
+global.PA_NPC_TASKS = TASKS;
 
 }(window));
